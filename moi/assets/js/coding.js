@@ -98,10 +98,8 @@ function decodeHamming(recStr) {
   for (let i = 0; i<recStr.length; ++i) recBits[i]=parseInt(recStr[i],10);
   var correctedBits = recBits;
   let syndrome = matInnerVec(H,recBits,2);
-  if (syndrome !== [0,0,0]) {
-    var errIndx = findEqCol(H,syndrome);
-    correctedBits[errIndx] = 1 - recBits[errIndx]; 
-  }
+  var errIndx = findEqCol(H,syndrome);
+  correctedBits[errIndx] = 1 - recBits[errIndx];
   return [errIndx,correctedBits];
 }
  

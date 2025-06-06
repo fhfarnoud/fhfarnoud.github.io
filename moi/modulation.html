@@ -223,11 +223,14 @@
   <li>An HDMI cable</li>
 </ul>
 
-<p>Not every signal can be readily transmitted on every channel; it needs to be modulated first</p>
+<p>Not every signal can be readily transmitted on every channel; it needs to be modulated first.</p>
 
-<p><strong>Modulation</strong>, informally, is the act of fitting a signal into a channel.</p>
+<p><strong>Modulation</strong> is the act of fitting a signal into a channel.  It relies heavily
+on the spectral view of signals introduced in
+<a href="fourier.html">Frequency and spectrum</a>.</p>
 
-<p>But first let’s see how operations involving signals affect the spectrum. This will be central to our discussion of modulation</p>
+<p>Before diving into modulation, let’s see how basic operations on signals affect
+their spectra. This will be central to our discussion.</p>
 
 <h3 id="case-study-on-sinusoids">Case study on sinusoids</h3>
 
@@ -559,14 +562,17 @@ $x_{AM}\left( t \right) = \cos{(2\pi f_{c}t)}x_{m}\left( t \right)$ is referred 
 
 <p>More complicated than amplitude demodulation (envelope detection), but less noise sensitivity since signal is “always on”</p>
 
-<p>Analog frequency modulation (FM) digital frequency shift keying (FSK)</p>
+<p>Analog frequency modulation (FM) and its digital counterpart,
+frequency shift keying (FSK), modify the instantaneous frequency of the carrier.</p>
 
 <div style="float;"><img src=".//media/image56.png" width="250px"></div>
 <div style="float;"><img src=".//media/image57.png" width="250px"></div>
 
-<p>Two fixed frequencies: f~0~ for “0”, f~1~ for “1”</p>
-
-<p>Consider a simple binary message x~m~(t):</p>
+<p>In a basic FSK scheme two fixed frequencies are used,
+$f_0$ for binary 0 and $f_1$ for binary 1.
+Consider a simple binary message $x_m(t)$ consisting of zeros and ones.
+The modulated signal switches between $f_0$ and $f_1$ depending on the bit
+value.</p>
 
 <h2 id="phase-modulation">Phase modulation</h2>
 
@@ -584,7 +590,8 @@ $x_{AM}\left( t \right) = \cos{(2\pi f_{c}t)}x_{m}\left( t \right)$ is referred 
 
 <p>$\frac{d\theta\left( t \right)}{dt} = 2\pi\left( f_{C} + \frac{dx_{m}\left( t \right)}{dt} \right)$</p>
 
-<p>Analog phase modulation digital phase shift keying (PSK)</p>
+<p>Analog phase modulation leads to the digital technique known as
+phase shift keying (PSK).</p>
 
 <div style="float;"><img src=".//media/image58.png" width="250px"></div>
 <div style="float;"><img src=".//media/image59.png" width="250px"></div>
@@ -595,7 +602,7 @@ $x_{AM}\left( t \right) = \cos{(2\pi f_{c}t)}x_{m}\left( t \right)$ is referred 
 <p>Let’s take a closer look:
 $0 \rightarrow phase = 0,1 \rightarrow phase = 180$</p>
 
-<p>Quadratic phase shift keying</p>
+<p>Quadrature phase shift keying</p>
 
 <div style="float;"><img src=".//media/image60.png" width="250px"></div>
 <div style="float;"><img src=".//media/image61.png" width="250px"></div>
@@ -724,6 +731,25 @@ FSK and PSK)</p>
 <p>Sketch carrier modulated using QPSK for binary signal “10010011” using regular (not differential) encoding, assuming each dibit is modulated over a full period of x~C~(t)</p>
 
 <div style="float;"><img src=".//media/image68.png" width="250px"></div>
+
+<h3 id="modulation-summary">Modulation summary</h3>
+
+<ul>
+  <li>
+<strong>Amplitude modulation (AM/ASK)</strong> – multiply the carrier amplitude by the
+message signal.  Simple to demodulate but sensitive to noise.</li>
+  <li>
+<strong>Frequency modulation (FM/FSK)</strong> – vary the carrier frequency according to
+the message.  Offers better noise immunity at the cost of larger bandwidth.</li>
+  <li>
+<strong>Phase modulation (PM/PSK)</strong> – encode information in the phase of the
+carrier.  Modern systems combine amplitude and phase changes (e.g. QPSK and
+QAM) for higher data rates.</li>
+</ul>
+
+<p>See <a href="communications.html">Mathematics of Communications</a> for more on noise,
+capacity and how these modulation schemes are used in practice.</p>
+
 
       <footer>
         <br><br>
