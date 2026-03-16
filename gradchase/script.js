@@ -90,6 +90,11 @@ function parseDemo() {
     if (params.get('pacman') === '0') {
         monsterMode = false;
     }
+    // ?optimizer=vanilla|momentum|nesterov|rmsprop|adam sets default optimizer
+    const opt = params.get('optimizer');
+    if (opt && ['vanilla', 'momentum', 'nesterov', 'rmsprop', 'adam'].includes(opt)) {
+        gdMethod = opt;
+    }
 }
 
 function loadPreset(key) {
@@ -1202,6 +1207,10 @@ function init() {
     // Sync Pac-Man UI with monsterMode (may have been set by URL param)
     els.pacmanToggle.checked = monsterMode;
     els.pacmanSpeedRow.style.display = monsterMode ? 'flex' : 'none';
+
+    // Sync optimizer UI (may have been set by URL param)
+    els.methodSelect.value = gdMethod;
+    updateMomentumVisibility();
 }
 
 function updateFunctionDesc() {
