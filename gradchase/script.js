@@ -95,6 +95,12 @@ function parseDemo() {
     if (opt && ['vanilla', 'momentum', 'nesterov', 'rmsprop', 'adam'].includes(opt)) {
         gdMethod = opt;
     }
+    // ?batch=N sets mini-batch size
+    const batchParam = params.get('batch');
+    if (batchParam) {
+        const b = parseInt(batchParam);
+        if (b >= 1) batchSize = b;
+    }
 }
 
 function loadPreset(key) {
@@ -1211,6 +1217,12 @@ function init() {
     // Sync optimizer UI (may have been set by URL param)
     els.methodSelect.value = gdMethod;
     updateMomentumVisibility();
+
+    // Sync batch size UI (may have been set by URL param)
+    if (batchSize <= nPoints) {
+        els.batchSizeSlider.value = batchSize;
+        els.batchSizeValue.textContent = batchSize;
+    }
 }
 
 function updateFunctionDesc() {
