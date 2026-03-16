@@ -101,6 +101,12 @@ function parseDemo() {
         const b = parseInt(batchParam);
         if (b >= 1) batchSize = b;
     }
+    // ?lr=0.01 sets learning rate
+    const lrParam = params.get('lr');
+    if (lrParam) {
+        const lr = parseFloat(lrParam);
+        if (lr > 0) learningRate = lr;
+    }
 }
 
 function loadPreset(key) {
@@ -141,26 +147,26 @@ function loadPreset(key) {
 
     initialPosition = { a: state.a, b: state.b };
 
-    // Reset GD path
-    showGDPath = false;
+    // Reset GD path (but keep optimizer settings)
     gdPath = [];
-    els.gdToggle.checked = false;
     els.gdSteps.textContent = '--';
     els.gdFinal.textContent = '--';
     els.winBanner.classList.add('hidden');
     els.winBanner.style.background = '';
 
-    // Update UI sliders to match preset
+    // Update UI sliders to match preset (preserve batch size if user set it)
     els.lambdaSlider.value = lambda;
     els.lambdaValue.textContent = lambda.toFixed(1);
     els.sigmaSlider.value = noiseSigma;
     els.sigmaValue.textContent = noiseSigma.toFixed(1);
     els.npointsSlider.value = nPoints;
     els.npointsValue.textContent = nPoints;
-    batchSize = nPoints;
     els.batchSizeSlider.max = nPoints;
-    els.batchSizeSlider.value = nPoints;
-    els.batchSizeValue.textContent = nPoints;
+    if (batchSize > nPoints) {
+        batchSize = nPoints;
+    }
+    els.batchSizeSlider.value = batchSize;
+    els.batchSizeValue.textContent = batchSize;
 
     if (monsterMode) spawnMonster();
 
@@ -561,6 +567,7 @@ let beta2 = 0.999;
 let epsilon = 1e-8;
 let gdPath = [];
 let initialPosition = { a: 0, b: 0 };
+let colormapUserSet = false;
 
 // ============ HELPERS ============
 
@@ -1103,6 +1110,7 @@ function init() {
     // Colormap selector
     els.colormapSelect.addEventListener('change', (e) => {
         colormapMode = e.target.value;
+        colormapUserSet = true;
         buildD3Map();
         redraw();
         if (typeof update3DColors === 'function') update3DColors();
@@ -1223,6 +1231,10 @@ function init() {
         els.batchSizeSlider.value = batchSize;
         els.batchSizeValue.textContent = batchSize;
     }
+
+    // Sync learning rate UI (may have been set by URL param)
+    els.lrSlider.value = learningRate;
+    els.lrValue.textContent = learningRate.toFixed(3);
 }
 
 function updateFunctionDesc() {
@@ -1325,10 +1337,12 @@ function updateUIForFunction() {
         els.footerText.textContent = getDescription();
     }
 
-    // Set default colormap for this function
+    // Set default colormap only on function type change (not on New Game)
     const defaultCm = testFunctions[currentFunction].defaultColormap || 'clamped';
-    colormapMode = defaultCm;
-    els.colormapSelect.value = defaultCm;
+    if (colormapMode !== defaultCm && !colormapUserSet) {
+        colormapMode = defaultCm;
+        els.colormapSelect.value = defaultCm;
+    }
 }
 
 // Rebuild landscape after data/lambda change (keep position)
@@ -1339,9 +1353,7 @@ function rebuildLandscape() {
     hasWon = false;
     initialPosition = { a: state.a, b: state.b };
 
-    showGDPath = false;
     gdPath = [];
-    els.gdToggle.checked = false;
     els.gdSteps.textContent = '--';
     els.gdFinal.textContent = '--';
 
@@ -1462,9 +1474,7 @@ function randomStart() {
 
     initialPosition = { a: state.a, b: state.b };
 
-    showGDPath = false;
     gdPath = [];
-    els.gdToggle.checked = false;
     els.gdSteps.textContent = '--';
     els.gdFinal.textContent = '--';
 
