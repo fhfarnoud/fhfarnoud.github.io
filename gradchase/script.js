@@ -1352,6 +1352,7 @@ function rebuildLandscape() {
     updateFunctionDesc();
     buildD3Map();
     if (usesData()) buildScatterPlot();
+    if (showGDPath) computeGDPath();
     updateState();
     if (typeof rebuild3DPanel === 'function') rebuild3DPanel();
 }
@@ -1481,6 +1482,7 @@ function randomStart() {
         scatterFitPath = null;
     }
 
+    if (showGDPath) computeGDPath();
     updateState();
     if (typeof rebuild3DPanel === 'function') rebuild3DPanel();
 }
