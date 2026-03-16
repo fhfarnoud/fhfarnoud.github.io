@@ -86,6 +86,10 @@ function parseDemo() {
     if (demo && DEMO_PRESETS[demo]) {
         activeDemo = demo;
     }
+    // ?pacman=0 disables chase mode
+    if (params.get('pacman') === '0') {
+        monsterMode = false;
+    }
 }
 
 function loadPreset(key) {
@@ -1194,6 +1198,10 @@ function init() {
     // Set batch size slider max to match initial nPoints
     els.batchSizeSlider.max = nPoints;
     updateFunctionDesc();
+
+    // Sync Pac-Man UI with monsterMode (may have been set by URL param)
+    els.pacmanToggle.checked = monsterMode;
+    els.pacmanSpeedRow.style.display = monsterMode ? 'flex' : 'none';
 }
 
 function updateFunctionDesc() {
