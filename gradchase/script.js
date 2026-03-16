@@ -1068,10 +1068,8 @@ function init() {
     parseDemo();
     if (activeDemo) {
         loadPreset(activeDemo);
-        // Disable "New Data" button in demo mode
-        els.btnNewData.disabled = true;
-        els.btnNewData.style.opacity = '0.4';
-        els.btnNewData.title = 'Disabled in demo mode';
+        // After initial load, exit demo mode so New Game/New Data work normally
+        activeDemo = null;
     } else {
         randomStart();
     }
@@ -1084,20 +1082,13 @@ function init() {
     els.btnNewGame.addEventListener('click', randomStart);
 
     els.btnNewData.addEventListener('click', () => {
-        if (activeDemo) return;
         regenerateData();
         rebuildLandscape();
     });
 
-    // Function selector — changing function exits demo mode
     els.functionSelect.addEventListener('change', (e) => {
         currentFunction = e.target.value;
-        if (activeDemo) {
-            activeDemo = null;
-            els.btnNewData.disabled = false;
-            els.btnNewData.style.opacity = '';
-            els.btnNewData.title = '';
-        }
+        colormapUserSet = false; // allow default colormap for new function type
         randomStart();
     });
 
@@ -1424,12 +1415,6 @@ function randomizeBounds() {
 }
 
 function randomStart() {
-    // In demo mode, reload the preset instead of randomizing
-    if (activeDemo) {
-        loadPreset(activeDemo);
-        return;
-    }
-
     randomizeFuncParams();
 
     if (usesData()) regenerateData();
