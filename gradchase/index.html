@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GradChase</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Win banner (shown when minimum reached / Pac-Man catch) -->
+    <div id="win-banner" class="win-banner hidden">
+        <span id="banner-message">Minimum Found! Loss = <strong id="banner-val">0.000</strong> in <strong id="banner-steps">0</strong> steps. Keep exploring or </span>
+        <button id="btn-new-game" class="btn-inline">start over</button>
+    </div>
+
+    <div class="app-container">
+        <!-- Compact Header with inline stats -->
+        <header>
+            <div class="header-row">
+                <div class="header-title">
+                    <h1>GradChase</h1>
+                    <span class="header-subtitle" id="header-subtitle">Fit y = a&middot;x + b by navigating the loss surface</span>
+                </div>
+                <div class="stats-bar">
+                    <div class="stat-box">
+                        <span class="stat-label">Steps</span>
+                        <span class="stat-value" id="steps-val">0</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Current</span>
+                        <span class="stat-value highlight" id="current-f-val">0.000</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">Best</span>
+                        <span class="stat-value" id="min-f-val">0.000</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Game Panel -->
+        <main class="game-panel">
+            <!-- Game Canvas -->
+            <div class="canvas-wrapper">
+                <div id="svg-container"></div>
+                <canvas id="overlay-canvas" width="600" height="600"></canvas>
+            </div>
+
+            <!-- Real-time Info Bar -->
+            <div class="info-bar">
+                <div class="info-item">
+                    <span id="label-x">a (slope)</span>
+                    <strong id="pos-a">0.000</strong>
+                </div>
+                <div class="info-item">
+                    <span id="label-y">b (intercept)</span>
+                    <strong id="pos-b">0.000</strong>
+                </div>
+                <div class="info-item">
+                    <span id="label-c">MSE</span>
+                    <strong id="mse-val">0.000</strong>
+                </div>
+                <div class="info-item">
+                    <span id="label-d">&lambda;|a|</span>
+                    <strong id="l1-val">0.000</strong>
+                </div>
+            </div>
+
+            <!-- Drag info bar -->
+            <div class="info-bar drag-info">
+                <div class="info-item">
+                    <span>Step Size</span>
+                    <strong id="hover-step-size">--</strong>
+                </div>
+                <div class="info-item">
+                    <span id="label-dx">&Delta;a</span>
+                    <strong id="hover-da">--</strong>
+                </div>
+                <div class="info-item">
+                    <span id="label-dy">&Delta;b</span>
+                    <strong id="hover-db">--</strong>
+                </div>
+            </div>
+
+            <!-- Function Description -->
+            <p id="function-desc" class="function-desc">L(a,b) = MSE + &lambda;|a|</p>
+
+            <!-- Action Buttons -->
+            <div class="actions">
+                <button id="btn-restart" class="btn primary-btn">New Game</button>
+                <button id="btn-reveal" class="btn secondary-btn">Reveal Map</button>
+            </div>
+        </main>
+
+        <!-- Collapsible Settings -->
+        <div class="settings-container">
+            <!-- Game Settings -->
+            <section class="settings-section game open">
+                <div class="settings-header">
+                    <h3><span class="icon">🎮</span> Game</h3>
+                    <span class="chevron">▼</span>
+                </div>
+                <div class="settings-body">
+                    <div class="settings-content">
+                        <div class="control-row space-between">
+                            <label class="control-label" for="function-select">Function</label>
+                            <select id="function-select" class="select-control">
+                                <optgroup label="Regression">
+                                    <option value="lasso" selected>Lasso (L1)</option>
+                                    <option value="ridge">Ridge (L2)</option>
+                                    <option value="linear">Linear (OLS)</option>
+                                    <option value="huber">Huber (Robust)</option>
+                                </optgroup>
+                                <optgroup label="Classification">
+                                    <option value="logistic">Logistic (BCE)</option>
+                                    <option value="svm">SVM (Hinge)</option>
+                                </optgroup>
+                                <optgroup label="Neural">
+                                    <option value="neuron">Single Neuron</option>
+                                </optgroup>
+                                <optgroup label="Classic">
+                                    <option value="himmelblau">Himmelblau</option>
+                                    <option value="rosenbrock">Rosenbrock</option>
+                                    <option value="maze">Gaussian Maze</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div class="toggle-row">
+                            <label class="toggle-label" for="pacman-toggle">Chase Mode</label>
+                            <label class="toggle-switch yellow">
+                                <input type="checkbox" id="pacman-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="slider-row" id="pacman-speed-row">
+                            <label class="control-label" for="pacman-speed-slider">Speed</label>
+                            <input type="range" id="pacman-speed-slider" title="Pac-Man speed" class="slider-control yellow" min="0.1" max="0.8" step="0.01" value="0.3">
+                            <span id="pacman-speed-value" class="slider-value yellow">0.30</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Data Settings -->
+            <section id="data-section" class="settings-section data open">
+                <div class="settings-header">
+                    <h3><span class="icon">📊</span> Data</h3>
+                    <span class="chevron">▼</span>
+                </div>
+                <div class="settings-body">
+                    <div class="settings-content">
+                        <div id="scatter-container" class="scatter-container"></div>
+
+                        <div class="slider-row">
+                            <label class="control-label" for="sigma-slider">Noise (&sigma;)</label>
+                            <input type="range" id="sigma-slider" title="Noise standard deviation" class="slider-control orange" min="0" max="5" step="0.1" value="1.0">
+                            <span id="sigma-value" class="slider-value orange">1.0</span>
+                        </div>
+
+                        <div class="slider-row">
+                            <label class="control-label" for="lambda-slider">Penalty (&lambda;)</label>
+                            <input type="range" id="lambda-slider" title="Regularization penalty" class="slider-control" min="0" max="10" step="0.1" value="0.5">
+                            <span id="lambda-value" class="slider-value">0.5</span>
+                        </div>
+
+                        <div class="slider-row">
+                            <label class="control-label" for="npoints-slider">Points (n)</label>
+                            <input type="range" id="npoints-slider" title="Number of data points" class="slider-control" min="5" max="50" step="1" value="20">
+                            <span id="npoints-value" class="slider-value">20</span>
+                        </div>
+
+                        <div class="slider-row">
+                            <label class="control-label" for="batch-size-slider">Batch Size</label>
+                            <input type="range" id="batch-size-slider" title="Mini-batch size" class="slider-control orange" min="1" max="20" step="1" value="20">
+                            <span id="batch-size-value" class="slider-value orange">20</span>
+                        </div>
+
+                        <button id="btn-new-data" class="btn orange-btn" style="margin-top:0.25rem">New Data</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Display Settings -->
+            <section class="settings-section display open">
+                <div class="settings-header">
+                    <h3><span class="icon">🎨</span> Display</h3>
+                    <span class="chevron">▼</span>
+                </div>
+                <div class="settings-body">
+                    <div class="settings-content">
+                        <div class="control-row space-between">
+                            <label class="control-label" for="colormap-select">Colormap</label>
+                            <select id="colormap-select" class="select-control">
+                                <option value="clamped" selected>Clamped</option>
+                                <option value="sqrt">Square Root</option>
+                                <option value="log">Logarithmic</option>
+                                <option value="cyclic">Cyclic (banded)</option>
+                                <option value="twilight">Twilight</option>
+                                <option value="hsv">HSV Rainbow</option>
+                            </select>
+                        </div>
+
+                        <div class="slider-row">
+                            <label class="control-label" for="radius-slider">Spotlight</label>
+                            <input type="range" id="radius-slider" title="Spotlight radius" class="slider-control" min="0.3" max="3.0" step="0.1" value="0.6">
+                            <span id="radius-value" class="slider-value">0.6</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Optimizer Settings -->
+            <section class="settings-section optimizer">
+                <div class="settings-header">
+                    <h3><span class="icon">⚡</span> Auto Optimizer</h3>
+                    <span class="chevron">▼</span>
+                </div>
+                <div class="settings-body">
+                    <div class="settings-content">
+                        <div class="toggle-row">
+                            <label class="toggle-label" for="gd-toggle">Show Optimizer Path</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="gd-toggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="control-row space-between">
+                            <label class="control-label" for="method-select">Method</label>
+                            <select id="method-select" class="select-control">
+                                <option value="vanilla">Vanilla GD</option>
+                                <option value="momentum">Momentum</option>
+                                <option value="nesterov">Nesterov (NAG)</option>
+                                <option value="rmsprop">RMSprop</option>
+                                <option value="adam" selected>Adam</option>
+                            </select>
+                        </div>
+
+                        <div class="slider-row">
+                            <label class="control-label" for="lr-slider">Learning Rate</label>
+                            <input type="range" id="lr-slider" title="Learning rate" class="slider-control purple" min="0.001" max="0.2" step="0.001" value="0.05">
+                            <span id="lr-value" class="slider-value purple">0.050</span>
+                        </div>
+
+                        <div class="slider-row" id="momentum-row">
+                            <label class="control-label" for="beta-slider">Momentum (&beta;)</label>
+                            <input type="range" id="beta-slider" title="Momentum coefficient" class="slider-control purple" min="0.5" max="0.99" step="0.01" value="0.9">
+                            <span id="beta-value" class="slider-value purple">0.90</span>
+                        </div>
+
+                        <div class="optimizer-stats">
+                            Converged in <strong id="gd-steps">--</strong> steps to L = <strong id="gd-final">--</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3D View -->
+            <section class="settings-section view3d">
+                <div class="settings-header">
+                    <h3><span class="icon">🧊</span> 3D View</h3>
+                    <span class="chevron">▼</span>
+                </div>
+                <div class="settings-body">
+                    <div class="settings-content">
+                        <div id="three-container" class="three-container"></div>
+                        <div class="slider-row">
+                            <label class="control-label" for="z-scale-slider">Z Scale</label>
+                            <input type="range" id="z-scale-slider" title="3D vertical scale" class="slider-control" min="0.002" max="0.3" step="0.002" value="0.05">
+                            <span id="z-scale-value" class="slider-value">0.05</span>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="toggle-label" for="wireframe-toggle">Wireframe</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="wireframe-toggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <a id="link-3d" href="3d.html" target="_blank" class="btn secondary-btn" style="text-align:center; text-decoration:none;">Expand Full Screen</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p id="footer-text">Loss = (1/n)&Sigma;(y<sub>i</sub> &minus; a&middot;x<sub>i</sub> &minus; b)&sup2; + &lambda;&middot;|a| &mdash; The L1 penalty shrinks the slope toward zero.</p>
+        </footer>
+    </div>
+
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- Three.js (for inline 3D panel) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="functions.js"></script>
+    <script src="script.js"></script>
+    <script src="3d-panel.js"></script>
+
+    <!-- Collapsible sections toggle -->
+    <script>
+        document.querySelectorAll('.settings-header').forEach(header => {
+            header.addEventListener('click', () => {
+                header.parentElement.classList.toggle('open');
+            });
+        });
+    </script>
+</body>
+</html>

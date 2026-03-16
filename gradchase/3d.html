@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Function View</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', 'Segoe UI', sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            overflow: hidden;
+        }
+        #container { width: 100vw; height: 100vh; }
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(22, 27, 34, 0.92);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 320px;
+            backdrop-filter: blur(12px);
+        }
+        .info-panel h1 {
+            font-size: 1.4rem;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #58a6ff, #a371f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .info-panel p {
+            font-size: 0.85rem;
+            color: #8b949e;
+            margin-bottom: 8px;
+        }
+        .info-panel code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+        .controls {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-row label {
+            color: #8b949e;
+            min-width: 80px;
+            font-size: 0.85rem;
+        }
+        .control-row input[type="range"] { flex: 1; }
+        .control-row span {
+            color: #58a6ff;
+            min-width: 40px;
+            font-size: 0.85rem;
+        }
+        .control-row select {
+            background: rgba(0,0,0,0.3);
+            color: #e6edf3;
+            border: 1px solid rgba(88, 166, 255, 0.4);
+            border-radius: 4px;
+            padding: 0.35rem 0.5rem;
+            font-family: inherit;
+            cursor: pointer;
+            flex: 1;
+            font-size: 0.85rem;
+        }
+        .section-divider {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .section-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+        .section-stats {
+            font-size: 0.8rem;
+            color: #8b949e;
+        }
+        .section-stats span { font-size: 0.8rem; }
+        .btn-3d {
+            padding: 7px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            flex: 1;
+        }
+        .btn-3d.primary {
+            background: #a371f7;
+            color: white;
+        }
+        .btn-3d.secondary {
+            background: rgba(88, 166, 255, 0.2);
+            color: #58a6ff;
+            border: 1px solid rgba(88, 166, 255, 0.4);
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 12px;
+            color: #58a6ff;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="container"></div>
+
+    <div class="info-panel">
+        <h1 id="func-title">3D Surface</h1>
+        <p id="func-formula"><code>f(x,y)</code></p>
+        <p>Drag to rotate. Scroll to zoom.</p>
+
+        <div class="controls">
+            <div class="control-row">
+                <label>Z Scale:</label>
+                <input type="range" id="z-scale" min="0.001" max="0.2" step="0.001" value="0.05">
+                <span id="z-scale-val">0.05</span>
+            </div>
+            <div class="control-row">
+                <label>Wireframe:</label>
+                <input type="checkbox" id="wireframe" style="width: 18px; height: 18px;">
+            </div>
+            <div class="control-row">
+                <label>Zoom:</label>
+                <input type="range" id="zoom-slider" min="5" max="50" step="1" value="26">
+                <span id="zoom-val">26</span>
+            </div>
+            <div class="control-row">
+                <label>Resolution:</label>
+                <span id="resolution-val" style="color: #a371f7;">150×150</span>
+            </div>
+            <div class="control-row">
+                <label>Colors:</label>
+                <select id="colormap-select">
+                    <option value="sqrt" selected>Square Root</option>
+                    <option value="log">Logarithmic</option>
+                    <option value="clamped">Clamped</option>
+                    <option value="cyclic">Cyclic (banded)</option>
+                    <option value="twilight">Twilight</option>
+                    <option value="hsv">HSV Rainbow</option>
+                </select>
+            </div>
+
+            <!-- Player Path Section -->
+            <div id="player-path-section" class="section-divider" style="display: none;">
+                <div class="section-title" style="color: #58a6ff;">Your Path from 2D Game</div>
+                <div class="section-stats">
+                    Steps: <span id="player-steps" style="color: #58a6ff;">--</span> |
+                    Final: <span id="player-final" style="color: #58a6ff;">--</span>
+                </div>
+                <div class="control-row" style="margin-top: 6px;">
+                    <label>Show path:</label>
+                    <input type="checkbox" id="show-player-path" checked style="width: 18px; height: 18px;">
+                </div>
+            </div>
+
+            <!-- SGD Section -->
+            <div class="section-divider">
+                <div class="section-title" style="color: #a371f7;">SGD Visualization</div>
+                <div class="control-row">
+                    <label>Method:</label>
+                    <select id="method-select">
+                        <option value="vanilla">Vanilla GD</option>
+                        <option value="momentum">Momentum</option>
+                        <option value="adam" selected>Adam</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label>LR (η):</label>
+                    <input type="range" id="lr-slider" min="0.001" max="0.2" step="0.001" value="0.05">
+                    <span id="lr-val">0.05</span>
+                </div>
+                <div class="control-row">
+                    <button id="btn-run-sgd" class="btn-3d primary">Run SGD</button>
+                    <button id="btn-random-start" class="btn-3d secondary">Random Start</button>
+                </div>
+                <div class="section-stats" style="margin-top: 6px;">
+                    Steps: <span id="sgd-steps" style="color: #a371f7;">--</span> |
+                    Final: <span id="sgd-final" style="color: #a371f7;">--</span>
+                </div>
+            </div>
+        </div>
+
+        <a href="index.html" class="back-link">← Back to 2D Game</a>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Shared function definitions (mseComponent, mseGradient, testFunctions) -->
+    <script>
+        // Globals that functions.js expects — set defaults before loading
+        var currentFunction = 'himmelblau';
+        var funcParams = {
+            himmelblau: { a: 11, b: 7 },
+            rosenbrock: { a: 1, b: 100 },
+            maze: { baseLevel: 5, gaussians: [] }
+        };
+        var dataX = [];
+        var dataY = [];
+        var lambda = 0.5;
+    </script>
+    <script src="functions.js"></script>
+    <script>
+        // ============ LOAD GAME STATE ============
+
+        let gameState = null;
+        let playerPath = [];
+        let showPlayerPath = true;
+
+        // Load state from localStorage (saved by 2D game)
+        try {
+            const saved = localStorage.getItem('gdGameV5State');
+            if (saved) {
+                gameState = JSON.parse(saved);
+                currentFunction = gameState.currentFunction || 'himmelblau';
+                if (gameState.funcParams) funcParams = gameState.funcParams;
+                if (gameState.dataX) dataX = gameState.dataX;
+                if (gameState.dataY) dataY = gameState.dataY;
+                if (gameState.lambda != null) lambda = gameState.lambda;
+                if (gameState.playerPath) playerPath = gameState.playerPath;
+            }
+        } catch (e) {
+            console.log('No saved game state');
+        }
+
+        // Validate current function
+        if (!testFunctions[currentFunction]) currentFunction = 'himmelblau';
+        let funcData = testFunctions[currentFunction];
+
+        // Use bounds from game state for regression, or function defaults for classic
+        let activeBounds;
+        if (funcData.type !== 'classic' && gameState && gameState.bounds) {
+            activeBounds = gameState.bounds;
+        } else {
+            activeBounds = funcData.bounds || { xMin: -6, xMax: 6, yMin: -6, yMax: 6 };
+        }
+
+        const f = (x, y) => funcData.f(x, y);
+        const gradient = (x, y) => funcData.gradient(x, y);
+
+        // ============ COLORMAP ============
+
+        let colormapMode = 'sqrt';
+        let colorMin = 0, colorMax = 100;
+
+        const hsvToRgb = (h, s, v) => {
+            const i = Math.floor(h * 6);
+            const ff = h * 6 - i;
+            const p = v * (1 - s);
+            const q = v * (1 - ff * s);
+            const t = v * (1 - (1 - ff) * s);
+            let r, g, b;
+            switch (i % 6) {
+                case 0: r = v; g = t; b = p; break;
+                case 1: r = q; g = v; b = p; break;
+                case 2: r = p; g = v; b = t; break;
+                case 3: r = p; g = q; b = v; break;
+                case 4: r = t; g = p; b = v; break;
+                case 5: r = v; g = p; b = q; break;
+            }
+            return [r, g, b];
+        };
+
+        const twilightColor = (t) => {
+            const colors = [
+                [14/255,15/255,50/255], [80/255,40/255,100/255], [170/255,90/255,130/255],
+                [230/255,200/255,200/255], [200/255,140/255,100/255], [140/255,70/255,50/255], [14/255,15/255,50/255]
+            ];
+            const positions = [0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0];
+            let i = 0;
+            while (i < positions.length - 1 && t > positions[i + 1]) i++;
+            const t0 = positions[i], t1 = positions[i + 1];
+            const frac = (t - t0) / (t1 - t0);
+            const c0 = colors[i], c1 = colors[i + 1];
+            return [
+                c0[0] + frac * (c1[0] - c0[0]),
+                c0[1] + frac * (c1[1] - c0[1]),
+                c0[2] + frac * (c1[2] - c0[2])
+            ];
+        };
+
+        const getContourColor = (level) => {
+            const range = colorMax - colorMin;
+            const linearFrac = range > 0 ? Math.max(0, Math.min(1, (level - colorMin) / range)) : 0;
+            const NUM_BANDS = 10;
+            let frac;
+
+            switch (colormapMode) {
+                case 'cyclic':
+                    frac = (linearFrac * NUM_BANDS) % 1;
+                    return new THREE.Color((10 + frac * 40)/255, (25 + frac * 155)/255, (35 + frac * 185)/255);
+                case 'twilight': {
+                    frac = (linearFrac * NUM_BANDS) % 1;
+                    const [rt, gt, bt] = twilightColor(frac);
+                    return new THREE.Color(rt, gt, bt);
+                }
+                case 'hsv': {
+                    frac = (linearFrac * NUM_BANDS) % 1;
+                    const [rh, gh, bh] = hsvToRgb(frac, 0.7, 0.8);
+                    return new THREE.Color(rh, gh, bh);
+                }
+                case 'log':
+                    frac = range > 0 ? Math.log(1 + level - colorMin) / Math.log(1 + range) : 0;
+                    frac = Math.max(0, Math.min(1, frac));
+                    break;
+                case 'sqrt':
+                    frac = range > 0 ? Math.sqrt(Math.max(0, level - colorMin)) / Math.sqrt(range) : 0;
+                    frac = Math.max(0, Math.min(1, frac));
+                    break;
+                case 'clamped':
+                default:
+                    frac = linearFrac;
+            }
+            return new THREE.Color((10 + frac * 40)/255, (25 + frac * 155)/255, (35 + frac * 185)/255);
+        };
+
+        // ============ THREE.JS SCENE ============
+
+        const container = document.getElementById('container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0d1117);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(15, 15, 15);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enableZoom = true;
+        controls.zoomSpeed = 1.2;
+        controls.minDistance = 5;
+        controls.maxDistance = 50;
+
+        // Lighting
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight1.position.set(10, 20, 10);
+        scene.add(dirLight1);
+        const dirLight2 = new THREE.DirectionalLight(0x58a6ff, 0.3);
+        dirLight2.position.set(-10, 10, -10);
+        scene.add(dirLight2);
+
+        // Grid parameters
+        let gridResolution = 150;
+        let zScale = funcData.defaultZScale;
+        let lastResolution = gridResolution;
+        let rebuildTimeout = null;
+
+        function getAdaptiveResolution(distance) {
+            const t = Math.max(0, Math.min(1, (distance - 5) / 45));
+            return Math.round(300 - t * 220);
+        }
+
+        let surfaceGeometry = null;
+        let surfaceMesh = null;
+        const surfaceMaterial = new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            side: THREE.DoubleSide,
+            shininess: 30,
+            wireframe: false
+        });
+
+        let gridHelper = null;
+
+        // ============ SGD ============
+
+        let sgdPath = [];
+        let sgdPathLine = null;
+        let startSphere = null;
+        let endSphere = null;
+        let startPos = { x: 0, y: 0 };
+        let learningRate = 0.05;
+        let sgdMethod = 'adam';
+
+        function computeSGDPath() {
+            sgdPath = [];
+            let x = startPos.x, y = startPos.y;
+            const maxSteps = 500;
+            const tolerance = 1e-6;
+
+            let vx = 0, vy = 0;
+            let mx = 0, my = 0;
+            let sx = 0, sy = 0;
+            const beta = 0.9, beta2 = 0.999, eps = 1e-8;
+
+            for (let t = 1; t <= maxSteps; t++) {
+                const val = f(x, y);
+                sgdPath.push({ x, y, f: val });
+
+                const grad = gradient(x, y);
+                const gradMag = Math.sqrt(grad.gx * grad.gx + grad.gy * grad.gy);
+                if (gradMag < tolerance || val < tolerance) break;
+
+                const maxGrad = 100;
+                if (gradMag > maxGrad) {
+                    grad.gx = (grad.gx / gradMag) * maxGrad;
+                    grad.gy = (grad.gy / gradMag) * maxGrad;
+                }
+
+                let dx, dy;
+                switch (sgdMethod) {
+                    case 'vanilla':
+                        dx = learningRate * grad.gx;
+                        dy = learningRate * grad.gy;
+                        break;
+                    case 'momentum':
+                        vx = beta * vx + (1 - beta) * grad.gx;
+                        vy = beta * vy + (1 - beta) * grad.gy;
+                        dx = learningRate * vx;
+                        dy = learningRate * vy;
+                        break;
+                    case 'adam':
+                        mx = beta * mx + (1 - beta) * grad.gx;
+                        my = beta * my + (1 - beta) * grad.gy;
+                        sx = beta2 * sx + (1 - beta2) * grad.gx * grad.gx;
+                        sy = beta2 * sy + (1 - beta2) * grad.gy * grad.gy;
+                        const mxH = mx / (1 - Math.pow(beta, t));
+                        const myH = my / (1 - Math.pow(beta, t));
+                        const sxH = sx / (1 - Math.pow(beta2, t));
+                        const syH = sy / (1 - Math.pow(beta2, t));
+                        dx = learningRate * mxH / (Math.sqrt(sxH) + eps);
+                        dy = learningRate * myH / (Math.sqrt(syH) + eps);
+                        break;
+                    default:
+                        dx = learningRate * grad.gx;
+                        dy = learningRate * grad.gy;
+                }
+
+                x -= dx;
+                y -= dy;
+
+                if (x < activeBounds.xMin || x > activeBounds.xMax ||
+                    y < activeBounds.yMin || y > activeBounds.yMax) break;
+            }
+            return sgdPath;
+        }
+
+        function drawSGDPath() {
+            if (sgdPathLine) {
+                scene.remove(sgdPathLine);
+                sgdPathLine.geometry.dispose();
+                sgdPathLine.material.dispose();
+                sgdPathLine = null;
+            }
+            if (endSphere) { scene.remove(endSphere); endSphere = null; }
+            if (sgdPath.length < 2) return;
+
+            const points = sgdPath.map(pt => new THREE.Vector3(pt.x, pt.f * zScale + 0.15, -pt.y));
+            const geo = new THREE.BufferGeometry().setFromPoints(points);
+            sgdPathLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xa371f7, linewidth: 3 }));
+            scene.add(sgdPathLine);
+
+            const endPt = sgdPath[sgdPath.length - 1];
+            const endGeo = new THREE.SphereGeometry(0.2, 16, 16);
+            endSphere = new THREE.Mesh(endGeo, new THREE.MeshPhongMaterial({ color: 0xa371f7, emissive: 0x5030a0 }));
+            endSphere.position.set(endPt.x, endPt.f * zScale + 0.2, -endPt.y);
+            scene.add(endSphere);
+
+            document.getElementById('sgd-steps').textContent = sgdPath.length;
+            document.getElementById('sgd-final').textContent = endPt.f.toFixed(3);
+        }
+
+        function updateStartSphere() {
+            if (startSphere) scene.remove(startSphere);
+            const geo = new THREE.SphereGeometry(0.25, 16, 16);
+            startSphere = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: 0xff6b6b, emissive: 0x802020 }));
+            const fVal = f(startPos.x, startPos.y);
+            startSphere.position.set(startPos.x, fVal * zScale + 0.25, -startPos.y);
+            scene.add(startSphere);
+        }
+
+        function randomStartPos() {
+            const b = activeBounds;
+            const xR = b.xMax - b.xMin, yR = b.yMax - b.yMin;
+            startPos.x = b.xMin + 0.1 * xR + Math.random() * 0.8 * xR;
+            startPos.y = b.yMin + 0.1 * yR + Math.random() * 0.8 * yR;
+            updateStartSphere();
+
+            if (sgdPathLine) { scene.remove(sgdPathLine); sgdPathLine = null; }
+            if (endSphere) { scene.remove(endSphere); endSphere = null; }
+            document.getElementById('sgd-steps').textContent = '--';
+            document.getElementById('sgd-final').textContent = '--';
+        }
+
+        // ============ PLAYER PATH ============
+
+        let playerPathLine = null;
+        let playerStartSphere = null;
+        let playerEndSphere = null;
+
+        function drawPlayerPath() {
+            if (playerPathLine) {
+                scene.remove(playerPathLine);
+                playerPathLine.geometry.dispose();
+                playerPathLine.material.dispose();
+                playerPathLine = null;
+            }
+            if (playerStartSphere) { scene.remove(playerStartSphere); playerStartSphere = null; }
+            if (playerEndSphere) { scene.remove(playerEndSphere); playerEndSphere = null; }
+
+            if (!showPlayerPath || playerPath.length < 2) return;
+
+            const points = playerPath.map(pt => {
+                const fVal = f(pt.x, pt.y);
+                return new THREE.Vector3(pt.x, fVal * zScale + 0.15, -pt.y);
+            });
+
+            playerPathLine = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints(points),
+                new THREE.LineBasicMaterial({ color: 0x58a6ff, linewidth: 3 })
+            );
+            scene.add(playerPathLine);
+
+            const sp = playerPath[0];
+            playerStartSphere = new THREE.Mesh(
+                new THREE.SphereGeometry(0.3, 16, 16),
+                new THREE.MeshPhongMaterial({ color: 0x58a6ff, emissive: 0x2050a0 })
+            );
+            playerStartSphere.position.set(sp.x, f(sp.x, sp.y) * zScale + 0.3, -sp.y);
+            scene.add(playerStartSphere);
+
+            const ep = playerPath[playerPath.length - 1];
+            playerEndSphere = new THREE.Mesh(
+                new THREE.SphereGeometry(0.35, 16, 16),
+                new THREE.MeshPhongMaterial({ color: 0x00d4ff, emissive: 0x0080a0 })
+            );
+            playerEndSphere.position.set(ep.x, f(ep.x, ep.y) * zScale + 0.35, -ep.y);
+            scene.add(playerEndSphere);
+
+            document.getElementById('player-steps').textContent = playerPath.length;
+            document.getElementById('player-final').textContent = f(ep.x, ep.y).toFixed(3);
+        }
+
+        // ============ SURFACE ============
+
+        function createSurface() {
+            const b = activeBounds;
+            const geo = new THREE.BufferGeometry();
+            const vertices = [], colors = [], indices = [];
+            const stepX = (b.xMax - b.xMin) / gridResolution;
+            const stepY = (b.yMax - b.yMin) / gridResolution;
+
+            // Track value range for colormap
+            let vMin = Infinity, vMax = -Infinity;
+
+            for (let j = 0; j <= gridResolution; j++) {
+                for (let i = 0; i <= gridResolution; i++) {
+                    const x = b.xMin + i * stepX;
+                    const y = b.yMin + j * stepY;
+                    const z = f(x, y);
+                    vertices.push(x, z * zScale, -y);
+                    if (z < vMin) vMin = z;
+                    if (z > vMax) vMax = z;
+                }
+            }
+
+            colorMin = vMin;
+            colorMax = vMax;
+
+            // Assign colors now that we know the range
+            for (let j = 0; j <= gridResolution; j++) {
+                for (let i = 0; i <= gridResolution; i++) {
+                    const x = b.xMin + i * stepX;
+                    const y = b.yMin + j * stepY;
+                    const color = getContourColor(f(x, y));
+                    colors.push(color.r, color.g, color.b);
+                }
+            }
+
+            for (let j = 0; j < gridResolution; j++) {
+                for (let i = 0; i < gridResolution; i++) {
+                    const a = j * (gridResolution + 1) + i;
+                    indices.push(a, a + 1, a + (gridResolution + 1));
+                    indices.push(a + 1, a + (gridResolution + 1) + 1, a + (gridResolution + 1));
+                }
+            }
+
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geo.setIndex(indices);
+            geo.computeVertexNormals();
+            return geo;
+        }
+
+        function updateGridHelper() {
+            if (gridHelper) scene.remove(gridHelper);
+            const b = activeBounds;
+            const size = Math.max(b.xMax - b.xMin, b.yMax - b.yMin);
+            gridHelper = new THREE.GridHelper(size * 2, 24, 0x444444, 0x222222);
+            gridHelper.position.y = -0.1;
+            scene.add(gridHelper);
+        }
+
+        function buildScene() {
+            if (surfaceMesh) {
+                scene.remove(surfaceMesh);
+                surfaceGeometry.dispose();
+            }
+            surfaceGeometry = createSurface();
+            surfaceMesh = new THREE.Mesh(surfaceGeometry, surfaceMaterial);
+            scene.add(surfaceMesh);
+            updateGridHelper();
+
+            document.getElementById('func-title').textContent = funcData.name;
+            document.getElementById('func-formula').innerHTML = `<code>${funcData.getFormula()}</code>`;
+            document.getElementById('z-scale').value = zScale;
+            document.getElementById('z-scale-val').textContent = zScale.toFixed(3);
+        }
+
+        // Set colormap from game state
+        if (gameState && gameState.colormap) {
+            colormapMode = gameState.colormap;
+            document.getElementById('colormap-select').value = colormapMode;
+        }
+
+        // Initial resolution
+        gridResolution = getAdaptiveResolution(camera.position.length());
+        lastResolution = gridResolution;
+
+        buildScene();
+
+        // Show player path if available
+        if (playerPath.length >= 2) {
+            document.getElementById('player-path-section').style.display = 'block';
+            drawPlayerPath();
+        }
+
+        document.getElementById('resolution-val').textContent = `${gridResolution}×${gridResolution}`;
+        randomStartPos();
+
+        const axesHelper = new THREE.AxesHelper(8);
+        scene.add(axesHelper);
+
+        // ============ CONTROLS ============
+
+        document.getElementById('z-scale').addEventListener('input', (e) => {
+            zScale = parseFloat(e.target.value);
+            document.getElementById('z-scale-val').textContent = zScale.toFixed(3);
+            scene.remove(surfaceMesh);
+            surfaceGeometry.dispose();
+            surfaceGeometry = createSurface();
+            surfaceMesh = new THREE.Mesh(surfaceGeometry, surfaceMaterial);
+            scene.add(surfaceMesh);
+            if (startSphere) {
+                startSphere.position.y = f(startPos.x, startPos.y) * zScale + 0.25;
+            }
+            if (sgdPath.length > 0) drawSGDPath();
+            if (playerPath.length > 0) drawPlayerPath();
+        });
+
+        document.getElementById('wireframe').addEventListener('change', (e) => {
+            surfaceMaterial.wireframe = e.target.checked;
+        });
+
+        document.getElementById('colormap-select').addEventListener('change', (e) => {
+            colormapMode = e.target.value;
+            scene.remove(surfaceMesh);
+            surfaceGeometry.dispose();
+            surfaceGeometry = createSurface();
+            surfaceMesh = new THREE.Mesh(surfaceGeometry, surfaceMaterial);
+            scene.add(surfaceMesh);
+        });
+
+        document.getElementById('show-player-path').addEventListener('change', (e) => {
+            showPlayerPath = e.target.checked;
+            drawPlayerPath();
+        });
+
+        document.getElementById('method-select').addEventListener('change', (e) => {
+            sgdMethod = e.target.value;
+        });
+
+        document.getElementById('lr-slider').addEventListener('input', (e) => {
+            learningRate = parseFloat(e.target.value);
+            document.getElementById('lr-val').textContent = learningRate.toFixed(3);
+        });
+
+        document.getElementById('btn-run-sgd').addEventListener('click', () => {
+            computeSGDPath();
+            drawSGDPath();
+        });
+
+        document.getElementById('btn-random-start').addEventListener('click', randomStartPos);
+
+        const zoomSlider = document.getElementById('zoom-slider');
+        zoomSlider.addEventListener('input', (e) => {
+            const dist = parseFloat(e.target.value);
+            document.getElementById('zoom-val').textContent = Math.round(dist);
+            const dir = camera.position.clone().normalize();
+            camera.position.copy(dir.multiplyScalar(dist));
+            document.getElementById('resolution-val').textContent =
+                `${getAdaptiveResolution(dist)}×${getAdaptiveResolution(dist)}`;
+        });
+
+        controls.addEventListener('change', () => {
+            const dist = camera.position.length();
+            zoomSlider.value = Math.min(50, Math.max(5, dist));
+            document.getElementById('zoom-val').textContent = Math.round(dist);
+            const newRes = getAdaptiveResolution(dist);
+            document.getElementById('resolution-val').textContent = `${newRes}×${newRes}`;
+
+            if (Math.abs(newRes - lastResolution) >= 20) {
+                if (rebuildTimeout) clearTimeout(rebuildTimeout);
+                rebuildTimeout = setTimeout(() => {
+                    gridResolution = newRes;
+                    lastResolution = newRes;
+                    scene.remove(surfaceMesh);
+                    surfaceGeometry.dispose();
+                    surfaceGeometry = createSurface();
+                    surfaceMesh = new THREE.Mesh(surfaceGeometry, surfaceMaterial);
+                    scene.add(surfaceMesh);
+                }, 200);
+            }
+        });
+
+        // ============ ANIMATION ============
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
