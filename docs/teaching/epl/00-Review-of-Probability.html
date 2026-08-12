@@ -202,18 +202,19 @@ window.MathJax = {
   --n500:#a19786; --n600:#82796a; --n700:#645c50; --n800:#474238;
   --a100:#fff2eb; --a200:#ffe1d0; --a300:#ffc6a5; --a400:#f6a06b;
   --a500:#d67f48; --a600:#b2622d; --a700:#8c491a; --a800:#643312;
+  --acc:#c67139;                      /* sidebar accent: chips, levels, focus */
   --s100:#f0fae1; --s200:#e1eecc; --s400:#aebf92; --s500:#8fa073;
   --s700:#56633f; --s800:#3d472b;
   --rsm:8px; --rmd:16px; --rlg:28px;
   --fh:"Caprasimo",Georgia,serif; --fb:"Figtree",system-ui,sans-serif;
 }
-html{scroll-behavior:smooth}
-/* max-width:none beats pandoc's default body{max-width:36em}; the gap is
+html{scroll-behavior:smooth;background:var(--bg)}   /* body is width-capped */
+/* the page width beats pandoc's default body{max-width:36em}; the gap is
    column-only — a row gap would multiply across the TOC's 999 spanned rows */
-body{margin:0;max-width:none;background:var(--bg);color:var(--text);
-  font-family:var(--fb);font-size:18px;line-height:1.72;
-  display:grid;grid-template-columns:320px minmax(0,880px);
-  gap:0 48px;justify-content:center;padding:56px 40px 140px}
+body{margin:0 auto;box-sizing:border-box;max-width:1240px;background:var(--bg);
+  color:var(--text);font-family:var(--fb);font-size:18px;line-height:1.72;
+  display:grid;grid-template-columns:272px minmax(0,1fr);
+  gap:0 64px;padding:56px 40px 140px}
 body > *{grid-column:2}
 a{color:var(--a700);text-decoration:none}
 a:hover{color:var(--a800)}
@@ -322,42 +323,66 @@ details.lt-fold-solution > *:not(summary){margin-left:22px;margin-right:22px}
 /* defined terms */
 .lt-term{font-weight:600;color:var(--a800)}
 
-/* sidebar: THEME_JS docks pandoc's TOC and the foldbar into #lt-sidebar */
-#lt-sidebar{grid-column:1;grid-row:1/span 999;position:sticky;top:24px;
-  align-self:start;max-height:calc(100vh - 48px);min-height:0;
-  display:flex;flex-direction:column;gap:14px}
-nav#TOC{flex:1 1 auto;min-height:0;overflow-y:auto;
-  font-size:15px;line-height:1.4}
-nav#TOC ul{list-style:none;padding:0;margin:0}
+/* sidebar: THEME_JS docks the chapter head, pandoc's TOC and the reveal box
+   into #lt-sidebar. Only the TOC scrolls; the reveal box is pinned to the
+   bottom of the viewport however long the contents run. */
+#lt-sidebar{grid-column:1;grid-row:1/span 999;position:sticky;top:78px;
+  align-self:start;height:calc(100vh - 102px);min-height:0;overflow:hidden;
+  display:flex;flex-direction:column;gap:18px;padding:8px 0 24px}
+#lt-chaphead{flex:0 0 auto}
+#lt-chaphead a{display:block;color:inherit}
+#lt-chaphead .lt-chaplabel{display:block;font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--n600);margin-bottom:4px}
+#lt-chaphead .lt-chaptitle{display:block;font-family:var(--fh);font-size:20px;
+  line-height:1.15;color:var(--n800)}
+
+/* two visual levels only: a numbered section, and everything under it */
+nav#TOC{flex:1 1 auto;min-height:0;overflow-y:auto;line-height:1.35;
+  display:flex;flex-direction:column;gap:1px}
+nav#TOC ul{list-style:none;padding:0;margin:0;
+  display:flex;flex-direction:column;gap:1px}
 nav#TOC li{margin:0}
-nav#TOC a{display:flex;gap:10px;padding:8px 14px;border-radius:999px;
-  color:var(--n800)}
-nav#TOC ul ul a{padding:6px 14px;font-size:14px;color:var(--n700)}
+nav#TOC a{display:flex;gap:10px;padding:5px 12px;border-radius:999px;
+  font-size:14px;font-weight:700;color:var(--n800);text-decoration:none}
+nav#TOC ul ul a{padding:3px 12px 3px 44px;font-size:13px;font-weight:400;
+  color:var(--n700)}
 nav#TOC a:hover{background:var(--n200)}
 nav#TOC a.lt-active{background:var(--a100);color:var(--a800)}
-/* rows all start at the left edge — the longer subsection numbers indent
-   their titles naturally; the number itself never line-breaks */
-nav#TOC .lt-secnum{min-width:26px;flex:0 0 auto;white-space:nowrap;
+nav#TOC a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+/* the section number is a fixed-width leading column, so titles line up;
+   below that level the 44px indent carries the hierarchy instead */
+nav#TOC .lt-secnum{min-width:24px;flex:0 0 auto;white-space:nowrap;
   color:var(--a600)}
+nav#TOC ul ul .lt-secnum{display:none}
 
-/* reveal controls, docked under the TOC */
-#lt-foldbar{flex:0 0 auto;display:flex;flex-wrap:wrap;
-  gap:5px;align-items:center;padding:10px 14px 12px;
-  background:var(--n100);border-radius:var(--rmd);border:0;
-  font-size:13px;color:var(--n700)}
-#lt-foldbar .lt-chip{cursor:pointer;font:inherit;padding:3px 10px;
-  border-radius:999px;border:1.5px solid var(--n300);background:transparent;
-  color:var(--n700);transition:background .15s,color .15s}
-#lt-foldbar .lt-chip[aria-pressed="true"]{background:var(--a500);
-  border-color:var(--a500);color:var(--n100)}
-#lt-foldbar .lt-levels{display:inline-flex;gap:2px;padding:2px;
+/* reveal box: one panel at the foot of the sidebar */
+#lt-foldbar{flex:0 0 auto;margin-top:auto;display:flex;flex-direction:column;
+  gap:8px;padding:12px 14px;background:var(--n100);border-radius:var(--rmd);
+  border:0;font-size:12px;line-height:1.3;color:var(--n700)}
+#lt-foldbar .lt-fb-head{display:flex;justify-content:space-between;
+  align-items:baseline}
+#lt-foldbar .lt-label{font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--n600)}
+#lt-foldbar .lt-acts{display:flex;gap:10px}
+#lt-foldbar .lt-act{cursor:pointer;font:inherit;font-size:12px;padding:0;
+  border:0;background:transparent;color:var(--a700);text-decoration:underline;
+  text-underline-offset:3px}
+#lt-foldbar .lt-chips{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+#lt-foldbar .lt-chip{cursor:pointer;font:inherit;font-size:12px;padding:5px 6px;
+  text-align:center;border-radius:999px;border:2px solid var(--n300);
+  background:transparent;color:var(--n700);
+  transition:background .15s ease,color .15s ease}
+#lt-foldbar .lt-chip[aria-pressed="true"]{background:var(--acc);
+  border-color:var(--acc);color:var(--n100)}
+#lt-foldbar .lt-collapse{display:flex;align-items:center;gap:8px;
+  color:var(--n600)}
+#lt-foldbar .lt-levels{display:inline-flex;flex:1;gap:3px;padding:2px;
   background:var(--bg);border-radius:999px}
-#lt-foldbar .lt-lvl{cursor:pointer;font:inherit;font-size:12px;padding:2px 9px;
-  border:0;border-radius:999px;background:transparent;color:var(--n700)}
-#lt-foldbar .lt-lvl[aria-pressed="true"]{background:var(--a500);color:var(--n100)}
-#lt-foldbar .lt-label{width:100%;font-size:10px;letter-spacing:.12em;
-  margin-top:2px;text-transform:uppercase;color:var(--n600)}
-#lt-foldbar .lt-label:first-child{margin-top:0}
+#lt-foldbar .lt-lvl{flex:1;cursor:pointer;font:inherit;font-size:12px;
+  padding:3px 0;border:0;border-radius:999px;background:transparent;
+  color:var(--n700)}
+#lt-foldbar .lt-lvl[aria-pressed="true"]{background:var(--acc);color:var(--n100)}
+#lt-foldbar :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
 /* tables, figures, math */
 table{width:100%;border-collapse:collapse;font-size:17px;margin:0 0 12px}
@@ -376,9 +401,10 @@ mjx-container{overflow-x:auto;overflow-y:hidden}
 #footnotes{font-size:15px;color:var(--n700);margin-top:56px}
 @media print{body{display:block}#lt-sidebar,nav#TOC,#lt-foldbar{display:none}
   details.lt-fold > *{display:revert !important}}
-@media (max-width:1000px){body{grid-template-columns:minmax(0,1fr)}
+@media (max-width:1000px){body{grid-template-columns:minmax(0,1fr);padding:32px 20px 100px}
   body > *{grid-column:1}#lt-sidebar{position:static;grid-column:1;grid-row:auto;
-  max-height:none}}
+  height:auto;overflow:visible}nav#TOC{overflow:visible}
+  #lt-foldbar{margin-top:0}}
 </style><script>
 (function(){
   var KINDS=['example','exercise','solution','proof'];
@@ -488,7 +514,7 @@ mjx-container{overflow-x:auto;overflow-y:hidden}
     });
   }
 
-  /* ---- scroll spy on the TOC ---- */
+  /* ---- scroll spy on the TOC (last heading above the 140px line) ---- */
   function spy(){
     var cur=null;
     q('h1[id],h2[id],h3[id]').forEach(function(h){
@@ -496,24 +522,33 @@ mjx-container{overflow-x:auto;overflow-y:hidden}
     q('nav#TOC a').forEach(function(a){
       a.classList.toggle('lt-active',a.getAttribute('href')==='#'+cur);});
   }
+  var spying=false;
+  function spySoon(){                      /* one spy per animation frame */
+    if(spying) return; spying=true;
+    requestAnimationFrame(function(){spying=false;spy();});
+  }
 
   document.addEventListener('click',function(ev){
-    var c=ev.target.closest('.lt-chip'),l=ev.target.closest('.lt-lvl');
+    var c=ev.target.closest('.lt-chip'),l=ev.target.closest('.lt-lvl'),
+        a=ev.target.closest('.lt-act');
     if(c){
       var on=c.getAttribute('aria-pressed')!=='true';
       if(c.hasAttribute('data-opt')){
         setOptional(on); remember(function(p){p.opt=on;});
-      } else if(c.hasAttribute('data-all')){
-        KINDS.forEach(function(k){setKind(k,on);rememberKind(k,on);});
       } else {
         var k=c.getAttribute('data-env'); setKind(k,on); rememberKind(k,on);
       }
+    }
+    if(a){                                   /* show all / hide all */
+      var all=a.getAttribute('data-all')==='1';
+      KINDS.forEach(function(k){setKind(k,all);rememberKind(k,all);});
+      setOptional(all); remember(function(p){p.opt=all;});
     }
     if(l){var n=+l.getAttribute('data-lvl');
       setLevel(n); remember(function(p){p.lvl=n;});}
   });
   document.addEventListener('toggle',syncChips,true);
-  window.addEventListener('scroll',spy,{passive:true});
+  window.addEventListener('scroll',spySoon,{passive:true});
 
   function ltExpandTo(el){for(var d=el;d;d=d.parentElement)
     if(d.tagName==='DETAILS') d.open=true;}
@@ -528,10 +563,12 @@ mjx-container{overflow-x:auto;overflow-y:hidden}
       el.scrollIntoView();}
   }
   function dockSidebar(){
-    var toc=document.querySelector('nav#TOC'),fb=document.getElementById('lt-foldbar');
+    var toc=document.querySelector('nav#TOC'),fb=document.getElementById('lt-foldbar'),
+        ch=document.getElementById('lt-chaphead');
     if(!toc||toc.parentElement.id==='lt-sidebar') return;
     var sb=document.createElement('div'); sb.id='lt-sidebar';
     toc.parentNode.insertBefore(sb,toc);
+    if(ch) sb.appendChild(ch);              /* chapter label + title, on top */
     sb.appendChild(toc); if(fb) sb.appendChild(fb);
   }
   function init(){
@@ -555,11 +592,8 @@ mjx-container{overflow-x:auto;overflow-y:hidden}
 .book-nav a:hover { color: #643312; text-decoration: underline; }
 .book-nav .spacer { margin-left: auto; }
 </style></head>
-<body><nav class="book-nav top"><a href="index.html">&#9776; Contents</a><span class="spacer"></span><a href="01-Probability-Inference-and-Learning.pdf">1. Probability in Reasoning, Inference, and Learning &rarr;</a></nav><div id="lt-foldbar"><span class="lt-label">Reveal</span><button class="lt-chip" data-env="exercise" aria-pressed="true">Exercises</button><button class="lt-chip" data-env="example" aria-pressed="true">Examples</button><button class="lt-chip" data-env="solution" aria-pressed="true">Solutions</button><button class="lt-chip" data-env="proof" aria-pressed="true">Proofs</button><button class="lt-chip" data-opt aria-pressed="true">Optional †</button><span class="lt-label">Collapse</span><span class="lt-levels"><button class="lt-lvl" data-lvl="1" aria-pressed="false">1</button><button class="lt-lvl" data-lvl="2" aria-pressed="false">2</button><button class="lt-lvl" data-lvl="3" aria-pressed="false">3</button><button class="lt-lvl" data-lvl="0" aria-pressed="true">none</button></span></div>
-<nav id="TOC" role="doc-toc">
-<ul>
-<li><a href="#chap:review" id="toc-chap:review"><span class="lt-secnum">0</span> Review of
-Probability</a>
+<body><nav class="book-nav top"><a href="index.html">&#9776; Contents</a><span class="spacer"></span><a href="01-Probability-Inference-and-Learning.pdf">1. Probability in Reasoning, Inference, and Learning &rarr;</a></nav><div id="lt-foldbar"><div class="lt-fb-head"><span class="lt-label">Reveal</span><span class="lt-acts"><button class="lt-act" data-all="1">show all</button><button class="lt-act" data-all="0">hide all</button></span></div><div class="lt-chips"><button class="lt-chip" data-env="example" aria-pressed="true">Examples</button><button class="lt-chip" data-env="exercise" aria-pressed="true">Exercises</button><button class="lt-chip" data-env="solution" aria-pressed="true">Solutions</button><button class="lt-chip" data-env="proof" aria-pressed="true">Proofs</button><button class="lt-chip" data-opt aria-pressed="true">Optional †</button></div><div class="lt-collapse"><span>collapse</span><span class="lt-levels"><button class="lt-lvl" data-lvl="1" aria-pressed="false">1</button><button class="lt-lvl" data-lvl="2" aria-pressed="false">2</button><button class="lt-lvl" data-lvl="3" aria-pressed="false">3</button><button class="lt-lvl" data-lvl="0" aria-pressed="true">none</button></span></div></div>
+<div id="lt-chaphead"><a href="#chap:review"><span class="lt-chaplabel">Chapter 0</span><span class="lt-chaptitle">Review of Probability</span></a></div><nav id="TOC" role="doc-toc">
 <ul>
 <li><a href="#what-is-probability" id="toc-what-is-probability"><span class="lt-secnum">0.1</span> What is
 probability?</a>
@@ -614,7 +648,6 @@ inequality</a></li>
 id="toc-chebyshev-inequality"><span class="lt-secnum">0.7.2</span> Chebyshev inequality</a></li>
 </ul></li>
 <li><a href="#references" id="toc-references">References</a></li>
-</ul></li>
 </ul>
 </nav>
 <h1 id="chap:review" class="lt-para" data-para="1"><span class="lt-secnum">0</span> Review of Probability</h1>
