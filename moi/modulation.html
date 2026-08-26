@@ -277,20 +277,21 @@ frequency range the channel can carry (channel bandwidth or channel passband). T
 the violin recording from <a href="representation.html">Representing information</a>:</p>
 
 <audio controls="" preload="metadata" style="display:block; margin:4px 0 10px 0;">
-  <source src="assets/audio/mo-violin.wav" type="audio/wav"></source>
+  <source src="assets/audio/violin.ogg" type="audio/ogg"></source>
+  <source src="assets/audio/violin.wav" type="audio/wav"></source>
 Your browser does not support the audio element.
 </audio>
 
-<p>Here is its spectrum, measured from that very recording:</p>
+<p>Here is its spectrum, averaged over the whole $45$ second recording:</p>
 
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-violin-spectrum.svg" width="460px" alt=""></div>
 
 <p>The vertical scale is in decibels, because a linear one hides exactly the part worth
 seeing: the content thins out steadily rather than stopping. It is $40$ dB down by
-about $6$ kHz and $60$ dB down by about $12$ kHz, and then falls off a cliff at
+about $6$ kHz and $60$ dB down by about $14$ kHz, and then falls off a cliff at
 around $15$ kHz — that cliff is not the violin, it is the lossy compression the
 recording went through, which threw away what it judged inaudible. Measured by
-energy, $93\%$ of this recording sits below $1$ kHz and $99.8\%$ below $5$ kHz.</p>
+energy, $93\%$ of this recording sits below $1$ kHz and $99.9\%$ below $5$ kHz.</p>
 
 <p>So the signal occupies a band a few kilohertz wide, starting at zero. Zooming in on
 that part, on an ordinary scale, shows where it all is and the harmonic structure of
@@ -324,8 +325,158 @@ Other frequency ranges may have better signal-to-noise ratio or less attenuation
 
 <p>Make use of all available spectrum by spreading different signals throughout.</p>
 
-<p>Modulation is important for digital signals because unmodulated digital signals have sharp changes resulting in high bandwidth requirement if transmitted in baseband</p>
-<div style="float;"><img src=".//media/image34.png" width="250px"></div>
+<p>Modulation is important for digital signals because unmodulated digital signals have
+sharp changes resulting in high bandwidth requirement if transmitted in baseband.</p>
+
+<h3 id="seeing-where-a-spectrum-comes-from">Seeing where a spectrum comes from</h3>
+
+<p>Everything above rests on one operation: multiplying a signal by a complex
+exponential and integrating. It is worth watching that happen.</p>
+
+<p>Pick a signal below, then drag the winding frequency $f$. The middle panel plots
+$x(t)e^{-i2\pi ft}$, which is the signal wound around the origin at $f$ turns per
+second, and the orange arrow is the integral of that wound curve — its centre
+of mass. The right panel is $|X(f)|$, with the same orange value marked at the
+frequency you have chosen.</p>
+
+<p>When $f$ does not match anything in the signal, the wound curve is spread evenly
+around the origin, its centre of mass sits near zero, and the spectrum is low there.
+When $f$ hits a frequency the signal contains, the curve piles up on one side, the
+arrow grows, and the spectrum has a peak. That is all the Fourier transform is doing.</p>
+
+<div class="winding" style="margin: 12px 0 18px 0;">
+  <div style="margin-bottom:8px;">
+    <label for="wSig"><strong>Signal</strong> $x(t)$:</label>
+    <select id="wSig" style="font-size:15px; padding:2px 4px;">
+      <option value="cos5">cos(2π·5t)</option>
+      <option value="cos5p12">cos(2π·5t) + cos(2π·12t)</option>
+      <option value="prod" selected>cos(2π·5t) · cos(2π·20t)  (a modulated tone)</option>
+      <option value="am">(1 + 0.7cos(2π·5t)) · cos(2π·20t)  (AM)</option>
+      <option value="square">square wave, 10 Hz</option>
+      <option value="pulse">a single pulse</option>
+    </select>
+      
+    <label for="wF"><strong>winding frequency</strong> $f$ =</label>
+    <span id="wFval" style="display:inline-block; min-width:3.2em; font-family:monospace;">5.0</span> Hz
+    <input id="wF" type="range" min="0" max="30" step="0.1" value="5" style="vertical-align:middle; width:230px;">
+  </div>
+  <div>
+    <div style="display:inline-block; vertical-align:top; margin-right:10px;">
+      <div style="text-align:center; font-size:14px;">$x(t)$</div>
+      <div id="wBoxT" class="jxgbox" style="width:270px; height:230px;"></div>
+    </div>
+    <div style="display:inline-block; vertical-align:top; margin-right:10px;">
+      <div style="text-align:center; font-size:14px;">$x(t)\,e^{-i2\pi f t}$ and its integral</div>
+      <div id="wBoxZ" class="jxgbox" style="width:270px; height:230px;"></div>
+    </div>
+    <div style="display:inline-block; vertical-align:top;">
+      <div style="text-align:center; font-size:14px;">$|X(f)|$</div>
+      <div id="wBoxF" class="jxgbox" style="width:270px; height:230px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var N = 900, T = 1.0, dt = T / (N - 1);
+  var tt = new Array(N), xx = new Array(N);
+  for (var i = 0; i < N; i++) tt[i] = i * dt;
+
+  var SIGS = {
+    cos5:    function (t) { return Math.cos(2*Math.PI*5*t); },
+    cos5p12: function (t) { return Math.cos(2*Math.PI*5*t) + Math.cos(2*Math.PI*12*t); },
+    prod:    function (t) { return Math.cos(2*Math.PI*5*t) * Math.cos(2*Math.PI*20*t); },
+    am:      function (t) { return (1 + 0.7*Math.cos(2*Math.PI*5*t)) * Math.cos(2*Math.PI*20*t); },
+    square:  function (t) { return (Math.floor(20*t) % 2 === 0) ? 0.5 : -0.5; },
+    pulse:   function (t) { return Math.exp(-Math.pow((t-0.5)/0.03, 2)); }
+  };
+
+  // integral of x(t) e^{-i2pi f t} dt, by the trapezoid rule
+  function coeff(f) {
+    var re = 0, im = 0;
+    for (var i = 0; i < N; i++) {
+      var w = (i === 0 || i === N-1) ? 0.5 : 1.0;
+      var a = -2*Math.PI*f*tt[i];
+      re += w * xx[i] * Math.cos(a);
+      im += w * xx[i] * Math.sin(a);
+    }
+    return [re*dt, im*dt];
+  }
+
+  var FMAX = 30, NF = 241, ff = [], mag = [];
+  function spectrum() {
+    ff.length = 0; mag.length = 0;
+    for (var k = 0; k < NF; k++) {
+      var f = k * FMAX / (NF - 1), c = coeff(f);
+      ff.push(f); mag.push(Math.hypot(c[0], c[1]));
+    }
+  }
+
+  var opts = { boundingbox: [0,0,0,0], axis: true, showCopyright: false, showNavigation: false,
+               pan: {enabled:false}, zoom: {enabled:false},
+               // nudge the tick labels clear of the curve, which crosses y = 0
+               defaultAxes: { x: { ticks: { label: { offset: [0, -11] }, minorTicks: 0 } },
+                              y: { ticks: { label: { offset: [-6, 0] }, minorTicks: 0 } } } };
+  var bT = JXG.JSXGraph.initBoard('wBoxT', Object.assign({}, opts, {boundingbox: [-0.06, 2.1, 1.06, -2.1]}));
+  var bZ = JXG.JSXGraph.initBoard('wBoxZ', Object.assign({}, opts, {boundingbox: [-1.25, 1.25, 1.25, -1.25]}));
+  var bF = JXG.JSXGraph.initBoard('wBoxF', Object.assign({}, opts, {boundingbox: [-2, 0.62, 31, -0.06]}));
+
+  // the signal crosses y = 0, so the x tick labels would sit on top of it
+  try { bT.defaultAxes.x.defaultTicks.setAttribute({drawLabels: false}); } catch (e) {}
+  var curT = bT.create('curve', [tt, xx], {strokeColor:'#0072BD', strokeWidth:1.6});
+  var curZ = bZ.create('curve', [[0],[0]], {strokeColor:'#0072BD', strokeWidth:1.4});
+  var segZ = bZ.create('segment', [[0,0],[0,0]], {strokeColor:'#D95319', strokeWidth:2.5, lastArrow:true});
+  bZ.create('circle', [[0,0], 1], {strokeColor:'#ddd', strokeWidth:1, dash:2, fixed:true});
+  var curF = bF.create('curve', [[0],[0]], {strokeColor:'#0072BD', strokeWidth:1.6});
+  var segF = bF.create('segment', [[0,0],[0,0]], {strokeColor:'#D95319', strokeWidth:2.5});
+  var dotF = bF.create('point', [0,0], {face:'o', size:3, strokeColor:'#D95319', fillColor:'#D95319',
+                                        fixed:true, withLabel:false});
+
+  var sel = document.getElementById('wSig'),
+      sli = document.getElementById('wF'),
+      lbl = document.getElementById('wFval');
+
+  function redrawZ() {
+    var f = parseFloat(sli.value);
+    lbl.textContent = f.toFixed(1);
+    var zr = new Array(N), zi = new Array(N);
+    for (var i = 0; i < N; i++) {
+      var a = -2*Math.PI*f*tt[i];
+      zr[i] = xx[i]*Math.cos(a); zi[i] = xx[i]*Math.sin(a);
+    }
+    curZ.dataX = zr; curZ.dataY = zi;
+    var c = coeff(f);
+    segZ.point2.setPosition(JXG.COORDS_BY_USER, [c[0], c[1]]);
+    segF.point1.setPosition(JXG.COORDS_BY_USER, [f, 0]);
+    segF.point2.setPosition(JXG.COORDS_BY_USER, [f, Math.hypot(c[0], c[1])]);
+    dotF.setPosition(JXG.COORDS_BY_USER, [f, Math.hypot(c[0], c[1])]);
+    bZ.update(); bF.update();
+  }
+
+  function rebuild() {
+    var fn = SIGS[sel.value];
+    for (var i = 0; i < N; i++) xx[i] = fn(tt[i]);
+    var m = 0; for (i = 0; i < N; i++) m = Math.max(m, Math.abs(xx[i]));
+    bT.setBoundingBox([-0.06, m*1.25, 1.06, -m*1.25], false);
+    curT.dataX = tt; curT.dataY = xx;
+    spectrum();
+    curF.dataX = ff; curF.dataY = mag;
+    var fm = 0; for (i = 0; i < NF; i++) fm = Math.max(fm, mag[i]);
+    bF.setBoundingBox([-2, Math.max(fm,0.05)*1.22, 31, -Math.max(fm,0.05)*0.1], false);
+    bT.update();
+    redrawZ();
+  }
+
+  sel.addEventListener('change', rebuild);
+  sli.addEventListener('input', redrawZ);
+  rebuild();
+})();
+</script>
+
+<p>Try the modulated tone, $\cos(2\pi 5t)\cos(2\pi 20t)$: the peaks sit at $15$ and
+$25$ Hz, not at $5$ or $20$, which is the sum-and-difference result from the start of
+this section, seen from the other side. The AM signal adds a third peak at $20$ Hz,
+the carrier itself.</p>
 
 <h2 id="diving-into-modulation">Diving into Modulation</h2>
 <p>Modulation typically involves two signals: Carrier: a waveform chosen to fit the channel well
