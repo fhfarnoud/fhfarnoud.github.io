@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" width="220" height="220" role="img" aria-label="differentiated">
+  <style>
+    .lbl{font-family:Helvetica,Arial,sans-serif;font-size:13px;fill:#333;text-anchor:middle}
+    .ax{stroke:#ccc;stroke-width:1}
+  </style>
+  <rect width="220" height="220" fill="#fff"/>
+  <line class="ax" x1="14" y1="110" x2="206" y2="110"/>
+  <line class="ax" x1="110" y1="14" x2="110" y2="206"/>
+  <circle cx="110" cy="110" r="78" fill="none" stroke="#999999" stroke-dasharray="3 3" stroke-width="1"/>
+  <g transform="rotate(-90 110 110)">
+    <g>
+      <line x1="110" y1="110" x2="188.0" y2="110" stroke="#0072BD" stroke-width="2.6"/>
+      <circle cx="188.0" cy="110" r="4.5" fill="#0072BD"/>
+      <animateTransform attributeName="transform" type="rotate" from="0 110 110" to="-360 110 110" dur="4.0000s" repeatCount="indefinite"/>
+    </g>
+  </g>
+  <text class="lbl" x="110" y="214">6.28× longer, a quarter turn ahead</text>
+</svg>

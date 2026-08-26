@@ -246,7 +246,7 @@ raises data rates further.</p>
 
 <h2 id="time-division-multiple-access">Time Division Multiple Access</h2>
 
-<div style="float;"><img src=".//media/image69.png" width="560px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/ma-tdma.svg" width="560px" alt=""></div>
 
 <p>The idea is to let several users share one channel by giving each a slice of time
 during which only that user may transmit.</p>
@@ -257,19 +257,20 @@ usage does not make everyone else wait. (This is why networks throttle excessive
 usage.) The base station does not physically control when handsets transmit; users
 are responsible for honouring the slots they are given.</p>
 
-<div style="float;"><img src=".//media/image70.png" width="560px"></div>
-<div style="float;"><img src=".//media/image71.png" width="700px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/ma-turns.svg" width="600px" alt=""></div>
 
 <h2 id="frequency-division-multiple-access">Frequency Division Multiple Access</h2>
 
 <p>Instead of slicing time, a base station can assign users non-overlapping ranges of
 frequency, and let them all transmit continuously within their own range.</p>
 
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/ma-fdma.svg" width="560px" alt=""></div>
+
 <p>A fixed assignment is wasteful for the same reason a licensed band is: users move and
 their needs change. So modern FDMA is really a hybrid, assigning users blocks in both
 time and frequency at once. This is the norm in 2G TDMA/FDMA networks such as GSM.</p>
 
-<div style="float;"><img src=".//media/image72.png" width="560px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/ma-ftdma.svg" width="560px" alt=""></div>
 
 <h3 id="both-schemes-are-orthogonality">Both schemes are orthogonality</h3>
 
@@ -286,7 +287,7 @@ alternative is what the rest of this section is about.</p>
 
 <h2 id="code-division-multiple-access">Code Division Multiple Access</h2>
 
-<div style="float;"><img src=".//media/image73.png" width="560px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/ma-cdma.svg" width="560px" alt=""></div>
 
 <p>Code Division Multiple Access separates users by giving each an orthogonal code,
 without slicing time or frequency at all. Every user has access to all frequencies,
@@ -425,7 +426,7 @@ far larger than the signal in that interval.
 a receiver that does not know the code sees nothing but noise, and one that does know
 it recovers the message.</p>
 
-<div style="float;"><img src=".//media/image74.png" width="560px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/ma-noise-floor.svg" width="460px" alt=""></div>
 
 <div class="note">
 <span class="note_emoji"></span>The statement that at least $99\%$ of the probability
@@ -477,21 +478,21 @@ stream of bits, and each bit is multiplied by a whole period of the spreading co
 Because the code changes much faster than the data, the product occupies a far wider
 band than the data alone.</p>
 
-<div style="float;"><img src=".//media/image75.png" width="560px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/ma-spreading.svg" width="600px" alt=""></div>
 
 <p>To recover the message, the receiver multiplies the incoming wideband signal by the
 same spreading code again. Where the code matches, each chip is multiplied by
 $(\pm 1)^2 = +1$, so the code cancels itself and the original slow data signal
 reappears; averaging over one period of the code gives back the bit.</p>
 
-<div style="float;"><img src=".//media/image76.png" width="560px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/ma-despread-right.svg" width="600px" alt=""></div>
 
 <p>If instead the receiver multiplies by a <em>different</em> code, orthogonal to the one that
 was used, the products no longer agree. Over one period the decoded chips are as
 often $+1$ as $-1$, and averaging them gives zero — which is exactly the
 statement $\langle a,b\rangle = 0$ seen one interval at a time.</p>
 
-<div style="float;"><img src=".//media/image77.png" width="560px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/ma-despread-wrong.svg" width="600px" alt=""></div>
 
 <div class="exercise">
 Two groups agree on the codes $c_A = (-1,-1,+1,+1)$ and $c_B = (-1,+1,-1,+1)$ and

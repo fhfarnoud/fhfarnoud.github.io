@@ -176,27 +176,34 @@ shifts, one for each frequency, gives a complete description of the system: its
 
 <p>Let us feed the same input, the complex exponential $x(t) = e^{i2\pi t}$, to each of
 the systems we examined in the previous section, and watch the output. In each pair
-of animations the input is on the left and the output on the right.</p>
+of animations the input is on the left and the output on the right, and both are
+drawn on the same clock, slowed to a quarter speed, so you can compare how fast
+they turn.</p>
+
+<p>The lengths differ enormously between systems — the differentiator’s output is
+more than six times the input and the combination of derivatives is forty times
+— so each output is drawn scaled to fit its own frame, with its true length and
+phase written underneath. What is directly comparable by eye is the <em>rate</em>.</p>
 
 <p>$y(t) = \frac{1}{2}x\left(t - \frac16\right)$ — a delay and a halving:</p>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image2.gif" width="250px"></div>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image3.gif" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-in.svg" width="210px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-delay.svg" width="210px" alt=""></div>
 
 <p>$y(t) = x(3t)$ — a time compression:</p>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image2.gif" width="250px"></div>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image4.gif" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-in.svg" width="210px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-scale.svg" width="210px" alt=""></div>
 
 <p>$y(t) = \frac{dx(t)}{dt}$ — a differentiator:</p>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image2.gif" width="250px"></div>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image5.gif" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-in.svg" width="210px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-deriv.svg" width="210px" alt=""></div>
 
 <p>$y(t) = \frac{dx(t)}{dt} - \frac{d^{2}x(t)}{dt^{2}}$:</p>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image2.gif" width="250px"></div>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image6.gif" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-in.svg" width="210px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-combo.svg" width="210px" alt=""></div>
 
 <p>$y(t) = x(t)^{2} - x(t/2)$:</p>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image2.gif" width="250px"></div>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image7.gif" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-in.svg" width="210px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-nonlinear.svg" width="210px" alt=""></div>
 
 <div class="exercise">
 Three of these five outputs go around the circle at the same rate as the input, and
@@ -272,17 +279,17 @@ different frequency components differently.</p>
 
 <p>A sinusoid in, a sinusoid out — same frequency, different amplitude and phase:</p>
 
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image12.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-sine-in.svg" width="250px" alt=""></div>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"> ⟶ </div>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image11.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-sine-out.svg" width="250px" alt=""></div>
 
 <p>A square wave in, and the shape does not survive. The square wave is a sum of many
 harmonics, the system treats them differently, and what comes out is a different
 shape at the same period:</p>
 
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image9.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-square-in.svg" width="250px" alt=""></div>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"> ⟶ </div>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image10.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-square-out.svg" width="250px" alt=""></div>
 
 <h3 id="finding-hf">Finding $H(f)$</h3>
 
@@ -384,8 +391,8 @@ away the rest. A <em>frequency-selective</em> filter is an LTI system whose magn
 response is close to $1$ on a range of frequencies, called the <strong>passband</strong>, and
 close to $0$ elsewhere, called the <strong>stopband</strong>.</p>
 
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image13.png" width="250px"></div>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image14.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-lowpass-ideal.svg" width="290px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-highpass-ideal.svg" width="290px" alt=""></div>
 
 <p>The four standard shapes are named for the part of the spectrum they keep:</p>
 
@@ -408,8 +415,8 @@ reason a signal can be sampled at all.</p>
 
 \[x(t) = \tfrac13\left(\cos(2\pi (250)t) + \cos(2\pi (500)t) + \cos(2\pi (1000)t)\right).\]
 
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image16.png" width="250px"></div>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image15.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-tones-time.svg" width="290px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-tones-spectrum.svg" width="290px" alt=""></div>
 
 <p>Its spectrum has energy at exactly three frequencies (and their negatives). Because
 the filter multiplies the spectrum frequency by frequency, we can read off the result
@@ -418,22 +425,26 @@ by inspection.</p>
 <p>Pass it through a low-pass filter with a $400$ Hz cutoff. Only the $250$ Hz tone lies
 in the passband, so only that tone survives:</p>
 
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image17.png" width="250px"></div>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image18.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-lp400-filter.svg" width="290px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-lp400-spectrum.svg" width="290px" alt=""></div>
 
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image16.png" width="250px"></div>
-<p>Low pass filter (400 Hz)</p>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image19.png" width="250px"></div>
+<p>In the time domain, before and after:</p>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-tones-time.svg" width="290px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"> ⟶ </div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-lp400-time.svg" width="290px" alt=""></div>
 
 <p>A high-pass filter with a $600$ Hz cutoff does the opposite, keeping only the
 $1000$ Hz tone:</p>
 
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image20.png" width="250px"></div>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image21.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-hp600-filter.svg" width="290px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-hp600-spectrum.svg" width="290px" alt=""></div>
 
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image16.png" width="250px"></div>
-<p>High pass filter (600 Hz)</p>
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image22.png" width="250px"></div>
+<p>In the time domain, before and after:</p>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-tones-time.svg" width="290px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"> ⟶ </div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-hp600-time.svg" width="290px" alt=""></div>
 
 <div class="exercise">
 What cutoffs would a band-pass filter need in order to keep only the $500$ Hz tone?
@@ -459,14 +470,14 @@ amplitudes that fall off like $1/k$:</p>
 
 \[x(t) = 1 + \sum_{k=1}^{\infty} \frac{2}{k\pi}\cos\left(2\pi (5k)t + \frac{\pi}{2}\right).\]
 
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image23.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-sawtooth.svg" width="420px" alt=""></div>
 
 <p>Low-pass filtering above the tenth harmonic (that is, at $50$ Hz) keeps the first ten
 terms of the sum and discards the rest. The result is still recognisably a sawtooth,
 but its corners are rounded, because the sharp corner is exactly what the removed
 high harmonics were building:</p>
 
-<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src=".//media/image24.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-sawtooth-filtered.svg" width="420px" alt=""></div>
 
 <div class="exercise">
 The filtered sawtooth wiggles near the corners rather than settling immediately.

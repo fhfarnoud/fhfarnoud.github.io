@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 150" width="620" height="150" role="img" aria-label="Two users arguing over whose turn it is, beside a base station being asked to decide">
+  <style>
+    .bx{fill:#fff;stroke:#111;stroke-width:1.4}
+    .bub{fill:#fff;stroke:#111;stroke-width:1.4}
+    .tx{font-family:Helvetica,Arial,sans-serif;font-size:14px;text-anchor:middle;fill:#111}
+    .cap{font-family:Helvetica,Arial,sans-serif;font-size:12px;text-anchor:middle;fill:#555}
+  </style>
+  <rect width="620" height="150" fill="#fff"/>
+
+  <rect class="bx" x="10" y="10" width="360" height="112"/>
+  <ellipse class="bub" cx="120" cy="42" rx="76" ry="24"/>
+  <path class="bub" d="M 78,58 L 52,76 L 96,62 z"/>
+  <text class="tx" x="120" y="47">It’s my turn!</text>
+  <ellipse class="bub" cx="256" cy="72" rx="92" ry="24"/>
+  <path class="bub" d="M 228,90 L 210,110 L 254,92 z"/>
+  <text class="tx" x="256" y="77">No, it’s my turn!</text>
+
+  <rect class="bx" x="392" y="10" width="218" height="112"/>
+  <ellipse class="bub" cx="500" cy="52" rx="82" ry="30"/>
+  <path class="bub" d="M 460,74 L 436,96 L 482,78 z"/>
+  <text class="tx" x="500" y="48">Base station,</text>
+  <text class="tx" x="500" y="66">whose turn is it?</text>
+
+  <text class="cap" x="190" y="142">without a schedule</text>
+  <text class="cap" x="501" y="142">with one</text>
+</svg>

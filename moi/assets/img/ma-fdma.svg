@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 300" width="620" height="300" role="img" aria-label="FDMA">
+  <style>
+    .ttl{font-family:Helvetica,Arial,sans-serif;font-size:26px;font-weight:700;font-style:italic;text-anchor:middle}
+    .sub{font-family:Helvetica,Arial,sans-serif;font-size:16px;text-anchor:middle;fill:#333}
+    .ax {font-family:Helvetica,Arial,sans-serif;font-size:12px;fill:#333}
+    .blk{stroke:#111;stroke-width:1.2}
+  </style>
+  <rect width="620" height="300" fill="#fff"/>
+  <text class="ttl" x="310" y="34">FDMA</text>
+  <text class="sub" x="310" y="290">1G cellular networks</text>
+  <line x1="60" y1="250" x2="600" y2="250" stroke="#111" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="60" y1="250" x2="60" y2="80" stroke="#111" stroke-width="1.6" marker-end="url(#au)"/>
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#111"/></marker>
+    <marker id="au" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#111"/></marker>
+  </defs>
+  <text class="ax" x="330" y="272" text-anchor="middle">time</text>
+  <text class="ax" x="30" y="170" text-anchor="middle" transform="rotate(-90 30 170)">frequency</text>
+  <rect class="blk" x="66" y="100" width="528" height="42" fill="#1f7ae0"/><rect class="blk" x="66" y="148" width="528" height="42" fill="#17a81a"/><rect class="blk" x="66" y="196" width="528" height="42" fill="#e02b20"/>
+</svg>
