@@ -219,8 +219,14 @@ Two signals are <strong>orthogonal</strong> when $\langle x, y\rangle = 0$.
 
 <p>Everything proved about inner products in Vectors and spaces carries over unchanged,
 because nothing in those proofs used the fact that the vectors had finitely many
-entries. In particular the inner product is linear in each argument, and
-$|x|^2 = \langle x,x\rangle$ measures the energy of the signal.</p>
+entries. In particular $|x|^2 = \langle x,x\rangle$ measures the energy of the
+signal, and the inner product is additive in each argument,
+$\langle x, y + z\rangle = \langle x,y\rangle + \langle x,z\rangle$. One small
+caution about scalars: because of the conjugate, a scalar comes out of the first
+argument as itself and out of the second argument conjugated,
+$\langle \alpha x, y\rangle = \alpha \langle x,y\rangle$ but
+$\langle x, \beta y\rangle = \beta^{*} \langle x,y\rangle$. For real signals the
+conjugate does nothing and this is the familiar rule.</p>
 
 <h2 id="complex-exponentials-at-different-frequencies-are-orthogonal">Complex exponentials at different frequencies are orthogonal</h2>
 
@@ -290,8 +296,8 @@ signal is a combination of the exponentials in its own band,</p>
 \qquad
 y(t) = \sum_{l \in \mathcal{B}} \beta_l\, e^{i2\pi f_l t},\]
 
-<p>with $\mathcal{A}$ and $\mathcal{B}$ disjoint. The inner product is linear in each
-argument, so $\langle x,y\rangle$ is a sum of terms
+<p>with $\mathcal{A}$ and $\mathcal{B}$ disjoint. Expanding by the rules above,
+$\langle x,y\rangle$ is a sum of terms
 $\alpha_k \beta_l^{*} \langle e^{i2\pi f_k t}, e^{i2\pi f_l t}\rangle$, and every
 one of those is zero because $f_k \neq f_l$. So $\langle x,y\rangle = 0$: the two
 users are orthogonal. This is Frequency Division Multiple Access, and it is the
