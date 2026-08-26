@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="291.13375pt" height="194.197266pt" viewBox="0 0 291.13375 194.197266" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-08-26T12:31:19.048728</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.1, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 194.197266 
+L 291.13375 194.197266 
+L 291.13375 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 41.29375 158.04 
+L 286.81375 158.04 
+L 286.81375 19.44 
+L 41.29375 19.44 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1">
+      <defs>
+       <path id="m5fab2a17b2" d="M 0 0 
+L 0 3.5 
+" style="stroke: #000000; stroke-width: 0.8"/>
+      </defs>
+      <g>
+       <use xlink:href="#m5fab2a17b2" x="88.509135" y="158.04" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_1">
+      <!-- $f$ -->
+      <g transform="translate(86.529135 173.4)">
+       <text>
+        <tspan x="0" y="-0.640625" style="font-style: oblique; font-size: 11px; font-family: 'DejaVu Sans'">f</tspan>
+       </text>
+      </g>
+     </g>
+    </g>
+    <g id="text_2">
+     <text style="font-size: 11px; font-family: 'Helvetica', 'Arial', 'DejaVu Sans', sans-serif; text-anchor: middle" x="164.05375" y="187.519141" transform="rotate(-0 164.05375 187.519141)">Frequency</text>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_2">
+      <defs>
+       <path id="m1c5683a47c" d="M 0 0 
+L -3.5 0 
+" style="stroke: #000000; stroke-width: 0.8"/>
+      </defs>
+      <g>
+       <use xlink:href="#m1c5683a47c" x="41.29375" y="158.04" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_3">
+      <text style="font-size: 11px; font-family: 'Helvetica', 'Arial', 'DejaVu Sans', sans-serif; text-anchor: end" x="34.29375" y="162.165" transform="rotate(-0 34.29375 162.165)">0.0</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_3">
+      <g>
+       <use xlink:href="#m1c5683a47c" x="41.29375" y="97.77913" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_4">
+      <text style="font-size: 11px; font-family: 'Helvetica', 'Arial', 'DejaVu Sans', sans-serif; text-anchor: end" x="34.29375" y="101.90413" transform="rotate(-0 34.29375 101.90413)">0.5</text>
+     </g>
+    </g>
+    <g id="ytick_3">
+     <g id="line2d_4">
+      <g>
+       <use xlink:href="#m1c5683a47c" x="41.29375" y="37.518261" style="stroke: #000000; stroke-width: 0.8"/>
+      </g>
+     </g>
+     <g id="text_5">
+      <text style="font-size: 11px; font-family: 'Helvetica', 'Arial', 'DejaVu Sans', sans-serif; text-anchor: end" x="34.29375" y="41.643261" transform="rotate(-0 34.29375 41.643261)">1.0</text>
+     </g>
+    </g>
+    <g id="text_6">
+     <text style="font-size: 11px; font-family: 'Helvetica', 'Arial', 'DejaVu Sans', sans-serif; text-anchor: middle" x="12.57" y="88.74" transform="rotate(-90 12.57 88.74)">Magnitude</text>
+    </g>
+   </g>
+   <g id="line2d_5">
+    <path d="M 88.509135 158.04 
+L 88.509135 37.518261 
+" clip-path="url(#p145fc6c08c)" style="fill: none; stroke: #0072bd; stroke-width: 1.8; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_6">
+    <defs>
+     <path id="m2bbe4f218b" d="M 0 1.75 
+C 0.464105 1.75 0.909265 1.565609 1.237437 1.237437 
+C 1.565609 0.909265 1.75 0.464105 1.75 0 
+C 1.75 -0.464105 1.565609 -0.909265 1.237437 -1.237437 
+C 0.909265 -1.565609 0.464105 -1.75 0 -1.75 
+C -0.464105 -1.75 -0.909265 -1.565609 -1.237437 -1.237437 
+C -1.565609 -0.909265 -1.75 -0.464105 -1.75 0 
+C -1.75 0.464105 -1.565609 0.909265 -1.237437 1.237437 
+C -0.909265 1.565609 -0.464105 1.75 0 1.75 
+z
+" style="stroke: #0072bd"/>
+    </defs>
+    <g clip-path="url(#p145fc6c08c)">
+     <use xlink:href="#m2bbe4f218b" x="88.509135" y="37.518261" style="fill: #0072bd; stroke: #0072bd"/>
+    </g>
+   </g>
+   <g id="patch_3">
+    <path d="M 41.29375 158.04 
+L 41.29375 19.44 
+" style="fill: none; stroke: #000000; stroke-width: 0.9; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 41.29375 158.04 
+L 286.81375 158.04 
+" style="fill: none; stroke: #000000; stroke-width: 0.9; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="text_7">
+    <!-- A single frequency $f$ -->
+    <g transform="translate(110.89375 13.44)">
+     <text>
+      <tspan x="0" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">A</tspan>
+      <tspan x="8.003906" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'"> </tspan>
+      <tspan x="11.337891" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">s</tspan>
+      <tspan x="17.337891" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">i</tspan>
+      <tspan x="20.003906" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">n</tspan>
+      <tspan x="26.677734" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">g</tspan>
+      <tspan x="33.351562" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">l</tspan>
+      <tspan x="36.017578" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">e</tspan>
+      <tspan x="42.691406" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'"> </tspan>
+      <tspan x="46.025391" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">f</tspan>
+      <tspan x="49.359375" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">r</tspan>
+      <tspan x="53.355469" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">e</tspan>
+      <tspan x="60.029297" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">q</tspan>
+      <tspan x="66.703125" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">u</tspan>
+      <tspan x="73.376953" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">e</tspan>
+      <tspan x="80.050781" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">n</tspan>
+      <tspan x="86.724609" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">c</tspan>
+      <tspan x="92.724609" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'">y</tspan>
+      <tspan x="98.724609" y="-0.875" style="font-size: 12px; font-family: 'Helvetica'"> </tspan>
+      <tspan x="102.058594" y="-0.875" style="font-style: oblique; font-size: 12px; font-family: 'DejaVu Sans'">f</tspan>
+     </text>
+    </g>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p145fc6c08c">
+   <rect x="41.29375" y="19.44" width="245.52" height="138.6"/>
+  </clipPath>
+ </defs>
+</svg>
