@@ -493,19 +493,21 @@ Message signal or modulation signal: the signal representing information to be t
 
 <p>Consider a <em>carrier</em> signal $x_{c}(t)$ and a message signal, $x_{m}\left( t \right)$</p>
 
-<div style="float;"><img src=".//media/image36.png" width="250px"></div>
-<p>x</p>
-<div style="float;"><img src=".//media/image35.png" width="250px"></div>
-<p>=</p>
-<div style="float;"><img src=".//media/image37.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-message.svg" width="250px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 6px; font-size:22px;">×</div>
+<div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-carrier.svg" width="250px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 6px; font-size:22px;">=</div>
+<div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-signal.svg" width="250px" alt=""></div>
 
 <p>Amplitude Modulation:the frequency domain</p>
 
-<div style="float;"><img src=".//media/image38.png" width="250px"></div>
-<p>x</p>
-<div style="float;"><img src=".//media/image39.png" width="250px"></div>
-<p>=</p>
-<div style="float;"><img src=".//media/image40.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-message-spectrum.svg" width="250px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 6px; font-size:22px;">×</div>
+<div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-carrier-spectrum.svg" width="250px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 6px; font-size:22px;">=</div>
+<div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-signal-spectrum.svg" width="250px" alt=""></div>
+
+<p>The message sits at low frequencies and the carrier is a single line at $100$ Hz. Multiplying in time moves the whole message up to sit around the carrier, which is the entire point of amplitude modulation.</p>
 
 <p>An advantage of modulation is that it allows us to send multiple signals over the same medium at different frequencies. At the receiver, these signals can be separated by using a frequency-selective filter at a given frequency and with an appropriate bandwidth.</p>
 
@@ -587,7 +589,9 @@ $\cos\left( 2\pi f_{c}t \right)^{2}.$</p>
 
 <p>What happens as m increases from 0 to 1?</p>
 
-<div style="float;"><img src=".//media/image50.png" width="250px"></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-index.svg" width="620px" alt=""></div>
+
+<p>The orange curve is the envelope $1 + m\,x_m(t)$. At $m = 0$ there is no message at all, just the carrier. As $m$ grows the envelope swings further, and at $m = 1$ it just touches zero. Beyond $m = 1$ the envelope would cross zero and the shape could no longer be recovered by tracking it.</p>
 
 <p>What happens in the frequency domain?</p>
 
