@@ -17,11 +17,6 @@
     </script>
     <meta charset="utf-8" />
     <title></title>
-    <link rel="stylesheet" type="text/css" href="cssjs/home.css" />
-    <script type="text/javascript" src="cssjs/page.js"></script>
-
-    <meta charset="utf-8" />
-    <title></title>
     <link rel="stylesheet" type="text/css" href="assets/css/home.css" />
     <link rel="stylesheet" type="text/css" href="assets/css/mystyle.css" />
      
@@ -143,38 +138,14 @@
           <li><a href="/moi/sampling.html">Filteration and sampling</a></li>
               
           <li><a href="/moi/linsys.html">Linear systems</a></li>
-              
-          <li><a href="/moi/freqresponse.html">Frequency response</a></li>
-              
+             
+          <li class="chapnav">Frequency response</li>
+             
           <li><a href="/moi/modulation.html">Modulation</a></li>
              
           <li class="chapnav">Orthogonality</li>
             
           <li class="chapnav">Multiple-access communication</li>
-           
-        </ul>
-           
-        <span class="chapnav"><strong>5. Number theory and <br>information privacy</strong></span>
-        <ul>
-           
-          <li class="chapnav">Encryption</li>
-            
-          <li class="chapnav">Number theory</li>
-            
-          <li class="chapnav">Public key cryptography</li>
-           
-        </ul>
-           
-        <span class="chapnav"><strong>6. Boolean algebra and <br>computation</strong></span>
-        <ul>
-           
-          <li class="chapnav">Number systems and arithmetic</li>
-            
-          <li class="chapnav">Boolean algebra</li>
-            
-          <li class="chapnav">Logic design and computation</li>
-            
-          <li class="chapnav">
            
         </ul>
            
@@ -208,13 +179,11 @@
   <li>Probability, uncertainty, and information</li>
   <li>Linear/abstract algebra and error correction</li>
   <li>Spectral analysis and communication</li>
-  <li>Number theory and encryption</li>
-  <li>Boolean algebra and computation</li>
 </ul>
 
 <h2 id="mathematics-vs-engineering">Mathematics vs Engineering:</h2>
 <p>The course aims to make abstract and/or advanced mathematics, e.g., complex numbers and finite fields, tangible through applications in information science and technology.
-We will learn the basics of several branches of mathematics, e.g., probability, linear algebra, Fourier analysis. Based on each, we will develop a theory related to information, e.g., communication, privacy.</p>
+We will learn the basics of several branches of mathematics, e.g., probability, linear algebra, Fourier analysis. Based on each, we will develop a theory related to information, e.g., communication.</p>
 
 <p>Given the history of the course, I need to explain how it balances mathematics with engineering applications. We will study both the mathematical foundations and the engineering solutions enabled by these foundations, but our focus will be on the former. <strong>Hence, while the topics are motivated by application, we will also discuss material without direct applications, with the goal of providing solid foundations for the topics we study.</strong></p>
 
@@ -266,7 +235,6 @@ Information describes the state of the world around us. This is usually in the f
   <li>As numbers representing signals, audio, images, or video</li>
   <li>Through probability</li>
   <li>As related to noise and errors</li>
-  <li>Privacy and protecting information</li>
   <li>Via processing using a computer</li>
 </ul>
 
@@ -276,8 +244,6 @@ Information describes the state of the world around us. This is usually in the f
   <li>Sensing, for example in a camera: sampling, quantization, compression, …</li>
   <li>Streaming music: digitization and reconstruction, spectrum, communication, …</li>
   <li>Data storage in flash and hard drives: data compression, encoding and decoding, error correction, …</li>
-  <li>Computation in a processor: logic gates, computation via physics, …</li>
-  <li>Privacy and security: encryption, …</li>
 </ul>
 
 <div class="exercise">
@@ -316,18 +282,18 @@ Information describes the state of the world around us. This is usually in the f
 <p>ii: I’ve bought cheap drives, so two of them can fail at the same time. How many  drives (in addition to the original 4) do you think  I need so that I don’t lose data if that happens?</p>
 
 <p>
-<button onclick="Q2(this.id)" id="A">A</button> 1  
-<button onclick="Q2(this.id)" id="B">B</button> 3  
-<button onclick="Q2(this.id)" id="C">C</button> 8  
-<button onclick="Q2(this.id)" id="D">D</button> 12  
-<button onclick="Q2(this.id)" id="E">E</button> It's impossible  </p>
+<button onclick="Q2(this.id)" id="Q2A">A</button> 1  
+<button onclick="Q2(this.id)" id="Q2B">B</button> 3  
+<button onclick="Q2(this.id)" id="Q2C">C</button> 8  
+<button onclick="Q2(this.id)" id="Q2D">D</button> 12  
+<button onclick="Q2(this.id)" id="Q2E">E</button> It's impossible  </p>
 
 <p style="color:blue" id="Q2ans"></p>
 
 
 
 <script>
-  var choicesQ2 = ["A","B","C","D","E"];
+  var choicesQ2 = ["Q2A","Q2B","Q2C","Q2D","Q2E"];
   var answersQ2 = [
   "&#10060; For example, if the extra drive and one of the original drives fail, we cannot recover all of the lost data.",
   "&#9989; We will discuss how this can be done with 3 extra drives.",
@@ -413,28 +379,6 @@ iii: Can you guess how the answers to the two previous questions can be related 
   <li>Sampling and reconstructing signals</li>
   <li>Multiple-access communication and orthogonal coding</li>
   <li>Amplitude, frequency, and phase modulation</li>
-</ul>
-
-<h3 id="part-5-number-theory">Part 5: Number theory</h3>
-
-<p><em>Q: Can we talk privately in public?</em></p>
-
-<p>Topics:</p>
-<ul>
-  <li>Number systems and binary arithmetic</li>
-  <li>Number theory and encryption</li>
-  <li>Divisibility, prime numbers, congruences</li>
-  <li>Public key cryptography and Chinese remainder theorem</li>
-</ul>
-
-<h3 id="part-6-boolean-algebra">Part 6: Boolean algebra</h3>
-<p><em>Q: How to compute with physics?</em></p>
-
-<p>Topics:</p>
-<ul>
-  <li>Logic</li>
-  <li>Boolean algebra</li>
-  <li>Digital Computation</li>
 </ul>
 
 <h3 id="some-other-comments">Some other comments:</h3>
