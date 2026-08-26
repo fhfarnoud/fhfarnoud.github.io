@@ -1,5 +1,11 @@
-/* When this file is changed it also must be copied to the MoI course folder*/
-
+/* The course's copy of the main site's cssjs/home.css.
+   Only the .main and .topnav rules below are shared with the main site; keep
+   them in step when that file changes. Do NOT copy the rest of it here:
+   - its publication-list and course-item rules are main-site-only;
+   - its `@media (max-width: 1300px)` block sets .main{margin-left:10px}, which
+     is right there because that page has no sidebar. Here .sidenav is
+     position:fixed and 250px wide (mystyle.css), so dropping the margin would
+     slide the body text underneath the sidebar. */
 
 /* Main content */
 .main {
@@ -10,10 +16,10 @@
   max-width: 1000px;
 }
 
-  .topnav {
+.topnav {
   /* added to center and limit width */
   margin-left: 250px; /* Same as the width of the sidenav */
-  font-size: 20px; /* Increased text to enable scrolling */
+  font-size: 19px; /* Increased text to enable scrolling */
   /* original */
   padding: 0px 10px;
   max-width: 1000px;
@@ -39,13 +45,4 @@
 .topnav a.active {
   background-color: #E57200;
   color: white;
-}
-
-.pubitem {
-  margin: 5px 0;
-}
-
-.coauthorlink {
-  text-decoration: none;
-  color: black;
 }
