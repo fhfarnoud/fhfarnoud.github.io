@@ -420,6 +420,12 @@ reason a signal can be sampled at all.</p>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-tones-time.svg" width="290px" alt=""></div>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-tones-spectrum.svg" width="290px" alt=""></div>
 
+<p>All three tones together:</p>
+<audio controls="" preload="metadata" style="display:block; margin:4px 0 10px 0;">
+  <source src="assets/audio/fr-tones.wav" type="audio/wav"></source>
+Your browser does not support the audio element.
+</audio>
+
 <p>Its spectrum has energy at exactly three frequencies (and their negatives). Because
 the filter multiplies the spectrum frequency by frequency, we can read off the result
 by inspection.</p>
@@ -436,6 +442,12 @@ in the passband, so only that tone survives:</p>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"> ⟶ </div>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-lp400-time.svg" width="290px" alt=""></div>
 
+<p>Only the 250 Hz tone is left, and it sounds it:</p>
+<audio controls="" preload="metadata" style="display:block; margin:4px 0 10px 0;">
+  <source src="assets/audio/fr-lp400.wav" type="audio/wav"></source>
+Your browser does not support the audio element.
+</audio>
+
 <p>A high-pass filter with a $600$ Hz cutoff does the opposite, keeping only the
 $1000$ Hz tone:</p>
 
@@ -447,6 +459,12 @@ $1000$ Hz tone:</p>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-tones-time.svg" width="290px" alt=""></div>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"> ⟶ </div>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-hp600-time.svg" width="290px" alt=""></div>
+
+<p>Only the 1000 Hz tone is left:</p>
+<audio controls="" preload="metadata" style="display:block; margin:4px 0 10px 0;">
+  <source src="assets/audio/fr-hp600.wav" type="audio/wav"></source>
+Your browser does not support the audio element.
+</audio>
 
 <div class="exercise">
 What cutoffs would a band-pass filter need in order to keep only the $500$ Hz tone?
@@ -474,12 +492,27 @@ amplitudes that fall off like $1/k$:</p>
 
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-sawtooth.svg" width="420px" alt=""></div>
 
+<p>A $5$ Hz sawtooth is far too low to hear, so this is the same shape at an audible
+pitch, $220$ Hz, with every harmonic present:</p>
+<audio controls="" preload="metadata" style="display:block; margin:4px 0 10px 0;">
+  <source src="assets/audio/fr-sawtooth.wav" type="audio/wav"></source>
+Your browser does not support the audio element.
+</audio>
+
 <p>Low-pass filtering above the tenth harmonic (that is, at $50$ Hz) keeps the first ten
 terms of the sum and discards the rest. The result is still recognisably a sawtooth,
 but its corners are rounded, because the sharp corner is exactly what the removed
 high harmonics were building:</p>
 
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-sawtooth-filtered.svg" width="420px" alt=""></div>
+
+<p>And the same wave with everything above the tenth harmonic removed. The pitch is
+unchanged, because the fundamental is untouched; what goes is the brightness, which
+is what the high harmonics were providing:</p>
+<audio controls="" preload="metadata" style="display:block; margin:4px 0 10px 0;">
+  <source src="assets/audio/fr-sawtooth-filtered.wav" type="audio/wav"></source>
+Your browser does not support the audio element.
+</audio>
 
 <div class="exercise">
 The filtered sawtooth wiggles near the corners rather than settling immediately.
