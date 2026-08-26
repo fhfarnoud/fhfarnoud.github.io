@@ -150,15 +150,15 @@
           <li>
             <a class="active" style="color: #76bdd59c" href="/moi/linsys.html"><img class="emoji" title=":point_right:" alt=":point_right:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f449.png" height="20" width="20"> Linear systems</a>
           </li>
-             
-          <li class="chapnav">Frequency response</li>
-             
+              
+          <li><a href="/moi/freqresponse.html">Frequency response</a></li>
+              
           <li><a href="/moi/modulation.html">Modulation</a></li>
-             
-          <li class="chapnav">Orthogonality</li>
+              
+          <li><a href="/moi/orthogonality.html">Orthogonality</a></li>
+              
+          <li><a href="/moi/maccs.html">Multiple-access communication</a></li>
             
-          <li class="chapnav">Multiple-access communication</li>
-           
         </ul>
            
         <span class="chapnav"><strong>Appendix</strong></span>
@@ -273,7 +273,13 @@ $x[n]$ and outputs $y[n]$.</p>
 $y[n] = T(x[n])$</p>
 
 <p>Then,
-\(y_1[n] = T(x_1[n]), y_2[n] = T(x_2[n]), \rightarrow y_1[n] + y_2[n] = T(x_1[n], + x_2[n]), cy_1[n] = T(cx_1[n]), ay_1[n] + by_2[n] = T(ax_1[n] + bx_2[n].\)</p>
+\(y_1[n] = T(x_1[n]), \quad y_2[n] = T(x_2[n])\)</p>
+
+<p>then additivity and scaling say
+\(y_1[n] + y_2[n] = T(x_1[n] + x_2[n]), \qquad c\,y_1[n] = T(c\,x_1[n]),\)</p>
+
+<p>and the two together give
+\(a\,y_1[n] + b\,y_2[n] = T(a\,x_1[n] + b\,x_2[n]).\)</p>
 
 <p>Linearity is a very powerful property that ensures systems are well-behaved:</p>
 
@@ -370,128 +376,12 @@ $y\left( t \right) = x(3t)$
 $y\left( t \right) = \frac{dx\left( t \right)}{dt}$
 <!-- LTI -->
 $y\left( t \right) = \frac{1}{2\pi}\frac{dx\left( t \right)}{dt} - \frac{1}{\left( 2\pi \right)^{2}}\frac{d^{2}x\left( t \right)}{dt^{2}}$
-<!-- non LI non TI -->
-$y\left( t \right) = x\left( t \right)^{2} - x(t/2)$</p>
+<!-- LTI: a linear combination of derivatives -->
+$y\left( t \right) = x\left( t \right)^{2} - x(t/2)$
+<!-- neither linear (the square) nor time-invariant (the t/2) --></p>
 
-<p>The response to a single frequency</p>
-
-<p>Let’s see how each of these systems treat a single frequency:</p>
-
-<p>The response to a single frequency
-$x\left( t \right) = 1e^{i2\pi t},y\left( t \right) = \frac{1}{2}x\left( t - \frac{1}{6} \right)$</p>
-<div style="float;"><img src=".//media/image2.gif" width="250px"></div>
-<div style="float;"><img src=".//media/image3.gif" width="250px"></div>
-
-<p>$x\left( t \right) = 1e^{i2\pi t},y\left( t \right) = x(3t)$</p>
-<div style="float;"><img src=".//media/image2.gif" width="250px"></div>
-<div style="float;"><img src=".//media/image4.gif" width="250px"></div>
-
-<p>$x\left( t \right) = 1e^{i2\pi t},y\left( t \right) = \frac{dx\left( t \right)}{dt}$</p>
-<div style="float;"><img src=".//media/image2.gif" width="250px"></div>
-<div style="float;"><img src=".//media/image5.gif" width="250px"></div>
-
-<p>$x\left( t \right) = 1e^{i2\pi t},y\left( t \right) = \frac{dx\left( t \right)}{dt} - \frac{d^{2}x\left( t \right)}{dt^{2}}$</p>
-<div style="float;"><img src=".//media/image2.gif" width="250px"></div>
-<div style="float;"><img src=".//media/image6.gif" width="250px"></div>
-
-<p>$x\left( t \right) = 1e^{i2\pi t},y\left( t \right) = x\left( t \right)^{2} - x(t/2)$</p>
-<div style="float;"><img src=".//media/image2.gif" width="250px"></div>
-<div style="float;"><img src=".//media/image7.gif" width="250px"></div>
-
-<h2 id="frequency-response-of-lti-systems">Frequency response of LTI systems</h2>
-
-<p>For LTI systems, the output for a complex exponential is a scaled and shifted version of it (with the same frequency)</p>
-
-<p>$x\left( t \right) = e^{i2\pi ft} \rightarrow y\left( t \right) = A_{f}e^{i2\pi ft + \phi_{f}}$</p>
-
-<p>Since any signal is a combination of complex exponentials, in the frequency domain, each frequency as scaled and shifted by a certain value: $Y\left( f \right) = H(f)X(f)$, $H\left( f \right) = A_{f}e^{i\phi_{f}}$. Describing LTI systems is significantly simpler in the frequency domain rather than the time domain.</p>
-
-<p>In the time domain:</p>
-
-<p>Sinusoids are scaled and shifted. For non-sinusoids the shape may change.</p>
-<div style="float;"><img src=".//media/image9.png" width="250px"></div>
-<p>rightarrow</p>
-<div style="float;"><img src=".//media/image11.png" width="250px"></div>
-<!-- <div style="float;"><img src=".//media/image10.png" width="250px"></div> copied the wrong pic.. -->
-<p>rightarrow</p>
-<div style="float;"><img src=".//media/image12.png" width="250px"></div>
-
-<p>$y\left( t \right) = \frac{1}{2}x\left( t - \frac{1}{6} \right) \Rightarrow$</p>
-
-<p>$x\left( t \right) = e^{i2\pi ft} \rightarrow y\left( t \right) = \frac{1}{2}e^{i2\pi f\left( t - \frac{1}{6} \right)} = \frac{1}{2}e^{- i2\pi f/6}e^{i2\pi ft} \Rightarrow H\left( f \right) = \frac{1}{2}e^{- i2\pi f/6}$</p>
-
-<p>$y\left( t \right) = x(3t)$</p>
-
-<p>$x\left( t \right) = e^{i2\pi ft} \rightarrow y\left( t \right) = e^{i2\pi 3ft}$, for input with frequency $f$ the output has frequency $3f$ =&gt; Not
-LTI</p>
-
-<p>$y\left( t \right) = \frac{dx\left( t \right)}{dt}$</p>
-
-<p>$x\left( t \right) = e^{i2\pi ft} \rightarrow y\left( t \right) = (i2\pi f)e^{i2\pi ft} = 2\pi fe^{- i\pi/2}e^{i2\pi ft} \Rightarrow H\left( f \right) = 2\pi fe^{- i\pi/2}$</p>
-
-<p>$y\left( t \right) = \frac{1}{2\pi}\frac{dx\left( t \right)}{dt} - \frac{1}{\left( 2\pi \right)^{2}}\frac{d^{2}x\left( t \right)}{dt^{2}}$</p>
-
-<p>$y\left( t \right) = x\left( t \right)^{2} - x(t/2)$</p>
-
-<p>Recall, real-valued signals have conjugate-symmetric spectra. For the same reason, a real system has a conjugate-symmetric frequency response.</p>
-
-<p>Thus,</p>
-
-<p>$H(f) = H^{\ast}( - f)$</p>
-
-<p>If the input is real, the output of a real filter will also be real, with a symmetric spectrum:</p>
-
-<p>$Y(f) = Y^{\ast}( - f)$</p>
-
-<p>Suppose a signal x(t) has a certain spectrum X(f). If our filter is an LTI system, it effectively scales individual frequencies by fixed values. We call these scaling values the frequency response
-H(f) of the filter:
-<!-- add img -->
-Image credit: FaberAcoustical</p>
-
-<h2 id="frequency-selective-filters">Frequency-selective filters</h2>
-
-<p>Frequency-selective filters are LTI filters that preserve some frequencies (the passband) and eliminate other frequencies (the stopband) in the signal:</p>
-<div style="float;"><img src=".//media/image13.png" width="250px"></div>
-<div style="float;"><img src=".//media/image14.png" width="250px"></div>
-
-<h3 id="filtering-a-sinusoid">Filtering a sinusoid.</h3>
-<p>Consider a three-tone signal x(t):
-$x(t) = \frac13(\cos(2\pi (250)t) + \cos(2\pi (500)t) + \cos(2\pi (1000)t))$</p>
-<div style="float;"><img src=".//media/image16.png" width="250px"></div>
-<div style="float;"><img src=".//media/image15.png" width="250px"></div>
-<p>These filters are especially useful when the desired signal occupies a limited set of frequencies.</p>
-
-<p>Given a digital low pass filter that corresponds to an analog frequency of 400 Hz, only the lowest-frequency sinusoid will be preserved:</p>
-<div style="float;"><img src=".//media/image17.png" width="250px"></div>
-<div style="float;"><img src=".//media/image18.png" width="250px"></div>
-
-<p>Thus, we observe:</p>
-<div style="float;"><img src=".//media/image16.png" width="250px"></div>
-<p>Low pass filter (400 Hz)</p>
-<div style="float;"><img src=".//media/image19.png" width="250px"></div>
-
-<p>A high pass filter can preserve the highest-frequency sinusoid, while suppressing the others: This filter has a 600 Hz cutoff.</p>
-<div style="float;"><img src=".//media/image20.png" width="250px"></div>
-<div style="float;"><img src=".//media/image21.png" width="250px"></div>
-<p>Observe:</p>
-
-<div style="float;"><img src=".//media/image16.png" width="250px"></div>
-<p>High pass filter (600 Hz)</p>
-<div style="float;"><img src=".//media/image22.png" width="250px"></div>
-
-<h3 id="filtering-a-sawtooth-wave">Filtering a sawtooth wave</h3>
-
-<p>A sawtooth wave can be constructed from a set of sinusoids of decreasing amplitude: $x(t) = 1 + \sum_{k=1}^{\infty} \frac2{k \pi} \cos(2\pi (5k) t + \frac{\pi}2)$.</p>
-<div style="float;"><img src=".//media/image23.png" width="250px"></div>
-
-<p>After filtering above the tenth harmonic (50 Hz):</p>
-<div style="float;"><img src=".//media/image24.png" width="250px"></div>
-
-<p>This graphic equalizer can be considered a set of frequency selective filters:</p>
-<div style="float;"><img src=".//media/image7.png" width="250px"></div>
-
-<p>Each of the frequencies along the horizontal axis represents a range corresponding to the passband of a filter.  The decibel (dB) factor selected using the slider represents the passband gain of that filter. The decibel scale is logarithmic, so a factor $&gt; 0$ dB represents <em>amplification</em> (gain $&gt; 1$), while a factor $&lt; 0$ dB represents <em>attenuation</em> (gain $&lt; 1$). The equalizer inputs the sound into each of the filters and adds the outputs together to get the chosen equalizer characteristic. Choose your favorite music and try it out!</p>
-
+<p>In the next section we look at what these systems do to a single frequency, which
+turns out to be the whole story for the LTI ones.</p>
 
       <footer>
         <br><br>

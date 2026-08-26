@@ -69,9 +69,7 @@
   <body>
     <!-- Top navigation bar from the main webpage. must be updated from page.html-->
     <div class="topnav">
-      <a style="float: left" href="../index.html"
-        ><strong>Farzad Farnoud</strong></a
-      >
+      <a style="float: left" href="../index.html"><strong>Farzad Farnoud</strong></a>
       <a id="teaching" href="../teaching.html">Teaching</a>
       <a id="pubs" href="../publications.html">Publications</a>
       <a id="home" href="../index.html">Home</a>
@@ -87,7 +85,7 @@
              
         <a href="/moi/"><strong>Mathematics of Information</strong></a>
              
-        <span class="chapnav"><strong>1. Numbers, fields, and <br/>representing information</strong></span>
+        <span class="chapnav"><strong>1. Numbers, fields, and <br>representing information</strong></span>
         <ul>
             
           <li><a href="/moi/sets.html">Sets and set theory</a></li>
@@ -104,20 +102,20 @@
             
         </ul>
            
-        <span class="chapnav"><strong>2. Probability & information</strong></span>
+        <span class="chapnav"><strong>2. Probability &amp; information</strong></span>
         <ul>
             
           <li><a href="/moi/defining_information.html">Defining information</a></li>
               
           <li><a href="/moi/probability_basics.html">Basics of probability</a></li>
               
-          <li><a href="/moi/distributions.html">Random variables, <br/> distributions, independence</a></li>
+          <li><a href="/moi/distributions.html">Random variables, <br> distributions, independence</a></li>
               
           <li><a href="/moi/expectation.html">Expectation and Variance</a></li>
               
           <li><a href="/moi/conditional.html">Conditional probability</a></li>
               
-          <li><a href="/moi/markov.html">Random sequences and <br/> Markov chains</a></li>
+          <li><a href="/moi/markov.html">Random sequences and <br> Markov chains</a></li>
               
           <li><a href="/moi/information_theory.html">Quantifying Information</a></li>
               
@@ -127,7 +125,7 @@
             
         </ul>
            
-        <span class="chapnav"><strong>3. Linear algebra, finite fields, <br/>and error correction</strong></span>
+        <span class="chapnav"><strong>3. Linear algebra, finite fields, <br>and error correction</strong></span>
         <ul>
             
           <li><a href="/moi/codes_graphs_algebra.html">Codes, graphs, and algebra</a></li>
@@ -140,7 +138,7 @@
             
         </ul>
            
-        <span class="chapnav"><strong>4. The frequency domain and <br/>transmission of information</strong></span>
+        <span class="chapnav"><strong>4. The frequency domain and <br>transmission of information</strong></span>
         <ul>
             
           <li><a href="/moi/complex.html">Complex numbers</a></li>
@@ -150,15 +148,17 @@
           <li><a href="/moi/sampling.html">Filteration and sampling</a></li>
               
           <li><a href="/moi/linsys.html">Linear systems</a></li>
-             
-          <li class="chapnav">Frequency response</li>
-             
+              
+          <li><a href="/moi/freqresponse.html">Frequency response</a></li>
+              
           <li><a href="/moi/modulation.html">Modulation</a></li>
-             
-          <li class="chapnav">Orthogonality</li>
+              
+          <li><a href="/moi/orthogonality.html">Orthogonality</a></li>
+              
+          <li>
+            <a class="active" style="color: #76bdd59c" href="/moi/maccs.html"><img class="emoji" title=":point_right:" alt=":point_right:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f449.png" height="20" width="20"> Multiple-access communication</a>
+          </li>
             
-          <li class="chapnav">Multiple-access communication</li>
-           
         </ul>
            
         <span class="chapnav"><strong>Appendix</strong></span>
@@ -166,9 +166,9 @@
             
           <li><a href="/moi/axiomatic.html">Axiomatic systems</a></li>
               
-          <li><a href="/moi/index.html"><br/></a></li>
+          <li><a href="/moi/index.html"><br></a></li>
               
-          <li><a href="/moi/index.html"><br/></a></li>
+          <li><a href="/moi/index.html"><br></a></li>
             
         </ul>
          
@@ -178,391 +178,357 @@
       <!-- variables for replacement -->
       <h1 id="multiple-access-communication">Multiple access communication</h1>
 
-<p>Multiuser communications</p>
-
-<p>Orthogonal coding and multiplexing</p>
-
-<p>Multiple access communication schemes</p>
-
-<p>Multiuser communications</p>
-
-<p>Early modes of multiuser communications went to great lengths to provide dedicated communications links for each pair of users. For instance, cities were blanketed with massive webs of wires:</p>
-
-<p>This is no longer the case, thanks to wireless communication (and underground links).</p>
-
-<p>The wireless spectrum</p>
-
-<p>Wireless communication relies on radio spectrum, i.e., electromagnetic waves from 3kHz to 300 GHz</p>
-
-<p>By modulating signals at different frequencies and separating them using filters, multiple users can communicate simultaneously</p>
-
-<p>Picture of spectrum.</p>
-
-<p>To regulate wireless communications, the Federal Communications
-Commission created licenses that users (e.g., radio or TV stations) could buy to provide dedicated bandwidth that others could not use:</p>
-
-<p>However, providing every single user with their own dedicated spectrum is very wasteful – why?</p>
-
-<p>In today’s lecture, we will begin to understand other ways of sharing communications channels among many users.</p>
-
-<p><a href="https://www.ntia.doc.gov/files/ntia/publications/january_2016_spectrum_wall_chart.pdf">spectrum_wall_chart</a></p>
-
-<p>In the US, FCC auctions the wireless spectrum, which is bought by cell phone carriers, etc.</p>
-
-<p>Here’s how much major carriers spent in recent 5G (24 GHz, 28 GHz) auctions:</p>
-<ul>
-  <li>ATT $\geq$ $982.5 million</li>
-  <li>T-mobile $\geq$ $803.2 million</li>
-  <li>Verizon $\geq$ $506 million</li>
-  <li>US Cellular $\geq$ 126.6 million</li>
-</ul>
-
-<p>Sources:
-<a href="https://docs.fcc.gov/public/attachments/DA-19-485A2.pdf">[https://docs.fcc.gov/public/attachments/DA-19-485A2.pdf]</a> and
-[<a href="https://arstechnica.com/?post_type=post&amp;p=1517273">https://arstechnica.com/?post_type=post&amp;p=1517273</a></p>
-
-<p>Cellular networks: leading the way</p>
-
-<p>Before modern cellular networks, mobile wireless radio communications generally operated in an <strong>uncoordinated way.</strong></p>
-
-<p>As users moved around, their communications could clash with other users relying on the same channel or bandwidth.</p>
-
-<p>Cellular networking changed this by dividing a region into a multitude of <em>cells</em>, each containing its own base station responsible for communicating with the users within its cell.</p>
-
-<p>Depending on the expected density of users, the <strong>size of cells</strong> can be quite large or very small.</p>
-
-<p>The base stations are responsible for <strong>handing off users</strong>
-(e.g., phones) from one cell to another as they move among them.</p>
-
-<p>This way, <strong>frequency ranges could be shared among users and recycled as they relocate.</strong></p>
-
-<p><strong>In the beginning: 1G cellular networks</strong></p>
-
-<p>The analog Advanced Mobile Phone System (AMPS) was deployed in the US in\</p>
-<ol>
-  <li>It assigned different frequency ranges to users, via a scheme called<br />
-<strong>Frequency Division Multiple Access (FDMA).</strong></li>
-</ol>
-
-<p>We’ll learn more about FDMA later.</p>
-
-<p>Each user in a cell had a dedicated frequency band; base stations had to keep track of which bands were in use as users moved between cells and reallocate bands to prevent multiple users’ transmissions from clashing with each other.</p>
-
-<p>FCC only allocated about <strong>25 MHz for downlink</strong> and <strong>25 MHz for uplink frequencies</strong>, allowing up to <strong>832 downlink/uplink channels of about 30 kHz each</strong>.</p>
-
-<p>This approach is not scalable – more channels would require more bandwidth.</p>
-
-<p>From analog to digital: 2G was born</p>
-
-<p>Analog transmissions were <strong>bandwidth hungry</strong>, mostly <strong>limited to speech/audio</strong>, and had <strong>limited privacy or security</strong> (they were unencrypted).</p>
-
-<p>Two other multi-access approaches were adopted for digital transmissions:<br />
-Time Division Multiple Access (TDMA) and Code Division Multiple Access
-(CDMA).</p>
-
-<p><strong>TDMA</strong> allocated users with brief time slots for transmitting part of their digital signal.</p>
-
-<p><strong>CDMA</strong> employed “codes” to allow users to label their messages, enabling simultaneous transmission.</p>
-
-<p>2G networks enabled <strong>digital media</strong> such as SMS (text messages), ringtones, and even data to be shared over a cellular network. Thus the smartphone became possible!</p>
-
-<p>Need for speed: 3G mobile broadband</p>
-
-<p>Building on the digital multiple access technologies of 2G, 3G gained speed through more efficient use of bandwidth. Whereas 2G used
-<em>circuit-switching</em>, 3G introduced <em>packet-switching</em> for data:</p>
-
-<p>Circuit-switching: All information in a signal travels together on the same path, at the same speed.</p>
-
-<p>Packet-switching: Information is divided into packets, which are transmitted separately, possibly using a multitude of different paths.</p>
-
-<p>This move to higher speeds is a major evolutionary step in cellular communications:</p>
-
-<p>In 3G, the minimum speed was boosted to 2 Mbps for stationary/walking users and 384 kbps for moving vehicles – much faster than 2G networks could achieve!</p>
-
-<p>Thus, wireless broadband and data applications became more common, and even more demanding applications like video streaming became possible in limited cases.</p>
-
-<p>However, packet-switching was used solely for data in these networks, to ensure compatibility with the older 2G networks for making phone calls. It’s not until 4G that packet switching became the norm for [all]{.ul} communications.</p>
-
-<p>Cellular like the internet: 4G LTE</p>
-
-<p>By moving to a full internet-like communications architecture with packet-switching for all communications, 4G networks could make use of bandwidth more efficiently than ever before.</p>
-
-<p>Voice/audio is sent via packets</p>
-
-<p>Users are identified via internet-style addressing; the cellular network takes on modern routing capabilities</p>
-
-<p>Data rates improved by a factor of 10; streaming video and other data-intensive applications become widespread</p>
-
-<p>The Long-Term Evolution (LTE) standard guided 4G development in a coordinated way over the last 15 years through the 3rd
-Generation Partnership Project (3GPP).</p>
-
-<p>The future of wireless: 5G</p>
-
-<p>Future efforts to expand the capabilities and applications of cellular networks fall under the heading of “5G”</p>
-
-<p>A major piece of many next-generation technologies including smart cities, self-driving cars, Internet of Things, AI everywhere</p>
-
-<p>Some characteristics of 5G:</p>
-
-<p>Higher frequencies: 24GHz-100GHz. Less crowded and higher bandwidth.
-(but shorter range, meaning smaller cells)</p>
-
-<p>More antennas: higher frequencies need smaller antennas
-$\rightarrow$ more antenna $\rightarrow$ higher data rates</p>
-
-<p>Smaller cells: a necessity but also an advantage in dense areas.
-Suitable for dense urban areas and a future where everything is connected, i.e., Internet of things (IoT)</p>
-
-<p>Time Division Multiple Access</p>
-
-<p>Let’s see how these technologies work. First, let’s start with Time
-Division Multiple Access (TDMA):</p>
-
-<div style="float;"><img src=".//media/image69.png" width="250px" /></div>
-
-<p>Idea: enable multiple users to share a single channel by assigning each user a “slice” of time during which only that user can communicate.</p>
-
-<p>How are time slices assigned?</p>
-
-<p>Each base station tracks user requests for transmit/receive time</p>
-
-<p>Requests are prioritized by type (e.g., voice calls, then data)</p>
-
-<p>Balancing assures users do not have to wait too long due to other users’ heavy usage (therefore many networks will throttle excessive usage)</p>
-
-<p>However, users are responsible for honoring time slice allocations; base station does not explicitly control user transmission times.</p>
-
-<div style="float;"><img src=".//media/image70.png" width="250px" /></div>
-<div style="float;"><img src=".//media/image71.png" width="250px" /></div>
-
-<p>Frequency Division Multiple Access</p>
-
-<p>Instead of assigning a time slice to the entire channel, a base station can assign users different ranges of non-overlapping frequencies they are allowed to use:</p>
-
-<p>However, as users relocate, and their needs change, maintain a fixed assignment of frequencies becomes wasteful. Hence, modern FDMA is actually a time-frequency assignment hybrid:</p>
-
-<div style="float;"><img src=".//media/image72.png" width="250px" /></div>
-
-<p>This is the norm for 2G TDMA/FDMA networks like Global system for mobile
-(GSM) networks</p>
-
-<p>TDMA, FDMA, and orthogonality</p>
-
-<p>By ensuring frequencies are not shared at a given slice or moment in time, TDMA and FDMA both implement a form of orthogonality, since only a single user is transmitting a nonzero sinusoid at any given frequency at any given time.</p>
-
-<p>Different time slices are orthogonal</p>
-
-<p>Different frequency ranges are orthogonal</p>
-
-<p>Different time/frequency slice ranges are orthogonal</p>
-
-<p>Is this the only way to ensure orthogonality? No.</p>
-
-<p>In fact, data coding provides another</p>
-
-<p>Code Division Multiple Access</p>
-
-<p>Code Division Multiple Access uses orthogonal data coding sequences to separate user signals without enforcing either time slicing or frequency range constraints:</p>
-
-<p>CDMA: Each user has access to all frequencies, all the time!</p>
-
-<div style="float;"><img src=".//media/image73.png" width="250px" /></div>
-
-<p>Unlike TDMA/FDMA, each user can transmit continuously and has access to the full channel.</p>
-
-<p>Robust in challenging environments with varying channel characteristics
-(e.g., during bad weather)</p>
-
-<p>Does not require waiting to communicate, reducing latency and avoiding excessive delays</p>
-
-<p>CDMA: Each user users a different code to transmit.</p>
-
-<p>If the receiver knows the transmitter’s code, the receiver can extract the data from just the transmitting user, irrespective of other transmissions on the same channel.</p>
-
-<p>This requires the transmissions’ codes to be orthogonal to each other. This way, multiplying a received signal by one user’s code will automatically zero out the contributions from every other user.</p>
-
-<p>Start with a low-bandwidth signal, and multiple by a high-bandwidth
-“spreading code”. The result will be high bandwidth, but allow simultaneous reuse of that bandwidth by other users.</p>
-
-<p>Number of concurrent users not directly limited by bandwidth available, but by number of orthogonal codes!</p>
-
-<p>Orthogonality: review</p>
-
-<p>Two vectors are orthogonal if their inner product is 0.</p>
-
-<p>Example: $a = \left( 1, - 1,1, - 1 \right),b = \left( 1,1,1,1 \right)$,
-$c = \left( - 1, - 1,1,1 \right)$</p>
-
-<p>Find</p>
-
-<p>$\left\langle a,b \right\rangle$ $\left\langle a,a \right\rangle$</p>
-
-<p>$\left\langle a,c \right\rangle$ $\left\langle b,b \right\rangle$</p>
-
-<p>$\left\langle b,c \right\rangle$ $\left\langle c,c \right\rangle$</p>
-
-<p>$\left\langle a,b + c \right\rangle$</p>
-
-<p>$\left\langle a,a + b \right\rangle$</p>
-
-<p>$\left\langle a, - a + b \right\rangle$</p>
-
-<p>CDMA orthogonality</p>
-
-<p>Suppose code length is $N$ bits</p>
-
-<p>User A has codeword (a vector of length $N$ consisting of $\pm 1$) $a$, user B has codeword $b$.</p>
-
-<p>Then, choose $a$ and $b$ to be orthogonal:
-$\left\langle a,b \right\rangle = 0$</p>
-
-<p>To send 1, user A transmits $a$ and to send $0$, she transmits $- a$</p>
-
-<p>User B sends 1 as $b$ and 0 as $- b$.</p>
-
-<p>At the receiver end, we get $\pm a \pm b$.</p>
-
-<p>If we multiply by $a$, what do we get?</p>
-
-<p>What if we multiply by$b$?</p>
-
-<p>This is why orthogonality is important.</p>
-
-<p>Let’s look at this in more detail:</p>
-
-<p>Let $m_{A},m_{B}$ indicate the bit that each wants to transmit: +1 for 1 and -1 for 0</p>
-
-<p>At the receiver we receive $s = m_{A}a + m_{B}b$</p>
-
-<p>The result of decoding for A:</p>
-
-<p>$\left\langle a,s \right\rangle = \left\langle a,m_{A}a + m_{B}b \right\rangle = \left\langle a,m_{A}a \right\rangle + \left\langle a,m_{B}b \right\rangle = \ldots$</p>
-
-<p>If there are three or more users whose codewords are all pairwise orthogonal, the computation is exactly the same.</p>
-
-<p>Consider a system with three users:</p>
-
-<p>A with codeword $a = \left( + 1, + 1, + 1, + 1 \right)$</p>
-
-<p>B with codeword $b = \left( - 1, + 1, + 1, - 1 \right)$</p>
-
-<p>C with codeword $c = \left( + 1, - 1, + 1, - 1 \right)$</p>
-
-<p>D with codeword $d = \left( + 1, + 1, - 1, - 1 \right)$</p>
-
-<p>The users simultaneously transmit. The received signal is</p>
-
-<p>$s = ( + 2, + 2, - 2, + 2)$</p>
-
-<p>Find the bit that each user intended to transmit</p>
-
-<p>What if $s^{\prime} = \left( 2,0, - 2,0 \right)$ is received?</p>
-
-<p>CDMA and noise</p>
-
-<p>But there’s always noise!</p>
-
-<p>Let $m_{A},m_{B}$ indicate the bit that each wants to transmit: +1 for 1 and -1 for 0</p>
-
-<p>Also let $n$ be the noise vector</p>
-
-<p>At the receiver we receive $s = m_{A}a + m_{B}b + n$</p>
-
-<p>The result of decoding for A:</p>
-
-<p>$\left\langle a,s \right\rangle = \left\langle a,m_{A}a + m_{B}b + n \right\rangle = \left\langle a,m_{A}a \right\rangle + \left\langle a,m_{B}b \right\rangle + \left\langle a,n \right\rangle = \ldots$</p>
-
-<p>Key idea: noise is random, so inner product between noise and $a$,
-$\left\langle a,n \right\rangle,$will be small.</p>
-
-<p>This is a random quantity with a complex distribution, so let’s look at its expected value and variance:</p>
-
-<p>$E\left\lbrack \left\langle a,n \right\rangle \right\rbrack = E\left\lbrack \sum_{i = 1}^{N}{a_{i}n_{i}} \right\rbrack = \sum_{i = 1}^{N}{E\left\lbrack a_{i}n_{i} \right\rbrack} = \sum_{i = 1}^{N}{a_{i}E\left\lbrack n_{i} \right\rbrack} = 0$ where the last step is because we assume noise has mean zero</p>
-
-<p>If the standard deviation is small, the effect of noise is small
-(concentrated around 0)</p>
-
-<p>SD is of the order of $\sqrt{N}$, which is much smaller than $N$, if $N$ is large</p>
-
-<p>This allows CDMA to work even when the noise is very high</p>
-
-<p>Let’s assume noise in each interval has the following distribution</p>
+<p>How can so many people use their phones at the same time, in the same place, on the
+same air, and still hear each other? This section answers that question, using the
+orthogonality developed in <a href="orthogonality.html">the previous section</a>.</p>
+
+<h2 id="sharing-the-spectrum">Sharing the spectrum</h2>
+
+<p>Early multiuser communication went to great lengths to give every pair of users a
+dedicated link. Cities were blanketed with webs of wire, one pair per conversation.
+Wireless communication removed the wires, but it did not remove the underlying
+problem: the air is one shared medium, and everybody is using it at once.</p>
+
+<p>Wireless communication uses the radio spectrum, the electromagnetic waves from about
+$3$ kHz to $300$ GHz. By modulating signals at different frequencies and separating
+them again with the filters of the previous section, several users can transmit
+simultaneously. To keep users from interfering, the Federal Communications Commission
+sells licences that grant a buyer exclusive use of a band. In the United States the
+spectrum is auctioned, and the sums involved are large: in the 2019 auctions for the
+$24$ GHz and $28$ GHz bands,
+<span class="tex2jax_ignore">AT&amp;T bid over $982 million, T-Mobile over $803
+million, Verizon $506 million, and US Cellular $127 million.</span>
+(Sources: the <a href="https://docs.fcc.gov/public/attachments/DA-19-485A2.pdf" target="_blank">FCC auction results</a>
+and <a href="https://arstechnica.com/?post_type=post&amp;p=1517273" target="_blank">Ars Technica</a>.
+If you want to see how crowded the spectrum is, the NTIA publishes a
+<a href="https://www.ntia.doc.gov/files/ntia/publications/january_2016_spectrum_wall_chart.pdf" target="_blank">wall chart</a>
+of every allocation from $3$ kHz to $300$ GHz.)</p>
+
+<p>Which raises the obvious question: if spectrum is that expensive, giving every
+individual user a private band of their own is enormously wasteful. Most users are
+silent most of the time, and a band sitting idle earns nothing. The rest of this
+section is about the alternatives.</p>
+
+<div class="exercise">
+Before reading on: a licensed band is exclusive, so nobody else may transmit in it
+even when its owner is idle. Roughly what fraction of the time do you think your own
+phone is actually transmitting?
+</div>
+
+<h2 id="cellular-networks">Cellular networks</h2>
+
+<p>Before modern cellular networks, mobile radio was largely uncoordinated: as users
+moved, their transmissions could collide with others using the same channel. Cellular
+networking fixed this by dividing a region into <em>cells</em>, each with a base station
+responsible for the users inside it. Depending on how dense the users are, a cell may
+be many kilometres across or only a few hundred metres. Base stations hand users off
+from one cell to the next as they move, which means a frequency range can be reused
+in another cell far enough away not to interfere.</p>
+
+<p><strong>1G.</strong> The analog Advanced Mobile Phone System was deployed in the US in 1983. It
+gave each user in a cell a dedicated frequency band, a scheme called <em>Frequency
+Division Multiple Access</em> (FDMA). The FCC allocated about $25$ MHz each way, which at
+roughly $30$ kHz per channel allowed up to $832$ channels. The approach does not
+scale: more users means more channels means more bandwidth, and there is no more
+bandwidth.</p>
+
+<p><strong>2G.</strong> Analog transmission was bandwidth hungry, largely limited to speech, and
+unencrypted. Digital transmission brought two new ways to share: <em>Time Division
+Multiple Access</em> (TDMA), which gives each user brief time slots, and <em>Code Division
+Multiple Access</em> (CDMA), which gives each user a code. 2G made digital media over a
+cellular network possible — text messages, ringtones, and data — and with
+it the smartphone.</p>
+
+<p><strong>3G.</strong> Speed came from using bandwidth more efficiently. Where 2G used
+<em>circuit-switching</em>, in which all the information in a signal travels together along
+one path, 3G introduced <em>packet-switching</em> for data, in which the information is cut
+into packets that travel separately and possibly by different routes. Minimum speeds
+rose to $2$ Mbps for stationary users and $384$ kbps in a moving vehicle. Packet
+switching was used only for data at this stage, so that voice calls stayed compatible
+with 2G.</p>
+
+<p><strong>4G.</strong> Moving everything, voice included, to packet-switching made 4G networks look
+like the internet: users have addresses, the network routes, and data rates improved
+roughly tenfold. The Long-Term Evolution (LTE) standard coordinated this development
+through the 3rd Generation Partnership Project.</p>
+
+<p><strong>5G.</strong> The current generation pushes into higher frequencies, $24$ to $100$ GHz,
+which are less crowded and offer more bandwidth but travel shorter distances. Shorter
+range means smaller cells, which is a cost in rural areas and an advantage in dense
+ones. Higher frequencies also need smaller antennas, so more of them fit, which
+raises data rates further.</p>
+
+<h2 id="time-division-multiple-access">Time Division Multiple Access</h2>
+
+<div style="float;"><img src=".//media/image69.png" width="560px"></div>
+
+<p>The idea is to let several users share one channel by giving each a slice of time
+during which only that user may transmit.</p>
+
+<p>Each base station tracks requests for transmit and receive time and prioritises them
+by type, voice calls before data, balancing the allocation so that one user’s heavy
+usage does not make everyone else wait. (This is why networks throttle excessive
+usage.) The base station does not physically control when handsets transmit; users
+are responsible for honouring the slots they are given.</p>
+
+<div style="float;"><img src=".//media/image70.png" width="560px"></div>
+<div style="float;"><img src=".//media/image71.png" width="700px"></div>
+
+<h2 id="frequency-division-multiple-access">Frequency Division Multiple Access</h2>
+
+<p>Instead of slicing time, a base station can assign users non-overlapping ranges of
+frequency, and let them all transmit continuously within their own range.</p>
+
+<p>A fixed assignment is wasteful for the same reason a licensed band is: users move and
+their needs change. So modern FDMA is really a hybrid, assigning users blocks in both
+time and frequency at once. This is the norm in 2G TDMA/FDMA networks such as GSM.</p>
+
+<div style="float;"><img src=".//media/image72.png" width="560px"></div>
+
+<h3 id="both-schemes-are-orthogonality">Both schemes are orthogonality</h3>
+
+<p>TDMA and FDMA look like different engineering ideas, but mathematically they are the
+same idea, and it is the one from the previous section. In TDMA no two users are
+transmitting a nonzero signal at the same instant, so their signals are orthogonal
+because they never overlap in time. In FDMA no two users occupy the same frequency, so
+their signals are orthogonal because they are built from disjoint sets of complex
+exponentials. A hybrid time-frequency assignment is orthogonal for both reasons at
+once.</p>
+
+<p>Is separating the users the only way to get orthogonality? No — and the
+alternative is what the rest of this section is about.</p>
+
+<h2 id="code-division-multiple-access">Code Division Multiple Access</h2>
+
+<div style="float;"><img src=".//media/image73.png" width="560px"></div>
+
+<p>Code Division Multiple Access separates users by giving each an orthogonal code,
+without slicing time or frequency at all. Every user has access to all frequencies,
+all of the time.</p>
+
+<p>Each user multiplies their data by their own code, and the receiver, knowing which
+code it is looking for, extracts that user’s data and cancels everything else. This
+is what requires the codes to be mutually orthogonal: multiplying the received signal
+by one user’s code zeroes out the contribution of every other user exactly.</p>
+
+<p>Concretely, a user starts with a low-bandwidth data signal and multiplies it by a
+much faster <em>spreading code</em>. The result occupies a wide band — hence the name
+<em>spread spectrum</em> — but that same band can be reused simultaneously by every
+other user with a different code. The number of concurrent users is therefore not
+limited directly by the bandwidth, but by the number of orthogonal codes available,
+which we saw is the code length $N$.</p>
+
+<p>Because each user transmits continuously and uses the whole channel, CDMA does not
+make anyone wait for a slot, which lowers latency, and it degrades gracefully when
+channel conditions vary.</p>
+
+<h3 id="sending-and-receiving">Sending and receiving</h3>
+
+<p>Suppose the code length is $N$. User A has a codeword $a$, a vector of $N$ entries
+each $\pm 1$, and user B has codeword $b$, chosen so that $\langle a,b\rangle = 0$.</p>
+
+<p>To send a $1$, user A transmits $a$; to send a $0$, she transmits $-a$. User B does
+the same with $b$. Writing $m_A, m_B \in {+1,-1}$ for the two bits, the receiver
+sees the sum</p>
+
+\[s = m_A a + m_B b.\]
+
+<p>Decoding for A is a single inner product:</p>
+
+\[\langle a, s\rangle = \langle a, m_A a\rangle + \langle a, m_B b\rangle
+ = m_A \langle a,a\rangle + m_B \langle a,b\rangle = m_A N,\]
+
+<p>since $\langle a,b\rangle = 0$ and $\langle a,a\rangle = N$ for a $\pm 1$ vector of
+length $N$. Dividing by $N$ recovers $m_A$. Decoding for B works the same way with
+$b$. If there are three or more users whose codewords are pairwise orthogonal, the
+computation is unchanged: every term but one vanishes.</p>
+
+<div class="exercise">
+Four users transmit simultaneously with the codewords
+$$a = (+1,+1,+1,+1),\quad b = (-1,+1,+1,-1),\quad c = (+1,-1,+1,-1),\quad d = (+1,+1,-1,-1).$$
+The received signal is $s = (+2,+2,-2,+2)$. What did each user send?
+<button onclick="showSolution(this,'mac1')" style="float:right;">Show Solution</button>
+<div id="mac1" style="display:none;" class="solution">
+Take four inner products and divide each by $N = 4$:
+$\langle a,s\rangle = 2+2-2+2 = 4$, so $m_A = +1$;
+$\langle b,s\rangle = -2+2-2-2 = -4$, so $m_B = -1$;
+$\langle c,s\rangle = 2-2-2-2 = -4$, so $m_C = -1$;
+$\langle d,s\rangle = 2+2+2-2 = 4$, so $m_D = +1$.
+As a check, $a - b - c + d = (2,2,-2,2)$, which is $s$.
+</div>
+</div>
+
+<div class="exercise">
+With the same four codewords, the receiver instead sees $s' = (+2,0,-2,0)$. Decoding
+now gives $\langle a,s'\rangle = 0$ and $\langle c,s'\rangle = 0$, which is neither
+$+N$ nor $-N$. What has happened?
+<button onclick="showSolution(this,'mac2')" style="float:right;">Show Solution</button>
+<div id="mac2" style="display:none;" class="solution">
+A and C were silent. Only $\langle b,s'\rangle = -4$ and $\langle d,s'\rangle = +4$
+are nonzero, so B sent a $0$ and D sent a $1$, and indeed $-b + d = (2,0,-2,0)$. A
+zero inner product means that user contributed nothing at all — the decoder
+detects silence as easily as it detects a bit.
+</div>
+</div>
+
+<h2 id="cdma-and-noise">CDMA and noise</h2>
+
+<p>Real channels add noise, so the receiver does not see a clean combination of
+codewords. With a noise vector $n$,</p>
+
+\[s = m_A a + m_B b + n,\]
+
+<p>and decoding for A now gives</p>
+
+\[\langle a, s\rangle = m_A N + m_B \langle a,b\rangle + \langle a, n\rangle
+ = m_A N + \langle a, n\rangle.\]
+
+<p>The other users still cancel exactly. What is left is the true signal $m_A N$ plus one
+unwanted term, $\langle a,n\rangle$. CDMA works whenever that term is small compared
+with $N$.</p>
+
+<p>The key point is that noise is random and unrelated to the code, so the inner product
+$\langle a, n\rangle$ tends to be small: the positive and negative contributions
+cancel. Let us make that precise using expectation and variance.</p>
+
+<p>Assume the noise in each interval has mean zero and that the intervals are
+independent. Then, using linearity of expectation and the fact that the $a_i$ are
+constants,</p>
+
+\[E\big[\langle a,n\rangle\big] = E\left[\sum_{i=1}^{N} a_i n_i\right]
+= \sum_{i=1}^{N} a_i\, E[n_i] = 0.\]
+
+<p>So on average the noise term contributes nothing. How far from zero does it stray?
+For that we need the variance. Suppose each $n_i$ takes the values $-M$, $0$ and $+M$
+with probabilities $p/2$, $1-p$ and $p/2$:</p>
 
 \[n_{i} = \begin{cases}
- -M &amp; \text{with probabailty} &amp; p/2 \\
-0 &amp; \text{with probabailty} &amp; 1 - p \\
-M &amp; \text{with probabailty} &amp;  p/2 \\
+ -M &amp; \text{with probability } p/2, \\
+  0 &amp; \text{with probability } 1 - p, \\
+ +M &amp; \text{with probability } p/2.
 \end{cases}\]
 
-<p>What’s $Var(n_{i})$?</p>
+<p>Its mean is zero, so its variance is
+$\operatorname{Var}(n_i) = E[n_i^2] = \frac{p}{2}M^2 + \frac{p}{2}M^2 = pM^2$.
+Since the $n_i$ are independent and each $a_i^2 = 1$,</p>
 
-<p>What’s
-$Var\left( \left\langle a,n \right\rangle \right) = Var\left( \sum_{i = 1}^{N}{a_{i}n_{i}} \right) = \sum_{i = 1}^{N}{\left( a_{i} \right)^{2}Var\left( n_{i} \right) = NVar(n_{i})} = NM^{2}$</p>
+\[\operatorname{Var}\big(\langle a,n\rangle\big)
+= \operatorname{Var}\left(\sum_{i=1}^{N} a_i n_i\right)
+= \sum_{i=1}^{N} a_i^{2}\operatorname{Var}(n_i)
+= N p M^{2},\]
 
-<p>So standard deviation is $\sqrt{N}M$</p>
+<p>so the standard deviation of the noise term is $M\sqrt{Np}$.</p>
 
-<p>Thus we know that with at least 99% probability,
-$\left\langle a,n \right\rangle$ is less than $10\sqrt{N}M$. (why?)</p>
+<p>Now compare the two quantities. The signal we are trying to detect has size $N$. The
+noise term has standard deviation proportional to $\sqrt{N}$. A random quantity is
+rarely many standard deviations away from its mean — at least $99\%$ of the
+probability lies within ten of them — so with high probability the noise term
+is at most about $10M\sqrt{Np}$, while the signal is $N$. The ratio</p>
 
-<p>For fixed $M$, how does this compare with $\pm N$, as $N$ becomes large?</p>
+\[\frac{10M\sqrt{Np}}{N} = \frac{10M\sqrt{p}}{\sqrt{N}}\]
 
-<p>Consider a system with three users:</p>
+<p>shrinks as $N$ grows, no matter how large $M$ is.</p>
 
-<p>A with codeword
-$a = \left( + 1, + 1, + 1, + 1, + 1, + 1, + 1, + 1, + 1, + 1 \right)$</p>
+<div class="highlight">
+The signal grows like $N$ and the noise like $\sqrt{N}$. By making the code long
+enough, CDMA can recover a message even when the noise in every single interval is
+far larger than the signal in that interval.
+</div>
 
-<p>B with codeword
-$b = \left( - 1, - 1, - 1, - 1, - 1, + 1, + 1, + 1, + 1, + 1 \right)$</p>
+<p>This is why a CDMA transmission can sit <em>below the noise floor</em> and still be decoded:
+a receiver that does not know the code sees nothing but noise, and one that does know
+it recovers the message.</p>
 
-<p>The users simultaneously transmit. The received signal is</p>
+<div style="float;"><img src=".//media/image74.png" width="560px"></div>
 
-<div style="float;"><img src=".//media/image74.png" width="250px" /></div>
+<div class="note">
+<span class="note_emoji"></span>The statement that at least $99\%$ of the probability
+lies within ten standard deviations of the mean is <em>Chebyshev's inequality</em>:
+for any random variable $X$ with mean $\mu$ and standard deviation $\sigma$, and any
+$k &gt; 0$, $P(\vert X - \mu\vert \geq k\sigma) \leq 1/k^{2}$. It says nothing about the
+shape of the distribution, which is what makes it usable here: we assumed very little
+about the noise.
+</div>
 
-<p>$s = (1,3,3,0,0,0,2, - 1,0, - 1)$</p>
+<div class="exercise">
+Two users have the length-$10$ codewords
+$$a = (+1,+1,+1,+1,+1,+1,+1,+1,+1,+1), \qquad b = (-1,-1,-1,-1,-1,+1,+1,+1,+1,+1),$$
+and the received signal is $s = (1,3,3,0,0,0,2,-1,0,-1)$. What did each user send, and
+what was the noise?
+<button onclick="showSolution(this,'mac3')" style="float:right;">Show Solution</button>
+<div id="mac3" style="display:none;" class="solution">
+First check the codes are orthogonal: $\langle a,b\rangle = -5+5 = 0$. Then
+$\langle a,s\rangle = 1+3+3+0+0+0+2-1+0-1 = 7$ and
+$\langle b,s\rangle = -1-3-3-0-0+0+2-1+0-1 = -7$.
+Neither is $\pm 10$, because of the noise, but the signs are unambiguous: dividing by
+$N = 10$ gives $+0.7$ and $-0.7$, so $m_A = +1$ and $m_B = -1$.
+<br><br>
+The noise is whatever is left over:
+$$n = s - (a - b) = (1,3,3,0,0,0,2,-1,0,-1) - (2,2,2,2,2,0,0,0,0,0) = (-1,1,1,-2,-2,0,2,-1,0,-1).$$
+Notice how large it is — in several intervals the noise is bigger than the
+signal — and yet both bits came through. As a check, $\langle a,n\rangle = -3$,
+which is exactly the gap between the ideal $10$ and the observed $7$.
+</div>
+</div>
 
-<p>Find the bit that each user intended to transmit and the noise vector</p>
+<div class="exercise">
+In the exercise above, what is the largest the noise term $\langle a,n\rangle$ could
+have been before user A's bit was decoded incorrectly?
+<button onclick="showSolution(this,'mac4')" style="float:right;">Show Solution</button>
+<div id="mac4" style="display:none;" class="solution">
+The decoder looks at the sign of $\langle a,s\rangle = m_A N + \langle a,n\rangle$
+with $N = 10$ and $m_A = +1$. The sign flips only once $\langle a,n\rangle$ is more
+negative than $-10$. The actual value was $-3$, so there was a good deal of margin.
+Doubling the code length to $20$ would double the margin while the typical size of
+the noise term would grow only by a factor of $\sqrt{2}$.
+</div>
+</div>
 
-<p>In fact, CDMA can decode signals (red line) well below the “noise floor
-(blue line)”:</p>
+<h2 id="spreading-a-signal-in-practice">Spreading a signal in practice</h2>
 
-<p>Let’s see an example of this for a digital signal:</p>
+<p>The examples above send one bit per codeword. In a real system the message is a
+stream of bits, and each bit is multiplied by a whole period of the spreading code.
+Because the code changes much faster than the data, the product occupies a far wider
+band than the data alone.</p>
 
-<p>Call one period of this spreading code, $a$</p>
+<div style="float;"><img src=".//media/image75.png" width="560px"></div>
 
-<p>What if we multiply the mixed high-bandwidth signal by the spreading code again?</p>
+<p>To recover the message, the receiver multiplies the incoming wideband signal by the
+same spreading code again. Where the code matches, each chip is multiplied by
+$(\pm 1)^2 = +1$, so the code cancels itself and the original slow data signal
+reappears; averaging over one period of the code gives back the bit.</p>
 
-<div style="float;"><img src=".//media/image75.png" width="250px" /></div>
-<div style="float;"><img src=".//media/image76.png" width="250px" /></div>
+<div style="float;"><img src=".//media/image76.png" width="560px"></div>
 
-<p>How does this compare to the original message?</p>
+<p>If instead the receiver multiplies by a <em>different</em> code, orthogonal to the one that
+was used, the products no longer agree. Over one period the decoded chips are as
+often $+1$ as $-1$, and averaging them gives zero — which is exactly the
+statement $\langle a,b\rangle = 0$ seen one interval at a time.</p>
 
-<p>What if we take a different spreading code, orthogonal to this code?
-&lt;<em>a,b</em>&gt; = 0</p>
+<div style="float;"><img src=".//media/image77.png" width="560px"></div>
 
-<p>Call one period of this code, <em>b. Not consistent.</em></p>
-
-<p>If we decode with the right spreading code,</p>
-
-<p>The eight decoded bits all match (all +1 or all -1)</p>
-
-<div style="float;"><img src=".//media/image77.png" width="250px" /></div>
-<div style="float;"><img src=".//media/image76.png" width="250px" /></div>
-
-<p>Averaging the eight decoded bits yields the original low-bandwidth signal</p>
-
-<p>If we decode with an orthogonal code,</p>
-
-<p>The eight decoded bits will be sort of “random” (not all the same)</p>
-
-<p>Averaging the eight decoded bits equals zero.</p>
-
-<div style="float;"><img src=".//media/image77.png" width="250px" /></div>
+<div class="exercise">
+Two groups agree on the codes $c_A = (-1,-1,+1,+1)$ and $c_B = (-1,+1,-1,+1)$ and
+transmit at the same time; noise is added on the way. Over seven code periods the
+receiver sees
+$$0,1,-1,4 \mid 3,1,-1,-4 \mid 2,1,1,-1 \mid -3,-1,-3,1 \mid 2,0,-2,3 \mid -1,-4,2,1 \mid 0,1,-1,1.$$
+Decode group B's seven bits by multiplying each block by $c_B$ and averaging.
+<button onclick="showSolution(this,'mac5')" style="float:right;">Show Solution</button>
+<div id="mac5" style="display:none;" class="solution">
+Multiplying each block entry by the corresponding entry of $c_B = (-1,+1,-1,+1)$ and
+averaging the four results gives
+$$1.5,\; -1.25,\; -0.75,\; 1.5,\; 0.75,\; -1,\; 0.75 .$$
+Taking the sign of each: $+,-,-,+,+,-,+$. The magnitudes are nowhere near $1$, because
+the noise is large and the code is only four chips long, but every sign is decided,
+and the sign is all that is needed.
+</div>
+</div>
 
       <footer>
-        <br /><br />
+        <br><br>
         <center>
-          <hr />
-          &copy; Farzad Farnoud, 2023
+          <hr>
+          © Farzad Farnoud, 2023
         </center>
       </footer>
     </div>
@@ -572,21 +538,10 @@ $b = \left( - 1, - 1, - 1, - 1, - 1, + 1, + 1, + 1, + 1, + 1 \right)$</p>
       var sc_invisible = 1;
       var sc_security = "92eda81b";
     </script>
-    <script
-      type="text/javascript"
-      src="https://www.statcounter.com/counter/counter.js"
-      async
-    ></script>
-    <noscript
-      ><div class="statcounter">
-        <a title="web counter" href="https://statcounter.com/" target="_blank"
-          ><img
-            class="statcounter"
-            src="https://c.statcounter.com/12471818/0/92eda81b/1/"
-            alt="web counter"
-            referrerpolicy="no-referrer-when-downgrade"
-        /></a></div
-    ></noscript>
+    <script type="text/javascript" src="https://www.statcounter.com/counter/counter.js" async></script>
+    <noscript><div class="statcounter">
+        <a title="web counter" href="https://statcounter.com/" target="_blank"><img class="statcounter" src="https://c.statcounter.com/12471818/0/92eda81b/1/" alt="web counter" referrerpolicy="no-referrer-when-downgrade"></a>
+</div></noscript>
     <!-- End of Statcounter Code -->
   </body>
 </html>

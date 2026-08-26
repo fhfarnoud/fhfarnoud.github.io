@@ -69,9 +69,7 @@
   <body>
     <!-- Top navigation bar from the main webpage. must be updated from page.html-->
     <div class="topnav">
-      <a style="float: left" href="../index.html"
-        ><strong>Farzad Farnoud</strong></a
-      >
+      <a style="float: left" href="../index.html"><strong>Farzad Farnoud</strong></a>
       <a id="teaching" href="../teaching.html">Teaching</a>
       <a id="pubs" href="../publications.html">Publications</a>
       <a id="home" href="../index.html">Home</a>
@@ -87,7 +85,7 @@
              
         <a href="/moi/"><strong>Mathematics of Information</strong></a>
              
-        <span class="chapnav"><strong>1. Numbers, fields, and <br/>representing information</strong></span>
+        <span class="chapnav"><strong>1. Numbers, fields, and <br>representing information</strong></span>
         <ul>
             
           <li><a href="/moi/sets.html">Sets and set theory</a></li>
@@ -104,20 +102,20 @@
             
         </ul>
            
-        <span class="chapnav"><strong>2. Probability & information</strong></span>
+        <span class="chapnav"><strong>2. Probability &amp; information</strong></span>
         <ul>
             
           <li><a href="/moi/defining_information.html">Defining information</a></li>
               
           <li><a href="/moi/probability_basics.html">Basics of probability</a></li>
               
-          <li><a href="/moi/distributions.html">Random variables, <br/> distributions, independence</a></li>
+          <li><a href="/moi/distributions.html">Random variables, <br> distributions, independence</a></li>
               
           <li><a href="/moi/expectation.html">Expectation and Variance</a></li>
               
           <li><a href="/moi/conditional.html">Conditional probability</a></li>
               
-          <li><a href="/moi/markov.html">Random sequences and <br/> Markov chains</a></li>
+          <li><a href="/moi/markov.html">Random sequences and <br> Markov chains</a></li>
               
           <li><a href="/moi/information_theory.html">Quantifying Information</a></li>
               
@@ -127,7 +125,7 @@
             
         </ul>
            
-        <span class="chapnav"><strong>3. Linear algebra, finite fields, <br/>and error correction</strong></span>
+        <span class="chapnav"><strong>3. Linear algebra, finite fields, <br>and error correction</strong></span>
         <ul>
             
           <li><a href="/moi/codes_graphs_algebra.html">Codes, graphs, and algebra</a></li>
@@ -140,7 +138,7 @@
             
         </ul>
            
-        <span class="chapnav"><strong>4. The frequency domain and <br/>transmission of information</strong></span>
+        <span class="chapnav"><strong>4. The frequency domain and <br>transmission of information</strong></span>
         <ul>
             
           <li><a href="/moi/complex.html">Complex numbers</a></li>
@@ -150,15 +148,17 @@
           <li><a href="/moi/sampling.html">Filteration and sampling</a></li>
               
           <li><a href="/moi/linsys.html">Linear systems</a></li>
-             
-          <li class="chapnav">Frequency response</li>
-             
+              
+          <li><a href="/moi/freqresponse.html">Frequency response</a></li>
+              
           <li><a href="/moi/modulation.html">Modulation</a></li>
-             
-          <li class="chapnav">Orthogonality</li>
+              
+          <li>
+            <a class="active" style="color: #76bdd59c" href="/moi/orthogonality.html"><img class="emoji" title=":point_right:" alt=":point_right:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f449.png" height="20" width="20"> Orthogonality</a>
+          </li>
+              
+          <li><a href="/moi/maccs.html">Multiple-access communication</a></li>
             
-          <li class="chapnav">Multiple-access communication</li>
-           
         </ul>
            
         <span class="chapnav"><strong>Appendix</strong></span>
@@ -166,9 +166,9 @@
             
           <li><a href="/moi/axiomatic.html">Axiomatic systems</a></li>
               
-          <li><a href="/moi/index.html"><br/></a></li>
+          <li><a href="/moi/index.html"><br></a></li>
               
-          <li><a href="/moi/index.html"><br/></a></li>
+          <li><a href="/moi/index.html"><br></a></li>
             
         </ul>
          
@@ -178,11 +178,294 @@
       <!-- variables for replacement -->
       <h1 id="orthogonality">Orthogonality</h1>
 
+<p>We met orthogonality in <a href="vectors.html#orthogonality">Vectors and spaces</a>: two vectors
+are orthogonal when their inner product is zero. There it was a geometric fact about
+arrows in space, and a tool for building error-correcting codes. Here we put it to a
+different use.</p>
+
+<p>The question this section answers is the one the frequency domain kept raising: if
+everyone in a city transmits at once, on the same air, why does anyone hear anything?
+The answer is that the signals are arranged to be orthogonal to each other, and that
+orthogonality lets a receiver pull out the one signal it wants and cancel all the
+rest exactly. Three quite different-looking schemes — separating users in time,
+in frequency, or by code — turn out to be three ways of achieving the same
+condition.</p>
+
+<h2 id="signals-are-vectors">Signals are vectors</h2>
+
+<p>Nothing new is needed to talk about orthogonal <em>signals</em>, because a signal already is
+a vector.</p>
+
+<p>A discrete signal of length $N$, say $x = (x_1, x_2, \dotsc, x_N)$, is literally an
+element of $\mathbb{R}^N$, and its inner product with another such signal is the
+familiar sum</p>
+
+\[\langle x, y\rangle = \sum_{n=1}^{N} x_n y_n.\]
+
+<p>For a signal defined on a continuous time interval $[0,T]$ the sum becomes an
+integral. Chop $[0,T]$ into $N$ small pieces of width $\Delta t = T/N$, sample each
+signal once per piece, and form the sum $\sum_n x(t_n) y(t_n) \Delta t$; as the
+pieces shrink this tends to</p>
+
+\[\langle x, y\rangle = \int_0^{T} x(t)\, y^{*}(t)\, dt,\]
+
+<p>where the complex conjugate on $y$ is there so that $\langle x, x\rangle$ is a
+non-negative real number even when the signals are complex, exactly as it is for
+complex vectors.</p>
+
+<div class="highlight">
+Two signals are <strong>orthogonal</strong> when $\langle x, y\rangle = 0$.
+</div>
+
+<p>Everything proved about inner products in Vectors and spaces carries over unchanged,
+because nothing in those proofs used the fact that the vectors had finitely many
+entries. In particular the inner product is linear in each argument, and
+$|x|^2 = \langle x,x\rangle$ measures the energy of the signal.</p>
+
+<h2 id="complex-exponentials-at-different-frequencies-are-orthogonal">Complex exponentials at different frequencies are orthogonal</h2>
+
+<p>The first and most important example is one we have been relying on since
+<a href="fourier.html">Frequency and spectrum</a> without naming it.</p>
+
+<p>Take two complex exponentials on the interval $[0,T]$ and compute their inner
+product. With $\Delta f = f_1 - f_2$,</p>
+
+\[\big\langle e^{i2\pi f_1 t},\, e^{i2\pi f_2 t}\big\rangle
+ = \int_0^T e^{i2\pi f_1 t}\, e^{-i2\pi f_2 t}\, dt
+ = \int_0^T e^{i2\pi \Delta f\, t}\, dt.\]
+
+<p>If $\Delta f = 0$ the integrand is $1$ and the integral is $T$. Otherwise we can
+integrate directly:</p>
+
+\[\int_0^T e^{i2\pi \Delta f\, t}\, dt
+ = \left[\frac{e^{i2\pi \Delta f\, t}}{i2\pi \Delta f}\right]_0^T
+ = \frac{e^{i2\pi \Delta f\, T} - 1}{i2\pi \Delta f},\]
+
+<p>which is zero exactly when $e^{i2\pi \Delta f T} = 1$, that is, when $\Delta f\, T$
+is a nonzero integer.</p>
+
+<div class="highlight">
+On an interval of length $T$, the complex exponentials at the frequencies
+$$f_k = \frac{k}{T}, \qquad k = 0, \pm 1, \pm 2, \dotsc$$
+are mutually orthogonal: any two distinct ones differ in frequency by a nonzero
+multiple of $1/T$.
+</div>
+
+<p>This is the reason the frequency domain works at all. Writing a signal as a
+combination of these exponentials is writing a vector in terms of an orthogonal set,
+and finding the amount of frequency $f_k$ present is taking an inner product with
+$e^{i2\pi f_k t}$ — every other component contributes exactly zero and drops
+out. It is the same computation you would use to find the coordinates of a vector
+along a set of perpendicular axes.</p>
+
+<div class="exercise">
+Two musicians play steady tones for exactly one second, one at $440$ Hz and one at
+$441$ Hz. Are the two signals orthogonal over that second? What if the second
+musician plays $440.5$ Hz?
+<button onclick="showSolution(this,'or1')" style="float:right;">Show Solution</button>
+<div id="or1" style="display:none;" class="solution">
+With $T = 1$ second, orthogonality needs $\Delta f \cdot T$ to be a nonzero integer.
+For $440$ and $441$ Hz, $\Delta f\, T = 1$, so yes, they are orthogonal. For $440.5$
+Hz, $\Delta f\, T = \pm 0.5$, so they are not: the inner product works out to
+$(e^{\pm i\pi}-1)/(\pm i\pi)$, of magnitude $2/\pi$, which is not zero. Orthogonality
+of tones depends on the observation window as much as on the frequencies.
+</div>
+</div>
+
+<h2 id="three-ways-to-be-orthogonal">Three ways to be orthogonal</h2>
+
+<p>Two users sharing a channel send $x(t)$ and $y(t)$ at the same time, and the channel
+carries the sum. There are three natural ways to arrange for $\langle x,y\rangle = 0$.</p>
+
+<p><strong>Take turns (separate in time).</strong> If the two signals are never nonzero at the same
+instant — user A transmits only during her slots and is silent otherwise, and
+user B does the opposite — then the product $x(t)y^{*}(t)$ is zero at every
+$t$, so the integral is zero. This is the idea behind Time Division Multiple Access.</p>
+
+<p><strong>Use different bands (separate in frequency).</strong> Suppose A’s signal has all its
+frequency content in one band and B’s in another band that does not overlap. Each
+signal is a combination of the exponentials in its own band,</p>
+
+\[x(t) = \sum_{k \in \mathcal{A}} \alpha_k\, e^{i2\pi f_k t},
+\qquad
+y(t) = \sum_{l \in \mathcal{B}} \beta_l\, e^{i2\pi f_l t},\]
+
+<p>with $\mathcal{A}$ and $\mathcal{B}$ disjoint. The inner product is linear in each
+argument, so $\langle x,y\rangle$ is a sum of terms
+$\alpha_k \beta_l^{*} \langle e^{i2\pi f_k t}, e^{i2\pi f_l t}\rangle$, and every
+one of those is zero because $f_k \neq f_l$. So $\langle x,y\rangle = 0$: the two
+users are orthogonal. This is Frequency Division Multiple Access, and it is the
+orthogonality of complex exponentials wearing a different hat.</p>
+
+<p><strong>Overlap in both, and use codes.</strong> The two schemes above buy orthogonality by
+keeping the users apart. The third does not: both users transmit over the whole band,
+all of the time, and orthogonality comes from the <em>pattern</em> each one multiplies its
+data by. Because that pattern is a vector of $\pm 1$s, we are back to the finite-
+dimensional inner product, and the condition is simply that the two patterns have
+inner product zero. This is Code Division Multiple Access, and it is the subject of
+<a href="maccs.html">the next section</a>.</p>
+
+<div class="exercise">
+Take the length-4 patterns $a = (+1,+1,+1,+1)$ and $b = (-1,+1,+1,-1)$. Are they
+orthogonal? What about $a$ and $c = (+1,-1,+1,-1)$, and $b$ and $c$?
+<button onclick="showSolution(this,'or2')" style="float:right;">Show Solution</button>
+<div id="or2" style="display:none;" class="solution">
+$\langle a,b\rangle = -1+1+1-1 = 0$, $\;\langle a,c\rangle = 1-1+1-1 = 0$, and
+$\langle b,c\rangle = -1-1+1+1 = 0$. All three are mutually orthogonal. Note also
+that $\langle a,a\rangle = \langle b,b\rangle = \langle c,c\rangle = 4$: a $\pm 1$
+vector of length $N$ always has squared length $N$.
+</div>
+</div>
+
+<h2 id="how-many-users-can-share-a-channel">How many users can share a channel?</h2>
+
+<p>Orthogonality is what makes the users separable, so it is natural to ask how many
+mutually orthogonal signals we can find. For patterns of length $N$ the answer is
+sharp, and it comes straight from linear algebra.</p>
+
+<div class="highlight">
+A set of nonzero, mutually orthogonal vectors is linearly independent. Consequently
+there are at most $N$ mutually orthogonal nonzero vectors in an $N$-dimensional
+space.
+</div>
+
+<p>To see the first claim, suppose $c_1, \dotsc, c_k$ are nonzero and mutually
+orthogonal, and that some combination of them vanishes:
+$\alpha_1 c_1 + \dotsb + \alpha_k c_k = 0$. Take the inner product of both sides with
+$c_j$. Every term with $i \neq j$ contributes $\alpha_i \langle c_j, c_i\rangle = 0$,
+leaving</p>
+
+\[\alpha_j \langle c_j, c_j\rangle = 0.\]
+
+<p>Since $c_j \neq 0$ we have $\langle c_j,c_j\rangle = |c_j|^2 &gt; 0$, so
+$\alpha_j = 0$. This holds for every $j$, so the only combination that vanishes is
+the trivial one, which is what linear independence means. The second claim then
+follows from the fact, established in Vectors and spaces, that an $N$-dimensional
+space contains at most $N$ linearly independent vectors.</p>
+
+<p>So a code of length $N$ supports at most $N$ simultaneous users. Doubling the number
+of users means doubling the length of the codes, which means transmitting twice as
+fast — the bandwidth has to come from somewhere either way.</p>
+
+<div class="exercise">
+Can you find five mutually orthogonal nonzero vectors of length $4$? Try, and then
+explain what goes wrong.
+<button onclick="showSolution(this,'or3')" style="float:right;">Show Solution</button>
+<div id="or3" style="display:none;" class="solution">
+No. Five nonzero mutually orthogonal vectors would be five linearly independent
+vectors in a $4$-dimensional space, and there is no such thing. Whatever fifth vector
+you write down, it is a combination of the first four, and taking its inner product
+with itself using that expansion gives $\|c_5\|^2 = 0$, so it must be the zero
+vector.
+</div>
+</div>
+
+<h2 id="building-an-orthogonal-set-hadamard-codes">Building an orthogonal set: Hadamard codes</h2>
+
+<p>Knowing that at most $N$ orthogonal patterns exist does not tell us how to find them.
+For lengths that are powers of two there is a simple recursive construction that
+produces the full $N$ of them at once.</p>
+
+<p>Start with the $1 \times 1$ array $H_1 = \begin{pmatrix} +1 \end{pmatrix}$, and
+double the size at each step by placing four copies of the current array in a square,
+negating the last one:</p>
+
+\[H_{2m} = \begin{pmatrix} H_m &amp; H_m \\ H_m &amp; -H_m\end{pmatrix}.\]
+
+<p>The first two steps give</p>
+
+\[H_2 = \begin{pmatrix} +1 &amp; +1 \\ +1 &amp; -1\end{pmatrix},
+\qquad
+H_4 = \begin{pmatrix}
++1 &amp; +1 &amp; +1 &amp; +1\\
++1 &amp; -1 &amp; +1 &amp; -1\\
++1 &amp; +1 &amp; -1 &amp; -1\\
++1 &amp; -1 &amp; -1 &amp; +1
+\end{pmatrix}.\]
+
+<p>The four rows of $H_4$ are the four patterns
+$(+1,+1,+1,+1)$, $(+1,-1,+1,-1)$, $(+1,+1,-1,-1)$, $(+1,-1,-1,+1)$, and you can check
+by hand that all six pairs have inner product zero.</p>
+
+<p>That is not a coincidence, and the reason is worth seeing, because it is the whole
+construction in one line. Every row of $H_{2m}$ has the form $(r, r)$ or $(r, -r)$
+for some row $r$ of $H_m$. Take two different rows of $H_{2m}$ and compute:</p>
+
+<ul>
+  <li>$\langle (r,r), (s,s)\rangle = \langle r,s\rangle + \langle r,s\rangle = 2\langle r,s\rangle$, which is $0$ when $r \neq s$;</li>
+  <li>$\langle (r,-r), (s,-s)\rangle = \langle r,s\rangle + \langle r,s\rangle = 2\langle r,s\rangle$, likewise $0$ when $r \neq s$;</li>
+  <li>$\langle (r,r), (s,-s)\rangle = \langle r,s\rangle - \langle r,s\rangle = 0$, and this one holds for <em>every</em> $r$ and $s$, including $r = s$.</li>
+</ul>
+
+<p>So if the rows of $H_m$ are mutually orthogonal, so are the rows of $H_{2m}$. Since
+the single row of $H_1$ is trivially “mutually orthogonal”, the construction gives
+$N$ mutually orthogonal patterns of length $N$ for every $N$ that is a power of two
+— the largest set possible.</p>
+
+<p>These are called <em>Hadamard</em> or <em>Walsh</em> codes, and they are what real CDMA systems
+use to keep users apart.</p>
+
+<div class="exercise">
+Write out the eight rows of $H_8$ from $H_4$, and verify that the second and fifth
+rows are orthogonal.
+<button onclick="showSolution(this,'or4')" style="float:right;">Show Solution</button>
+<div id="or4" style="display:none;" class="solution">
+Rows $1$ to $4$ of $H_8$ are $(r_i, r_i)$ and rows $5$ to $8$ are $(r_i, -r_i)$,
+where $r_1, \dotsc, r_4$ are the rows of $H_4$. So row $2$ is
+$(+1,-1,+1,-1,\,+1,-1,+1,-1)$ and row $5$ is $(+1,+1,+1,+1,\,-1,-1,-1,-1)$. Their
+inner product is $1-1+1-1-1+1-1+1 = 0$. This pair is an instance of the third case
+above, $\langle (r,r),(s,-s)\rangle = 0$, which holds whatever $r$ and $s$ are.
+</div>
+</div>
+
+<h2 id="recovering-one-signal-from-the-sum">Recovering one signal from the sum</h2>
+
+<p>Finally, here is the calculation that all of this exists to make possible. Suppose
+$k$ users have mutually orthogonal patterns $c_1, \dotsc, c_k$, each of length $N$
+with entries $\pm 1$, so that $|c_j|^2 = N$. User $j$ wants to send a single bit,
+encoded as $m_j = +1$ or $m_j = -1$, and transmits $m_j c_j$. What arrives at the
+receiver is the sum of everything in the air:</p>
+
+\[s = m_1 c_1 + m_2 c_2 + \dotsb + m_k c_k.\]
+
+<p>To recover user $j$’s bit, take the inner product of the received signal with user
+$j$’s own pattern:</p>
+
+\[\langle c_j, s\rangle = \sum_{i=1}^{k} m_i \langle c_j, c_i\rangle = m_j \langle c_j, c_j \rangle = m_j N,\]
+
+<p>because every term with $i \neq j$ is zero. So</p>
+
+\[m_j = \frac{\langle c_j, s\rangle}{N}.\]
+
+<p>Every other user’s transmission cancels exactly, no matter how many of them there are
+or what they sent. This is the same projection formula used to find a vector’s
+coordinates along perpendicular axes; here the “axes” are the users, and reading off
+a coordinate is reading one user’s message out of the noise of everybody else’s.</p>
+
+<div class="exercise">
+Three users use $c_1 = (+1,+1,+1,+1)$, $c_2 = (+1,-1,+1,-1)$ and
+$c_3 = (+1,+1,-1,-1)$, and the receiver sees $s = (+1,+3,-1,+1)$. What did each user
+send?
+<button onclick="showSolution(this,'or5')" style="float:right;">Show Solution</button>
+<div id="or5" style="display:none;" class="solution">
+$\langle c_1,s\rangle = 1+3-1+1 = 4$, so $m_1 = 4/4 = +1$.
+$\langle c_2,s\rangle = 1-3-1-1 = -4$, so $m_2 = -1$.
+$\langle c_3,s\rangle = 1+3+1-1 = 4$, so $m_3 = +1$.
+As a check, $c_1 - c_2 + c_3 = (1-1+1,\, 1+1+1,\, 1-1-1,\, 1+1-1) = (1,3,-1,1)$, which
+is indeed $s$.
+</div>
+</div>
+
+<p>Two things are still missing before this describes a real system. Real channels add
+noise, so the received vector is not exactly a combination of the codes; and real
+users are not perfectly synchronised. The next section takes up the first of these
+and shows why orthogonal codes cope with noise remarkably well.</p>
+
       <footer>
-        <br /><br />
+        <br><br>
         <center>
-          <hr />
-          &copy; Farzad Farnoud, 2023
+          <hr>
+          © Farzad Farnoud, 2023
         </center>
       </footer>
     </div>
@@ -192,21 +475,10 @@
       var sc_invisible = 1;
       var sc_security = "92eda81b";
     </script>
-    <script
-      type="text/javascript"
-      src="https://www.statcounter.com/counter/counter.js"
-      async
-    ></script>
-    <noscript
-      ><div class="statcounter">
-        <a title="web counter" href="https://statcounter.com/" target="_blank"
-          ><img
-            class="statcounter"
-            src="https://c.statcounter.com/12471818/0/92eda81b/1/"
-            alt="web counter"
-            referrerpolicy="no-referrer-when-downgrade"
-        /></a></div
-    ></noscript>
+    <script type="text/javascript" src="https://www.statcounter.com/counter/counter.js" async></script>
+    <noscript><div class="statcounter">
+        <a title="web counter" href="https://statcounter.com/" target="_blank"><img class="statcounter" src="https://c.statcounter.com/12471818/0/92eda81b/1/" alt="web counter" referrerpolicy="no-referrer-when-downgrade"></a>
+</div></noscript>
     <!-- End of Statcounter Code -->
   </body>
 </html>
