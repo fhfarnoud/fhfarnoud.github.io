@@ -131,7 +131,7 @@
               
           <li><a href="/moi/fourier.html">Frequency and spectrum</a></li>
               
-          <li><a href="/moi/sampling.html">Filteration and sampling</a></li>
+          <li><a href="/moi/sampling.html">Filtering and sampling</a></li>
               
           <li><a href="/moi/linsys.html">Linear systems</a></li>
               
@@ -164,11 +164,8 @@
       <!-- variables for replacement -->
       <h1 id="modulation">Modulation</h1>
 
-<p>Communication and channels</p>
-
-<p>We will now discuss how information is actually communicated</p>
-
-<p>A <strong>communication channel</strong> is a physical medium or logical construct that allows transmission of information</p>
+<p>Information has to travel over something physical, and what that something can carry
+is rarely what the signal happens to look like. A <strong>communication channel</strong> is a physical medium or logical construct that allows transmission of information</p>
 <ul>
   <li>A twisted pair of wires</li>
   <li>Fiber-optic cable</li>
@@ -186,17 +183,12 @@
 on the spectral view of signals introduced in
 <a href="fourier.html">Frequency and spectrum</a>.</p>
 
-<p>Before diving into modulation, let’s see how basic operations on signals affect
-their spectra. This will be central to our discussion.</p>
+<h2 id="multiplying-two-signals-creates-new-frequencies">Multiplying two signals creates new frequencies</h2>
 
-<h3 id="case-study-on-sinusoids">Case study on sinusoids</h3>
+<h3 id="two-tones-added-and-multiplied">Two tones, added and multiplied</h3>
 
-<p>Consider two sinusoids:</p>
-
-<p>$x_{1}\left( t \right) = \cos\left( 2\pi 2093t \right) = C$
-$x_{2}\left( t \right) = \cos\left( 2\pi 3520t \right) = A$ octave up</p>
-
-<p>Listen to them:</p>
+<p>Take $x_1(t) = \cos(2\pi 2093 t)$, the note C, and $x_2(t) = \cos(2\pi 3520 t)$, the
+A a major sixth above it.</p>
 
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-two-tones.svg" width="290px" alt=""></div>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-two-tones-spectrum.svg" width="290px" alt=""></div>
@@ -212,8 +204,8 @@ Your browser does not support the audio element.
 Your browser does not support the audio element.
 </audio>
 
-<p>If we add them 
-$x_{sum}\left( t \right) = x_{1}\left( t \right) + x_{2}(t) = \cos{\left( 2\pi 2093t \right) +}\cos\left( 2\pi 3520t \right)$</p>
+<p>Adding them gives $x_{sum}(t) = \cos(2\pi 2093 t) + \cos(2\pi 3520 t)$.</p>
+
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-sum-time.svg" width="290px" alt=""></div>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-sum-spectrum.svg" width="290px" alt=""></div>
 
@@ -223,10 +215,12 @@ $x_{sum}\left( t \right) = x_{1}\left( t \right) + x_{2}(t) = \cos{\left( 2\pi 2
 Your browser does not support the audio element.
 </audio>
 
-<p>The spectrum is just the sum of the spectra: Superposition.</p>
+<p>The spectrum of the sum is the sum of the spectra, because the Fourier transform is
+linear (<a href="fourier.html">Frequency and spectrum</a>). Adding signals adds nothing new to
+the frequency axis.</p>
 
-<p>If we multiply them
-$x_{product}\left( t \right) = x_{1}\left( t \right)x_{2}(t) = \cos\left( 2\pi 2093t \right)\cos\left( 2\pi 3520t \right)$</p>
+<p>Multiplying them gives $x_{product}(t) = \cos(2\pi 2093 t)\cos(2\pi 3520 t)$, and
+the result is not like that at all.</p>
 
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-product-time.svg" width="290px" alt=""></div>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-product-spectrum.svg" width="290px" alt=""></div>
@@ -237,40 +231,56 @@ $x_{product}\left( t \right) = x_{1}\left( t \right)x_{2}(t) = \cos\left( 2\pi 2
 Your browser does not support the audio element.
 </audio>
 
-<p>How did we get frequencies that did not exist in either of the signals?</p>
+<p>How did we get frequencies that were in neither signal?</p>
 
-<p>What happens if we multiply a given signal by a cosine?</p>
+<h3 id="why-multiplying-by-a-cosine-shifts-the-spectrum">Why: multiplying by a cosine shifts the spectrum</h3>
 
-<p>Given that any signal is a weighted sum (integral) of complex exponentials, let’s see what happens to a complex exponential at frequency $f$</p>
+<p>Every signal is a weighted sum of complex exponentials, so it is enough to see what
+multiplication does to one of them. Take $x(t) = e^{i2\pi ft}$ and multiply by a
+cosine at $f_1$:</p>
 
-<p>$x\left( t \right) = e^{i2\pi ft}$</p>
+\[y(t) = e^{i2\pi ft}\,\frac{e^{i2\pi f_1 t} + e^{-i2\pi f_1 t}}{2}
+ = \tfrac12 e^{i2\pi(f + f_1)t} + \tfrac12 e^{i2\pi(f - f_1)t}.\]
 
-<p>$y\left( t \right) = x\left( t \right)\cos{(2\pi f_{1}t)} = e^{i2\pi ft}\frac{e^{i2\pi f_{1}t} + e^{- i2\pi f_{1}t}}{2} = \frac{1}{2}e^{i2\pi\left( f + f_{1} \right)t} + \frac{1}{2}e^{i2\pi\left( f - f_{1} \right)t}$</p>
-
-<p>We get two frequencies, $f + f_{1}$ and $f - f_{1}$
-Visually</p>
+<p>The single frequency $f$ has become the pair $f + f_1$ and $f - f_1$, each at half the
+amplitude. Since this happens to every exponential in a signal, multiplying by a
+cosine takes the whole spectrum, makes two half-sized copies of it, and slides one up
+by $f_1$ and the other down by $f_1$.</p>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-shift-before.svg" width="290px" alt=""></div>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-shift-after.svg" width="290px" alt=""></div>
 
-<p>We can also see what happens when we multiply two cosines with trig identities, although this doesn’t tell us how a general signal is affected by the multiplication</p>
+<p>Two cosines are the special case, and there the same result follows from the identity
+$\cos a \cos b = \tfrac12(\cos(a+b) + \cos(a-b))$. For the two tones above,</p>
 
-<p>Trig identity:
-$\cos\left( a \right)\cos\left( b \right) = \frac{1}{2}(\cos\left( a + b \right) + \cos\left( a - b \right))$</p>
+\[\cos(2\pi 2093 t)\cos(2\pi 3520 t)
+ = \tfrac12\cos(2\pi\,1427\,t) + \tfrac12\cos(2\pi\,5613\,t),\]
 
-<p>So, multiplication of two cosines produces sum and difference frequencies.</p>
+<p>since $3520 - 2093 = 1427$ and $3520 + 2093 = 5613$. Those are the two pitches in the
+recording of the product.</p>
 
-<p>In the example we just looked at $f_{1} + f_{2} = 2093 + 3520 = 5613Hz$,
-$f_{1} - f_{2} = 1427Hz$</p>
+<p>The live figure from <a href="fourier.html#fourier-transform">Frequency and spectrum</a>, set to
+the product of two tones:</p>
 
-<p>$x_{product}\left( t \right) = x_{1}\left( t \right)x_{2}\left( t \right) = \cos\left( 2\pi 2093t \right)\cos\left( 2\pi 3520t \right)$</p>
+<div id="windingProduct" class="winding" style="margin:12px 0 18px 0;"></div>
+<script src="assets/js/winding.js"></script>
 
-<p>$= \frac{1}{2}\left( \cos{\left( 2\pi\left( 3520 - 2093 \right)t \right) + \cos\left( 2\pi\left( 3520 + 2093 \right)t \right)} \right)$</p>
+<script>windingFigure('windingProduct', {select: 'prod'});</script>
 
-<p>$= \frac{1}{2}\left( \cos{\left( 2\pi 1427t \right) + \cos\left( 2\pi 5613t \right)} \right)$</p>
+<p>Drag the winding frequency and the peaks turn up at $15$ and $25$ Hz, not at $5$ or
+$20$: the two frequencies in the product are the sum and the difference, and neither
+of the originals is there at all. The AM option in the menu puts a line back at
+$20$ Hz, the carrier itself, which the next section explains.</p>
 
-<p>To be able to transmit information over a channel, we typically need to modulate the signal</p>
+<div class="exercise">
+Two cosines, at $440$ Hz and $660$ Hz, are multiplied together. Which frequencies does
+the product contain, and with what amplitudes?
+<button onclick="showSolution(this,'mo1')" style="float:right;">Show Solution</button>
+<div id="mo1" style="display:none;" class="solution">
+The identity gives $\cos(2\pi 440t)\cos(2\pi 660t) = \tfrac12\cos(2\pi 220t) + \tfrac12\cos(2\pi 1100t)$, so the product contains $220$ Hz and $1100$ Hz, each with amplitude $\tfrac12$. Neither $440$ nor $660$ Hz survives.
+</div>
+</div>
 
-<p>Why modulation?</p>
+<h2 id="why-modulate">Why modulate?</h2>
 
 <p>Commonly, the signal frequency range (signal bandwidth) does not line up with the
 frequency range the channel can carry (channel bandwidth or channel passband). Take
@@ -299,199 +309,56 @@ the notes being played:</p>
 
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-violin-spectrum-zoom.svg" width="460px" alt=""></div>
 
-<p>We have two options:</p>
+<p>A signal’s own frequency range, running from zero up to its highest content, is called
+its <em>baseband</em>. We have two options:</p>
 
 <ol>
   <li>We could transmit that signal as is (<em>baseband transmission</em>).</li>
   <li>Transform the information so that it is transmitted in a different frequency range (<em>modulated transmission</em>).</li>
 </ol>
 
-<h2 id="baseband-versus-modulation">Baseband versus modulation</h2>
+<p>Three things go wrong with the first option. A channel does not treat all frequencies
+alike, and some ranges reach further, lose less, or pick up less noise than others;
+leaving the signal where it happens to sit throws that away, whereas moving it puts it
+where the channel is good. Everyone’s baseband is the same range, so two signals sent
+that way collide, while moving each to its own range lets many share one medium at
+once, which is the subject of <a href="maccs.html">Multiple access</a>. And a digital signal’s
+sharp edges need a wide band to survive, wider than most channels will give at
+baseband.</p>
 
-<p>Baseband transmission has many disadvantages:</p>
-
-<p>Disregards the characteristics of the channel at those frequencies.
-Other frequency ranges may have better signal-to-noise ratio or less attenuation (signal loss).</p>
-
-<p>Prevents others from reusing that bandwidth without some kind of orthogonal coding.</p>
-
-<p>Does not make use of the full available spectrum.</p>
-
-<p>These are overcome by modulation:</p>
-
-<p>Transmitted frequency range can fit the channel characteristics for optimal gain, SNR.</p>
-
-<p>Other transmissions can use different frequency ranges, avoiding congestion or interference.</p>
-
-<p>Make use of all available spectrum by spreading different signals throughout.</p>
-
-<p>Modulation is important for digital signals because unmodulated digital signals have
-sharp changes resulting in high bandwidth requirement if transmitted in baseband.</p>
-
-<h3 id="seeing-where-a-spectrum-comes-from">Seeing where a spectrum comes from</h3>
-
-<p>Everything above rests on one operation: multiplying a signal by a complex
-exponential and integrating. It is worth watching that happen.</p>
-
-<p>Pick a signal below, then drag the winding frequency $f$. The middle panel plots
-$x(t)e^{-i2\pi ft}$, which is the signal wound around the origin at $f$ turns per
-second, and the orange arrow is the integral of that wound curve — its centre
-of mass. The right panel is $|X(f)|$, with the same orange value marked at the
-frequency you have chosen.</p>
-
-<p>When $f$ does not match anything in the signal, the wound curve is spread evenly
-around the origin, its centre of mass sits near zero, and the spectrum is low there.
-When $f$ hits a frequency the signal contains, the curve piles up on one side, the
-arrow grows, and the spectrum has a peak. That is all the Fourier transform is doing.</p>
-
-<div class="winding" style="margin: 12px 0 18px 0;">
-  <div style="margin-bottom:8px;">
-    <label for="wSig"><strong>Signal</strong> $x(t)$:</label>
-    <select id="wSig" style="font-size:15px; padding:2px 4px;">
-      <option value="cos5">cos(2π·5t)</option>
-      <option value="cos5p12">cos(2π·5t) + cos(2π·12t)</option>
-      <option value="prod" selected>cos(2π·5t) · cos(2π·20t)  (a modulated tone)</option>
-      <option value="am">(1 + 0.7cos(2π·5t)) · cos(2π·20t)  (AM)</option>
-      <option value="square">square wave, 10 Hz</option>
-      <option value="pulse">a single pulse</option>
-    </select>
-      
-    <label for="wF"><strong>winding frequency</strong> $f$ =</label>
-    <span id="wFval" style="display:inline-block; min-width:3.2em; font-family:monospace;">5.0</span> Hz
-    <input id="wF" type="range" min="0" max="30" step="0.1" value="5" style="vertical-align:middle; width:230px;">
-  </div>
-  <div>
-    <div style="display:inline-block; vertical-align:top; margin-right:10px;">
-      <div style="text-align:center; font-size:14px;">$x(t)$</div>
-      <div id="wBoxT" class="jxgbox" style="width:270px; height:230px;"></div>
-    </div>
-    <div style="display:inline-block; vertical-align:top; margin-right:10px;">
-      <div style="text-align:center; font-size:14px;">$x(t)\,e^{-i2\pi f t}$ and its integral</div>
-      <div id="wBoxZ" class="jxgbox" style="width:270px; height:230px;"></div>
-    </div>
-    <div style="display:inline-block; vertical-align:top;">
-      <div style="text-align:center; font-size:14px;">$|X(f)|$</div>
-      <div id="wBoxF" class="jxgbox" style="width:270px; height:230px;"></div>
-    </div>
-  </div>
+<div class="exercise">
+The violin recording above has $99.9\%$ of its energy below $5$ kHz, and an AM station
+is allotted $10$ kHz. Why is the audio low-pass filtered at $5$ kHz before it is
+transmitted, and what would content above $5$ kHz do?
+<button onclick="showSolution(this,'mo2')" style="float:right;">Show Solution</button>
+<div id="mo2" style="display:none;" class="solution">
+Modulating a message of bandwidth $B$ onto a carrier at $f_c$ produces content from $f_c - B$ to $f_c + B$, a band of width $2B$. With $B = 5$ kHz that is exactly the $10$ kHz the station owns. Content above $5$ kHz would spill into the neighbouring stations' slots and interfere with them, and the receiver's band-pass filter would cut it off anyway, so it would be lost while doing damage on the way.
 </div>
-
-<script>
-(function () {
-  var N = 900, T = 1.0, dt = T / (N - 1);
-  var tt = new Array(N), xx = new Array(N);
-  for (var i = 0; i < N; i++) tt[i] = i * dt;
-
-  var SIGS = {
-    cos5:    function (t) { return Math.cos(2*Math.PI*5*t); },
-    cos5p12: function (t) { return Math.cos(2*Math.PI*5*t) + Math.cos(2*Math.PI*12*t); },
-    prod:    function (t) { return Math.cos(2*Math.PI*5*t) * Math.cos(2*Math.PI*20*t); },
-    am:      function (t) { return (1 + 0.7*Math.cos(2*Math.PI*5*t)) * Math.cos(2*Math.PI*20*t); },
-    square:  function (t) { return (Math.floor(20*t) % 2 === 0) ? 0.5 : -0.5; },
-    pulse:   function (t) { return Math.exp(-Math.pow((t-0.5)/0.03, 2)); }
-  };
-
-  // integral of x(t) e^{-i2pi f t} dt, by the trapezoid rule
-  function coeff(f) {
-    var re = 0, im = 0;
-    for (var i = 0; i < N; i++) {
-      var w = (i === 0 || i === N-1) ? 0.5 : 1.0;
-      var a = -2*Math.PI*f*tt[i];
-      re += w * xx[i] * Math.cos(a);
-      im += w * xx[i] * Math.sin(a);
-    }
-    return [re*dt, im*dt];
-  }
-
-  var FMAX = 30, NF = 241, ff = [], mag = [];
-  function spectrum() {
-    ff.length = 0; mag.length = 0;
-    for (var k = 0; k < NF; k++) {
-      var f = k * FMAX / (NF - 1), c = coeff(f);
-      ff.push(f); mag.push(Math.hypot(c[0], c[1]));
-    }
-  }
-
-  var opts = { boundingbox: [0,0,0,0], axis: true, showCopyright: false, showNavigation: false,
-               pan: {enabled:false}, zoom: {enabled:false},
-               // nudge the tick labels clear of the curve, which crosses y = 0
-               defaultAxes: { x: { ticks: { label: { offset: [0, -11] }, minorTicks: 0 } },
-                              y: { ticks: { label: { offset: [-6, 0] }, minorTicks: 0 } } } };
-  var bT = JXG.JSXGraph.initBoard('wBoxT', Object.assign({}, opts, {boundingbox: [-0.06, 2.1, 1.06, -2.1]}));
-  var bZ = JXG.JSXGraph.initBoard('wBoxZ', Object.assign({}, opts, {boundingbox: [-1.25, 1.25, 1.25, -1.25]}));
-  var bF = JXG.JSXGraph.initBoard('wBoxF', Object.assign({}, opts, {boundingbox: [-2, 0.62, 31, -0.06]}));
-
-  // the signal crosses y = 0, so the x tick labels would sit on top of it
-  try { bT.defaultAxes.x.defaultTicks.setAttribute({drawLabels: false}); } catch (e) {}
-  var curT = bT.create('curve', [tt, xx], {strokeColor:'#0072BD', strokeWidth:1.6});
-  var curZ = bZ.create('curve', [[0],[0]], {strokeColor:'#0072BD', strokeWidth:1.4});
-  var segZ = bZ.create('segment', [[0,0],[0,0]], {strokeColor:'#D95319', strokeWidth:2.5, lastArrow:true});
-  bZ.create('circle', [[0,0], 1], {strokeColor:'#ddd', strokeWidth:1, dash:2, fixed:true});
-  var curF = bF.create('curve', [[0],[0]], {strokeColor:'#0072BD', strokeWidth:1.6});
-  var segF = bF.create('segment', [[0,0],[0,0]], {strokeColor:'#D95319', strokeWidth:2.5});
-  var dotF = bF.create('point', [0,0], {face:'o', size:3, strokeColor:'#D95319', fillColor:'#D95319',
-                                        fixed:true, withLabel:false});
-
-  var sel = document.getElementById('wSig'),
-      sli = document.getElementById('wF'),
-      lbl = document.getElementById('wFval');
-
-  function redrawZ() {
-    var f = parseFloat(sli.value);
-    lbl.textContent = f.toFixed(1);
-    var zr = new Array(N), zi = new Array(N);
-    for (var i = 0; i < N; i++) {
-      var a = -2*Math.PI*f*tt[i];
-      zr[i] = xx[i]*Math.cos(a); zi[i] = xx[i]*Math.sin(a);
-    }
-    curZ.dataX = zr; curZ.dataY = zi;
-    var c = coeff(f);
-    segZ.point2.setPosition(JXG.COORDS_BY_USER, [c[0], c[1]]);
-    segF.point1.setPosition(JXG.COORDS_BY_USER, [f, 0]);
-    segF.point2.setPosition(JXG.COORDS_BY_USER, [f, Math.hypot(c[0], c[1])]);
-    dotF.setPosition(JXG.COORDS_BY_USER, [f, Math.hypot(c[0], c[1])]);
-    bZ.update(); bF.update();
-  }
-
-  function rebuild() {
-    var fn = SIGS[sel.value];
-    for (var i = 0; i < N; i++) xx[i] = fn(tt[i]);
-    var m = 0; for (i = 0; i < N; i++) m = Math.max(m, Math.abs(xx[i]));
-    bT.setBoundingBox([-0.06, m*1.25, 1.06, -m*1.25], false);
-    curT.dataX = tt; curT.dataY = xx;
-    spectrum();
-    curF.dataX = ff; curF.dataY = mag;
-    var fm = 0; for (i = 0; i < NF; i++) fm = Math.max(fm, mag[i]);
-    bF.setBoundingBox([-2, Math.max(fm,0.05)*1.22, 31, -Math.max(fm,0.05)*0.1], false);
-    bT.update();
-    redrawZ();
-  }
-
-  sel.addEventListener('change', rebuild);
-  sli.addEventListener('input', redrawZ);
-  rebuild();
-})();
-</script>
-
-<p>Try the modulated tone, $\cos(2\pi 5t)\cos(2\pi 20t)$: the peaks sit at $15$ and
-$25$ Hz, not at $5$ or $20$, which is the sum-and-difference result from the start of
-this section, seen from the other side. The AM signal adds a third peak at $20$ Hz,
-the carrier itself.</p>
-
-<h2 id="diving-into-modulation">Diving into Modulation</h2>
-<p>Modulation typically involves two signals: Carrier: a waveform chosen to fit the channel well
-Message signal or modulation signal: the signal representing information to be transmitting</p>
-
-<p>Modulation can be considered the systematic alteration of the carrier by the message.</p>
-<ul>
-  <li>Amplitude modulation: change the amplitude of the carrier based on the message</li>
-  <li>Frequency modulation</li>
-  <li>Phase modulation</li>
-</ul>
+</div>
 
 <h2 id="amplitude-modulation">Amplitude modulation</h2>
 
-<p>Consider a <em>carrier</em> signal $x_{c}(t)$ and a message signal, $x_{m}\left( t \right)$</p>
+<p>Modulation needs two signals. The <em>carrier</em> $x_c(t) = \cos(2\pi f_c t)$ is a waveform
+chosen to suit the channel, and the <em>message</em> $x_m(t)$ carries the information. The
+carrier is then altered systematically by the message, and there are three things
+about a sinusoid that can be altered:</p>
+
+<ul>
+  <li>
+<strong>amplitude modulation</strong>, which changes how large the carrier is;</li>
+  <li>
+<strong>frequency modulation</strong>, which changes how fast it oscillates;</li>
+  <li>
+<strong>phase modulation</strong>, which changes where in its cycle it is.</li>
+</ul>
+
+<p>This chapter takes them in that order.</p>
+
+<h3 id="carrier-and-message">Carrier and message</h3>
+
+<p>Amplitude modulation multiplies the two signals together. Below, the message is a
+piecewise signal that is flat, ramps up to $1$, ramps down to $-1$ and then holds at
+$0.4$; the carrier is at $f_c = 100$ Hz.</p>
 
 <div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-message.svg" width="250px" alt=""></div>
 <div style="display:inline-block; vertical-align:middle; margin:0 6px; font-size:22px;">×</div>
@@ -499,414 +366,422 @@ Message signal or modulation signal: the signal representing information to be t
 <div style="display:inline-block; vertical-align:middle; margin:0 6px; font-size:22px;">=</div>
 <div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-signal.svg" width="250px" alt=""></div>
 
-<p>Amplitude Modulation:the frequency domain</p>
+<h3 id="in-the-frequency-domain">In the frequency domain</h3>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-am-message-spectrum.svg" width="250px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-am-carrier-spectrum.svg" width="250px" alt=""></div>
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-am-signal-spectrum.svg" width="250px" alt=""></div>
+
+<p>The message sits at low frequencies and the carrier is a single line at $100$ Hz.
+Multiplying in time moves the whole message up to sit around the carrier, which is the
+entire point of amplitude modulation.</p>
+
+<p>A single tone makes the arithmetic explicit. With $x_m(t) = \cos(2\pi f_m t)$ and
+$f_m = 5$ Hz,</p>
+
+\[x_m(t)\cos(2\pi f_c t) = \tfrac12\cos(2\pi(f_c - f_m)t) + \tfrac12\cos(2\pi(f_c + f_m)t),\]
+
+<p>two lines at $95$ and $105$ Hz. Adding the carrier back, as the AM form below does,
+puts a third line at $100$ Hz between them.</p>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-am-tone.svg" width="620px" alt=""></div>
+
+<p>The copy below $f_c$ is the <em>lower sideband</em> and the copy above it is the <em>upper
+sideband</em>. These are the same three frequencies the live figure shows on its AM
+setting, scaled down to a $20$ Hz carrier.</p>
+
+<div class="exercise">
+A $1$ kHz tone is modulated onto a $700$ kHz carrier. Which frequencies are
+transmitted, for (a) AM with the carrier added, and (b) AM-SC, where it is not?
+<button onclick="showSolution(this,'mo3')" style="float:right;">Show Solution</button>
+<div id="mo3" style="display:none;" class="solution">
+(a) Three: $699$ kHz, $700$ kHz and $701$ kHz — the two sidebands and the carrier.<br>
+(b) Two: $699$ kHz and $701$ kHz. The carrier line is absent, which is what "suppressed carrier" means.
+</div>
+</div>
+
+<h3 id="recovering-the-message-synchronous-demodulation">Recovering the message: synchronous demodulation</h3>
+
+<p>The receiver has to undo the shift. The simplest way is to multiply by the carrier a
+second time, which shifts the spectrum again by $\pm f_c$ and so brings one of the two
+copies back down to where it started. In the time domain, using
+$\cos^2\theta = \tfrac12 + \tfrac12\cos 2\theta$,</p>
+
+\[x_m(t)\cos^2(2\pi f_c t) = \tfrac12 x_m(t) + \tfrac12 x_m(t)\cos(2\pi\,2f_c\,t).\]
+
+<p>The first term is the message again. The second sits up around $2f_c$, and a low-pass
+filter (<a href="freqresponse.html#frequency-selective-filters">Frequency response</a>) with its
+cutoff anywhere between the message bandwidth and $2f_c$ removes it. What is left is
+$\tfrac12 x_m(t)$: the message at half amplitude, which a gain of $2$ restores.</p>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-demod-time.svg" width="620px" alt=""></div>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-demod-spectrum.svg" width="620px" alt=""></div>
+
+<p>The same thing on a real signal. The violin recording from
+<a href="representation.html">Representing information</a> is low-passed to $2$ kHz to make the
+message, modulated onto an $8$ kHz carrier, and then demodulated.</p>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-violin-demod.svg" width="620px" alt=""></div>
+
+<p>The message:</p>
+<audio controls="" preload="metadata" style="display:block; margin:4px 0 10px 0;">
+  <source src="assets/audio/mo-violin-message.wav" type="audio/wav"></source>
+Your browser does not support the audio element.
+</audio>
+<p>Modulated onto the 8 kHz carrier:</p>
+<audio controls="" preload="metadata" style="display:block; margin:4px 0 10px 0;">
+  <source src="assets/audio/mo-violin-modulated.wav" type="audio/wav"></source>
+Your browser does not support the audio element.
+</audio>
+<p>Recovered:</p>
+<audio controls="" preload="metadata" style="display:block; margin:4px 0 10px 0;">
+  <source src="assets/audio/mo-violin-demodulated.wav" type="audio/wav"></source>
+Your browser does not support the audio element.
+</audio>
+<p>Recovered with the receiver’s carrier off by 2 Hz:</p>
+<audio controls="" preload="metadata" style="display:block; margin:4px 0 10px 0;">
+  <source src="assets/audio/mo-violin-demodulated-offset.wav" type="audio/wav"></source>
+Your browser does not support the audio element.
+</audio>
+
+<p>The modulated version is the message’s spectrum picked up and put down between $6$ and
+$10$ kHz. The rhythm survives, because the envelope is untouched, but the pitches are
+all wrong and the ear hears a thin buzz. Multiplying by the carrier again puts one copy
+back at $0$ to $2$ kHz and another up at $14$ to $18$ kHz; the low-pass keeps the first
+and the recording comes back. The fourth player is the same thing with the receiver’s
+carrier $2$ Hz off, and the result swells and fades four times a second.</p>
+
+<div class="exercise">
+Suppose the receiver's carrier is slightly off, at $f_c + \delta$ instead of $f_c$.
+Show that after the low-pass filter the output is $\tfrac12 x_m(t)\cos(2\pi\delta t)$,
+and describe what a listener hears.
+<button onclick="showSolution(this,'mo4')" style="float:right;">Show Solution</button>
+<div id="mo4" style="display:none;" class="solution">
+Multiplying the received $x_m(t)\cos(2\pi f_c t)$ by $\cos(2\pi(f_c+\delta)t)$ and applying the product identity gives
+$\tfrac12 x_m(t)\left[\cos(2\pi\delta t) + \cos(2\pi(2f_c+\delta)t)\right]$.
+The second term is up near $2f_c$ and the low-pass filter removes it, leaving $\tfrac12 x_m(t)\cos(2\pi\delta t)$.<br><br>
+The message is multiplied by a slow cosine, so it swells and fades, going silent every time that cosine crosses zero — $2\delta$ times per second. This is why the scheme is called <em>synchronous</em>: the receiver's carrier has to match the transmitter's, not just in frequency but in phase.
+</div>
+</div>
+
+<h3 id="envelope-detection-and-the-modulation-index">Envelope detection and the modulation index</h3>
+
+<p>A receiver that has no copy of the carrier can still recover the message, provided the
+message never drives the signal through zero. Add a constant to it first:</p>
+
+\[x_{AM}(t) = \big(1 + m\,x_m(t)\big)\cos(2\pi f_c t), \qquad 0 &lt; m \leq 1,\]
+
+<p>where $m$ is the <em>modulation index</em>.</p>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-am-index.svg" width="620px" alt=""></div>
+
+<p>The orange curve is the envelope $1 + m\,x_m(t)$. At $m = 0$ there is no message at
+all, just the carrier. As $m$ grows the envelope swings further, and at $m = 1$ it just
+touches zero.</p>
+
+<p>An <em>envelope detector</em> recovers the message from that outline without needing the
+carrier: rectify the signal to keep its positive half, hold each peak and let the value
+decay slowly until the next one arrives, then subtract the constant $1$ and divide by
+$m$. It is a diode, a capacitor and a resistor, which is why every early radio used
+one. It only works while the envelope stays positive: for $m &gt; 1$ the quantity
+$1 + m x_m$ goes negative, the detector tracks $\vert 1 + m x_m\vert$ instead, and the
+message comes out folded wherever that happens.</p>
+
+<div class="exercise">
+With $m = 1.5$ and the piecewise message above, where does the envelope detector fail,
+and what does it produce there?
+<button onclick="showSolution(this,'mo5')" style="float:right;">Show Solution</button>
+<div id="mo5" style="display:none;" class="solution">
+The envelope $1 + 1.5\,x_m(t)$ is negative wherever $x_m(t) &lt; -\tfrac23$, which happens on the lower part of the downward ramp and at the point where the message reaches $-1$, where the envelope is $-0.5$. The detector tracks $\vert 1 + 1.5 x_m \vert$, so those stretches come out folded upward about zero: the message is distorted in exactly the places where it is most negative.
+</div>
+</div>
+
+<h3 id="sidebands-am-sc-and-single-sideband">Sidebands, AM-SC, and single sideband</h3>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-am-sidebands.svg" width="460px" alt=""></div>
+
+<p>The AM spectrum is the carrier line with a copy of the message spectrum on either side
+of it, and each copy carries the whole message. That redundancy, and the carrier line
+itself, are what the two variants trade against each other.</p>
 
-<div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-message-spectrum.svg" width="250px" alt=""></div>
-<div style="display:inline-block; vertical-align:middle; margin:0 6px; font-size:22px;">×</div>
-<div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-carrier-spectrum.svg" width="250px" alt=""></div>
-<div style="display:inline-block; vertical-align:middle; margin:0 6px; font-size:22px;">=</div>
-<div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-signal-spectrum.svg" width="250px" alt=""></div>
-
-<p>The message sits at low frequencies and the carrier is a single line at $100$ Hz. Multiplying in time moves the whole message up to sit around the carrier, which is the entire point of amplitude modulation.</p>
-
-<p>An advantage of modulation is that it allows us to send multiple signals over the same medium at different frequencies. At the receiver, these signals can be separated by using a frequency-selective filter at a given frequency and with an appropriate bandwidth.</p>
-
-<p>AM radio</p>
-
-<p>Older radio stations frequently used amplitude modulation to transmit audio on high frequency carriers licensed to them for broadcasting by the FCC. Many of these AM radio stations still use such modulation
-(although many broadcast digital (HD) versions on top of it).</p>
-
-<p>The FCC has allocated ~10 kHz to each AM radio station, which permits stations to broadcast without interfering with each other.</p>
-
-<p>A broadcast signal is first recorded and filtered at a frequency &lt; 5 kHz (why?), then modulated to the assigned carrier frequency, and amplified and transmitted.</p>
-
-<p>The AM tuner or receiver needs to isolate and demodulate the desired signal. This can be done in two ways:</p>
-
-<p><strong>Synchronous demodulation</strong>: we first <strong>multiply by the carrier</strong> the received signal and then apply a <strong>low-pass filter</strong>.</p>
-
-<p><strong>Envelope detection:</strong> A simpler method that does not need the carrier.
-The modulation is slightly different, and demodulation is performed via a <strong>bandpass filter</strong> and finding the <strong>envelop of the signal</strong>. This type of AM demodulation is easier, hence its prevalence in the early days of radio.</p>
-
-<p>Synchronous</p>
-
-<p>demodulation This is close, but not exactly the message signal:</p>
-<div style="float;"><img src=".//media/image41.png" width="250px"></div>
-<div style="float;"><img src=".//media/image42.png" width="250px"></div>
-<div style="float;"><img src=".//media/image43.png" width="250px"></div>
-<div style="float;"><img src=".//media/image41.png" width="250px"></div>
-<div style="float;"><img src=".//media/image44.png" width="250px"></div>
-<div style="float;"><img src=".//media/image45.png" width="250px"></div>
-<div style="float;"><img src=".//media/image46.png" width="250px"></div>
-<div style="float;"><img src=".//media/image47.png" width="250px"></div>
-
-<p>We see that there are high frequency components that cause the high frequency oscillation. To get rid of these, we can simply pass the signal through a low pass filter.</p>
-
-<p>Synchronous demodulation</p>
-
-<p>Overall the message signal $x_{m}\left( t \right)$ is multiplied by
-$\cos{(2\pi f_{c}t)}$ twice, once during modulation and once during demodulation. So it is multiplied by
-$\cos\left( 2\pi f_{c}t \right)^{2}.$</p>
-
-<p>Let’s see what this does to a signal:</p>
-
-<p>$\cos{\left( \alpha \right)\cos{\left( \beta \right) = \frac{1}{2}\left( \cos\left( \alpha + \beta \right) + \cos\left( \alpha - \beta \right) \right)}}$</p>
-
-<p>So</p>
-
-<p>$\cos\left( 2\pi f_{c}t \right)^{2} = \frac{1}{2} + \frac{1}{2}\cos{(2\pi 2f_{c}t)}$</p>
-
-<p>$x_{AM}(t)\cos\left( 2\pi f_{c}t \right)^{2} = \frac{1}{2}x_{AM}(t) + \frac{1}{2}\cos{(2\pi 2f_{c}t)}x_{AM}(t)$</p>
-
-<p>$\cos{(2\pi 2f_{c}t)}x_{AM}(t)$ is eliminated using a low-pass filter.</p>
-
-<p>AM demodulation</p>
-
-<p>Synchronous demodulation requires an exact replica carrier signal, without any time offset or frequency shift (hence, synchronous)</p>
-
-<p>This can be difficult in practice</p>
-
-<p>Let’s compare the message and the AM signals:</p>
-
-<div style="float;"><img src=".//media/image48.png" width="250px"></div>
-<div style="float;"><img src=".//media/image42.png" width="250px"></div>
-<div style="float;"><img src=".//media/image49.png" width="250px"></div>
-
-<p>When the message is positive, message signal matches the envelop.</p>
-
-<p>What if we shift the message signal so that it becomes positive?</p>
-
-<p>Demodulation = envelope detection</p>
-
-<p>Observe the shape of the original data (modulation) signal on top of the sinusoid:</p>
-
-<p>Approach: find peaks of AM signal, interpolate between them, and subtract offset and rescale.</p>
-
-<p>The modulation index</p>
-
-<p>More generally,</p>
-
-<p>$xAM\left( t \right) = x_{c}\left( t \right)\left\lbrack 1 + mx_{m}\left( t \right) \right\rbrack$ where $m$ is the <em>modulation index,</em> $0 &lt; m \leq 1$.</p>
-
-<p>What happens as m increases from 0 to 1?</p>
-
-<div style="display:inline-block; vertical-align:middle; margin:0 6px 8px 0;"><img src="assets/img/mo-am-index.svg" width="620px" alt=""></div>
-
-<p>The orange curve is the envelope $1 + m\,x_m(t)$. At $m = 0$ there is no message at all, just the carrier. As $m$ grows the envelope swings further, and at $m = 1$ it just touches zero. Beyond $m = 1$ the envelope would cross zero and the shape could no longer be recovered by tracking it.</p>
-
-<p>What happens in the frequency domain?</p>
-
-<p>$x_{AM}\left( t \right) = \cos\left( 2\pi f_{c}t \right)\left( 1 + mx_{m}\left( t \right) \right) = \cos{\left( 2\pi f_{c}t \right) +}m\cos\left( 2\pi f_{c}t \right)x_{m}\left( t \right)$</p>
-
-<p>The Fourier transform of $x_{AM}\left( t \right)$, i.e., $X_{AM}(f)$ consist of the Fourier transform of $\cos\left( 2\pi f_{c}t \right)$ plus shifted versions of the Fourier transform of
-$x_{m}\left( t \right).$</p>
-
-<div style="float;"><img src=".//media/image51.png" width="250px"></div>
-
-<p>Example: AM modulation of a tone</p>
-
-<p>To understand what’s happening in the frequency domain, it’s useful to imagine modulating a simple tone:</p>
-
-<p>$x_{m}\left( t \right) = \cos\left( 2\pi f_{m}t \right)$</p>
-
-<p>Then, we can use trigonometry to find the sinusoidal components of $x_{AM}(t)$.</p>
-
-<p>Significance: the information in $x_{m}(t)$ has been shifted in frequency from f~m~ to f~C~+f~m~ and f~C~-f~m~.</p>
-
-<div style="float;"><img src=".//media/image52.png" width="250px"></div>
-
-<p>AM modulation of a tone: spectrum</p>
-
-<p>So, given a suitable carrier frequency (f~C~ &gt; f~m~), the positive spectrum of xAM(t) looks like this:</p>
-
-<div style="float;"><img src=".//media/image53.png" width="250px"></div>
-
-<p>The version of AM where
-$x_{AM}\left( t \right) = \cos{(2\pi f_{c}t)(1 + mx_{m}\left( t \right))}$ is usually simply referred to as AM.</p>
-
-<p>The version in which
-$x_{AM}\left( t \right) = \cos{(2\pi f_{c}t)}x_{m}\left( t \right)$ is referred to as AM-suppressed carrier (AM-SC), as the carrier is not added to the signal anymore. AM-SC has lower transmitted power.</p>
-
-<p>AM-SC can be demodulated by the synchronous detection approach
-(multiplying by the carrier cosine).</p>
-
-<p>AM-SC cannot be demodulated by envelope detection.</p>
-
-<p>Since there are two copies of the message spectrum in the AM signal, we’ll get one copy on the left side of 0-frequency (DC) and one copy on the right side. These are called the lower side band (LSB) and upper side band (USB). All the signal information is in both the LSB and USB.</p>
-
-<p>Why not just transmit and receive one of these, saving half the bandwidth? (assumes real-valued signal)</p>
-
-<p>Answer: You can, it’s called single side band (SSB) transmission (used in shortwave, TV, etc.) But, you’ll need a more sophisticated receiver to demodulate.</p>
-
-<p>Digital amplitude modulation</p>
-
-<p>When transmitting digital signals (binary), the demodulated signal can only be two values. Thus, a simpler model can be used to modulate or transmit: just multiply the carrier by 0/1.</p>
-
-<p>This is called amplitude shift keying (ASK). Note how it compares to AM of a binary signal:</p>
-
-<div style="float;"><img src=".//media/image54.png" width="250px"></div>
-
-<p>Limitations of AM</p>
-
-<p>Carrier power – significant, but does not convey information</p>
-
-<p>Can use AM-SC with suppressed carrier, but envelope detection no longer possible</p>
-
-<p>Maximum scaling – message signal must be scaled to fit carrier to permit envelope detection</p>
-
-<p>Recall: when mx~m~(t) &lt; -1, the envelope crosses itself</p>
-
-<p>Redundant frequency content</p>
-
-<p>Single-sideband AM possible, but requires more complicated demodulation</p>
-
-<p>Susceptibility to noise</p>
-
-<p>Consider the effect of noise on an AM signal:</p>
-
-<p>What happens where 1+mx~m~(t) is large?</p>
-
-<p>What about when 1+mx~m~(t) is close to zero?</p>
-
-<p>What about an interfering signal?</p>
-
-<p>What happens with noise or interference in the frequency domain?</p>
-
-<div style="float;"><img src=".//media/image55.png" width="250px"></div>
-
-<p>Revisiting the carrier signal</p>
-
-<p>Let us revisit the definition of a sinusoidal carrier signal x~C~(t):</p>
-
-<p>$x_{C}\left( t \right) = A\cos\left( 2\pi f_{C}t + \phi \right)$</p>
-
-<p>So far, we considered amplitude modulation, where A becomes a function of the message x~m~(t):</p>
-
-<p>$A = 1 + mx_{m}\left( t \right)$</p>
-
-<p>However, we are not limited to modifying the amplitude A. We can also modify the frequency of the carrier and its phase:</p>
-
-<p>Frequency becomes a function of the message signal versus time</p>
-
-<p>Phase becomes a function of the message signal</p>
-
-<p>Consider: frequency is the time derivative of the argument of the sinusoid</p>
-
-<p>Frequency modulation</p>
-
-<p>The argument θ in the sinusoidal carrier is a function of time:</p>
-
-<p>$\theta\left( t \right) = 2\pi f_{C}t + \phi$</p>
-
-<p>Then the derivative of θ with respect to t is the carrier frequency:</p>
-
-<p>$\frac{d\theta\left( t \right)}{dt} = 2\pi f_{C}$</p>
-
-<p>Instead, let this be a function of the message signal as well:</p>
-
-<p>$\frac{d\theta\left( t \right)}{dt} = 2\pi\left( f_{C} + f_{\Delta}x_{m}\left( t \right) \right)$</p>
-
-<p>Let f~Δ~ be a scaling factor for FM, like m for AM (this will turn out to be a function of available bandwidth)Then, the argument becomes an integral (time t=0 is the beginning of the transmission):</p>
-
-<p>$\theta\left( t \right) = 2\pi\left( f_{C}t + f_{\Delta}\int_{0}^{t}{x_{m}\left( \tau \right)d\tau} \right) + \phi$</p>
-
-<p>The amplitude of the carrier remains constant</p>
-
-<p>Consistent noise scaling</p>
-
-<p>The frequency affects how rapidly the sinusoid changes sign: higher frequency, more sign changes per unit time.</p>
-
-<p>Demodulation: track sign change rate</p>
-
-<p>More complicated than amplitude demodulation (envelope detection), but less noise sensitivity since signal is “always on”</p>
-
-<p>Analog frequency modulation (FM) and its digital counterpart,
-frequency shift keying (FSK), modify the instantaneous frequency of the carrier.</p>
-
-<div style="float;"><img src=".//media/image56.png" width="250px"></div>
-<div style="float;"><img src=".//media/image57.png" width="250px"></div>
-
-<p>In a basic FSK scheme two fixed frequencies are used,
-$f_0$ for binary 0 and $f_1$ for binary 1.
-Consider a simple binary message $x_m(t)$ consisting of zeros and ones.
-The modulated signal switches between $f_0$ and $f_1$ depending on the bit
-value.</p>
+<table class="tabDefault">
+  <thead>
+    <tr>
+      <th> </th>
+      <th>carrier sent</th>
+      <th>demodulated by</th>
+      <th>power</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>AM</td>
+      <td>yes</td>
+      <td>envelope detector, or synchronously</td>
+      <td>most of it goes to the carrier</td>
+    </tr>
+    <tr>
+      <td>AM-SC</td>
+      <td>no</td>
+      <td>synchronously only</td>
+      <td>all of it goes to the message</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><em>AM-SC</em>, $x_m(t)\cos(2\pi f_c t)$, is the form used at the start of this section. It
+spends nothing on a carrier that carries no information, but the receiver must supply
+its own, exactly. <em>AM with carrier</em> wastes power in order to make the receiver cheap.</p>
+
+<p><em>Single sideband</em> goes further: since both copies say the same thing, send one and
+halve the bandwidth. The receiver gets harder again, which is the recurring trade.</p>
+
+<h3 id="am-radio">AM radio</h3>
+
+<p>Each AM station is allotted $10$ kHz. The audio is low-pass filtered at $5$ kHz before
+modulation, because the two sidebands then fill that slot exactly, and it is modulated
+onto the carrier frequency the station is licensed for, amplified and transmitted. At
+the other end a band-pass filter picks out the one station and an envelope detector
+recovers the audio. Many stations still broadcast this way.</p>
+
+<h3 id="digital-amplitude-modulation-ask">Digital amplitude modulation: ASK</h3>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-ask.svg" width="460px" alt=""></div>
+
+<p>When the message is a stream of bits rather than a waveform, the modulation can be
+cruder: switch the carrier on for a $1$ and off for a $0$. This is <em>amplitude shift
+keying</em>. It differs from AM of the same bits, where both bit values leave the carrier
+present and only change its size.</p>
+
+<h3 id="what-am-does-badly">What AM does badly</h3>
+
+<p>The carrier consumes most of the transmitted power and carries no information at all.
+AM-SC removes it, at the price of a receiver that must generate its own carrier in
+step with the transmitter.</p>
+
+<p>The two sidebands carry the same information twice, so half the occupied bandwidth is
+redundant. Single sideband removes one, at the price of a more complicated receiver
+again.</p>
+
+<p>Worst is noise. Noise added along the way has some fixed size, while the AM signal’s
+size varies with the envelope. Wherever $1 + m x_m$ comes close to zero the noise is a
+large fraction of what is there, so the quiet parts of the message are the parts
+destroyed. That is the flaw frequency modulation exists to fix.</p>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-am-noise.svg" width="620px" alt=""></div>
+
+<h2 id="frequency-modulation">Frequency modulation</h2>
+
+<h3 id="instantaneous-frequency">Instantaneous frequency</h3>
+
+<p>Write the carrier as $\cos\theta(t)$ with $\theta(t) = 2\pi f_c t + \phi$. Its
+frequency is the rate at which that angle advances, divided by $2\pi$:
+$\tfrac{1}{2\pi}\theta’(t) = f_c$. Taking this the other way round defines the
+<em>instantaneous frequency</em> of $\cos\theta(t)$, for any $\theta$ at all, as
+$\tfrac{1}{2\pi}\theta’(t)$.</p>
+
+<h3 id="the-fm-signal">The FM signal</h3>
+
+<p>Now let the instantaneous frequency follow the message,
+$\tfrac{1}{2\pi}\theta’(t) = f_c + f_\Delta\, x_m(t)$, and integrate to recover the
+angle:</p>
+
+\[x_{FM}(t) = \cos\!\Big(2\pi f_c t + 2\pi f_\Delta \int_0^t x_m(\tau)\,d\tau\Big).\]
+
+<p>The constant $f_\Delta$ is the <em>frequency deviation</em> per unit of message, FM’s
+counterpart of the modulation index.</p>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-fm.svg" width="420px" alt=""></div>
+
+<p>The amplitude never changes, so there is no quiet part for noise to overwhelm; that is
+the gain over AM. The receiver reads the message from how often the signal crosses
+zero rather than from how large it is, which is more work than an envelope detector.
+And the signal occupies more bandwidth, which is the price, quantified at the end of
+this chapter.</p>
+
+<h3 id="frequency-shift-keying">Frequency shift keying</h3>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-fsk.svg" width="460px" alt=""></div>
+
+<p>For bits, use two frequencies: $f_0$ for a $0$ and $f_1$ for a $1$. The receiver counts
+zero crossings within each bit interval and reports whichever frequency it saw. This is
+<em>frequency shift keying</em>.</p>
 
 <h2 id="phase-modulation">Phase modulation</h2>
 
-<p>Frequency is not the only choice in the argument of the sinusoid for modulation. Also consider modulating the phase φ:</p>
-
-<p>$\theta\left( t \right) = 2\pi f_{C}t + \phi$</p>
-
-<p>Replace phase with a message signal x~m~(t):</p>
-
-<p>$\theta\left( t \right) = 2\pi f_{C}t + x_{m}\left( t \right) + \phi$</p>
-
-<p>The message signal can be scaled by a constant factor as well.</p>
-
-<p>What if we take the derivative? Phase modulation becomes a special case of FM:</p>
-
-<p>$\frac{d\theta\left( t \right)}{dt} = 2\pi\left( f_{C} + \frac{dx_{m}\left( t \right)}{dt} \right)$</p>
-
-<p>Analog phase modulation leads to the digital technique known as
-phase shift keying (PSK).</p>
-
-<div style="float;"><img src=".//media/image58.png" width="250px"></div>
-<div style="float;"><img src=".//media/image59.png" width="250px"></div>
-
-<p>Replace analog xm(t) with binary “0” and “1”, so phase jumps between
-φ~0~ (usually 0) and φ~1~ (usually 180 degrees). Unlike FSK the signal is not differentiable.</p>
-
-<p>Let’s take a closer look:
-$0 \rightarrow phase = 0,1 \rightarrow phase = 180$</p>
-
-<p>Quadrature phase shift keying</p>
-
-<div style="float;"><img src=".//media/image60.png" width="250px"></div>
-<div style="float;"><img src=".//media/image61.png" width="250px"></div>
-
-<p>Can we send more than 1 bit in each interval?</p>
-
-<p>Yes: $\left{ \begin{matrix}
-00:phase = 0 <br>
-01:phase = 90 <br>
-10:phase = 180 <br>
-11:phase = 270 <br>
-\end{matrix} \right.\ $</p>
-
-<p>Differential phase shift keying (DPSK)</p>
-
-<p>Alternatively, we can set
-$0 \rightarrow phasestaysthesame,1 \rightarrow phasejumpsby180$</p>
-
-<p>Modulation summary</p>
-
-<p>Three methods for modulating binary/digital signals:</p>
-
-<p>Amplitude shift keying: track amplitude zero/one</p>
-
-<div style="float;"><img src=".//media/image59.png" width="250px"></div>
-
-<p>Frequency shift keying: track zero-crossing rate</p>
-
-<p>Phase shift keying: track phase jumps/discontinuities</p>
-
-<p>Advantages and disadvantages</p>
-
-<p>Amplitude modulation (AM/ASK):</p>
-
-<p>Simple design, demodulation (e.g., envelope detection)</p>
-
-<p>Susceptible to noise
-(especially when transmitting small/zero values)</p>
-
-<div style="float;"><img src=".//media/image62.png" width="250px"></div>
-
-<p>Frequency modulation (FM/FSK):</p>
-
-<p>Amplitude constant, so signal always present and better noise immunity</p>
-
-<p>Need to track zero-crossing rate, not just instantaneous amplitude</p>
-
-<p>Frequencies spread out, requiring more bandwidth</p>
-
-<p>Phase modulation (PSK):</p>
-
-<p>Similar advantages to FM/FSK, but no frequency spreading!</p>
-
-<p>Modern cellular modems</p>
-
-<p>Cellular modems transmit/receive voice/data from phone over cellular network</p>
-
-<p>Responsible for encoding and modulating signal according to network type</p>
-
-<p>Early modems: mainly amplitude modulation (ASK)</p>
-
-<p>Modern modems: combination of PSK, ASK (can encode information in amplitude and phase changes simultaneously; harder to encode in both
-FSK and PSK)</p>
-
-<p>Modern modems actually go beyond PSK to multibit encoding</p>
-
-<p>Let’s investigate phase modulation a bit more carefully…</p>
-
-<p>5G modem will require its own chip for now; current 4G LTE use integrated “system-on-chip” solutions</p>
-
-<p>Phase shift keying: decoding</p>
-<div style="float;"><img src=".//media/image63.png" width="250px"></div>
-
-<p>180 degree phase shift (a “1”) introduces a jump discontinuity in the carrier:</p>
-
-<p>But a “0” doesn’t create any shift.</p>
-
-<p>Transmitter, receiver need to agree on a bit rate.</p>
-
-<p>Instead of encoding “0” and “1” directly, we use differential encoding:</p>
-
-<p>A change is a “1”, no change is a “0”</p>
-
-<p>Requires we know how it starts</p>
-
-<p>If we miss a bit, we’re in trouble…</p>
-
-<p>With differential coding, another “1” indicates a change from 1 0:</p>
-
-<p>Can we do better?</p>
-
-<p>180 degree jumps are big, easy to detect</p>
-
-<p>90 degree jumps go between ±1 and 0, also relatively easy to detect</p>
-<div style="float;"><img src=".//media/image64.png" width="250px"></div>
-<div style="float;"><img src=".//media/image65.png" width="250px"></div>
-
-<p>Let’s allow 90, 180, 270 degree jumps: quadrature phase shift keying (QPSK)</p>
-
-<p>Quadrature phase shift keying</p>
-
-<p>Define a “dibit” (two bit message) to encode as 0, 90, 180, 270 degree phase shifts:</p>
-
-<p>These dibit assignments to each phase jump are arbitrary…</p>
-
-<div style="float;"><img src=".//media/image66.png" width="250px"></div>
-
-<p>A little more complicated, but twice the information transfer!</p>
-
-<p>What is the bit rate for this example?</p>
-
-<p>= (2 bits) / (0.01 seconds) = 200 bits/sec</p>
-
-<div style="float;"><img src=".//media/image67.png" width="250px"></div>
-
-<p>Regular encoding:</p>
-
-<p>11011000</p>
-
-<p>Differential encoding (1 = change, 0 = no change):</p>
-
-<p>10010000</p>
-
-<p>Your turn</p>
-
-<p>Sketch carrier modulated using QPSK for binary signal “10010011” using regular (not differential) encoding, assuming each dibit is modulated over a full period of x~C~(t)</p>
-
-<div style="float;"><img src=".//media/image68.png" width="250px"></div>
-
-<h3 id="modulation-summary">Modulation summary</h3>
-
-<ul>
-  <li>
-<strong>Amplitude modulation (AM/ASK)</strong> – multiply the carrier amplitude by the
-message signal.  Simple to demodulate but sensitive to noise.</li>
-  <li>
-<strong>Frequency modulation (FM/FSK)</strong> – vary the carrier frequency according to
-the message.  Offers better noise immunity at the cost of larger bandwidth.</li>
-  <li>
-<strong>Phase modulation (PM/PSK)</strong> – encode information in the phase of the
-carrier.  Modern systems combine amplitude and phase changes (e.g. QPSK and
-QAM) for higher data rates.</li>
-</ul>
-
-<p>See <a href="communications.html">Mathematics of Communications</a> for more on noise,
-capacity and how these modulation schemes are used in practice.</p>
-
+<h3 id="phase-modulation-is-frequency-modulation-of-the-derivative">Phase modulation is frequency modulation of the derivative</h3>
+
+<p>The third quantity available in a sinusoid is where in its cycle it sits. Let the
+message set the phase:</p>
+
+\[\theta(t) = 2\pi f_c t + 2\pi k_p\, x_m(t),\]
+
+<p>so that $\tfrac{1}{2\pi}\theta’(t) = f_c + k_p\, x_m’(t)$. Phase modulation by $x_m$
+is therefore frequency modulation by the derivative $x_m’$, and the two schemes are
+close relatives rather than separate ideas.</p>
+
+<h3 id="phase-shift-keying">Phase shift keying</h3>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-psk.svg" width="460px" alt=""></div>
+
+<p>In binary <em>phase shift keying</em>, a $0$ is sent at phase $0$ and a $1$ at phase $\pi$,
+which simply flips the sign of the carrier. The waveform therefore jumps at every bit
+change, where an FSK waveform stays continuous.</p>
+
+<p>A receiver that regenerates the carrier itself has no way to know which phase the
+transmitter called $0$, since a constant offset of $\pi$ looks identical. <em>Differential
+phase shift keying</em> sidesteps this by encoding a $1$ as a <em>change</em> of phase and a $0$ as
+<em>no change</em>, so the receiver only ever compares one symbol with the one before it.
+Starting from phase $0$, the message <code class="language-plaintext highlighter-rouge">11011000</code> is sent as the change sequence
+<code class="language-plaintext highlighter-rouge">10110100</code>.</p>
+
+<h3 id="qpsk-two-bits-per-symbol">QPSK: two bits per symbol</h3>
+
+<p>Four phases carry two bits at a time instead of one.</p>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-qpsk-phases.svg" width="620px" alt=""></div>
+
+<table class="tabDefault">
+  <thead>
+    <tr>
+      <th>dibit</th>
+      <th>phase</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>00</td>
+      <td>$0°$</td>
+    </tr>
+    <tr>
+      <td>01</td>
+      <td>$90°$</td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td>$180°$</td>
+    </tr>
+    <tr>
+      <td>11</td>
+      <td>$270°$</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The assignment of dibits to phases is a convention, not a derivation. Taking the
+message <code class="language-plaintext highlighter-rouge">11011000</code> as the dibits <code class="language-plaintext highlighter-rouge">11 01 10 00</code> gives the phases $270°$, $90°$, $180°$,
+$0°$, and with one carrier period per dibit — $0.01$ s at $f_c = 100$ Hz —
+the bit rate is $2 / 0.01 = 200$ bit/s.</p>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-qpsk.svg" width="560px" alt=""></div>
+
+<div class="exercise">
+Sketch the QPSK carrier for the message <code>10010011</code>, one carrier period per dibit, using
+the table above.
+<button onclick="showSolution(this,'mo6')" style="float:right;">Show Solution</button>
+<div id="mo6" style="display:none;" class="solution">
+The dibits are <code>10 01 00 11</code>, so the phases are $180°$, $90°$, $0°$, $270°$, one carrier period each.<br>
+<img src="assets/img/mo-qpsk-solution.svg" width="460px" alt="">
+</div>
+</div>
+
+<div class="exercise">
+A QPSK transmitter changes phase every $0.5$ ms. What is its bit rate? What would it be
+if it used eight phases instead of four?
+<button onclick="showSolution(this,'mo7')" style="float:right;">Show Solution</button>
+<div id="mo7" style="display:none;" class="solution">
+Four phases carry $2$ bits per symbol, so $2$ bits every $0.5$ ms is $4000$ bit/s. Eight phases carry $3$ bits per symbol, giving $6000$ bit/s over the same symbol rate.
+</div>
+</div>
+
+<h2 id="the-three-schemes-side-by-side">The three schemes side by side</h2>
+
+<p>All three do the same job in different currency. Try amplitude modulation at
+$m = 1.2$, where the envelope crosses zero and the shape can no longer be read off it;
+frequency modulation with the deviation slider from $0$ to $12$ Hz, where the spectrum
+spreads wider the harder the message pushes; and phase modulation on the ramps message,
+where the phase jumps at the step at $t = 0.75$.</p>
+
+<div id="modFigure" class="winding" style="margin:12px 0 18px 0;"></div>
+<script src="assets/js/modulate.js"></script>
+
+<script>modulationFigure('modFigure');</script>
+
+<div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/mo-keying-summary.svg" width="500px" alt=""></div>
+
+<table class="tabDefault">
+  <thead>
+    <tr>
+      <th> </th>
+      <th>the message changes the carrier’s</th>
+      <th>demodulated by</th>
+      <th>under noise</th>
+      <th>bandwidth</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>AM / ASK</td>
+      <td>amplitude</td>
+      <td>envelope detector or synchronous</td>
+      <td>weak where the envelope is small</td>
+      <td>$2B$</td>
+    </tr>
+    <tr>
+      <td>FM / FSK</td>
+      <td>frequency</td>
+      <td>zero-crossing rate</td>
+      <td>robust, constant amplitude</td>
+      <td>$\approx 2(\Delta f + B)$</td>
+    </tr>
+    <tr>
+      <td>PM / PSK</td>
+      <td>phase</td>
+      <td>phase comparison</td>
+      <td>robust</td>
+      <td>about $2B$</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Modern systems do not choose. Wi-Fi and cellular links vary amplitude and phase at the
+same time — <em>quadrature amplitude modulation</em> — to carry several bits in
+every symbol. How many can be carried, and how reliably, is the subject of
+<a href="communications.html">Mathematics of communications</a>; how several users share the
+result is <a href="orthogonality.html">Orthogonality</a> and
+<a href="maccs.html">Multiple access</a>.</p>
+
+<h2 id="how-much-bandwidth">How much bandwidth?</h2>
+
+<p>A message of bandwidth $B$, meaning all its content lies in $[-B, B]$ as in
+<a href="sampling.html#bandlimited-signals">Sampling signals</a>, occupies $2B$ once it is
+amplitude modulated: one sideband on each side of the carrier. AM broadcast radio takes
+$B = 5$ kHz and a $10$ kHz slot, which is where that allocation comes from.</p>
+
+<p>FM is harder, because the signal’s width depends on how far the message pushes the
+frequency. <em>Carson’s rule</em> is the standard rule of thumb:</p>
+
+\[B_{FM} \approx 2(\Delta f + B), \qquad \Delta f = f_\Delta \max_t \vert x_m(t)\vert,\]
+
+<p>with $\Delta f$ the <em>peak frequency deviation</em>. FM broadcast radio uses
+$\Delta f = 75$ kHz with audio up to $B = 15$ kHz, giving about $180$ kHz. That is why
+FM stations sit $200$ kHz apart while AM stations sit $10$ kHz apart, and it is the
+price paid for FM’s immunity to noise. Phase shift keying occupies about the same band
+as amplitude modulation at the same symbol rate.</p>
+
+<div class="exercise">
+AM broadcast channels in North America are centred at $540$, $550$, …, $1700$ kHz. How
+many channels is that, and what audio bandwidth does each one allow?
+<button onclick="showSolution(this,'mo8')" style="float:right;">Show Solution</button>
+<div id="mo8" style="display:none;" class="solution">
+The centres are $10$ kHz apart, so there are $(1700 - 540)/10 + 1 = 117$ channels. Each $10$ kHz slot holds two sidebands, so the audio may have bandwidth $B = 5$ kHz.
+</div>
+</div>
+
+<div class="exercise">
+Write down a question you still have about modulation.
+</div>
 
       <footer>
         <br><br>

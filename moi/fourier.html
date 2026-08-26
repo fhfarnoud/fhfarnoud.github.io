@@ -133,7 +133,7 @@
             <a class="active" style="color: #76bdd59c" href="/moi/fourier.html"><img class="emoji" title=":point_right:" alt=":point_right:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f449.png" height="20" width="20"> Frequency and spectrum</a>
           </li>
               
-          <li><a href="/moi/sampling.html">Filteration and sampling</a></li>
+          <li><a href="/moi/sampling.html">Filtering and sampling</a></li>
               
           <li><a href="/moi/linsys.html">Linear systems</a></li>
               
@@ -526,20 +526,24 @@ var g = sound_harmo_w_spec.create('functiongraph', [sound_f2, 0, 10]);
 
 <p>$X\left( f \right) = \int_{- \infty}^{\infty}{x\left( t \right)}e^{- i2\pi ft}dt$</p>
 
-<p>Finding $X(f)$ for a given $f$</p>
+<p>Multiplying by $e^{-i2\pi ft}$ winds the signal around the origin of the complex
+plane, one clockwise turn every $1/f$ seconds, and the integral is the centre of mass
+of the wound curve. When $f$ matches a frequency the signal contains, the curve piles
+up on one side and that centre of mass sits well away from zero; at any other $f$ the
+curve spreads evenly around the origin and the integral is near zero. The result is
+generally a complex number; we focus on $\vert X(f) \vert$.</p>
 
-<p>Multiplying by $e^{- i2\pi ft}$ winds the signal around the origin in the complex plane. Each $1/f$ time units becomes one clockwise round around the origin.</p>
+<div id="windingFourier" class="winding" style="margin:12px 0 18px 0;"></div>
+<script src="assets/js/winding.js"></script>
 
-<p>The integral takes finds the average of the resulting curve.</p>
+<script>windingFigure('windingFourier', {select: 'onesin6'});</script>
 
-<p>The result is generally a complex number; we focus on $\vert X\left( f \right) \vert$</p>
-
-<p>The Fourier transform of
-$1 + \sin\left( 2\pi 6t \right),0 \leq t \leq 1$ at $f = 0$ Hz</p>
-
-<div style="float;"><img src=".//media/fourier/image14.png" width="800px"></div>
-<!-- hard to transfer annotation -->
-<!-- more matlab demo  -->
+<p>The figure starts on $1 + \sin(2\pi 6t)$ over $0 \leq t \leq 1$. At $f = 0$ there is
+no winding at all: the curve is the signal laid along the real axis, and the arrow has
+length $1$, the average value of the signal. Drag the slider to $f = 6$ and the arrow
+reaches its other peak, because that is the one frequency the signal is built from.
+Anywhere in between the wound curve closes on itself and the arrow all but vanishes.
+The other signals in the menu belong to later chapters.</p>
 
 <div class="highlight">
 <strong>Fundamental Tenet VIII:</strong>
