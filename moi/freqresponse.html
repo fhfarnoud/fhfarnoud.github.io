@@ -180,10 +180,12 @@ of animations the input is on the left and the output on the right, and both are
 drawn on the same clock, slowed to a quarter speed, so you can compare how fast
 they turn.</p>
 
-<p>The lengths differ enormously between systems — the differentiator’s output is
-more than six times the input and the combination of derivatives is forty times
-— so each output is drawn scaled to fit its own frame, with its true length and
-phase written underneath. What is directly comparable by eye is the <em>rate</em>.</p>
+<p>The lengths differ a good deal between systems, so the frames are not all drawn at
+the same number of pixels per unit. In every frame the dashed circle is the
+<strong>input’s</strong> length, and the arrow is drawn against it, so the arrow’s size relative
+to that circle is the true ratio wherever you look. The differentiator, for instance,
+gives an output more than six times the input, and its dashed circle is correspondingly
+small.</p>
 
 <p>$y(t) = \frac{1}{2}x\left(t - \frac16\right)$ — a delay and a halving:</p>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-in.svg" width="210px" alt=""></div>
@@ -197,7 +199,7 @@ phase written underneath. What is directly comparable by eye is the <em>rate</em
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-in.svg" width="210px" alt=""></div>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-deriv.svg" width="210px" alt=""></div>
 
-<p>$y(t) = \frac{dx(t)}{dt} - \frac{d^{2}x(t)}{dt^{2}}$:</p>
+<p>$y(t) = \frac{1}{2\pi}\frac{dx(t)}{dt} - \frac{1}{(2\pi)^2}\frac{d^{2}x(t)}{dt^{2}}$:</p>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-in.svg" width="210px" alt=""></div>
 <div style="display:inline-block; vertical-align:middle; margin:0 8px 8px 0;"><img src="assets/img/fr-phasor-combo.svg" width="210px" alt=""></div>
 
