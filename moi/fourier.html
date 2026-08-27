@@ -281,23 +281,20 @@ Hertz (Hz).</p>
 
 <h4 id="how-fast-is-440-hz">How fast is 440 Hz?</h4>
 
-<p>We can also measure frequency in radians/unit time. This measure of frequency, $ω = 2πf$, is commonly encountered when describing the behavior of analog electronic circuits.</p>
+<p>We can also measure frequency in radians/unit time. This measure of frequency, $\omega = 2\pi f$, is commonly encountered when describing the behavior of analog electronic circuits.</p>
 
-<p>440 Hz = 2764.6 radians/second</p>
+\[440\ \text{Hz} = 2764.6\ \text{radians/second}\]
 
 <p>We are used to describing many kinds of signals in terms of their frequency content.</p>
 
-<p>Light (frequency = color)</p>
-
-<p>Radio (frequency = station)</p>
-
-<p>Music (frequency = note)</p>
-
-<p>Video (frequency = frame rate)</p>
-
-<p>Heart beat (frequency = heart rate)</p>
-
-<p>Brain waves (frequency = alpha/beta/gamma/…)</p>
+<ul>
+  <li>Light (frequency = color)</li>
+  <li>Radio (frequency = station)</li>
+  <li>Music (frequency = note)</li>
+  <li>Video (frequency = frame rate)</li>
+  <li>Heart beat (frequency = heart rate)</li>
+  <li>Brain waves (frequency = alpha/beta/gamma/…)</li>
+</ul>
 
 <h3 id="light-and-frequency">Light and frequency</h3>
 
@@ -309,9 +306,9 @@ Hertz (Hz).</p>
 (510-520 THz), orange (480-510 THz), and finally red light (400-480
 THz).</p>
 
-<div style="float;"><img src=".//media/fourier/image1.png" width="250px"></div>
+<div class="figrow"><img src=".//media/fourier/image1.png" width="250px" alt=""></div>
 
-<p>The energy (E) of the corresponding light photon increases with increasing frequency: $E = h \nu = \frac{h c}{\lambda}$.  h = Planck’s constant ($6.6 \times 10^{-34} J\cdot s)$.</p>
+<p>The energy $E$ of the corresponding light photon increases with increasing frequency: $E = h\nu = \frac{hc}{\lambda}$, where $h$ is Planck’s constant ($6.6 \times 10^{-34}\ \mathrm{J}\cdot\mathrm{s}$).</p>
 
 <p>In fact, how we perceive visible light is due to its frequency:</p>
 
@@ -346,17 +343,14 @@ Clerk Maxwell (yes, <em>that</em> Maxwell) as a possible basis for color photogr
 
 <p>Other electromagnetic radiation is also characterized by its frequency:</p>
 
-<p>Ultraviolet (7.5×10^14 – 3×10^16 Hz)</p>
-
-<p>Infrared (3×10^11 – 4.3×10^14 Hz)</p>
-
-<p>X-rays (3×10^16 – 3×10^19 Hz)</p>
-
-<p>Gamma rays (&gt; 3×10^19 Hz)</p>
-
-<p>Microwaves (3×10^8 – 3×10^11 Hz)</p>
-
-<p>Radio waves (30 – 3×10^8 Hz)</p>
+<ul>
+  <li>Ultraviolet ($7.5\times10^{14}$–$3\times10^{16}$ Hz)</li>
+  <li>Infrared ($3\times10^{11}$–$4.3\times10^{14}$ Hz)</li>
+  <li>X-rays ($3\times10^{16}$–$3\times10^{19}$ Hz)</li>
+  <li>Gamma rays (above $3\times10^{19}$ Hz)</li>
+  <li>Microwaves ($3\times10^{8}$–$3\times10^{11}$ Hz)</li>
+  <li>Radio waves (30–$3\times10^{8}$ Hz)</li>
+</ul>
 
 <p>Energy increases as frequency increases – this is why ultraviolet radiation can cause skin cancer, and repeated, significant X-ray or gamma radiation exposure can be deadly.</p>
 
@@ -385,8 +379,9 @@ Clerk Maxwell (yes, <em>that</em> Maxwell) as a possible basis for color photogr
 <p>We can superimpose three tones to form a triad, or combine four :</p>
 
 <p>Note the relationship between frequency and notes on the musical octave scale:</p>
-<div style="float;"><img src=".//media/fourier/image2.png" width="450px"></div>
-<div style="float;"><img src=".//media/fourier/image3.png" width="450px"></div>
+<div class="figrow">
+<img src=".//media/fourier/image2.png" width="450px" alt=""><img src=".//media/fourier/image3.png" width="450px" alt="">
+</div>
 
 <h2 id="the-spectrum">The spectrum</h2>
 
@@ -398,8 +393,16 @@ Clerk Maxwell (yes, <em>that</em> Maxwell) as a possible basis for color photogr
 <div class="snd_func_w_spec" id="sound_w_spec_func2" style="display: none">$x(t) = \frac12 ( \cos (2 \pi 440 t) + \cos (2 \pi 554.4 t) )$ - Combination (sum) of two frequencies</div>
 <div class="snd_func_w_spec" id="sound_w_spec_func3" style="display: none">$x(t) = \frac13 ( \cos (2 \pi 440 t) + \cos (2 \pi 554.4 t) + \cos (2 \pi 659.3 t))$ - Combination (sum) of three frequencies</div>
 <div class="snd_func_w_spec" id="sound_w_spec_func4" style="display: none">$x(t) = \frac14 ( \cos (2 \pi 440 t) + \cos (2 \pi 554.4 t) + \cos (2 \pi 659.3 t) + \cos (2 \pi 880 t))$ - Combination (sum) of four frequencies</div>
+<div class="boardrow">
+<div>
+<div class="boardtitle">Signal</div>
 <div id="sound_harmo_plot_w_spec" class="jxgbox" style="width:400px; height:400px;"></div>
+</div>
+<div>
+<div class="boardtitle">Spectrum</div>
 <div id="sound_harmo_plot_s_spec" class="jxgbox" style="width:400px; height:400px;"></div>
+</div>
+</div>
 
 <script>
 JXG.Options.text.useMathJax = true;
@@ -444,19 +447,19 @@ var g = sound_harmo_w_spec.create('functiongraph', [sound_f2, 0, 10]);
 
 <p>Musical instruments don’t play pure tones. They play periodic signals that are shaped by the characteristic of the instrument.</p>
 
-<p>These periodic signals not only have a frequency spike at the fundamental frequency; they also have spikes at multiples of that frequency. These multiples, or <em>overtones</em>, correspond to the $2nd - nth$ <em>harmonics</em> of the instrument.</p>
+<p>These periodic signals not only have a frequency spike at the fundamental frequency; they also have spikes at multiples of that frequency. These multiples, or <em>overtones</em>, correspond to the 2nd through <em>n</em>th <em>harmonics</em> of the instrument.</p>
 
 <p>Different instruments weight these harmonics relatively differently to produce different sound.</p>
 
-<p>Piano</p>
-<div style="float;"><img src=".//media/fourier/image10.png" width="650px"></div>
+<div class="figrow"><img src=".//media/fourier/image10.png" width="650px" alt=""></div>
+<p class="figcaption">Piano</p>
 
-<p>Trumpet</p>
-<div style="float;"><img src=".//media/fourier/image11.png" width="650px"></div>
+<div class="figrow"><img src=".//media/fourier/image11.png" width="650px" alt=""></div>
+<p class="figcaption">Trumpet</p>
 
 <p>We see the same periodicity (high “A”) in the waveforms, but the character is different:</p>
 
-<div style="float;"><img src=".//media/fourier/image13.png" width="650px"></div>
+<div class="figrow"><img src=".//media/fourier/image13.png" width="650px" alt=""></div>
 
 <p>There’s a lot more that goes into the shape of a musical waveform and its impact on the corresponding sound. We won’t go into it in this class…</p>
 
@@ -476,36 +479,39 @@ var g = sound_harmo_w_spec.create('functiongraph', [sound_f2, 0, 10]);
 
 <p>We can write any periodic signal as a sum of sines and cosines!</p>
 
-<p>$x\left( t \right) = a_{0} + \sum_{k = 1}^{\infty}\left( a_{k}\cos\left( \frac{2\pi kt}{T} \right) + b_{k}\sin\left( \frac{2\pi kt}{T} \right) \right)$</p>
+\[x(t) = a_{0} + \sum_{k = 1}^{\infty}\left( a_{k}\cos\left( \frac{2\pi kt}{T} \right) + b_{k}\sin\left( \frac{2\pi kt}{T} \right) \right)\]
 
 <p>$a_{k}$ and $b_{k}$ tell us how much of each frequency is present</p>
 
 <p>It turns out that it’s easier and more powerful to work with complex exponentials rather than sines and cosines. This is called the
 <strong>complex Fourier series:</strong></p>
 
-<p>$x\left( t \right) = \sum_{k = - \infty}^{\infty}{a_{k}e^{i2\pi kt/T}}$</p>
+\[x(t) = \sum_{k = -\infty}^{\infty} a_{k}e^{i2\pi kt/T}\]
 
 <p>Let’s take a closer look at For example,</p>
 
-<p>$\color{green}{\cos\left( 2\pi ft \right)} = \color{blue}{\frac{1}{2}e^{i2\pi ft}} + \color{red}{\frac{1}{2}e^{- i2\pi ft}}$</p>
+\[\color{green}{\cos\left( 2\pi ft \right)} = \color{blue}{\tfrac{1}{2}e^{i2\pi ft}} + \color{red}{\tfrac{1}{2}e^{-i2\pi ft}}\]
 
 <p>Think of $\cos\left( 2\pi ft \right)$ as a point moving on the complex plane.</p>
 
-<div style="float;"><img src=".//media/fourier/image2.jpeg" width="250px"></div>
-<div style="float;"><img src=".//media/fourier/image1.gif" width="250px"></div>
-<div style="float;"><img src=".//media/fourier/image2.gif" width="250px"></div>
-<p>click on image to see more interesting examples</p>
-<div style="float;"><a href="https://www.youtube.com/watch?v=r6sGWTCMz2k"><img src=".//media/fourier/image3.jpeg" width="250px"></a></div>
+<div class="figrow">
+<img src=".//media/fourier/image2.jpeg" width="230px" alt=""><img src=".//media/fourier/image1.gif" width="230px" alt=""><img src=".//media/fourier/image2.gif" width="230px" alt=""><a href="https://www.youtube.com/watch?v=r6sGWTCMz2k"><img src=".//media/fourier/image3.jpeg" width="230px" alt=""></a>
+</div>
+<p class="figcaption">Click the last image for more examples.</p>
 
 <p>If the coefficient of $e^{i\omega t}$ and $e^{- i\omega t}$ are the same, the signal is real</p>
 
-<p>$\color{blue}{1e^{i2\pi 0.5t}} + \color{red}{1e^{- i2\pi 0.5t}} + \color{orange}{\frac{1}{2}e^{- i2\pi 1t}}$</p>
-<div style="float;"><img src=".//media/fourier/image3.gif" width="250px"></div>
-<div style="float;"><img src=".//media/fourier/image4.jpeg" width="250px"></div>
+\[\color{blue}{1e^{i2\pi 0.5t}} + \color{red}{1e^{-i2\pi 0.5t}} + \color{orange}{\tfrac{1}{2}e^{-i2\pi 1t}}\]
 
-<p>$\color{blue}{1e^{i2\pi 0.5t}} + \color{red}{1e^{- i2\pi 0.5t}} + \color{purple}{\frac12e^{i2\pi1t}} + \color{orange}{\frac{1}{2}e^{- i2\pi 1t}}$</p>
-<div style="float;"><img src=".//media/fourier/image4.gif" width="250px"></div>
-<div style="float;"><img src=".//media/fourier/image5.jpeg" width="250px"></div>
+<div class="figrow">
+<img src=".//media/fourier/image3.gif" width="250px" alt=""><img src=".//media/fourier/image4.jpeg" width="250px" alt="">
+</div>
+
+\[\color{blue}{1e^{i2\pi 0.5t}} + \color{red}{1e^{-i2\pi 0.5t}} + \color{purple}{\tfrac{1}{2}e^{i2\pi 1t}} + \color{orange}{\tfrac{1}{2}e^{-i2\pi 1t}}\]
+
+<div class="figrow">
+<img src=".//media/fourier/image4.gif" width="250px" alt=""><img src=".//media/fourier/image5.jpeg" width="250px" alt="">
+</div>
 
 <p>In addition to multiplying by nonnegative constants, we can change their starting angle by multiplying by terms of the form $e^{i\phi}$.
 <!-- more images to come --></p>
@@ -518,13 +524,13 @@ var g = sound_harmo_w_spec.create('functiongraph', [sound_f2, 0, 10]);
 
 <p>Instead of writing the frequency content as a sum, we write it as an integral</p>
 
-<p>$x(t) = \int_{- \infty}^{\infty}{X\left( f \right)}e^{i2\pi ft}df$</p>
+\[x(t) = \int_{-\infty}^{\infty} X(f)\,e^{i2\pi ft}\,df\]
 
 <p>Here, $X\left( f \right)$ determines “how much” of frequency $f$ is in signal $x(t)$</p>
 
 <p>How do we find it? With this integral (we won’t be computing these integrals)</p>
 
-<p>$X\left( f \right) = \int_{- \infty}^{\infty}{x\left( t \right)}e^{- i2\pi ft}dt$</p>
+\[X(f) = \int_{-\infty}^{\infty} x(t)\,e^{-i2\pi ft}\,dt\]
 
 <p>Multiplying by $e^{-i2\pi ft}$ winds the signal around the origin of the complex
 plane, one clockwise turn every $1/f$ seconds, and the integral is the centre of mass
@@ -565,67 +571,87 @@ Analytical equations are generally unavailable for real-world signals, anyway…
 </ul>
 
 <p>Piano vs Trumpet, again
-<!-- transfer sound -->
-Linearity
-<!-- matlab --></p>
+<!-- transfer sound --></p>
+<h3 id="linearity">Linearity</h3>
+
+<!-- matlab -->
 
 <p>One observation from the previous examples:  adding an A and a C# did not produce any “new” frequencies, just A, C# and harmonics. This is a consequence of the linearity. This property allows us to predict the spectrum of a combination of signals (e.g., a chord) from the spectra of the individual signals (e.g., pure tones).
-It can be divided into two elementary properties:
-Superposition: If x(t) has spectrum X(f), and y(t) has spectrum Y(f), then the sum x(t) + y(t) has the spectrum X(f) + Y(f).
-Scaling: If x(t) has spectrum X(f), and a is a constant, then, ax(t) has spectrum aX(f).
-Putting these together proves linearity:
-If x(t) has spectrum X(f), y(t) has spectrum Y(f), and a and b are both fixed, then ax(t) + by(t) has spectrum aX(f) + bY(f).</p>
+It can be divided into two elementary properties:</p>
+
+<ul>
+  <li>
+<strong>Superposition:</strong> If $x(t)$ has spectrum $X(f)$, and $y(t)$ has spectrum $Y(f)$, then the sum $x(t) + y(t)$ has the spectrum $X(f) + Y(f)$.</li>
+  <li>
+<strong>Scaling:</strong> If $x(t)$ has spectrum $X(f)$, and $a$ is a constant, then $ax(t)$ has spectrum $aX(f)$.</li>
+</ul>
+
+<p>Putting these together proves linearity: if $x(t)$ has spectrum $X(f)$, $y(t)$ has spectrum $Y(f)$, and $a$ and $b$ are both fixed, then $ax(t) + by(t)$ has spectrum $aX(f) + bY(f)$.</p>
 
 <p>A more complex spectrum (just for fun)
 <!-- more fun sound needed --></p>
 
-<p>Scaling time and frequency
-<!-- fun sound --></p>
+<h3 id="scaling-time-and-frequency">Scaling time and frequency</h3>
 
-<p>The peak at 900 Hz is at 1800Hz if we double the speed
-If $X(f)$ is the spectrum of $x(t)$, then the spectrum of $x(at)$ is $X(\frac{f}a)$
-Faster in time ($a&gt;1$, graph shrinks) means higher frequencies (graph exapands)
-Conclusion: changing the speed of a musical recording changes pitch. To change speed without altering pitch is not straightforward!</p>
+<!-- fun sound -->
+
+<ul>
+  <li>The peak at 900 Hz is at 1800 Hz if we double the speed.</li>
+  <li>If $X(f)$ is the spectrum of $x(t)$, then the spectrum of $x(at)$ is $X!\left(\frac{f}{a}\right)$.</li>
+  <li>Faster in time ($a&gt;1$, graph shrinks) means higher frequencies (graph expands).</li>
+</ul>
+
+<p>Conclusion: changing the speed of a musical recording changes pitch. To change speed without altering pitch is not straightforward!</p>
 
 <p>*voice spinner in chrome music lab</p>
 
-<p>High and low More examples
-Although complicated, there are distinct peaks.
-Can we determine the key from the spectrum?
-Major triad: B♭, D, F (B♭ is $440 \times 2^{1/12}$), Other peaks:  notes in Bb major scale (C, E♭, G, A)</p>
+<h3 id="high-and-low-more-examples">High and low: more examples</h3>
 
-<p>Another real-world spectrum
-Hallelujah chorus:</p>
+<ul>
+  <li>Although complicated, there are distinct peaks.</li>
+  <li>Can we determine the key from the spectrum?</li>
+  <li>Major triad: B♭, D, F (B♭ is $440 \times 2^{1/12}$). Other peaks: notes in B♭ major scale (C, E♭, G, A).</li>
+</ul>
+
+<h3 id="another-real-world-spectrum">Another real-world spectrum</h3>
+
+<p>Hallelujah chorus:</p>
 
 <p>What do you notice about the predominant frequencies?
 Are all these frequencies being played at once?</p>
 
 <p>Quantization error in the frequency domain</p>
 
-<p>Symmetry</p>
+<h3 id="symmetry">Symmetry</h3>
 
-<p>In general, given a complex-valued signal x(t), the spectrum X(f) has no guaranteed symmetry, and we need to look at both the positive and negative frequency axes to completely describe the signal.
-However, for a real-valued signal, the spectrum X(f) will have a special complex-valued symmetry called conjugate, or Hermitian, symmetry:</p>
+<p>In general, given a complex-valued signal $x(t)$, the spectrum $X(f)$ has no guaranteed symmetry, and we need to look at both the positive and negative frequency axes to completely describe the signal.</p>
+
+<p>However, for a real-valued signal, the spectrum $X(f)$ will have a special complex-valued symmetry called conjugate, or Hermitian, symmetry:</p>
 <ul>
-  <li>The real component of the spectrum will have even symmetry:
-$X_R(f) = X_R(-f)$</li>
-  <li>The imaginary component of the spectrum will have odd symmetry:
-$X_I(f) = -X_I(-f)$</li>
-  <li>The magnitude of the spectrum will have even symmetry:
-$\vert X(f) \vert = \vert X(-f)\vert$</li>
-  <li>The phase of the spectrum will have odd symmetry:
-$\angle X (f) = -\angle X(-f)$</li>
+  <li>The real component of the spectrum will have even symmetry: $X_R(f) = X_R(-f)$</li>
+  <li>The imaginary component of the spectrum will have odd symmetry: $X_I(f) = -X_I(-f)$</li>
+  <li>The magnitude of the spectrum will have even symmetry: $\vert X(f) \vert = \vert X(-f) \vert$</li>
+  <li>The phase of the spectrum will have odd symmetry: $\angle X(f) = -\angle X(-f)$</li>
 </ul>
 
-<p>Pure tones and frequency “spikes”
-Given a pure tone x(t) = cos(2πft), the frequency representation X(f) consists of a discontinuous spike at exactly ±f. 
-More formally we call this spike a Dirac delta function δ(f-f0), centered at frequency f0. It has infinite height at frequency f0, and is zero at all other frequencies.
-Aside: In a strict mathematical sense, this function is undefined at  f0. Instead, we define it implicitly, via the integral equationwhere X(f) is some real-valued function. Actually, even this definition is not strictly correct, but it’s close enough. The proper definition would require a graduate course in mathematical analysis.
-Setting X(f) = 1, we observe that the delta function has unit area.</p>
-
 <h3 id="pure-tones-and-frequency-spikes">Pure tones and frequency spikes</h3>
+
+<p>Given a pure tone $x(t) = \cos(2\pi ft)$, the frequency representation $X(f)$ consists of a discontinuous spike at exactly $\pm f$.</p>
+
+<p>More formally we call this spike a Dirac delta function $\delta(f - f_0)$, centered at frequency $f_0$. It has infinite height at frequency $f_0$, and is zero at all other frequencies.</p>
+
+<p>Aside: In a strict mathematical sense, this function is undefined at $f_0$. Instead, we define it implicitly, via the integral equation</p>
+
+\[\int_{-\infty}^{\infty} \delta(f - f_0)\,X(f)\,df = X(f_0),\]
+
+<p>where $X(f)$ is some real-valued function. Actually, even this definition is not strictly correct, but it’s close enough. The proper definition would require a graduate course in mathematical analysis.</p>
+
+<p>Setting $X(f) = 1$, we observe that the delta function has unit area.</p>
+
+<h4 id="amplitude-and-phase">Amplitude and phase</h4>
+
 <p>Note, we haven’t said anything about amplitude or phase here. This is because the spike’s location depends only on the sinusoid’s frequency. 
-The amplitude A and phase φ will appear as a complex number Aeiφ multiplying the positive frequency (f0) spike and Ae-iφ multiplying the negative (-f0) spike.</p>
+The amplitude $A$ and phase $\phi$ will appear as a complex number $Ae^{i\phi}$ multiplying the positive frequency ($f_0$) spike and $Ae^{-i\phi}$ multiplying the negative ($-f_0$) spike.</p>
 
 <p>In our plots before, we saw sinusoids that were limited in time. Their spectrum was similar to above, but not really a Dirac delta (we can’t really plot that with MATLAB)</p>
 
@@ -641,15 +667,18 @@ The spectrogram is one such characterization.</p>
   <li>spectrogram in chrome music lab</li>
 </ul>
 
-<p>The spectrogram
-The spectrogram visualizes what we call the short-time Fourier transform.
-Normally, a single Fourier transform is computed for an entire signal.
-The short-time Fourier transform divides the signal into small, overlapping time intervals and computes a spectrum for each one separately.
-These spectra are plotted on a two-dimensional graph, with the frequency content along one axis, and the time dimension along the other.
-This 2D plot allows us to measure how the relative weighting of different frequency content changes through time.
-The spectrogram is one form of what is more generally called time-frequency analysis. Such methods allow engineers to design systems that analyze complicated signals in useful ways.
-Tools like Shazam form musical fingerprints from spectrograms to help identify music.
-Medical devices use time-frequency analysis to analyze heart rhythm.</p>
+<h4 id="the-spectrogram">The spectrogram</h4>
+
+<ul>
+  <li>The spectrogram visualizes what we call the short-time Fourier transform.</li>
+  <li>Normally, a single Fourier transform is computed for an entire signal.</li>
+  <li>The short-time Fourier transform divides the signal into small, overlapping time intervals and computes a spectrum for each one separately.</li>
+  <li>These spectra are plotted on a two-dimensional graph, with the frequency content along one axis, and the time dimension along the other.</li>
+  <li>This 2D plot allows us to measure how the relative weighting of different frequency content changes through time.</li>
+  <li>The spectrogram is one form of what is more generally called time-frequency analysis. Such methods allow engineers to design systems that analyze complicated signals in useful ways.</li>
+  <li>Tools like Shazam form musical fingerprints from spectrograms to help identify music.</li>
+  <li>Medical devices use time-frequency analysis to analyze heart rhythm.</li>
+</ul>
 
 
       <footer>

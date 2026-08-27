@@ -187,3 +187,38 @@ p + ul, p + ol {
   color: brown;
 }
 
+
+/* figure rows: images sit side by side and wrap when the column is too narrow */
+.figrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 6px 0;
+  max-width: 1000px;
+}
+
+.figrow img {
+  max-width: 100%;
+  height: auto;
+}
+
+.figcaption {
+  font-size: 15px;
+  color: #444;
+  margin: 0 0 16px 0;
+}
+
+/* a pair of interactive boards side by side, each with a heading above it */
+.boardrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 10px 0 16px 0;
+}
+
+.boardrow .boardtitle {
+  text-align: center;
+  font-size: 15px;
+  margin-bottom: 2px;
+}

@@ -107,8 +107,10 @@ window.windingFigure = function (containerId, opts) {
   function mk(box, bb) {
     return JXG.JSXGraph.initBoard(box, Object.assign({}, base, {boundingbox: bb}));
   }
+  var ASPECT = 270 / 230,   // the complex-plane panel must stay square-scaled
+      peak = 1;             // max |x(t)|, set by rebuild()
   var bT = mk(id('BoxT'), [-0.06*T, 2.1, 1.06*T, -2.1]),
-      bZ = mk(id('BoxZ'), [-1.25*270/230, 1.25, 1.25*270/230, -1.25]),
+      bZ = mk(id('BoxZ'), [-1.25*ASPECT, 1.25, 1.25*ASPECT, -1.25]),
       bF = mk(id('BoxF'), [-FMAX/15, 0.62, FMAX*1.033, -0.06]);
 
   // the signal crosses y = 0, so the x tick labels would sit on top of it
@@ -118,7 +120,9 @@ window.windingFigure = function (containerId, opts) {
   var curZ = bZ.create('curve', [[0],[0]], {strokeColor: BLUE, strokeWidth: 1.4});
   var segZ = bZ.create('segment', [[0,0],[0,0]],
                        {strokeColor: ORANGE, strokeWidth: 2.5, lastArrow: true});
-  bZ.create('circle', [[0,0], 1], {strokeColor: '#ddd', strokeWidth: 1, dash: 2, fixed: true});
+  // dashed guide at the largest radius the wound curve reaches
+  bZ.create('circle', [[0,0], function () { return peak; }],
+            {strokeColor: '#ddd', strokeWidth: 1, dash: 2, fixed: true});
   var curF = bF.create('curve', [[0],[0]], {strokeColor: BLUE, strokeWidth: 1.6});
   var segF = bF.create('segment', [[0,0],[0,0]], {strokeColor: ORANGE, strokeWidth: 2.5});
   var dotF = bF.create('point', [0,0], {face: 'o', size: 3, strokeColor: ORANGE,
@@ -146,7 +150,12 @@ window.windingFigure = function (containerId, opts) {
     var fn = SIGNALS.filter(function (s) { return s.key === sel.value; })[0].fn, k, m = 0, fm = 0;
     for (k = 0; k < N; k++) { xx[k] = fn(tt[k]); }
     for (k = 0; k < N; k++) { m = Math.max(m, Math.abs(xx[k])); }
+    m = Math.max(m, 0.05);
+    peak = m;
     bT.setBoundingBox([-0.06*T, m*1.25, 1.06*T, -m*1.25], false);
+    // the wound curve reaches |x(t)|, so the same amplitude sets this panel
+    var R = m * 1.25;
+    bZ.setBoundingBox([-R*ASPECT, R, R*ASPECT, -R], false);
     curT.dataX = tt; curT.dataY = xx;
     spectrum();
     curF.dataX = ff; curF.dataY = mag;
