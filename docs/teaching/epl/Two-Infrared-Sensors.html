@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Infrared Sensors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital@0;1&display=swap">
+<style>
+:root {
+  --ground: #F2F4F5;
+  --surface: #FFFFFF;
+  --ink: #172027;
+  --muted: #5A6770;
+  --rule: #D5DCE0;
+  --a: #1B63A3;
+  --b: #C45F17;
+  --heat: #E2552C;
+  --cup: #FFFFFF;
+  --cup-edge: #9AA6AD;
+  --sleeve: #CFA980;
+  --coffee: #6A4631;
+  --gun: #37424A;
+  --gun-hi: #505D66;
+  --lcd: #D9E4D2;
+  --lcd-ink: #1D2A1C;
+  --focus: #1B63A3;
+  --a1: #4C97D6;
+  --a2: #0E3F75;
+  --b1: #E3913F;
+  --b2: #9A3D0A;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0F1417;
+    --surface: #172026;
+    --ink: #E2E8EB;
+    --muted: #92A0A8;
+    --rule: #2A343A;
+    --a: #5FA8E8;
+    --b: #EE9244;
+    --heat: #F2643A;
+    --cup: #D5DADD;
+    --cup-edge: #7D8A91;
+    --sleeve: #8C6B4E;
+    --coffee: #5B3D2B;
+    --gun: #4E5A62;
+    --gun-hi: #68757D;
+    --lcd: #243326;
+    --lcd-ink: #CDE7C6;
+    --focus: #5FA8E8;
+    --a1: #A6D0F4;
+    --a2: #3D84CC;
+    --b1: #F7BC85;
+    --b2: #D0701F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0F1417;
+  --surface: #172026;
+  --ink: #E2E8EB;
+  --muted: #92A0A8;
+  --rule: #2A343A;
+  --a: #5FA8E8;
+  --b: #EE9244;
+  --heat: #F2643A;
+  --cup: #D5DADD;
+  --cup-edge: #7D8A91;
+  --sleeve: #8C6B4E;
+  --coffee: #5B3D2B;
+  --gun: #4E5A62;
+  --gun-hi: #68757D;
+  --lcd: #243326;
+  --lcd-ink: #CDE7C6;
+  --focus: #5FA8E8;
+  --a1: #A6D0F4;
+  --a2: #3D84CC;
+  --b1: #F7BC85;
+  --b2: #D0701F;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 28px 44px;
+}
+.m {
+  font-family: "STIX Two Text", "Cambria Math", Georgia, serif;
+  font-style: italic;
+}
+.top h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.lede {
+  margin: 0;
+  max-width: 76ch;
+  color: var(--muted);
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 3fr) minmax(0, 5fr);
+  gap: 18px 20px;
+  align-items: start;
+  margin-top: 18px;
+}
+.stage > .full { grid-column: 1 / -1; grid-row: 1; }
+.stage > .col-a { grid-column: 1; grid-row: 2; }
+.stage > .col-mid { grid-column: 2; grid-row: 2; }
+.stage > .col-b { grid-column: 3; grid-row: 2; }
+.pairs > .col-a, .pairs > .col-mid, .pairs > .col-b { grid-row: 1; }
+@media (max-width: 900px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .stage > .full, .stage > .col-a, .stage > .col-mid, .stage > .col-b { grid-column: 1; grid-row: auto; }
+}
+.seg {
+  margin-top: 22px;
+  border-top: 1px solid var(--rule);
+}
+.seg[open] { padding-bottom: 8px; }
+.seg > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.seg > summary::-webkit-details-marker { display: none; }
+.seg > summary::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: 2px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.seg[open] > summary::before { transform: rotate(45deg); }
+.seg > summary:hover::before { border-color: var(--ink); }
+.seg > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.seg > summary h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 600;
+  text-wrap: balance;
+}
+.seg-intro { margin: 0; max-width: 76ch; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) {
+  .seg > summary::before { transition: none; }
+}
+
+.scene { display: block; width: 100%; height: auto; }
+.scene .sname { font-size: 19px; font-weight: 600; fill: currentColor; }
+.scene .ssig { font-size: 17px; fill: var(--muted); }
+.scene .lcd { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; font-size: 20px; font-weight: 500; fill: var(--lcd-ink); }
+.scene .obj { font-size: 20px; fill: var(--ink); }
+@media (max-width: 600px) {
+  .scene .sname { font-size: 36px; }
+  .scene .ssig { display: none; }
+  .scene .lcd { font-size: 30px; }
+  .scene .obj { font-size: 36px; }
+}
+
+.controls {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+  text-align: center;
+}
+.theta-label {
+  display: grid;
+  gap: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.theta-label output {
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+input[type="range"] { width: 100%; margin: 0; }
+#theta, #theta1, #gap { accent-color: var(--heat); }
+.theta-label.small output { font-size: 20px; }
+.derived { margin: 0; font-size: 14px; color: var(--muted); }
+#sigma-a { accent-color: var(--a); }
+#sigma-b { accent-color: var(--b); }
+.buttons { display: grid; gap: 8px; margin-top: 4px; }
+button {
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.fisher {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  gap: 18px 32px;
+  align-items: start;
+  margin-top: 4px;
+}
+@media (max-width: 900px) {
+  .fisher { grid-template-columns: minmax(0, 1fr); }
+}
+.fisher-text p { margin: 0 0 10px; max-width: 66ch; }
+.fisher-text b { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; font-weight: 500; font-variant-numeric: tabular-nums; }
+math { font-family: "STIX Two Math", "Cambria Math", math; font-size: 1.12em; }
+math[display="block"] { margin: 8px 0 12px; overflow-x: auto; }
+.defn {
+  margin: 12px 0 14px;
+  padding: 10px 16px 2px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+.defn .defn-label { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.defn .defn-or { margin: 0; font-size: 13px; color: var(--muted); }
+.fisher-plot {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.fisher-plot figcaption { margin-top: 6px; font-size: 13px; color: var(--muted); }
+.plot .guide { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; }
+.cal { font-family: "STIX Two Math", "Cambria Math", "Apple Symbols", serif; font-style: normal; }
+
+.model {
+  margin: 28px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+  font-size: 14px;
+  color: var(--muted);
+}
+.model .m { color: var(--ink); }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 12px 14px 12px;
+}
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 14px;
+}
+.panel h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.sensor-a h2 { color: var(--a); }
+.sensor-b h2 { color: var(--b); }
+.sig-note { font-size: 13px; color: var(--muted); }
+.sig-note .num { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; color: var(--ink); }
+.sig {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.sig input { width: min(130px, 30vw); }
+.sig output {
+  min-width: 6ch;
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.plot { display: block; width: 100%; height: auto; margin-top: 6px; }
+.plot .grid-line { stroke: var(--rule); stroke-width: 1; }
+.plot .axis { stroke: var(--muted); stroke-width: 1; }
+.plot .tick { fill: var(--muted); font-size: 12px; font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+.plot .axis-label { fill: var(--muted); font-size: 13px; }
+.plot .peak { fill: currentColor; font-size: 15px; }
+.plot .area { fill: currentColor; fill-opacity: 0.14; stroke: none; }
+.plot .line { fill: none; stroke: currentColor; stroke-width: 2; }
+.plot .ref { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-dasharray: 5 4; opacity: 0.75; }
+.plot .rug { stroke: currentColor; }
+.plot .area1 { fill: var(--c1); fill-opacity: 0.12; stroke: none; }
+.plot .area2 { fill: var(--c2); fill-opacity: 0.12; stroke: none; }
+.plot .line1 { fill: none; stroke: var(--c1); stroke-width: 2; }
+.plot .line2 { fill: none; stroke: var(--c2); stroke-width: 2; }
+.plot .rug1 { stroke: var(--c1); }
+.plot .rug2 { stroke: var(--c2); }
+.plot .lab1 { fill: var(--c1); font-size: 15px; }
+.plot .lab2 { fill: var(--c2); font-size: 15px; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 14px;
+  margin: 6px 0 0;
+}
+.stats dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.stats dd {
+  margin: 0;
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+</style>
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <h1>Two Infrared Sensors</h1>
+    <p class="lede">An object at true temperature <span class="m">θ</span>, measured by two infrared sensors that differ only in their noise.</p>
+  </header>
+
+  <details class="seg" open>
+    <summary><h2>One temperature</h2></summary>
+    <p class="seg-intro">Drag <span class="m">θ</span>: each curve is one sensor's voltage distribution <span class="m">p</span>(<span class="m">v</span>; <span class="m">θ</span>) at that temperature, and the ticks under it are 20 readings from that sensor. Pin <span class="m">θ</span><sub>0</sub> to keep the distribution at one temperature on screen, dashed, while <span class="m">θ</span> moves.</p>
+
+  <div class="stage">
+    <svg class="scene full" viewBox="100 40 1100 306" role="img" aria-label="A cup of coffee between two infrared thermometers, sensor A on the left and sensor B on the right, each showing a voltage reading">
+      <defs>
+        <radialGradient id="halo-grad">
+          <stop offset="0" style="stop-color:var(--heat);stop-opacity:0.55"/>
+          <stop offset="0.55" style="stop-color:var(--heat);stop-opacity:0.18"/>
+          <stop offset="1" style="stop-color:var(--heat);stop-opacity:0"/>
+        </radialGradient>
+      </defs>
+
+      <circle id="halo" cx="650" cy="205" r="140" fill="url(#halo-grad)"/>
+
+      <g style="color:var(--a)">
+        <polygon points="430,190 585.4,183 590.9,227 430,220" fill="currentColor" fill-opacity="0.10"/>
+        <path d="M430 190 L585.4 183 M430 220 L590.9 227" fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-dasharray="5 5"/>
+      </g>
+      <g style="color:var(--b)">
+        <polygon points="870,190 714.6,183 709.1,227 870,220" fill="currentColor" fill-opacity="0.10"/>
+        <path d="M870 190 L714.6 183 M870 220 L709.1 227" fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-dasharray="5 5"/>
+      </g>
+
+      <path d="M580 140 L720 140 L700.6 295 Q699.5 304 691 304 L609 304 Q600.5 304 599.4 295 Z" fill="var(--cup)" stroke="var(--cup-edge)" stroke-width="2"/>
+      <path d="M585.75 186 L714.25 186 L706.75 246 L593.25 246 Z" fill="var(--sleeve)"/>
+      <ellipse cx="650" cy="140" rx="70" ry="13" fill="var(--cup)" stroke="var(--cup-edge)" stroke-width="3"/>
+      <ellipse cx="650" cy="142" rx="62" ry="9.5" fill="var(--coffee)"/>
+      <g id="steam" fill="none" stroke="var(--muted)" stroke-width="3" stroke-linecap="round">
+        <path d="M626 122 c-10 -12 10 -24 0 -36 c-10 -12 10 -24 0 -36"/>
+        <path d="M650 116 c-10 -12 10 -24 0 -36 c-10 -12 10 -24 0 -36"/>
+        <path d="M674 122 c-10 -12 10 -24 0 -36 c-10 -12 10 -24 0 -36"/>
+      </g>
+      <ellipse cx="588" cy="205" rx="4" ry="22" fill="none" stroke="var(--a)" stroke-width="2.5"/>
+      <ellipse cx="712" cy="205" rx="4" ry="22" fill="none" stroke="var(--b)" stroke-width="2.5"/>
+      <text class="obj" x="650" y="336" text-anchor="middle"><tspan class="m">θ</tspan> = <tspan id="scene-theta">42.0 °C</tspan></text>
+
+      <g transform="translate(430 205) scale(1.35)" style="color:var(--a)">
+        <path d="M-116 20 L-126 64 Q-128 72 -136 72 L-154 72 Q-162 72 -161 64 L-154 20 Z" fill="var(--gun)"/>
+        <rect x="-28" y="-15" width="30" height="30" rx="4" fill="var(--gun-hi)"/>
+        <ellipse cx="0" cy="0" rx="4" ry="11" fill="currentColor"/>
+        <rect x="-184" y="-24" width="160" height="48" rx="12" fill="var(--gun)"/>
+        <rect x="-170" y="-15" width="118" height="30" rx="4" fill="var(--lcd)"/>
+      </g>
+      <g transform="translate(430 205)" style="color:var(--a)">
+        <text id="lcd-a" class="lcd" x="-81" y="7" text-anchor="end"></text>
+        <text class="sname" x="-248" y="-46">Sensor A</text>
+        <text class="ssig" x="-32" y="-46" text-anchor="end"><tspan class="m">σ</tspan> = <tspan id="scene-sig-a">0.8</tspan> mV</text>
+      </g>
+
+      <g transform="translate(870 205) scale(-1.35 1.35)" style="color:var(--b)">
+        <path d="M-116 20 L-126 64 Q-128 72 -136 72 L-154 72 Q-162 72 -161 64 L-154 20 Z" fill="var(--gun)"/>
+        <rect x="-28" y="-15" width="30" height="30" rx="4" fill="var(--gun-hi)"/>
+        <ellipse cx="0" cy="0" rx="4" ry="11" fill="currentColor"/>
+        <rect x="-184" y="-24" width="160" height="48" rx="12" fill="var(--gun)"/>
+        <rect x="-170" y="-15" width="118" height="30" rx="4" fill="var(--lcd)"/>
+      </g>
+      <g transform="translate(870 205)" style="color:var(--b)">
+        <text id="lcd-b" class="lcd" x="219" y="7" text-anchor="end"></text>
+        <text class="sname" x="32" y="-46">Sensor B</text>
+        <text class="ssig" x="248" y="-46" text-anchor="end"><tspan class="m">σ</tspan> = <tspan id="scene-sig-b">3.0</tspan> mV</text>
+      </g>
+    </svg>
+
+    <div class="controls col-mid">
+      <label class="theta-label" for="theta"><span>True temperature <span class="m">θ</span></span><output id="theta-val" for="theta">42.0 °C</output></label>
+      <input type="range" id="theta" min="20" max="60" step="0.1" value="42">
+      <div class="buttons">
+        <button type="button" id="pin" aria-pressed="false">Pin θ₀</button>
+        <button type="button" id="redraw">Take 20 new readings</button>
+        <button type="button" id="sweep" aria-pressed="false">Loop θ from 20 to 60 °C</button>
+      </div>
+    </div>
+
+    <section class="panel col-a sensor-a" id="panel-a">
+      <div class="panel-head">
+        <h2>Sensor A</h2>
+        <label class="sig" for="sigma-a">noise <span class="m">σ</span> <input type="range" id="sigma-a" min="0.3" max="4" step="0.1" value="0.8"> <output id="sigma-a-val" for="sigma-a">0.8 mV</output></label>
+      </div>
+      <svg class="plot" id="plot-a" viewBox="0 0 420 180" style="color:var(--a)" role="img" aria-label="Voltage distribution of sensor A at the current temperature"></svg>
+      <dl class="stats">
+        <div><dt>Fisher information <span class="cal">&#x2110;</span>(<span class="m">θ</span>)</dt><dd id="fi-a"></dd></div>
+        <div><dt>Relative entropy <span class="m">D</span>(<span class="m">p</span><sub><span class="m">θ</span>₀</sub> ‖ <span class="m">p</span><sub><span class="m">θ</span></sub>)</dt><dd id="kl-a"></dd></div>
+      </dl>
+    </section>
+
+    <section class="panel col-b sensor-b" id="panel-b">
+      <div class="panel-head">
+        <h2>Sensor B</h2>
+        <label class="sig" for="sigma-b">noise <span class="m">σ</span> <input type="range" id="sigma-b" min="0.3" max="4" step="0.1" value="3"> <output id="sigma-b-val" for="sigma-b">3.0 mV</output></label>
+      </div>
+      <svg class="plot" id="plot-b" viewBox="0 0 420 180" style="color:var(--b)" role="img" aria-label="Voltage distribution of sensor B at the current temperature"></svg>
+      <dl class="stats">
+        <div><dt>Fisher information <span class="cal">&#x2110;</span>(<span class="m">θ</span>)</dt><dd id="fi-b"></dd></div>
+        <div><dt>Relative entropy <span class="m">D</span>(<span class="m">p</span><sub><span class="m">θ</span>₀</sub> ‖ <span class="m">p</span><sub><span class="m">θ</span></sub>)</dt><dd id="kl-b"></dd></div>
+      </dl>
+    </section>
+
+  </div>
+  </details>
+
+  <details class="seg">
+    <summary><h2>Two nearby temperatures</h2></summary>
+    <p class="seg-intro">Each sensor takes 20 readings with the cup at <span class="m">θ</span><sub>1</sub> and 20 more at a nearby temperature <span class="m">θ</span><sub>2</sub>. The noisier the sensor, the more the two sets of readings look alike. Both plots span the same number of noise widths <span class="m">σ</span>, so a curve has the same shape in each.</p>
+
+  <div class="stage pairs">
+
+    <div class="controls col-mid">
+      <label class="theta-label small" for="theta1"><span>Lower temperature <span class="m">θ</span><sub>1</sub></span><output id="theta1-val" for="theta1">40.0 °C</output></label>
+      <input type="range" id="theta1" min="20" max="55" step="0.1" value="40">
+      <label class="theta-label small" for="gap"><span>Gap <span class="m">θ</span><sub>2</sub> &minus; <span class="m">θ</span><sub>1</sub></span><output id="gap-val" for="gap">2.0 °C</output></label>
+      <input type="range" id="gap" min="0.2" max="5" step="0.1" value="2">
+      <p class="derived"><span class="m">θ</span><sub>2</sub> = <span id="theta2-val">42.0 °C</span></p>
+      <div class="buttons">
+        <button type="button" id="redraw2">Take 20 new readings at each</button>
+      </div>
+    </div>
+
+    <section class="panel col-a sensor-a" id="pair-a">
+      <div class="panel-head">
+        <h2>Sensor A</h2>
+        <span class="sig-note">noise <span class="m">σ</span> = <span class="num" id="pair-sig-a">0.8</span> mV</span>
+      </div>
+      <svg class="plot" id="pair-plot-a" viewBox="0 0 420 250" style="--c1:var(--a1);--c2:var(--a2)" role="img" aria-label="Sensor A: voltage distributions at the two temperatures, with 20 readings at each"></svg>
+      <dl class="stats">
+        <div><dt>Shift of the mean <span class="m">g</span>(<span class="m">θ</span><sub>2</sub> &minus; <span class="m">θ</span><sub>1</sub>)</dt><dd id="pair-shift-a"></dd></div>
+        <div><dt>Relative entropy <span class="m">D</span>(<span class="m">p</span><sub><span class="m">θ</span>₁</sub> ‖ <span class="m">p</span><sub><span class="m">θ</span>₂</sub>)</dt><dd id="pair-kl-a"></dd></div>
+      </dl>
+    </section>
+
+    <section class="panel col-b sensor-b" id="pair-b">
+      <div class="panel-head">
+        <h2>Sensor B</h2>
+        <span class="sig-note">noise <span class="m">σ</span> = <span class="num" id="pair-sig-b">3.0</span> mV</span>
+      </div>
+      <svg class="plot" id="pair-plot-b" viewBox="0 0 420 250" style="--c1:var(--b1);--c2:var(--b2)" role="img" aria-label="Sensor B: voltage distributions at the two temperatures, with 20 readings at each"></svg>
+      <dl class="stats">
+        <div><dt>Shift of the mean <span class="m">g</span>(<span class="m">θ</span><sub>2</sub> &minus; <span class="m">θ</span><sub>1</sub>)</dt><dd id="pair-shift-b"></dd></div>
+        <div><dt>Relative entropy <span class="m">D</span>(<span class="m">p</span><sub><span class="m">θ</span>₁</sub> ‖ <span class="m">p</span><sub><span class="m">θ</span>₂</sub>)</dt><dd id="pair-kl-b"></dd></div>
+      </dl>
+    </section>
+  </div>
+  </details>
+
+  <details class="seg">
+    <summary><h2>Fisher information</h2></summary>
+  <div class="fisher">
+    <div class="fisher-text">
+      <p>The relative entropy between the distributions at two temperatures measures how easily readings at one can be told apart from readings at the other. For a sensor with gain <span class="m">g</span> and noise <span class="m">σ</span>, raising the temperature by <span class="m">δ</span> gives</p>
+      <math display="block"><mrow><mi>D</mi><mo stretchy="false">(</mo><msub><mi>p</mi><mi>θ</mi></msub><mo stretchy="false" lspace="0.25em" rspace="0.25em">&#x2016;</mo><msub><mi>p</mi><mrow><mi>θ</mi><mo>+</mo><mi>δ</mi></mrow></msub><mo stretchy="false">)</mo><mo>=</mo><mfrac><mrow><msup><mi>g</mi><mn>2</mn></msup><msup><mi>δ</mi><mn>2</mn></msup></mrow><mrow><mn>2</mn><msup><mi>σ</mi><mn>2</mn></msup></mrow></mfrac><mo>.</mo></mrow></math>
+      <p>The relative entropy grows with the square of <span class="m">δ</span>, faster for the less noisy sensor. Its curvature at <span class="m">δ</span> = 0 is the Fisher information.</p>
+      <div class="defn">
+        <p class="defn-label">Definition</p>
+        <math display="block"><mrow><mi>&#x2110;</mi><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo><mo>=</mo><munder><mi>lim</mi><mrow><mi>δ</mi><mo>&#x2192;</mo><mn>0</mn></mrow></munder><mspace width="0.2em"></mspace><mfrac><mn>2</mn><msup><mi>δ</mi><mn>2</mn></msup></mfrac><mspace width="0.17em"></mspace><mi>D</mi><mo stretchy="false">(</mo><msub><mi>p</mi><mi>θ</mi></msub><mo stretchy="false" lspace="0.25em" rspace="0.25em">&#x2016;</mo><msub><mi>p</mi><mrow><mi>θ</mi><mo>+</mo><mi>δ</mi></mrow></msub><mo stretchy="false">)</mo></mrow></math>
+        <p class="defn-or">equivalently</p>
+        <math display="block"><mrow><mi>D</mi><mo stretchy="false">(</mo><msub><mi>p</mi><mi>θ</mi></msub><mo stretchy="false" lspace="0.25em" rspace="0.25em">&#x2016;</mo><msub><mi>p</mi><mrow><mi>θ</mi><mo>+</mo><mi>δ</mi></mrow></msub><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>&#x2110;</mi><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo><msup><mi>δ</mi><mn>2</mn></msup><mo>+</mo><mi>o</mi><mo stretchy="false">(</mo><msup><mi>δ</mi><mn>2</mn></msup><mo stretchy="false">)</mo></mrow></math>
+      </div>
+      <p>For both sensors the relative entropy is exactly quadratic, so <span class="cal">&#x2110;</span>(<span class="m">θ</span>) = <span class="m">g</span><sup>2</sup>/<span class="m">σ</span><sup>2</sup> at every temperature: <b id="fi2-a"></b> for sensor A and <b id="fi2-b"></b> for sensor B. Sensor A's Fisher information is <b id="fi-ratio"></b> times sensor B's, and so is the relative entropy produced by any change in temperature.</p>
+      <p>Relative entropies of independent readings add, so 20 readings carry 20 times the Fisher information of one: <b id="fi20-a"></b> for sensor A and <b id="fi20-b"></b> for sensor B.</p>
+    </div>
+    <figure class="fisher-plot">
+      <svg class="plot" id="kl-plot" viewBox="0 0 440 300" role="img" aria-label="Relative entropy against the temperature change, one parabola per sensor"></svg>
+      <figcaption>Relative entropy between the distributions at <span class="m">θ</span> and <span class="m">θ</span> + <span class="m">δ</span> for each sensor. The dashed line marks the gap <span class="m">θ</span><sub>2</sub> &minus; <span class="m">θ</span><sub>1</sub> set in the section above.</figcaption>
+    </figure>
+  </div>
+  </details>
+
+  <p class="model">Both sensors have gain <span class="m">g</span> = 1 mV per °C and read zero when the object is at their own temperature, 25 °C. A reading is <span class="m">v</span> = <span class="m">g</span>(<span class="m">θ</span> &minus; 25) + <span class="m">ε</span> with <span class="m">ε</span> ~ N(0, <span class="m">σ</span><sup>2</sup>), so <span class="m">p</span>(<span class="m">v</span>; <span class="m">θ</span>) = N(<span class="m">v</span>; <span class="m">g</span>(<span class="m">θ</span> &minus; 25), <span class="m">σ</span><sup>2</sup>). Its Fisher information is <span class="cal">&#x2110;</span>(<span class="m">θ</span>) = <span class="m">g</span><sup>2</sup>/<span class="m">σ</span><sup>2</sup>, and <span class="m">D</span>(<span class="m">p</span><sub><span class="m">θ</span>₀</sub> ‖ <span class="m">p</span><sub><span class="m">θ</span></sub>) = <span class="cal">&#x2110;</span>(<span class="m">θ</span>)(<span class="m">θ</span> &minus; <span class="m">θ</span><sub>0</sub>)<sup>2</sup>/2 exactly.</p>
+</main>
+
+<script>
+(function () {
+  const G = 1;            // mV per degree C, both sensors
+  const TS = 25;          // the sensors' own temperature, degrees C
+  const TMIN = 20, TMAX = 60;
+  const VMIN = -10, VMAX = 45;
+  const NREAD = 20;       // readings per sensor
+  const RATE = 4;         // degrees C per second while looping
+  const W = 420, H = 180, L = 50, R = 12, T = 14, B = 38;
+  const PW = W - L - R, PH = H - T - B;
+  const MINUS = '−';
+
+  const S = [
+    { key: 'a', sigma: 0.8, readings: [] },
+    { key: 'b', sigma: 3.0, readings: [] },
+  ];
+  const st = { theta: 42, pin: null, sweeping: false };
+  const P = { theta1: 40, gap: 2 };   // the two nearby temperatures
+
+  function clamp(x, lo, hi) { return Math.min(hi, Math.max(lo, x)); }
+  function $(id) { return document.getElementById(id); }
+  function gauss() {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+  function pdf(v, mu, s) {
+    return Math.exp(-((v - mu) ** 2) / (2 * s * s)) / (s * Math.sqrt(2 * Math.PI));
+  }
+  function mean(theta) { return G * (theta - TS); }
+  function signed(x, d) { return (x < 0 ? MINUS : '') + Math.abs(x).toFixed(d); }
+  function fmt(x) {
+    x *= 1 + 1e-12;       // so 3.125, stored as 3.1249999..., rounds up as written
+    if (x >= 100) return x.toFixed(0);
+    if (x >= 10) return x.toFixed(1);
+    if (x >= 0.1) return x.toFixed(2);
+    return x.toFixed(3);
+  }
+
+  const hash = new URLSearchParams(location.hash.slice(1));
+  function hnum(k) { const x = parseFloat(hash.get(k)); return Number.isFinite(x) ? x : null; }
+  if (hnum('theta') !== null) st.theta = clamp(hnum('theta'), TMIN, TMAX);
+  if (hnum('pin') !== null) st.pin = clamp(hnum('pin'), TMIN, TMAX);
+  if (hnum('sa') !== null) S[0].sigma = clamp(hnum('sa'), 0.3, 4);
+  if (hnum('sb') !== null) S[1].sigma = clamp(hnum('sb'), 0.3, 4);
+  if (hnum('t1') !== null) P.theta1 = clamp(hnum('t1'), 20, 55);
+  if (hnum('gap') !== null) P.gap = clamp(hnum('gap'), 0.2, 5);
+
+  function yTicks(ymax) {
+    const steps = [0.02, 0.05, 0.1, 0.2, 0.25, 0.5, 1, 2];
+    const step = steps.find(s => ymax / s <= 4) || 2;
+    const out = [];
+    for (let k = 0; k * step <= ymax + 1e-9; k++) out.push(k * step);
+    return out;
+  }
+
+  function curvePath(mu, s, X, Y, vmin = VMIN, vmax = VMAX) {
+    // beyond six standard deviations the density is drawn as zero
+    const lo = clamp(mu - 6 * s, vmin, vmax), hi = clamp(mu + 6 * s, vmin, vmax);
+    const pt = v => X(v).toFixed(1) + ' ' + Y(pdf(v, mu, s)).toFixed(1);
+    const n = 240;
+    let d = 'M' + pt(vmin);
+    for (let i = 0; i <= n; i++) d += 'L' + pt(lo + (hi - lo) * i / n);
+    return d + 'L' + pt(vmax);
+  }
+
+  function plotSVG(s, ymax) {
+    const X = v => L + (v - VMIN) / (VMAX - VMIN) * PW;
+    const Y = p => T + PH - p / ymax * PH;
+    const y0 = T + PH;
+    const mu = mean(st.theta);
+    let g = '';
+
+    for (const t of yTicks(ymax)) {
+      const y = Y(t).toFixed(1);
+      if (t > 0) g += `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/>`;
+      g += `<text class="tick" x="${L - 6}" y="${(+y + 4).toFixed(1)}" text-anchor="end">${t === 0 ? '0' : +t.toFixed(2)}</text>`;
+    }
+    for (let v = -10; v <= 40; v += 10) {
+      const x = X(v).toFixed(1);
+      g += `<line class="axis" x1="${x}" x2="${x}" y1="${y0}" y2="${y0 + 5}"/>`;
+      g += `<text class="tick" x="${x}" y="${y0 + 18}" text-anchor="middle">${v < 0 ? MINUS + (-v) : v}</text>`;
+    }
+    g += `<text class="axis-label" x="${W - R}" y="${H - 3}" text-anchor="end">voltage <tspan class="m">v</tspan> (mV)</text>`;
+    g += `<text class="axis-label" transform="translate(14 ${T + PH / 2}) rotate(-90)" text-anchor="middle"><tspan class="m">p</tspan>(<tspan class="m">v</tspan>; <tspan class="m">θ</tspan>)</text>`;
+
+    const line = curvePath(mu, s.sigma, X, Y);
+    g += `<path class="area" d="${line}L${X(VMAX).toFixed(1)} ${y0}L${X(VMIN).toFixed(1)} ${y0}Z"/>`;
+    if (st.pin !== null) g += `<path class="ref" d="${curvePath(mean(st.pin), s.sigma, X, Y)}"/>`;
+    g += `<path class="line" d="${line}"/>`;
+    g += `<line class="axis" x1="${L}" x2="${W - R}" y1="${y0}" y2="${y0}"/>`;
+
+    for (const z of s.readings) {
+      const r = mu + s.sigma * z;
+      if (r < VMIN || r > VMAX) continue;
+      const x = X(r).toFixed(1);
+      g += `<line class="rug" x1="${x}" x2="${x}" y1="${y0 - 1}" y2="${y0 - 15}" stroke-width="1.5" opacity="0.8"/>`;
+    }
+
+    if (st.pin !== null) {
+      const peakY = (Y(pdf(0, 0, s.sigma)) - 6).toFixed(1);
+      const xt = X(mu), xp = X(mean(st.pin));
+      const pinLeft = st.pin <= st.theta;
+      g += `<text class="peak" x="${(xt + (pinLeft ? 4 : -4)).toFixed(1)}" y="${peakY}" text-anchor="${pinLeft ? 'start' : 'end'}"><tspan class="m">θ</tspan></text>`;
+      g += `<text class="peak" x="${(xp + (pinLeft ? -4 : 4)).toFixed(1)}" y="${peakY}" text-anchor="${pinLeft ? 'end' : 'start'}"><tspan class="m">θ</tspan>₀</text>`;
+    }
+    return g;
+  }
+
+  // a reading is stored as its standard normal noise draw, so its tick follows θ and σ as they change
+  function takeReadings(s) {
+    s.readings = Array.from({ length: NREAD }, () => gauss());
+  }
+
+  function takePairReadings(s) {
+    s.z1 = Array.from({ length: NREAD }, () => gauss());
+    s.z2 = Array.from({ length: NREAD }, () => gauss());
+  }
+
+  function pairSVG(s, K) {
+    const H2 = 250, PH2 = 140;
+    const mus = [mean(P.theta1), mean(P.theta1 + P.gap)];
+    const mid = (mus[0] + mus[1]) / 2;
+    const lo = mid - K * s.sigma, hi = mid + K * s.sigma;
+    const X = v => L + (v - lo) / (hi - lo) * PW;
+    const smax = 1.18 / Math.sqrt(2 * Math.PI);   // top of the σ·p axis
+    const Ys = q => T + PH2 - q / smax * PH2;
+    const Y = p => Ys(s.sigma * p);
+    const y0 = T + PH2, rows = [y0 + 17, y0 + 35], yA = y0 + 50;
+    let g = '';
+
+    for (const t of yTicks(smax)) {
+      const y = Ys(t).toFixed(1);
+      if (t > 0) g += `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/>`;
+      g += `<text class="tick" x="${L - 6}" y="${(+y + 4).toFixed(1)}" text-anchor="end">${t === 0 ? '0' : +t.toFixed(2)}</text>`;
+    }
+    const step = [0.5, 1, 2, 5, 10, 20].find(k => (hi - lo) / k <= 7) || 20;
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) {
+      const x = X(v).toFixed(1);
+      const lab = Math.abs(v) < 1e-9 ? '0' : (v < 0 ? MINUS : '') + +Math.abs(v).toFixed(1);
+      g += `<line class="grid-line" x1="${x}" x2="${x}" y1="${y0 + 6}" y2="${yA}"/>`;
+      g += `<line class="axis" x1="${x}" x2="${x}" y1="${yA}" y2="${yA + 5}"/>`;
+      g += `<text class="tick" x="${x}" y="${yA + 18}" text-anchor="middle">${lab}</text>`;
+    }
+    g += `<text class="axis-label" x="${W - R}" y="${H2 - 3}" text-anchor="end">voltage <tspan class="m">v</tspan> (mV)</text>`;
+    g += `<text class="axis-label" transform="translate(14 ${T + PH2 / 2}) rotate(-90)" text-anchor="middle"><tspan class="m">σ</tspan> <tspan class="m">p</tspan>(<tspan class="m">v</tspan>; <tspan class="m">θ</tspan>)</text>`;
+
+    const lines = mus.map(mu => curvePath(mu, s.sigma, X, Y, lo, hi));
+    lines.forEach((d, k) => {
+      g += `<path class="area${k + 1}" d="${d}L${X(hi).toFixed(1)} ${y0}L${X(lo).toFixed(1)} ${y0}Z"/>`;
+    });
+    lines.forEach((d, k) => { g += `<path class="line${k + 1}" d="${d}"/>`; });
+    g += `<line class="axis" x1="${L}" x2="${W - R}" y1="${y0}" y2="${y0}"/>`;
+    g += `<line class="axis" x1="${L}" x2="${W - R}" y1="${yA}" y2="${yA}"/>`;
+
+    [s.z1, s.z2].forEach((zs, k) => {
+      const row = rows[k];
+      g += `<text class="lab${k + 1}" x="${L - 8}" y="${row + 5}" text-anchor="end"><tspan class="m">θ</tspan>${k ? '₂' : '₁'}</text>`;
+      for (const z of zs) {
+        const r = mus[k] + s.sigma * z;
+        if (r < lo || r > hi) continue;
+        const x = X(r).toFixed(1);
+        g += `<line class="rug${k + 1}" x1="${x}" x2="${x}" y1="${row - 7}" y2="${row + 7}" stroke-width="1.5" opacity="0.8"/>`;
+      }
+    });
+
+    const peakY = (Y(pdf(0, 0, s.sigma)) - 6).toFixed(1);
+    g += `<text class="lab1" x="${(X(mus[0]) - 4).toFixed(1)}" y="${peakY}" text-anchor="end"><tspan class="m">θ</tspan>₁</text>`;
+    g += `<text class="lab2" x="${(X(mus[1]) + 4).toFixed(1)}" y="${peakY}" text-anchor="start"><tspan class="m">θ</tspan>₂</text>`;
+    return g;
+  }
+
+  function renderPairs() {
+    // both plots span the same number of noise widths around the midpoint of the two means
+    const K = Math.max(5, ...S.map(s => G * P.gap / (2 * s.sigma) + 4));
+    for (const s of S) {
+      $('pair-plot-' + s.key).innerHTML = pairSVG(s, K);
+      $('pair-sig-' + s.key).textContent = s.sigma.toFixed(1);
+      $('pair-shift-' + s.key).textContent = (G * P.gap).toFixed(1) + ' mV = ' + (G * P.gap / s.sigma).toFixed(2) + ' σ';
+      $('pair-kl-' + s.key).textContent = fmt(G * G * P.gap ** 2 / (2 * s.sigma * s.sigma)) + ' nats';
+    }
+    $('theta1-val').textContent = P.theta1.toFixed(1) + ' °C';
+    $('gap-val').textContent = P.gap.toFixed(1) + ' °C';
+    $('theta2-val').textContent = (P.theta1 + P.gap).toFixed(1) + ' °C';
+    renderFisher();
+  }
+
+  function renderFisher() {
+    const W3 = 440, H3 = 300, L3 = 52, R3 = 16, T3 = 16, B3 = 42;
+    const PW3 = W3 - L3 - R3, PH3 = H3 - T3 - B3;
+    const DMAX = 5;
+    const info = S.map(s => G * G / (s.sigma * s.sigma));
+    const ymax = Math.max(0.5, 1.2 * Math.min(...info) * DMAX * DMAX / 2);
+    const X = d => L3 + (d + DMAX) / (2 * DMAX) * PW3;
+    const Y = q => T3 + PH3 - q / ymax * PH3;
+    const y0 = T3 + PH3;
+    let g = `<defs><clipPath id="kl-clip"><rect x="${L3}" y="${T3}" width="${PW3}" height="${PH3}"/></clipPath></defs>`;
+
+    const ystep = [0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10, 20].find(k => ymax / k <= 5) || 20;
+    for (let q = 0; q <= ymax + 1e-9; q += ystep) {
+      const y = Y(q).toFixed(1);
+      if (q > 0) g += `<line class="grid-line" x1="${L3}" x2="${W3 - R3}" y1="${y}" y2="${y}"/>`;
+      g += `<text class="tick" x="${L3 - 6}" y="${(+y + 4).toFixed(1)}" text-anchor="end">${+q.toFixed(2)}</text>`;
+    }
+    for (let d = -4; d <= 4; d += 2) {
+      const x = X(d).toFixed(1);
+      g += `<line class="axis" x1="${x}" x2="${x}" y1="${y0}" y2="${y0 + 5}"/>`;
+      g += `<text class="tick" x="${x}" y="${y0 + 18}" text-anchor="middle">${d < 0 ? MINUS + (-d) : d}</text>`;
+    }
+    g += `<line class="axis" x1="${L3}" x2="${W3 - R3}" y1="${y0}" y2="${y0}"/>`;
+    g += `<text class="axis-label" x="${W3 - R3}" y="${H3 - 3}" text-anchor="end">temperature change <tspan class="m">δ</tspan> (°C)</text>`;
+    g += `<text class="axis-label" transform="translate(14 ${T3 + PH3 / 2}) rotate(-90)" text-anchor="middle">relative entropy (nats)</text>`;
+
+    const xg = X(P.gap);
+    g += `<line class="guide" x1="${xg.toFixed(1)}" x2="${xg.toFixed(1)}" y1="${T3}" y2="${y0}"/>`;
+    g += `<text class="axis-label" x="${(xg + 4).toFixed(1)}" y="${y0 - 6}"><tspan class="m">θ</tspan>₂ ${MINUS} <tspan class="m">θ</tspan>₁</text>`;
+
+    S.forEach((s, k) => {
+      const col = k ? 'var(--b)' : 'var(--a)';
+      let d = '';
+      for (let i = 0; i <= 200; i++) {
+        const del = -DMAX + 2 * DMAX * i / 200;
+        d += (i ? 'L' : 'M') + X(del).toFixed(1) + ' ' + Y(info[k] * del * del / 2).toFixed(1);
+      }
+      g += `<path d="${d}" fill="none" stroke="${col}" stroke-width="2.2" clip-path="url(#kl-clip)"/>`;
+
+      // name each curve on the left, where it leaves the top or at the end of the axis
+      const dTop = Math.sqrt(2 * ymax / info[k]);
+      const name = `Sensor ${k ? 'B' : 'A'}`;
+      if (dTop < DMAX) {
+        g += `<text x="${(X(-dTop) - 6).toFixed(1)}" y="${T3 + 14}" text-anchor="end" style="fill:${col};font-size:14px;font-weight:600">${name}</text>`;
+      } else {
+        g += `<text x="${(X(-DMAX) + 4).toFixed(1)}" y="${(Y(info[k] * DMAX * DMAX / 2) - 8).toFixed(1)}" text-anchor="start" style="fill:${col};font-size:14px;font-weight:600">${name}</text>`;
+      }
+
+      const D = info[k] * P.gap * P.gap / 2;
+      if (D <= ymax) {
+        g += `<circle cx="${xg.toFixed(1)}" cy="${Y(D).toFixed(1)}" r="4.5" style="fill:${col}"/>`;
+        g += `<text class="tick" x="${(xg - 8).toFixed(1)}" y="${(Y(D) - 8).toFixed(1)}" text-anchor="end" style="fill:${col}">${fmt(D)}</text>`;
+      } else {
+        g += `<path d="M${xg.toFixed(1)} ${T3} l-5 9 h10 z" style="fill:${col}"/>`;
+        g += `<text class="tick" x="${(xg + 8).toFixed(1)}" y="${T3 + 10}" text-anchor="start" style="fill:${col}">${fmt(D)}</text>`;
+      }
+    });
+    $('kl-plot').innerHTML = g;
+
+    $('fi2-a').textContent = fmt(info[0]) + ' per °C²';
+    $('fi2-b').textContent = fmt(info[1]) + ' per °C²';
+    $('fi-ratio').textContent = (info[0] / info[1]).toFixed(1);
+    $('fi20-a').textContent = fmt(NREAD * info[0]) + ' per °C²';
+    $('fi20-b').textContent = fmt(NREAD * info[1]) + ' per °C²';
+  }
+
+  function render() {
+    const ymax = 1.18 / (Math.min(S[0].sigma, S[1].sigma) * Math.sqrt(2 * Math.PI));
+    for (const s of S) {
+      $('plot-' + s.key).innerHTML = plotSVG(s, ymax);
+      $('sigma-' + s.key + '-val').textContent = s.sigma.toFixed(1) + ' mV';
+      $('scene-sig-' + s.key).textContent = s.sigma.toFixed(1);
+      $('fi-' + s.key).textContent = fmt(G * G / (s.sigma * s.sigma)) + ' per °C²';
+      $('kl-' + s.key).textContent = st.pin === null
+        ? '—'
+        : fmt(G * G * (st.theta - st.pin) ** 2 / (2 * s.sigma * s.sigma)) + ' nats';
+      const last = s.readings[s.readings.length - 1];
+      $('lcd-' + s.key).textContent = last === undefined ? '' : signed(mean(st.theta) + s.sigma * last, 1) + ' mV';
+    }
+    const t = st.theta.toFixed(1) + ' °C';
+    $('theta-val').textContent = t;
+    $('scene-theta').textContent = t;
+    const K = c => (c + 273.15) ** 4;
+    const r = (K(st.theta) - K(TMIN)) / (K(TMAX) - K(TMIN));
+    $('halo').setAttribute('opacity', (0.12 + 0.8 * r).toFixed(3));
+    $('steam').setAttribute('opacity', clamp((st.theta - 38) / 20, 0, 1).toFixed(3));
+    const pin = $('pin');
+    pin.textContent = st.pin === null ? `Pin θ₀ at ${t}` : `Clear θ₀ = ${st.pin.toFixed(1)} °C`;
+    pin.setAttribute('aria-pressed', String(st.pin !== null));
+    const sweep = $('sweep');
+    sweep.textContent = st.sweeping ? 'Stop the loop' : `Loop θ from ${TMIN} to ${TMAX} °C`;
+    sweep.setAttribute('aria-pressed', String(st.sweeping));
+  }
+
+  $('theta').value = st.theta;
+  $('theta').addEventListener('input', e => {
+    if (st.sweeping) setSweep(false);
+    st.theta = +e.target.value;
+    render();
+  });
+  for (const s of S) {
+    const el = $('sigma-' + s.key);
+    el.value = s.sigma;
+    el.addEventListener('input', e => {
+      s.sigma = +e.target.value;
+      render();
+      renderPairs();
+    });
+  }
+  $('pin').addEventListener('click', () => {
+    st.pin = st.pin === null ? st.theta : null;
+    render();
+  });
+  $('redraw').addEventListener('click', () => {
+    S.forEach(takeReadings);
+    render();
+  });
+
+  let raf = 0, lastT = 0;
+  function step(now) {
+    if (!st.sweeping) return;
+    if (lastT) {
+      st.theta += RATE * Math.min(0.1, (now - lastT) / 1000);
+      if (st.theta > TMAX) st.theta = TMIN + (st.theta - TMAX);
+      $('theta').value = st.theta;
+    }
+    lastT = now;
+    render();
+    raf = requestAnimationFrame(step);
+  }
+  function setSweep(on) {
+    st.sweeping = on;
+    cancelAnimationFrame(raf);
+    lastT = 0;
+    if (on) raf = requestAnimationFrame(step);
+    render();
+  }
+  $('sweep').addEventListener('click', () => setSweep(!st.sweeping));
+
+  $('theta1').value = P.theta1;
+  $('gap').value = P.gap;
+  $('theta1').addEventListener('input', e => { P.theta1 = +e.target.value; renderPairs(); });
+  $('gap').addEventListener('input', e => { P.gap = +e.target.value; renderPairs(); });
+  $('redraw2').addEventListener('click', () => { S.forEach(takePairReadings); renderPairs(); });
+
+  S.forEach(takeReadings);
+  S.forEach(takePairReadings);
+  render();
+  renderPairs();
+})();
+</script>
+</body>
+</html>
