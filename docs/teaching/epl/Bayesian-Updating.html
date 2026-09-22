@@ -1,0 +1,1263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bayesian Updating</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital@0;1&display=swap">
+<style>
+:root {
+  --ground: #F2F4F5;
+  --surface: #FFFFFF;
+  --ink: #172027;
+  --muted: #5A6770;
+  --rule: #D5DCE0;
+  --a: #1B63A3;
+  --b: #C45F17;
+  --heat: #E2552C;
+  --focus: #1B63A3;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0F1417;
+    --surface: #172026;
+    --ink: #E2E8EB;
+    --muted: #92A0A8;
+    --rule: #2A343A;
+    --a: #5FA8E8;
+    --b: #EE9244;
+    --heat: #F2643A;
+    --focus: #5FA8E8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0F1417;
+  --surface: #172026;
+  --ink: #E2E8EB;
+  --muted: #92A0A8;
+  --rule: #2A343A;
+  --a: #5FA8E8;
+  --b: #EE9244;
+  --heat: #F2643A;
+  --focus: #5FA8E8;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 28px 44px;
+}
+.m {
+  font-family: "STIX Two Text", "Cambria Math", Georgia, serif;
+  font-style: italic;
+}
+.num {
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.top h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.lede {
+  margin: 0;
+  max-width: 76ch;
+  color: var(--muted);
+}
+
+.setup {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 28px;
+  margin-top: 20px;
+  padding: 12px 16px 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+@media (max-width: 900px) {
+  .setup { grid-template-columns: minmax(0, 1fr); }
+}
+.setup h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+select, input[type="number"] {
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+input[type="number"] { width: 6.5em; font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.params { display: grid; gap: 6px; margin-top: 10px; }
+.params .sig input { flex: 1; width: auto; min-width: 80px; max-width: 200px; }
+.derived { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.derived.err { color: var(--heat); }
+.setup .buttons { margin-top: 10px; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.check { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 14px; color: var(--muted); cursor: pointer; }
+.check input { margin: 0; accent-color: var(--a); }
+.role { margin: 0 0 6px; }
+#wrong-box { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--rule); }
+.mode { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 8px; font-size: 14px; color: var(--muted); }
+.mode label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.mode input { margin: 0; accent-color: var(--a); }
+textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 3fr) minmax(0, 5fr);
+  gap: 18px 20px;
+  align-items: start;
+  margin-top: 26px;
+}
+.stage > .full { grid-column: 1 / -1; grid-row: 1; }
+.stage > .col-a { grid-column: 1; grid-row: 2; }
+.stage > .col-mid { grid-column: 2; grid-row: 2; }
+.stage > .col-b { grid-column: 3; grid-row: 2; }
+@media (max-width: 900px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .stage > .full, .stage > .col-a, .stage > .col-mid, .stage > .col-b { grid-column: 1; grid-row: auto; }
+}
+.seg {
+  margin-top: 22px;
+  border-top: 1px solid var(--rule);
+}
+.seg[open] { padding-bottom: 8px; }
+.seg > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.seg > summary::-webkit-details-marker { display: none; }
+.seg > summary::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: 2px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.seg[open] > summary::before { transform: rotate(45deg); }
+.seg > summary:hover::before { border-color: var(--ink); }
+.seg > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.seg > summary h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 600;
+  text-wrap: balance;
+}
+.seg-intro { margin: 0; max-width: 76ch; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) {
+  .seg > summary::before { transition: none; }
+}
+
+.strip { display: block; width: 100%; height: auto; }
+.strip .coin { fill: none; stroke: var(--rule); stroke-width: 1.5; }
+.strip .coin.seen { stroke: var(--ink); }
+.strip .coin.seen.head { fill: var(--ink); }
+.strip .face { fill: var(--ink); font-weight: 600; }
+.strip .face.head { fill: var(--surface); }
+.strip .ring { fill: none; stroke: var(--heat); stroke-width: 2.5; }
+.strip .pt { fill: var(--surface); stroke: var(--rule); stroke-width: 1.2; }
+.strip .pt.seen { fill: var(--ink); stroke: var(--ink); }
+.strip .grid-line { stroke: var(--rule); stroke-width: 1; }
+.strip .axis { stroke: var(--muted); stroke-width: 1; }
+.strip .tick { fill: var(--muted); font-size: 13px; font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+.strip .axis-label { fill: var(--muted); font-size: 14px; }
+.strip .truth { stroke: var(--heat); stroke-width: 1.6; stroke-dasharray: 5 4; }
+.strip .truth-lab { fill: var(--heat); font-size: 14px; }
+@media (max-width: 600px) {
+  .strip .tick { font-size: 28px; }
+  .strip .axis-label, .strip .truth-lab { font-size: 30px; }
+}
+.strip-cap { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+
+.controls {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+  text-align: center;
+}
+.theta-label {
+  display: grid;
+  gap: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.theta-label output {
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+input[type="range"] { width: 100%; margin: 0; }
+#k { accent-color: var(--a); }
+.params input[type="range"] { accent-color: var(--a); }
+.controls .derived { min-height: 1.5em; }
+.buttons { display: grid; gap: 8px; margin-top: 4px; }
+button {
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button:disabled { opacity: 0.45; cursor: default; }
+button:disabled:hover { border-color: var(--rule); }
+button[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+button.primary { background: var(--a); color: #fff; border-color: var(--a); font-weight: 500; }
+button.primary:hover { filter: brightness(1.1); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pace { justify-content: center; }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 12px 14px 12px;
+}
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 14px;
+}
+.panel h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--a);
+}
+.sig-note { font-size: 13px; color: var(--muted); }
+.sig-note .num { color: var(--ink); }
+.sig {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.sig input { width: min(130px, 30vw); }
+.sig output {
+  min-width: 5ch;
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.plot { display: block; width: 100%; height: auto; margin-top: 6px; }
+.plot .grid-line { stroke: var(--rule); stroke-width: 1; }
+.plot .axis { stroke: var(--muted); stroke-width: 1; }
+.plot .tick { fill: var(--muted); font-size: 12px; font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+.plot .axis-label { fill: var(--muted); font-size: 13px; }
+.plot .area { fill: currentColor; fill-opacity: 0.14; stroke: none; }
+.plot .band { fill: currentColor; fill-opacity: 0.14; stroke: none; }
+.plot .line { fill: none; stroke: currentColor; stroke-width: 2; }
+.plot .prev { fill: none; stroke: currentColor; stroke-width: 1.4; opacity: 0.4; }
+.plot .prior { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-dasharray: 5 4; }
+.plot .trueprior { fill: none; stroke: var(--heat); stroke-width: 1.4; stroke-dasharray: 2 3; opacity: 0.85; }
+.plot .truth { stroke: var(--heat); stroke-width: 1.6; stroke-dasharray: 5 4; }
+.plot .truth-lab { fill: var(--heat); font-size: 14px; }
+.plot .ci { stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
+.plot .dot { fill: currentColor; }
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.legend span { white-space: nowrap; }
+.sw {
+  display: inline-block;
+  width: 18px;
+  height: 0;
+  border-top: 2px solid var(--a);
+  vertical-align: middle;
+  margin-right: 5px;
+}
+.sw.thin { border-top-width: 1.5px; opacity: 0.4; }
+.sw.dash { border-top-style: dashed; }
+.sw.dot { border-top-style: dotted; }
+.sw.prior { border-color: var(--muted); }
+.sw.truth { border-color: var(--heat); }
+.sw.ci { border-top-width: 3px; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 14px;
+  margin: 8px 0 0;
+}
+.stats dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.stats dd {
+  margin: 0;
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.model-text { max-width: 76ch; }
+.model-text p { margin: 0 0 10px; }
+.model-text .pair { display: none; }
+.model-text .pair.on { display: block; }
+math { font-family: "STIX Two Math", "Cambria Math", math; font-size: 1.12em; }
+math[display="block"] { margin: 8px 0 12px; overflow-x: auto; }
+</style>
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <h1>Bayesian Updating</h1>
+    <p class="lede">A parameter <span class="m">θ</span> is drawn from the prior, <span class="m">n</span> observations are generated from the likelihood at that <span class="m">θ</span>, and the posterior is updated one observation at a time.</p>
+  </header>
+
+  <section class="setup" aria-label="Model and data">
+    <div class="block">
+      <h2>Likelihood</h2>
+      <label class="field"><select id="lik" aria-label="Likelihood"></select></label>
+      <p class="derived" id="theta-what"></p>
+      <div class="params" id="lik-params"></div>
+    </div>
+    <div class="block">
+      <h2>Prior</h2>
+      <p class="derived role" id="role-true" hidden><span class="m">θ</span> is drawn from</p>
+      <label class="field"><select id="prior" aria-label="Prior"></select></label>
+      <div class="params" id="prior-params"></div>
+      <label class="check"><input type="checkbox" id="wrong"> wrong prior</label>
+      <div id="wrong-box" hidden>
+        <p class="derived role">the posterior is computed with</p>
+        <label class="field"><select id="wprior" aria-label="Prior used for the posterior"></select></label>
+        <div class="params" id="wprior-params"></div>
+      </div>
+    </div>
+    <div class="block">
+      <h2>Data</h2>
+      <div class="mode" role="radiogroup" aria-label="Source of the observations">
+        <label><input type="radio" name="source" value="sim" checked> simulated from the prior</label>
+        <label><input type="radio" name="source" value="paste"> pasted</label>
+      </div>
+      <div id="sim-box">
+        <label class="field" for="n">observations <span class="m">n</span> <input type="number" id="n" min="1" max="2000" step="1" value="100"></label>
+        <div class="buttons">
+          <button type="button" id="simulate" class="primary">Simulate</button>
+          <div class="split">
+            <button type="button" id="redata">New data, same θ</button>
+            <button type="button" id="moredata">More data</button>
+          </div>
+        </div>
+      </div>
+      <div id="paste-box" hidden>
+        <textarea id="paste" rows="3" spellcheck="false" aria-label="Your observations"></textarea>
+        <p class="derived" id="paste-msg"></p>
+        <div class="buttons">
+          <button type="button" id="use-paste" class="primary">Use these observations</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="stage">
+    <div class="full">
+      <svg class="strip" id="data-plot" viewBox="0 0 1100 100" role="img" aria-label="The sequence of observations; those seen so far are marked"></svg>
+      <p class="strip-cap" id="data-cap"></p>
+    </div>
+
+    <section class="panel col-a" id="panel-post">
+      <div class="panel-head">
+        <h2>Prior and posterior</h2>
+        <span class="sig-note">posterior <span class="num" id="post-form"></span></span>
+      </div>
+      <svg class="plot" id="post-plot" viewBox="0 0 420 250" style="color:var(--a)" role="img" aria-label="Prior density and the posterior density after the observations seen so far"></svg>
+      <p class="legend">
+        <span><i class="sw"></i>posterior after <span class="m">k</span></span>
+        <span><i class="sw thin"></i>after <span class="m">k</span> − 1</span>
+        <span><i class="sw dash prior"></i>prior</span>
+        <span><i class="sw dash truth"></i>true <span class="m">θ</span></span>
+        <span id="lg-trueprior" hidden><i class="sw dot truth"></i>prior <span class="m">θ</span> was drawn from</span>
+        <span><i class="sw ci"></i>mean and 95% interval</span>
+      </p>
+      <dl class="stats">
+        <div><dt>Posterior mean</dt><dd id="s-mean"></dd></div>
+        <div><dt>MAP estimate</dt><dd id="s-map"></dd></div>
+        <div><dt>95% credible interval</dt><dd id="s-ci"></dd></div>
+        <div><dt>Posterior standard deviation</dt><dd id="s-sd"></dd></div>
+      </dl>
+    </section>
+
+    <div class="controls col-mid">
+      <label class="theta-label" for="k"><span>Observations seen <span class="m">k</span></span><output id="k-val" for="k">0 / 100</output></label>
+      <input type="range" id="k" min="0" max="100" step="1" value="0">
+      <p class="derived" id="obs-now"></p>
+      <div class="buttons">
+        <button type="button" id="play" aria-pressed="false">Play</button>
+        <button type="button" id="step">Next observation</button>
+        <button type="button" id="back">Previous observation</button>
+      </div>
+      <label class="sig pace" for="pace">pace <select id="pace"><option value="slow">slow</option><option value="normal" selected>normal</option><option value="fast">fast</option></select></label>
+    </div>
+
+    <section class="panel col-b" id="panel-conv">
+      <div class="panel-head">
+        <h2>Posterior mean as data accumulate</h2>
+      </div>
+      <svg class="plot" id="conv-plot" viewBox="0 0 420 250" style="color:var(--a)" role="img" aria-label="Posterior mean and 95% credible interval against the number of observations"></svg>
+      <p class="legend">
+        <span><i class="sw"></i>posterior mean</span>
+        <span><i class="sw" style="border-top-width:8px;opacity:0.14"></i>95% interval</span>
+        <span><i class="sw dash truth"></i>true <span class="m">θ</span></span>
+      </p>
+      <dl class="stats">
+        <div><dt>True <span class="m">θ</span> (drawn at Simulate)</dt><dd id="true-theta"></dd></div>
+        <div><dt>Posterior mean − <span class="m">θ</span></dt><dd id="err"></dd></div>
+      </dl>
+    </section>
+  </div>
+
+  <details class="seg">
+    <summary><h2>The model</h2></summary>
+    <div class="model-text">
+      <p>Each observation updates the distribution over <span class="m">θ</span> by Bayes' rule, with the previous posterior as the prior:</p>
+      <math display="block"><mrow><mi>p</mi><mo stretchy="false">(</mo><mi>θ</mi><mo>|</mo><msub><mi>x</mi><mn>1</mn></msub><mo>,</mo><mo>…</mo><mo>,</mo><msub><mi>x</mi><mi>k</mi></msub><mo stretchy="false">)</mo><mo>∝</mo><mi>p</mi><mo stretchy="false">(</mo><msub><mi>x</mi><mi>k</mi></msub><mo>|</mo><mi>θ</mi><mo stretchy="false">)</mo><mspace width="0.2em"></mspace><mi>p</mi><mo stretchy="false">(</mo><mi>θ</mi><mo>|</mo><msub><mi>x</mi><mn>1</mn></msub><mo>,</mo><mo>…</mo><mo>,</mo><msub><mi>x</mi><mrow><mi>k</mi><mo>−</mo><mn>1</mn></mrow></msub><mo stretchy="false">)</mo><mo>.</mo></mrow></math>
+      <p>The observations are independent given <span class="m">θ</span>, so after <span class="m">k</span> steps the result is the posterior given all <span class="m">k</span> observations at once, in whatever order they arrived:</p>
+      <math display="block"><mrow><mi>p</mi><mo stretchy="false">(</mo><mi>θ</mi><mo>|</mo><msub><mi>x</mi><mn>1</mn></msub><mo>,</mo><mo>…</mo><mo>,</mo><msub><mi>x</mi><mi>k</mi></msub><mo stretchy="false">)</mo><mo>∝</mo><mi>p</mi><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo><mspace width="0.2em"></mspace><munderover><mo>∏</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mi>p</mi><mo stretchy="false">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>|</mo><mi>θ</mi><mo stretchy="false">)</mo><mo>.</mo></mrow></math>
+
+      <p class="pair" data-pair="binomial:beta">Each observation is the number of heads in <span class="m">m</span> flips, <span class="m">x<sub>i</sub></span> ~ Binomial(<span class="m">m</span>, <span class="m">θ</span>), and <span class="m">θ</span> ~ Beta(<span class="m">α</span>, <span class="m">β</span>). After <span class="m">k</span> observations with <span class="m">h</span> heads and <span class="m">t</span> tails in total, the posterior is Beta(<span class="m">α</span> + <span class="m">h</span>, <span class="m">β</span> + <span class="m">t</span>): the heads add to <span class="m">α</span> and the tails to <span class="m">β</span>, so the prior acts as <span class="m">α</span> heads and <span class="m">β</span> tails counted before the data.</p>
+      <p class="pair" data-pair="binomial:betamix">Each observation is the number of heads in <span class="m">m</span> flips, <span class="m">x<sub>i</sub></span> ~ Binomial(<span class="m">m</span>, <span class="m">θ</span>), and <span class="m">θ</span> ~ ½ Beta(<span class="m">α</span>, <span class="m">β</span>) + ½ Beta(<span class="m">β</span>, <span class="m">α</span>): a coin believed to be biased, in a direction not known in advance. Each component updates as a Beta prior does, and its weight is multiplied by how well it predicted the data. With <span class="m">h</span> heads and <span class="m">t</span> tails, the posterior is <span class="m">w</span> Beta(<span class="m">α</span> + <span class="m">h</span>, <span class="m">β</span> + <span class="m">t</span>) + (1 − <span class="m">w</span>) Beta(<span class="m">β</span> + <span class="m">h</span>, <span class="m">α</span> + <span class="m">t</span>), where <span class="m">w</span> is B(<span class="m">α</span> + <span class="m">h</span>, <span class="m">β</span> + <span class="m">t</span>) divided by B(<span class="m">α</span> + <span class="m">h</span>, <span class="m">β</span> + <span class="m">t</span>) + B(<span class="m">β</span> + <span class="m">h</span>, <span class="m">α</span> + <span class="m">t</span>) and B is the beta function.</p>
+      <p class="pair" data-pair="poisson:gamma">Each observation is a count <span class="m">x<sub>i</sub></span> ~ Poisson(<span class="m">θ</span>), and <span class="m">θ</span> ~ Gamma(<span class="m">α</span>, <span class="m">β</span>) with shape <span class="m">α</span> and rate <span class="m">β</span>. After <span class="m">k</span> observations with total count <span class="m">s</span>, the posterior is Gamma(<span class="m">α</span> + <span class="m">s</span>, <span class="m">β</span> + <span class="m">k</span>): the counts add to <span class="m">α</span> and the number of observations to <span class="m">β</span>.</p>
+      <p class="pair" data-pair="normal:gauss">Each observation is <span class="m">x<sub>i</sub></span> ~ N(<span class="m">θ</span>, <span class="m">σ</span><sup>2</sup>) with <span class="m">σ</span> known, and <span class="m">θ</span> ~ N(<span class="m">μ</span><sub>0</sub>, <span class="m">τ</span><sup>2</sup>). After <span class="m">k</span> observations with sample mean <span class="m">x̄</span>, the posterior is N(<span class="m">m</span>, <span class="m">v</span>) with 1/<span class="m">v</span> = 1/<span class="m">τ</span><sup>2</sup> + <span class="m">k</span>/<span class="m">σ</span><sup>2</sup> and <span class="m">m</span> = <span class="m">v</span> (<span class="m">μ</span><sub>0</sub>/<span class="m">τ</span><sup>2</sup> + <span class="m">k</span><span class="m">x̄</span>/<span class="m">σ</span><sup>2</sup>): the precisions add, and the posterior mean is the precision-weighted average of the prior mean and the sample mean.</p>
+      <p class="pair" data-pair="exponential:gamma">Each observation is a waiting time <span class="m">x<sub>i</sub></span> ~ Exponential(<span class="m">θ</span>) with rate <span class="m">θ</span>, and <span class="m">θ</span> ~ Gamma(<span class="m">α</span>, <span class="m">β</span>) with shape <span class="m">α</span> and rate <span class="m">β</span>. After <span class="m">k</span> observations with total time <span class="m">s</span>, the posterior is Gamma(<span class="m">α</span> + <span class="m">k</span>, <span class="m">β</span> + <span class="m">s</span>): the number of events adds to <span class="m">α</span> and the elapsed time to <span class="m">β</span>.</p>
+
+      <p id="wrong-note" hidden>With the wrong-prior option, <span class="m">θ</span> is drawn from one prior and the posterior is computed with another, so the analysis starts from beliefs that do not match how the data arose. The posterior still concentrates near <span class="m">θ</span> as observations accumulate, provided the prior it starts from gives <span class="m">θ</span> some density; a prior that rules <span class="m">θ</span> out can never recover it.</p>
+      <p>The curves and statistics on this page are computed on a grid of <span class="m">θ</span> values rather than from these closed forms, so the prior need not be conjugate; the closed form is printed above the plot for comparison.</p>
+    </div>
+  </details>
+</main>
+
+<script>
+(function () {
+  const W = 420, H = 250, L = 50, R = 14, T = 16, B = 40;
+  const PW = W - L - R, PH = H - T - B;
+  const SW = 1100;                          // width of the observation strip
+  const NMAX = 2000, COARSE = 800, FINE = 1600;
+  const MINUS = '−';
+  const PACE = { slow: 2, normal: 1, fast: 0.4 };   // seconds per doubling of the sample
+
+  function $(id) { return document.getElementById(id); }
+  function clamp(x, lo, hi) { return Math.min(hi, Math.max(lo, x)); }
+  function num(x, d) { return (x < 0 ? MINUS : '') + Math.abs(x).toFixed(d); }
+  function fmt(x) {
+    const a = Math.abs(x) * (1 + 1e-12);   // so 3.125, stored as 3.1249999..., rounds up as written
+    let s;
+    if (a >= 100) s = a.toFixed(0);
+    else if (a >= 10) s = a.toFixed(1);
+    else if (a >= 0.1) s = a.toFixed(2);
+    else if (a === 0) s = '0';
+    else s = a.toFixed(3);
+    return (x < 0 && s !== '0' ? MINUS : '') + s;
+  }
+  function tick(v) { return (v < 0 ? MINUS : '') + String(+Math.abs(v).toFixed(6)); }
+  function fmtp(x) { return Number.isInteger(x) ? num(x, 0) : fmt(x); }   // a parameter: 1, 1.5, 0.05
+  function niceStep(span, n) {
+    const raw = span / n, e = Math.pow(10, Math.floor(Math.log10(raw)));
+    return ([1, 2, 2.5, 5, 10].find(m => m * e >= raw * (1 - 1e-9)) || 10) * e;
+  }
+  function ticks(lo, hi, n) {
+    const s = niceStep(hi - lo, n), out = [];
+    for (let v = Math.ceil(lo / s - 1e-9) * s; v <= hi + 1e-9 * s; v += s) out.push(+v.toFixed(10));
+    return out;
+  }
+  function logaddexp(a, b) { const m = Math.max(a, b); return m + Math.log(Math.exp(a - m) + Math.exp(b - m)); }
+
+  // ---------- random numbers: seeded, so a run can be reproduced from the URL ----------
+  let rng = null;
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function reseed(s) { rng = mulberry32(s >>> 0); }
+  function rand() { let u; do { u = rng(); } while (u === 0); return u; }
+  function gauss() { return Math.sqrt(-2 * Math.log(rand())) * Math.cos(2 * Math.PI * rand()); }
+  function gammaSample(a) {            // Marsaglia and Tsang, unit rate
+    if (a < 1) return gammaSample(a + 1) * Math.pow(rand(), 1 / a);
+    const d = a - 1 / 3, c = 1 / Math.sqrt(9 * d);
+    for (;;) {
+      let x, v;
+      do { x = gauss(); v = 1 + c * x; } while (v <= 0);
+      v = v * v * v;
+      const u = rand();
+      if (u < 1 - 0.0331 * x * x * x * x) return d * v;
+      if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+    }
+  }
+  function betaSample(a, b) { const x = gammaSample(a), y = gammaSample(b); return x + y > 0 ? x / (x + y) : 0.5; }
+  function poissonSample(lam) {
+    if (lam > 400) return poissonSample(lam / 2) + poissonSample(lam - lam / 2);
+    const Lm = Math.exp(-lam);
+    let k = 0, p = 1;
+    do { k++; p *= rand(); } while (p > Lm);
+    return k - 1;
+  }
+
+  // ---------- log-gamma (Lanczos), for the mixture weight ----------
+  const LG = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
+    -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  function lgamma(z) {
+    if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z);
+    z -= 1;
+    let x = LG[0];
+    for (let i = 1; i < 9; i++) x += LG[i] / (z + i);
+    const t = z + 7.5;
+    return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+  }
+  function lbeta(a, b) { return lgamma(a) + lgamma(b) - lgamma(a + b); }
+
+  // ---------- likelihoods ----------
+  // loglik(k, s, p) returns the log-likelihood of the first k observations as a function of θ,
+  // given their sufficient statistic s (the sum of the x's) and the likelihood's parameters p.
+  const LIK = {
+    binomial: {
+      name: 'Coin flips (binomial)', theta: 'the probability of heads', support: [0, 1],
+      params: [{ key: 'm', label: 'flips per observation', min: 1, max: 20, step: 1, value: 1, int: true }],
+      sample(th, p) { let x = 0; for (let i = 0; i < p.m; i++) if (rand() < th) x++; return x; },
+      loglik(k, s, p) { const t = k * p.m - s; return th => s * Math.log(th) + t * Math.log(1 - th); },
+      mean(th, p) { return p.m * th; },
+      obs(x, p) { return p.m === 1 ? (x ? 'heads' : 'tails') : `${x} heads in ${p.m} flips`; },
+      summary(k, s, p) { return `${s} heads, ${k * p.m - s} tails`; },
+      hint(p) { return p.m === 1 ? 'H T T H H … or 1 0 0 1 1 …' : `heads out of ${p.m} per observation: 3 5 2 4 …`; },
+      parse(tok, p) {
+        const t = tok.toLowerCase();
+        if (p.m === 1 && (t === 'h' || t === 'head' || t === 'heads')) return 1;
+        if (p.m === 1 && (t === 't' || t === 'tail' || t === 'tails')) return 0;
+        const x = Number(tok);
+        if (!Number.isInteger(x) || x < 0 || x > p.m) return p.m === 1 ? 'must be H, T, 1 or 0' : `must be a whole number from 0 to ${p.m}`;
+        return x;
+      },
+      counts: true,
+    },
+    poisson: {
+      name: 'Counts (Poisson)', theta: 'the rate', support: [0, Infinity], params: [],
+      sample(th) { return poissonSample(th); },
+      loglik(k, s) { return th => s * Math.log(th) - k * th; },
+      mean(th) { return th; },
+      obs(x) { return `x = ${x}`; },
+      summary(k, s) { return `total count ${s}, mean ${num(s / k, 2)}`; },
+      hint() { return '2 0 3 1 …'; },
+      parse(tok) { const x = Number(tok); return Number.isInteger(x) && x >= 0 ? x : 'must be a whole number, 0 or more'; },
+      counts: true,
+    },
+    normal: {
+      name: 'Measurements (Normal, σ known)', theta: 'the mean', support: [-Infinity, Infinity],
+      params: [{ key: 's', label: 'noise σ', min: 0.1, max: 10, log: true, value: 1 }],
+      sample(th, p) { return th + p.s * gauss(); },
+      loglik(k, s, p) { const v = 2 * p.s * p.s; return th => -(k * th * th - 2 * th * s) / v; },
+      mean(th) { return th; },
+      obs(x) { return `x = ${num(x, 2)}`; },
+      summary(k, s) { return `sample mean ${num(s / k, 3)}`; },
+      hint() { return '1.2 -0.4 0.8 …'; },
+      parse(tok) { const x = Number(tok.replace(MINUS, '-')); return Number.isFinite(x) ? x : 'must be a number'; },
+    },
+    exponential: {
+      name: 'Waiting times (exponential)', theta: 'the rate', support: [0, Infinity], params: [],
+      sample(th) { return -Math.log(rand()) / th; },
+      loglik(k, s) { return th => k * Math.log(th) - th * s; },
+      mean(th) { return 1 / th; },
+      obs(x) { return `x = ${num(x, 2)}`; },
+      summary(k, s) { return `total time ${num(s, 2)}, mean ${num(s / k, 3)}`; },
+      hint() { return '0.3 1.7 0.2 …'; },
+      parse(tok) { const x = Number(tok); return Number.isFinite(x) && x > 0 ? x : 'must be a positive number'; },
+    },
+  };
+
+  // ---------- priors ----------
+  // logpdf(p) returns the log density as a function of θ, up to a constant; range(p) is the
+  // stretch of θ shown and integrated over; closed() prints the conjugate form of the posterior.
+  const PRIORS = {
+    beta: {
+      name: 'Beta(α, β)', liks: ['binomial'], wrong: { a: 8, b: 2 },
+      params: [{ key: 'a', label: 'α', min: 0.1, max: 100, log: true, value: 1 },
+               { key: 'b', label: 'β', min: 0.1, max: 100, log: true, value: 1 }],
+      range() { return [0, 1]; },
+      logpdf(p) { return th => (p.a - 1) * Math.log(th) + (p.b - 1) * Math.log(1 - th); },
+      sample(p) { return betaSample(p.a, p.b); },
+      closed(p, k, s, lp) { const t = k * lp.m - s; return `Beta(${fmtp(p.a + s)}, ${fmtp(p.b + t)})`; },
+    },
+    betamix: {
+      name: '½ Beta(α, β) + ½ Beta(β, α)', liks: ['binomial'],
+      params: [{ key: 'a', label: 'α', min: 0.1, max: 100, log: true, value: 2 },
+               { key: 'b', label: 'β', min: 0.1, max: 100, log: true, value: 8 }],
+      range() { return [0, 1]; },
+      logpdf(p) {
+        return th => {
+          const u = Math.log(th), v = Math.log(1 - th);
+          return logaddexp((p.a - 1) * u + (p.b - 1) * v, (p.b - 1) * u + (p.a - 1) * v);
+        };
+      },
+      sample(p) { return rand() < 0.5 ? betaSample(p.a, p.b) : betaSample(p.b, p.a); },
+      closed(p, k, s, lp) {
+        const t = k * lp.m - s;
+        const w = 1 / (1 + Math.exp(lbeta(p.b + s, p.a + t) - lbeta(p.a + s, p.b + t)));
+        return `${w.toFixed(2)} Beta(${fmtp(p.a + s)}, ${fmtp(p.b + t)}) + ${(1 - w).toFixed(2)} Beta(${fmtp(p.b + s)}, ${fmtp(p.a + t)})`;
+      },
+    },
+    gamma: {
+      name: 'Gamma(α, β)', liks: ['poisson', 'exponential'], wrong: { a: 20, b: 10 },
+      params: [{ key: 'a', label: 'shape α', min: 0.1, max: 100, log: true, value: 2 },
+               { key: 'b', label: 'rate β', min: 0.01, max: 100, log: true, value: 0.5 }],
+      range(p) { const m = p.a / p.b, sd = Math.sqrt(p.a) / p.b; return [Math.max(0, m - 6 * sd), m + 6 * sd]; },
+      logpdf(p) { return th => (p.a - 1) * Math.log(th) - p.b * th; },
+      sample(p) { return gammaSample(p.a) / p.b; },
+      closed(p, k, s, lp, lik) {
+        return lik === 'poisson' ? `Gamma(${fmtp(p.a + s)}, ${fmtp(p.b + k)})` : `Gamma(${fmtp(p.a + k)}, ${fmtp(p.b + s)})`;
+      },
+    },
+    gauss: {
+      name: 'Normal(μ₀, τ²)', liks: ['normal'], wrong: { mu: 5, tau: 1 },
+      params: [{ key: 'mu', label: 'mean μ₀', min: -10, max: 10, step: 0.1, value: 0 },
+               { key: 'tau', label: 'spread τ', min: 0.1, max: 10, log: true, value: 3 }],
+      range(p) { return [p.mu - 4.5 * p.tau, p.mu + 4.5 * p.tau]; },
+      logpdf(p) { return th => -((th - p.mu) ** 2) / (2 * p.tau * p.tau); },
+      sample(p) { return p.mu + p.tau * gauss(); },
+      closed(p, k, s, lp) {
+        const prec = 1 / (p.tau * p.tau) + k / (lp.s * lp.s), v = 1 / prec;
+        const m = v * (p.mu / (p.tau * p.tau) + s / (lp.s * lp.s));
+        return `N(${fmtp(m)}, ${fmtp(Math.sqrt(v))}²)`;
+      },
+    },
+  };
+
+  // ---------- state ----------
+  // theta is null when the observations were pasted: then no true θ is known
+  // batch is the n typed in the field: what Simulate generates and what More data appends
+  // wrong: θ is drawn from prior, but the posterior is computed with wprior
+  const st = { lik: 'binomial', prior: 'beta', wrong: false, wprior: 'beta', n: 100, nSim: 100, batch: 100, theta: null, data: [], S: [0], k: 0, playing: false, pace: 'normal', source: 'sim' };
+  const P = {};                    // parameter values, by likelihood or prior key
+  for (const [key, d] of Object.entries(LIK)) { P[key] = {}; for (const q of d.params) P[key][q.key] = q.value; }
+  for (const [key, d] of Object.entries(PRIORS)) { P[key] = {}; for (const q of d.params) P[key][q.key] = q.value; }
+  const WP = {};                   // parameter values of the wrong prior, kept apart from the true prior's
+  for (const [key, d] of Object.entries(PRIORS)) {
+    WP[key] = {};
+    for (const q of d.params) WP[key][q.key] = d.wrong && d.wrong[q.key] !== undefined ? d.wrong[q.key] : q.value;
+  }
+
+  const hash = new URLSearchParams(location.hash.slice(1));
+  function hnum(k) { const x = parseFloat(hash.get(k)); return Number.isFinite(x) ? x : null; }
+  if (LIK[hash.get('lik')]) st.lik = hash.get('lik');
+  if (PRIORS[hash.get('prior')] && PRIORS[hash.get('prior')].liks.includes(st.lik)) st.prior = hash.get('prior');
+  if (hnum('n') !== null) st.n = st.nSim = st.batch = clamp(Math.round(hnum('n')), 1, NMAX);
+  for (const key of [st.lik, st.prior]) {
+    for (const q of (LIK[key] || PRIORS[key]).params) if (hnum(q.key) !== null) P[key][q.key] = clamp(hnum(q.key), q.min, q.max);
+  }
+  if (hash.get('wrong') === '1') st.wrong = true;
+  if (PRIORS[hash.get('wprior')] && PRIORS[hash.get('wprior')].liks.includes(st.lik)) st.wprior = hash.get('wprior');
+  for (const q of PRIORS[st.wprior].params) if (hnum('w' + q.key) !== null) WP[st.wprior][q.key] = clamp(hnum('w' + q.key), q.min, q.max);
+
+  // the prior the posterior is computed from: the wrong one when that option is on
+  function infPrior() { return st.wrong ? [PRIORS[st.wprior], WP[st.wprior]] : [PRIORS[st.prior], P[st.prior]]; }
+
+  // the stretch of θ shown: the priors' ranges, widened if needed to keep the true θ in view
+  function range() {
+    const sup = LIK[st.lik].support, [idef, ip] = infPrior();
+    let [lo, hi] = idef.range(ip);
+    if (st.wrong) {
+      const [tlo, thi] = PRIORS[st.prior].range(P[st.prior]);
+      lo = Math.min(lo, tlo); hi = Math.max(hi, thi);
+    }
+    if (st.theta !== null) {
+      const pad = 0.1 * (hi - lo);
+      lo = Math.min(lo, st.theta - pad);
+      hi = Math.max(hi, st.theta + pad);
+    }
+    return [Math.max(lo, sup[0]), Math.min(hi, sup[1])];
+  }
+
+  // ---------- the posterior after k observations, on a grid ----------
+  // A coarse pass over the whole range finds where the mass is; a fine grid over that region
+  // gives the curve and the statistics, so a posterior far narrower than the range is still resolved.
+  function computePosterior(k, pdef = null, pp = null) {
+    const [lo, hi] = range();
+    if (!pdef) [pdef, pp] = infPrior();
+    const lprior = pdef.logpdf(pp);
+    const llik = LIK[st.lik].loglik(k, st.S[k], P[st.lik]);
+    const f = th => lprior(th) + llik(th);
+
+    const hc = (hi - lo) / COARSE, lp = new Float64Array(COARSE);
+    let m = -Infinity;
+    for (let i = 0; i < COARSE; i++) { lp[i] = f(lo + (i + 0.5) * hc); if (lp[i] > m) m = lp[i]; }
+    let a = 0, b = COARSE - 1;
+    while (a < b && lp[a] < m - 21) a++;
+    while (b > a && lp[b] < m - 21) b--;
+    const flo = lo + Math.max(0, a - 1) * hc, fhi = lo + Math.min(COARSE, b + 2) * hc;
+
+    const h = (fhi - flo) / FINE, x = new Float64Array(FINE), y = new Float64Array(FINE);
+    let mm = -Infinity;
+    for (let i = 0; i < FINE; i++) { x[i] = flo + (i + 0.5) * h; y[i] = f(x[i]); if (y[i] > mm) mm = y[i]; }
+    let Z = 0;
+    for (let i = 0; i < FINE; i++) { y[i] = Math.exp(y[i] - mm); Z += y[i]; }
+    Z *= h;
+    const e0 = lo + 0.01 * (hi - lo), e1 = hi - 0.01 * (hi - lo);
+    let mean = 0, ex2 = 0, imax = 0, ymin = Infinity, peak = 0;
+    for (let i = 0; i < FINE; i++) {
+      y[i] /= Z;
+      mean += x[i] * y[i];
+      ex2 += x[i] * x[i] * y[i];
+      if (y[i] > y[imax]) imax = i;
+      if (y[i] < ymin) ymin = y[i];
+      if (x[i] >= e0 && x[i] <= e1 && y[i] > peak) peak = y[i];   // the height to scale the plot by, ignoring spikes at the edges
+    }
+    mean *= h; ex2 *= h;
+    if (peak === 0) peak = y[imax];
+    const sd = Math.sqrt(Math.max(0, ex2 - mean * mean));
+    const want = [0.025, 0.975], q = [];
+    let c = 0;
+    for (let i = 0; i < FINE && q.length < 2; i++) {
+      const c1 = c + y[i] * h;
+      while (q.length < 2 && c1 >= want[q.length]) q.push(x[i] - h / 2 + (want[q.length] - c) / (c1 - c) * h);
+      c = c1;
+    }
+    while (q.length < 2) q.push(x[FINE - 1]);
+    const flat = y[imax] - ymin < 1e-6 * y[imax];
+    return { x, y, h, mean, sd, map: flat ? null : x[imax], lo: q[0], hi: q[1], peak };
+  }
+
+  const memo = new Map();
+  function posterior(k) {
+    if (!memo.has(k)) {
+      if (memo.size > 6) memo.delete(memo.keys().next().value);
+      memo.set(k, computePosterior(k));
+    }
+    return memo.get(k);
+  }
+  let conv = null;
+  function computeConv() {
+    const stride = Math.max(1, Math.ceil(st.n / 400)), ks = [];
+    for (let k = 0; k <= st.n; k += stride) ks.push(k);
+    if (ks[ks.length - 1] !== st.n) ks.push(st.n);
+    const mean = [], lo = [], hi = [];
+    for (const k of ks) { const p = computePosterior(k); mean.push(p.mean); lo.push(p.lo); hi.push(p.hi); }
+    const sup = LIK[st.lik].support, [rlo, rhi] = range();
+    let ylo, yhi;
+    if (Number.isFinite(sup[0]) && Number.isFinite(sup[1])) { ylo = rlo; yhi = rhi; }
+    else {
+      const known = st.theta === null ? [] : [st.theta];
+      ylo = Math.min(...known, ...lo); yhi = Math.max(...known, ...hi);
+      const pad = 0.06 * (yhi - ylo) || 1;
+      ylo = Math.max(ylo - pad, sup[0]); yhi += pad;
+    }
+    return { ks, mean, lo, hi, ylo, yhi };
+  }
+  let tprior = null;               // the prior θ was drawn from, for the plot when the wrong prior is on
+  function truePrior() { return tprior || (tprior = computePosterior(0, PRIORS[st.prior], P[st.prior])); }
+  function invalidate() { memo.clear(); conv = null; tprior = null; }
+
+  // ---------- simulation ----------
+  function drawTheta() {
+    const pr = PRIORS[st.prior], p = P[st.prior], [lo, hi] = pr.range(p);
+    let th = pr.sample(p);
+    for (let i = 0; i < 100 && (th < lo || th > hi); i++) th = pr.sample(p);
+    st.theta = th;
+  }
+  function setData(values) {
+    st.data = values;
+    st.n = values.length;
+    st.S = [0];
+    for (let i = 0; i < st.n; i++) st.S.push(st.S[i] + st.data[i]);
+    st.k = clamp(st.k, 0, st.n);
+    invalidate();
+  }
+  function fillData() {            // bring the sequence to n observations, keeping the ones already drawn
+    const d = LIK[st.lik], p = P[st.lik], values = st.data.slice(0, st.n);
+    while (values.length < st.n) values.push(d.sample(st.theta, p));
+    setData(values);
+  }
+  function simulate(newTheta) {
+    reseed(Math.floor(Math.random() * 4294967296));
+    if (newTheta || st.theta === null) drawTheta();
+    if (st.source === 'paste') st.n = st.nSim;   // back to the length chosen for simulated runs
+    st.source = 'sim';
+    st.data = [];
+    fillData();
+    st.k = 0;
+  }
+
+  // the pasted observations: tokens separated by spaces, commas or line breaks; for single
+  // coin flips a run of letters such as HHTHT is one observation per letter
+  function parsePasted() {
+    const d = LIK[st.lik], p = P[st.lik];
+    let toks = $('paste').value.split(/[\s,;]+/).filter(Boolean);
+    if (st.lik === 'binomial' && p.m === 1) toks = toks.flatMap(t => /^[hHtT]+$/.test(t) ? t.split('') : [t]);
+    if (!toks.length) return { error: 'no observations yet' };
+    if (toks.length > NMAX) return { error: `at most ${NMAX} observations` };
+    const values = [];
+    for (let i = 0; i < toks.length; i++) {
+      const v = d.parse(toks[i], p);
+      if (typeof v === 'string') return { error: `observation ${i + 1} (${toks[i]}) ${v}` };
+      values.push(v);
+    }
+    return { values };
+  }
+  function applyPasted(restart) {
+    const r = parsePasted(), msg = $('paste-msg');
+    msg.classList.toggle('err', !!r.error);
+    if (r.error) { msg.textContent = r.error; return false; }
+    if (st.source === 'sim') st.nSim = st.n;
+    st.source = 'paste';
+    st.theta = null;
+    setData(r.values);
+    if (restart) st.k = 0;
+    msg.innerHTML = `<span class="m">n</span> = <span class="num">${st.n}</span> observations`;
+    return true;
+  }
+  function syncSource() {
+    for (const el of document.querySelectorAll('input[name="source"]')) el.checked = el.value === st.source;
+    $('sim-box').hidden = st.source !== 'sim';
+    $('paste-box').hidden = st.source !== 'paste';
+    $('n').value = st.n;
+  }
+
+  // ---------- the observation strip ----------
+  function renderData() {
+    const d = LIK[st.lik], p = P[st.lik], n = st.n, k = st.k;
+    let g = '', height;
+    if (st.lik === 'binomial' && p.m === 1) {
+      const rows = clamp(Math.ceil(n / 50), 1, 10), cols = Math.ceil(n / rows);
+      const cell = Math.min(26, SW / cols), r = cell * 0.36;
+      height = rows * cell + 8;
+      for (let i = 0; i < n; i++) {
+        const cx = ((i % cols) + 0.5) * cell, cy = 4 + (Math.floor(i / cols) + 0.5) * cell;
+        const seen = i < k, head = st.data[i] === 1;
+        g += `<circle class="coin${seen ? ' seen' : ''}${seen && head ? ' head' : ''}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}"/>`;
+        if (seen && cell >= 18) g += `<text class="face${head ? ' head' : ''}" x="${cx.toFixed(1)}" y="${(cy + cell * 0.19).toFixed(1)}" text-anchor="middle" font-size="${(cell * 0.5).toFixed(1)}">${head ? 'H' : 'T'}</text>`;
+        if (i === k - 1) g += `<circle class="ring" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r + 3).toFixed(1)}"/>`;
+      }
+    } else {
+      const L2 = 46, R2 = 14, T2 = 12, B2 = 34, H2 = 170, PH2 = H2 - T2 - B2, PW2 = SW - L2 - R2;
+      height = H2;
+      const ref = st.theta === null ? null : d.mean(st.theta, p);
+      const known = ref === null ? [] : [ref];
+      let vlo = Math.min(...known, ...st.data), vhi = Math.max(...known, ...st.data);
+      if (d.counts) vlo = 0;
+      let pad = 0.06 * (vhi - vlo) || 1;
+      if (d.counts) { vhi += Math.max(pad, 0.5); } else { vlo -= pad; vhi += pad; }
+      const X = i => L2 + (i + 0.5) / n * PW2, Y = v => T2 + PH2 - (v - vlo) / (vhi - vlo) * PH2;
+      const y0 = T2 + PH2;
+      for (const t of ticks(vlo, vhi, 3)) {
+        const y = Y(t).toFixed(1);
+        g += `<line class="grid-line" x1="${L2}" x2="${SW - R2}" y1="${y}" y2="${y}"/>`;
+        g += `<text class="tick" x="${L2 - 6}" y="${(+y + 4).toFixed(1)}" text-anchor="end">${tick(t)}</text>`;
+      }
+      for (const t of ticks(0, n, 10).filter(v => Number.isInteger(v) && v > 0)) {
+        const x = X(t - 1).toFixed(1);
+        g += `<line class="axis" x1="${x}" x2="${x}" y1="${y0}" y2="${y0 + 5}"/>`;
+        g += `<text class="tick" x="${x}" y="${y0 + 18}" text-anchor="middle">${t}</text>`;
+      }
+      g += `<line class="axis" x1="${L2}" x2="${SW - R2}" y1="${y0}" y2="${y0}"/>`;
+      g += `<text class="axis-label" x="${SW - R2}" y="${H2 - 3}" text-anchor="end">observation</text>`;
+      g += `<text class="axis-label" transform="translate(12 ${T2 + PH2 / 2}) rotate(-90)" text-anchor="middle"><tspan class="m">x</tspan></text>`;
+      if (ref !== null) {
+        const yr = Y(ref).toFixed(1);
+        g += `<line class="truth" x1="${L2}" x2="${SW - R2}" y1="${yr}" y2="${yr}"/>`;
+        g += `<text class="truth-lab" x="${SW - R2}" y="${(+yr - 5).toFixed(1)}" text-anchor="end">E[<tspan class="m">x</tspan> | <tspan class="m">θ</tspan>]</text>`;
+      }
+      const r = n > 500 ? 2 : 3;
+      for (let i = 0; i < n; i++) {
+        const seen = i < k;
+        g += `<circle class="pt${seen ? ' seen' : ''}" cx="${X(i).toFixed(1)}" cy="${Y(st.data[i]).toFixed(1)}" r="${r}"/>`;
+      }
+      if (k > 0) g += `<circle class="ring" cx="${X(k - 1).toFixed(1)}" cy="${Y(st.data[k - 1]).toFixed(1)}" r="${r + 3}"/>`;
+    }
+    const svg = $('data-plot');
+    svg.setAttribute('viewBox', `0 0 ${SW} ${height}`);
+    svg.innerHTML = g;
+    $('data-cap').innerHTML = `<span class="num">${k}</span> of <span class="num">${n}</span> observations seen`
+      + (k ? ` · ${d.summary(k, st.S[k], p)}` : '');
+  }
+
+  // ---------- the density plot ----------
+  function densityPath(p, X, Y, lo, hi) {
+    // the fine grid holds all the mass; outside it the density is drawn as zero
+    const n = p.x.length, step = Math.max(1, Math.floor(n / 500)), y0 = Y(0).toFixed(1);
+    let d = `M${X(lo).toFixed(1)} ${y0}`;
+    if (p.x[0] - p.h / 2 > lo) d += `L${X(p.x[0] - p.h / 2).toFixed(1)} ${y0}`;
+    for (let i = 0; i < n; i += step) d += `L${X(p.x[i]).toFixed(1)} ${Y(p.y[i]).toFixed(1)}`;
+    if (step > 1) d += `L${X(p.x[n - 1]).toFixed(1)} ${Y(p.y[n - 1]).toFixed(1)}`;
+    if (p.x[n - 1] + p.h / 2 < hi) d += `L${X(p.x[n - 1] + p.h / 2).toFixed(1)} ${y0}`;
+    return d + `L${X(hi).toFixed(1)} ${y0}`;
+  }
+
+  function renderPost() {
+    const [lo, hi] = range(), K = st.k;
+    const pk = posterior(K), pr = posterior(0), pp = K > 0 ? posterior(K - 1) : null;
+    const tp = st.wrong ? truePrior() : null;
+    const ymax = 1.1 * Math.max(pk.peak, pr.peak, tp ? tp.peak : 0, 1e-12);
+    const X = th => L + (th - lo) / (hi - lo) * PW, Y = v => T + PH - v / ymax * PH;
+    const y0 = T + PH;
+    let g = `<defs><clipPath id="post-clip"><rect x="${L}" y="${T - 1}" width="${PW}" height="${PH + 1}"/></clipPath></defs>`;
+    for (const t of ticks(0, ymax, 4)) {
+      const y = Y(t).toFixed(1);
+      if (t > 0) g += `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/>`;
+      g += `<text class="tick" x="${L - 6}" y="${(+y + 4).toFixed(1)}" text-anchor="end">${tick(t)}</text>`;
+    }
+    for (const t of ticks(lo, hi, 5)) {
+      const x = X(t).toFixed(1);
+      g += `<line class="axis" x1="${x}" x2="${x}" y1="${y0}" y2="${y0 + 5}"/>`;
+      g += `<text class="tick" x="${x}" y="${y0 + 18}" text-anchor="middle">${tick(t)}</text>`;
+    }
+    g += `<text class="axis-label" x="${W - R}" y="${H - 3}" text-anchor="end"><tspan class="m">θ</tspan></text>`;
+    g += `<text class="axis-label" transform="translate(14 ${T + PH / 2}) rotate(-90)" text-anchor="middle">density</text>`;
+
+    const dk = densityPath(pk, X, Y, lo, hi);
+    g += `<g clip-path="url(#post-clip)">`;
+    g += `<path class="area" d="${dk}Z"/>`;
+    g += `<path class="prior" d="${densityPath(pr, X, Y, lo, hi)}"/>`;
+    if (tp) g += `<path class="trueprior" d="${densityPath(tp, X, Y, lo, hi)}"/>`;
+    if (pp) g += `<path class="prev" d="${densityPath(pp, X, Y, lo, hi)}"/>`;
+    g += `<path class="line" d="${dk}"/>`;
+    if (st.theta !== null) {
+      const xt = X(st.theta).toFixed(1);
+      g += `<line class="truth" x1="${xt}" x2="${xt}" y1="${T}" y2="${y0}"/>`;
+    }
+    g += `</g>`;
+    g += `<line class="axis" x1="${L}" x2="${W - R}" y1="${y0}" y2="${y0}"/>`;
+    g += `<line class="ci" x1="${X(pk.lo).toFixed(1)}" x2="${X(pk.hi).toFixed(1)}" y1="${y0 - 6}" y2="${y0 - 6}"/>`;
+    g += `<circle class="dot" cx="${X(pk.mean).toFixed(1)}" cy="${y0 - 6}" r="3.5"/>`;
+    if (st.theta !== null) {
+      const left = st.theta > lo + 0.88 * (hi - lo);
+      g += `<text class="truth-lab" x="${(X(st.theta) + (left ? -5 : 5)).toFixed(1)}" y="${T + 12}" text-anchor="${left ? 'end' : 'start'}"><tspan class="m">θ</tspan></text>`;
+    }
+    $('post-plot').innerHTML = g;
+
+    $('s-mean').textContent = fmt(pk.mean);
+    $('s-map').textContent = pk.map === null ? '—' : fmt(pk.map);
+    $('s-ci').textContent = `[${fmt(pk.lo)}, ${fmt(pk.hi)}]`;
+    $('s-sd').textContent = fmt(pk.sd);
+    const [idef, ip] = infPrior();
+    $('post-form').textContent = idef.closed(ip, K, st.S[K], P[st.lik], st.lik);
+  }
+
+  // ---------- the trajectory of the posterior mean ----------
+  function renderConv() {
+    if (!conv) conv = computeConv();
+    const c = conv, n = st.n, K = st.k;
+    const X = k => L + k / n * PW, Y = th => T + PH - (th - c.ylo) / (c.yhi - c.ylo) * PH;
+    const y0 = T + PH;
+    let g = `<defs><clipPath id="conv-clip"><rect x="${L}" y="${T - 1}" width="${PW}" height="${PH + 1}"/></clipPath></defs>`;
+    for (const t of ticks(c.ylo, c.yhi, 4)) {
+      const y = Y(t).toFixed(1);
+      g += `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/>`;
+      g += `<text class="tick" x="${L - 6}" y="${(+y + 4).toFixed(1)}" text-anchor="end">${tick(t)}</text>`;
+    }
+    for (const t of ticks(0, n, 5).filter(Number.isInteger)) {
+      const x = X(t).toFixed(1);
+      g += `<line class="axis" x1="${x}" x2="${x}" y1="${y0}" y2="${y0 + 5}"/>`;
+      g += `<text class="tick" x="${x}" y="${y0 + 18}" text-anchor="middle">${t}</text>`;
+    }
+    g += `<text class="axis-label" x="${W - R}" y="${H - 3}" text-anchor="end">observations <tspan class="m">k</tspan></text>`;
+    g += `<text class="axis-label" transform="translate(14 ${T + PH / 2}) rotate(-90)" text-anchor="middle"><tspan class="m">θ</tspan></text>`;
+
+    const pk = posterior(K), rows = [];
+    for (let i = 0; i < c.ks.length && c.ks[i] < K; i++) rows.push([c.ks[i], c.mean[i], c.lo[i], c.hi[i]]);
+    rows.push([K, pk.mean, pk.lo, pk.hi]);
+    g += `<g clip-path="url(#conv-clip)">`;
+    if (rows.length > 1) {
+      let up = '', down = '';
+      for (const [k, , lo, hi] of rows) {
+        up += `${up ? 'L' : 'M'}${X(k).toFixed(1)} ${Y(hi).toFixed(1)}`;
+        down = `L${X(k).toFixed(1)} ${Y(lo).toFixed(1)}` + down;
+      }
+      g += `<path class="band" d="${up}${down}Z"/>`;
+      g += `<path class="line" d="${rows.map(([k, m], i) => (i ? 'L' : 'M') + X(k).toFixed(1) + ' ' + Y(m).toFixed(1)).join('')}"/>`;
+    }
+    if (st.theta !== null) {
+      const yt = Y(st.theta).toFixed(1);
+      g += `<line class="truth" x1="${L}" x2="${W - R}" y1="${yt}" y2="${yt}"/>`;
+    }
+    g += `<line class="ci" x1="${X(K).toFixed(1)}" x2="${X(K).toFixed(1)}" y1="${Y(pk.lo).toFixed(1)}" y2="${Y(pk.hi).toFixed(1)}"/>`;
+    g += `<circle class="dot" cx="${X(K).toFixed(1)}" cy="${Y(pk.mean).toFixed(1)}" r="3.5"/>`;
+    g += `</g>`;
+    if (st.theta !== null) {
+      const yt = Y(st.theta), below = yt < T + 16;
+      g += `<text class="truth-lab" x="${W - R}" y="${(yt + (below ? 15 : -5)).toFixed(1)}" text-anchor="end"><tspan class="m">θ</tspan></text>`;
+    }
+    g += `<line class="axis" x1="${L}" x2="${W - R}" y1="${y0}" y2="${y0}"/>`;
+    $('conv-plot').innerHTML = g;
+
+    $('true-theta').textContent = st.theta === null ? '— (pasted data)' : fmt(st.theta);
+    $('err').textContent = st.theta === null ? '—' : fmt(pk.mean - st.theta);
+  }
+
+  // ---------- controls and setup ----------
+  function renderControls() {
+    const d = LIK[st.lik], p = P[st.lik];
+    const kEl = $('k');
+    kEl.max = st.n;
+    kEl.value = st.k;
+    $('k-val').textContent = `${st.k} / ${st.n}`;
+    $('obs-now').innerHTML = st.k
+      ? `observation ${st.k}: <span class="num">${d.obs(st.data[st.k - 1], p)}</span>`
+      : 'no observations yet: the prior';
+    const play = $('play');
+    play.textContent = st.playing ? 'Pause' : (st.k >= st.n ? 'Replay from the start' : (st.k ? 'Play from here' : 'Play'));
+    play.setAttribute('aria-pressed', String(st.playing));
+    $('step').disabled = st.k >= st.n;
+    $('back').disabled = st.k <= 0;
+    const more = $('moredata');
+    more.disabled = st.n >= NMAX;
+    more.textContent = st.n >= NMAX ? `More data (at ${NMAX})` : `More data (+${Math.min(st.batch, NMAX - st.n)})`;
+  }
+
+  function render() {
+    renderData();
+    renderPost();
+    renderConv();
+    renderControls();
+  }
+
+  function renderModel() {
+    const on = `${st.lik}:${st.wrong ? st.wprior : st.prior}`;
+    for (const el of document.querySelectorAll('.model-text .pair')) el.classList.toggle('on', el.dataset.pair === on);
+    $('theta-what').innerHTML = `<span class="m">θ</span> is ${LIK[st.lik].theta}`;
+    $('wrong-note').hidden = !st.wrong;
+  }
+
+  function buildSelect(sel, entries, current) {
+    sel.innerHTML = entries.map(([k, d]) => `<option value="${k}"${k === current ? ' selected' : ''}>${d.name}</option>`).join('');
+  }
+  function buildParams(container, key, def, store, prefix, onchange) {
+    container.innerHTML = def.params.map(q => {
+      const v = store[key][q.key], id = `${prefix}-${key}-${q.key}`;
+      const pos = q.log ? Math.log10(v) : v;
+      const [mn, mx, stp] = q.log ? [Math.log10(q.min), Math.log10(q.max), 0.01] : [q.min, q.max, q.step];
+      return `<label class="sig" for="${id}">${q.label} <input type="range" id="${id}" min="${mn}" max="${mx}" step="${stp}" value="${pos}"> <output for="${id}" id="v-${id}">${fmtp(v)}</output></label>`;
+    }).join('');
+    for (const q of def.params) {
+      const id = `${prefix}-${key}-${q.key}`;
+      $(id).addEventListener('input', e => {
+        let v = +e.target.value;
+        if (q.log) v = +Math.pow(10, v).toPrecision(3);
+        store[key][q.key] = v;
+        $(`v-${id}`).textContent = fmtp(v);
+        onchange();
+      });
+    }
+  }
+  // in paste mode the observations are re-read whenever the likelihood or its parameters change;
+  // if they no longer fit, the page falls back to simulated data and leaves the message in place
+  function refreshData() {
+    if (st.source === 'paste' && applyPasted(false)) return;
+    if (st.source === 'paste') simulate(true);
+    else { st.data = []; fillData(); }   // simulated observations depend on the likelihood's parameters
+    syncSource();
+  }
+  function setupLik() {
+    buildParams($('lik-params'), st.lik, LIK[st.lik], P, 'p', () => {
+      refreshData();
+      $('paste').placeholder = LIK[st.lik].hint(P[st.lik]);
+      render();
+    });
+    $('paste').placeholder = LIK[st.lik].hint(P[st.lik]);
+  }
+  function setupPrior() {
+    const entries = Object.entries(PRIORS).filter(([, d]) => d.liks.includes(st.lik));
+    if (!entries.some(([k]) => k === st.prior)) st.prior = entries[0][0];
+    if (!entries.some(([k]) => k === st.wprior)) st.wprior = entries[0][0];
+    buildSelect($('prior'), entries, st.prior);
+    buildParams($('prior-params'), st.prior, PRIORS[st.prior], P, 'p', () => { invalidate(); render(); });
+    buildSelect($('wprior'), entries, st.wprior);
+    buildParams($('wprior-params'), st.wprior, PRIORS[st.wprior], WP, 'w', () => { invalidate(); render(); });
+  }
+  function syncWrong() {
+    $('wrong').checked = st.wrong;
+    $('wrong-box').hidden = !st.wrong;
+    $('role-true').hidden = !st.wrong;
+    $('lg-trueprior').hidden = !st.wrong;
+  }
+
+  buildSelect($('lik'), Object.entries(LIK), st.lik);
+  setupLik();
+  setupPrior();
+  $('n').value = st.n;
+  $('pace').value = st.pace;
+
+  $('lik').addEventListener('change', e => {
+    setPlay(false);
+    st.lik = e.target.value;
+    setupLik();
+    setupPrior();
+    if (st.source === 'paste') { $('paste-msg').textContent = ''; refreshData(); }
+    else simulate(true);
+    renderModel();
+    render();
+  });
+  for (const el of document.querySelectorAll('input[name="source"]')) {
+    el.addEventListener('change', () => {
+      if (!el.checked) return;
+      setPlay(false);
+      if (el.value === 'sim') { simulate(true); render(); }
+      else if (applyPasted(true)) render();
+      st.source = el.value;
+      syncSource();
+    });
+  }
+  $('use-paste').addEventListener('click', () => {
+    setPlay(false);
+    if (!applyPasted(true)) return;
+    syncSource();
+    render();
+    setPlay(true);
+  });
+  $('prior').addEventListener('change', e => {
+    st.prior = e.target.value;
+    buildParams($('prior-params'), st.prior, PRIORS[st.prior], P, 'p', () => { invalidate(); render(); });
+    invalidate();
+    renderModel();
+    render();
+  });
+  $('wprior').addEventListener('change', e => {
+    st.wprior = e.target.value;
+    buildParams($('wprior-params'), st.wprior, PRIORS[st.wprior], WP, 'w', () => { invalidate(); render(); });
+    invalidate();
+    renderModel();
+    render();
+  });
+  $('wrong').addEventListener('change', e => {
+    st.wrong = e.target.checked;
+    syncWrong();
+    invalidate();
+    renderModel();
+    render();
+  });
+  $('n').addEventListener('change', e => {
+    setPlay(false);
+    st.n = st.nSim = st.batch = clamp(Math.round(+e.target.value) || 1, 1, NMAX);
+    e.target.value = st.n;
+    fillData();
+    render();
+  });
+  $('simulate').addEventListener('click', () => { setPlay(false); simulate(true); render(); setPlay(true); });
+  $('redata').addEventListener('click', () => { setPlay(false); simulate(false); render(); setPlay(true); });
+  $('moredata').addEventListener('click', () => {   // append a batch at the same θ and keep playing from here
+    setPlay(false);
+    st.n = Math.min(NMAX, st.n + st.batch);
+    fillData();
+    syncSource();
+    render();
+    setPlay(true);
+  });
+  $('k').addEventListener('input', e => {
+    const k = +e.target.value;       // read before pausing: pausing redraws the slider at the old k
+    if (st.playing) setPlay(false);
+    st.k = k;
+    render();
+  });
+  $('step').addEventListener('click', () => { setPlay(false); st.k = Math.min(st.n, st.k + 1); render(); });
+  $('back').addEventListener('click', () => { setPlay(false); st.k = Math.max(0, st.k - 1); render(); });
+  $('pace').addEventListener('change', e => { st.pace = e.target.value; if (st.playing) { t0 = 0; k0 = st.k; } });
+
+  // playback: the number of observations seen doubles every PACE seconds, so the early
+  // updates come one at a time and the later ones, which change little, go by quickly
+  let raf = 0, t0 = 0, k0 = 0;
+  function frame(now) {
+    if (!st.playing) return;
+    if (!t0) t0 = now;
+    const k = Math.min(st.n, Math.floor((k0 + 1) * Math.pow(2, (now - t0) / 1000 / PACE[st.pace])) - 1);
+    if (k !== st.k) { st.k = k; render(); }
+    if (st.k >= st.n) { setPlay(false); return; }
+    raf = requestAnimationFrame(frame);
+  }
+  function setPlay(on) {
+    cancelAnimationFrame(raf);
+    t0 = 0;
+    if (on && st.k >= st.n) { st.k = 0; render(); }
+    k0 = st.k;
+    st.playing = on;
+    if (on) raf = requestAnimationFrame(frame);
+    renderControls();
+  }
+  $('play').addEventListener('click', () => setPlay(!st.playing));
+
+  const seed = hnum('seed');
+  reseed(seed === null ? Math.floor(Math.random() * 4294967296) : seed);
+  if (hash.has('data')) $('paste').value = hash.get('data').replace(/,/g, ' ');
+  if (hash.has('data') && applyPasted(true)) { /* the pasted observations from the URL */ }
+  else if (seed !== null) { drawTheta(); fillData(); }
+  else simulate(true);
+  syncSource();
+  syncWrong();
+  renderModel();
+  render();
+})();
+</script>
+</body>
+</html>
