@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Star Ratings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital@0;1&display=swap">
+<style>
+:root {
+  --ground: #F2F4F5;
+  --surface: #FFFFFF;
+  --ink: #172027;
+  --muted: #5A6770;
+  --rule: #D5DCE0;
+  --a: #1B63A3;
+  --b: #C45F17;
+  --heat: #E2552C;
+  --star: #D9A21B;
+  --focus: #1B63A3;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0F1417;
+    --surface: #172026;
+    --ink: #E2E8EB;
+    --muted: #92A0A8;
+    --rule: #2A343A;
+    --a: #5FA8E8;
+    --b: #EE9244;
+    --heat: #F2643A;
+    --star: #E8B93A;
+    --focus: #5FA8E8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0F1417;
+  --surface: #172026;
+  --ink: #E2E8EB;
+  --muted: #92A0A8;
+  --rule: #2A343A;
+  --a: #5FA8E8;
+  --b: #EE9244;
+  --heat: #F2643A;
+  --star: #E8B93A;
+  --focus: #5FA8E8;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 28px 44px;
+}
+.m {
+  font-family: "STIX Two Text", "Cambria Math", Georgia, serif;
+  font-style: italic;
+}
+.num {
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.top h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.lede {
+  margin: 0;
+  max-width: 76ch;
+  color: var(--muted);
+}
+
+.setup {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 28px;
+  margin-top: 20px;
+  padding: 12px 16px 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+@media (max-width: 900px) {
+  .setup { grid-template-columns: minmax(0, 1fr); }
+}
+.setup h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+select, input[type="number"] {
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+input[type="number"] { width: 5.5em; font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+select:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.derived { margin: 6px 0 0; font-size: 14px; color: var(--muted); max-width: 60ch; }
+.pseudo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 10px;
+}
+.pseudo label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.pseudo input[type="number"] { width: 3.8em; padding: 3px 6px; }
+.star { color: var(--star); }
+.mode { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; color: var(--muted); }
+.mode label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.mode input { margin: 0; accent-color: var(--a); }
+.total { margin-top: 10px; color: var(--muted); }
+.total input[type="number"] { width: 6.5em; padding: 3px 6px; }
+.ratings .cell { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.ratings .cell input { min-width: 0; }
+.ratings .suffix { font-size: 12px; color: var(--muted); }
+.ratings .note { grid-column: 1 / -1; margin: 2px 0 0; font-size: 12px; color: var(--heat); }
+
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 3fr) minmax(0, 5fr);
+  gap: 18px 20px;
+  align-items: start;
+  margin-top: 26px;
+}
+.stage > .col-a { grid-column: 1; }
+.stage > .col-mid { grid-column: 2; }
+.stage > .col-b { grid-column: 3; }
+@media (max-width: 900px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .stage > .col-a, .stage > .col-mid, .stage > .col-b { grid-column: 1; }
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 12px 14px 12px;
+}
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 14px;
+}
+.panel h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: currentColor;
+}
+.sig-note { font-size: 13px; color: var(--muted); }
+.sig-note .num { color: var(--ink); }
+.ratings {
+  display: grid;
+  grid-template-columns: auto 6.4em minmax(0, 1fr) 3.2em;
+  gap: 4px 10px;
+  align-items: center;
+  margin: 10px 0 4px;
+  color: var(--ink);
+}
+.ratings label { font-size: 13px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ratings input[type="number"] { width: 100%; box-sizing: border-box; padding: 3px 6px; }
+.ratings .bar { height: 10px; background: var(--ground); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.ratings .bar i { display: block; height: 100%; width: 0; background: var(--star); }
+.ratings .pct { font-size: 12px; color: var(--muted); font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; text-align: right; }
+
+.plot { display: block; width: 100%; height: auto; margin-top: 8px; }
+.plot .grid-line { stroke: var(--rule); stroke-width: 1; }
+.plot .axis { stroke: var(--muted); stroke-width: 1; }
+.plot .tick { fill: var(--muted); font-size: 12px; font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+.plot .axis-label { fill: var(--muted); font-size: 13px; }
+.plot .area { fill: currentColor; fill-opacity: 0.14; stroke: none; }
+.plot .tail { fill: currentColor; fill-opacity: 0.38; stroke: none; }
+.plot .line { fill: none; stroke: currentColor; stroke-width: 2; }
+.plot .bar-line { stroke: var(--heat); stroke-width: 1.6; stroke-dasharray: 5 4; }
+.plot .bar-lab { fill: var(--heat); font-size: 13px; }
+.plot .ci { stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
+.plot .dot { fill: currentColor; }
+.plot .obs { fill: var(--surface); stroke: var(--muted); stroke-width: 1.6; }
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.legend span { white-space: nowrap; }
+.sw {
+  display: inline-block;
+  width: 18px;
+  height: 0;
+  border-top: 2px solid currentColor;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+.sw.fill { border-top-width: 8px; opacity: 0.38; }
+.sw.dash { border-top-style: dashed; border-color: var(--heat); }
+.sw.ci { border-top-width: 3px; }
+.sw.ring { width: 8px; height: 8px; border: 1.6px solid var(--muted); border-radius: 50%; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 14px;
+  margin: 8px 0 0;
+}
+.stats dt { font-size: 12px; color: var(--muted); }
+.stats dd {
+  margin: 0;
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.stats dd.big { font-size: 22px; font-weight: 500; line-height: 1.2; color: currentColor; }
+.stats .wide { grid-column: 1 / -1; }
+
+.controls {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+  text-align: center;
+}
+.theta-label {
+  display: grid;
+  gap: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.theta-label output {
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+input[type="range"] { width: 100%; margin: 0; }
+#c { accent-color: var(--heat); }
+.controls .derived { margin: 0 auto; }
+.versus {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+.versus .who { font-size: 14px; color: var(--muted); margin: 6px 0 0; }
+.buttons { display: grid; gap: 8px; margin-top: 8px; }
+button {
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+
+.seg {
+  margin-top: 22px;
+  border-top: 1px solid var(--rule);
+}
+.seg[open] { padding-bottom: 8px; }
+.seg > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.seg > summary::-webkit-details-marker { display: none; }
+.seg > summary::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: 2px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.seg[open] > summary::before { transform: rotate(45deg); }
+.seg > summary:hover::before { border-color: var(--ink); }
+.seg > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.seg > summary h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 600;
+  text-wrap: balance;
+}
+@media (prefers-reduced-motion: reduce) {
+  .seg > summary::before { transition: none; }
+}
+.model-text { max-width: 76ch; }
+.model-text p { margin: 0 0 10px; }
+math { font-family: "STIX Two Math", "Cambria Math", math; font-size: 1.12em; }
+math[display="block"] { margin: 8px 0 12px; overflow-x: auto; }
+</style>
+<style>body { margin: 0; }</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <h1>Star Ratings</h1>
+    <p class="lede">How sure can you be that a product is good from its star ratings? Enter the ratings of two products, choose what quality means and a prior, and read off the probability that each clears the bar, and that one is better than the other.</p>
+  </header>
+
+  <section class="setup" aria-label="Quality and prior">
+    <div class="block">
+      <h2>Quality</h2>
+      <label class="field"><select id="def" aria-label="What quality means">
+        <option value="mean">mean rating, 1 to 5 stars</option>
+        <option value="share">share of positive ratings (4 or 5 stars)</option>
+      </select></label>
+      <p class="derived" id="def-note"></p>
+    </div>
+    <div class="block">
+      <h2>Prior</h2>
+      <label class="field"><select id="prior" aria-label="Prior">
+        <option value="flat">flat</option>
+        <option value="jeffreys">Jeffreys</option>
+        <option value="skeptic">skeptic</option>
+        <option value="custom">custom</option>
+      </select></label>
+      <div class="pseudo" id="pseudo"></div>
+      <p class="derived" id="prior-note"></p>
+    </div>
+    <div class="block">
+      <h2>Ratings</h2>
+      <div class="mode" role="radiogroup" aria-label="How the ratings are entered">
+        <label><input type="radio" name="entry" value="counts" checked> counts per star</label>
+        <label><input type="radio" name="entry" value="pct"> total and percentages, as on Amazon</label>
+      </div>
+      <p class="derived" id="entry-note"></p>
+    </div>
+  </section>
+
+  <div class="stage">
+    <section class="panel col-a" id="panel-a" style="color:var(--a)">
+      <div class="panel-head">
+        <h2>Product A</h2>
+        <span class="sig-note" id="obs-a"></span>
+      </div>
+      <label class="field total" id="tot-wrap-a" hidden>ratings in total <input type="number" id="tot-a" min="0" max="10000000" step="1"></label>
+      <div class="ratings" id="rat-a"></div>
+      <p class="derived" id="note-a"></p>
+      <svg class="plot" id="plot-a" viewBox="0 0 420 230" role="img" aria-label="Posterior distribution of product A's quality"></svg>
+      <p class="legend">
+        <span><i class="sw"></i>posterior</span>
+        <span><i class="sw fill"></i>above the bar</span>
+        <span><i class="sw ci"></i>mean and 95% interval</span>
+        <span><i class="sw ring"></i>observed</span>
+        <span><i class="sw dash"></i>bar <span class="m">c</span></span>
+      </p>
+      <dl class="stats">
+        <div class="wide"><dt>Pr(quality &gt; <span class="m">c</span> | ratings)</dt><dd class="big" id="p-a"></dd></div>
+        <div><dt>Posterior mean</dt><dd id="mean-a"></dd></div>
+        <div><dt>95% credible interval</dt><dd id="ci-a"></dd></div>
+        <div class="wide"><dt>Posterior</dt><dd id="post-a"></dd></div>
+      </dl>
+    </section>
+
+    <div class="controls col-mid">
+      <label class="theta-label" for="c"><span>Quality bar <span class="m">c</span></span><output id="c-val" for="c"></output></label>
+      <input type="range" id="c">
+      <p class="derived">a product is good if its quality exceeds <span class="m">c</span></p>
+      <div class="versus">
+        <label class="theta-label"><span>Pr(A is better than B | ratings)</span><output id="ab"></output></label>
+        <p class="who" id="who"></p>
+      </div>
+      <div class="buttons">
+        <button type="button" id="swap">Swap A and B</button>
+        <button type="button" id="example">The example ratings</button>
+        <button type="button" id="clear">Clear the ratings</button>
+      </div>
+    </div>
+
+    <section class="panel col-b" id="panel-b" style="color:var(--b)">
+      <div class="panel-head">
+        <h2>Product B</h2>
+        <span class="sig-note" id="obs-b"></span>
+      </div>
+      <label class="field total" id="tot-wrap-b" hidden>ratings in total <input type="number" id="tot-b" min="0" max="10000000" step="1"></label>
+      <div class="ratings" id="rat-b"></div>
+      <p class="derived" id="note-b"></p>
+      <svg class="plot" id="plot-b" viewBox="0 0 420 230" role="img" aria-label="Posterior distribution of product B's quality"></svg>
+      <p class="legend">
+        <span><i class="sw"></i>posterior</span>
+        <span><i class="sw fill"></i>above the bar</span>
+        <span><i class="sw ci"></i>mean and 95% interval</span>
+        <span><i class="sw ring"></i>observed</span>
+        <span><i class="sw dash"></i>bar <span class="m">c</span></span>
+      </p>
+      <dl class="stats">
+        <div class="wide"><dt>Pr(quality &gt; <span class="m">c</span> | ratings)</dt><dd class="big" id="p-b"></dd></div>
+        <div><dt>Posterior mean</dt><dd id="mean-b"></dd></div>
+        <div><dt>95% credible interval</dt><dd id="ci-b"></dd></div>
+        <div class="wide"><dt>Posterior</dt><dd id="post-b"></dd></div>
+      </dl>
+    </section>
+  </div>
+
+  <details class="seg">
+    <summary><h2>The model</h2></summary>
+    <div class="model-text">
+      <p>A product has an unknown rating distribution <span class="m">p</span> = (<span class="m">p</span><sub>1</sub>, …, <span class="m">p</span><sub>5</sub>): the share of everyone who would give it 1 to 5 stars. Each rating is a draw from <span class="m">p</span>, so with counts <span class="m">n</span><sub>1</sub>, …, <span class="m">n</span><sub>5</sub> the likelihood is ∏ <span class="m">p<sub>k</sub></span><sup><span class="m">n<sub>k</sub></span></sup>. The conjugate prior is Dirichlet(<span class="m">α</span><sub>1</sub>, …, <span class="m">α</span><sub>5</sub>), with density ∝ ∏ <span class="m">p<sub>k</sub></span><sup><span class="m">α<sub>k</sub></span> − 1</sup>, and the posterior is Dirichlet(<span class="m">α</span><sub>1</sub> + <span class="m">n</span><sub>1</sub>, …, <span class="m">α</span><sub>5</sub> + <span class="m">n</span><sub>5</sub>): each <span class="m">α<sub>k</sub></span> acts as <span class="m">k</span>-star ratings counted before the data, and the Beta–Bernoulli update is the two-category case.</p>
+      <p><b>Mean rating.</b> Quality is the average rating the product would get from everyone, <span class="m">μ</span> = Σ <span class="m">k</span> <span class="m">p<sub>k</sub></span>, a number between 1 and 5. Its posterior has no simple closed form, so the page draws 40,000 rating distributions from the posterior Dirichlet (normalized Gamma draws), computes <span class="m">μ</span> for each, and takes the curve, the mean, the interval and the probabilities from these samples; probabilities are accurate to about ±0.005.</p>
+      <p><b>Share of positive ratings.</b> Grouping 4 and 5 stars as positive and the rest as negative reduces the model to a Bernoulli one: quality is <span class="m">θ</span> = <span class="m">p</span><sub>4</sub> + <span class="m">p</span><sub>5</sub>, the prior is Beta(<span class="m">α</span>, <span class="m">β</span>), and with <span class="m">h</span> positive and <span class="m">t</span> negative ratings the posterior is Beta(<span class="m">α</span> + <span class="m">h</span>, <span class="m">β</span> + <span class="m">t</span>).</p>
+      <p><b>Priors.</b> Flat: every rating distribution is equally plausible, Dirichlet(1, …, 1) or Beta(1, 1). Jeffreys: Dirichlet(½, …, ½) or Beta(½, ½), the prior that does not depend on how the parameter is written down; it puts extra weight near the edges. Skeptic: ratings counted before the data that lean low, ten pseudo-ratings averaging 2.4 stars, or Beta(2, 8), two positive and eight negative. Custom: any pseudo-counts.</p>
+      <p><b>Comparing two products.</b> Given the ratings, the two qualities are independent, so Pr(A is better than B) = Pr(<span class="m">μ</span><sub>A</sub> &gt; <span class="m">μ</span><sub>B</sub>) is computed over all pairs of one sample from each posterior.</p>
+    </div>
+  </details>
+</main>
+
+<script>
+(function () {
+  const W = 420, H = 230, L = 46, R = 14, T = 16, B = 40;
+  const PW = W - L - R, PH = H - T - B;
+  const N = 40000, BINS = 240;
+  const MINUS = '−';
+
+  function $(id) { return document.getElementById(id); }
+  function clamp(x, lo, hi) { return Math.min(hi, Math.max(lo, x)); }
+  function fmtp(x) { return Number.isInteger(x) ? String(x) : String(+x.toFixed(2)); }
+  function tick(v) { return (v < 0 ? MINUS : '') + String(+Math.abs(v).toFixed(6)); }
+  function niceStep(span, n) {
+    const raw = span / n, e = Math.pow(10, Math.floor(Math.log10(raw)));
+    return ([1, 2, 2.5, 5, 10].find(m => m * e >= raw * (1 - 1e-9)) || 10) * e;
+  }
+  function ticks(lo, hi, n) {
+    const s = niceStep(hi - lo, n), out = [];
+    for (let v = Math.ceil(lo / s - 1e-9) * s; v <= hi + 1e-9 * s; v += s) out.push(+v.toFixed(10));
+    return out;
+  }
+
+  // ---------- random numbers: a fixed seed per product, so the numbers do not jitter between renders ----------
+  let rng = null;
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function reseed(s) { rng = mulberry32(s >>> 0); }
+  function rand() { let u; do { u = rng(); } while (u === 0); return u; }
+  function gauss() { return Math.sqrt(-2 * Math.log(rand())) * Math.cos(2 * Math.PI * rand()); }
+  function gammaSample(a) {            // Marsaglia and Tsang, unit rate
+    if (a < 1) return gammaSample(a + 1) * Math.pow(rand(), 1 / a);
+    const d = a - 1 / 3, c = 1 / Math.sqrt(9 * d);
+    for (;;) {
+      let x, v;
+      do { x = gauss(); v = 1 + c * x; } while (v <= 0);
+      v = v * v * v;
+      const u = rand();
+      if (u < 1 - 0.0331 * x * x * x * x) return d * v;
+      if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+    }
+  }
+
+  // ---------- the two meanings of quality ----------
+  // counts are always the five star counts, 5 stars first; collapse() turns them into the model's categories
+  const STARS = [5, 4, 3, 2, 1];
+  const DEFS = {
+    mean: {
+      values: [5, 4, 3, 2, 1], range: [1, 5], c: 4, cstep: 0.05,
+      cats: STARS.map(k => `${k}<span class="star">★</span>`),
+      presets: { flat: [1, 1, 1, 1, 1], jeffreys: [0.5, 0.5, 0.5, 0.5, 0.5], skeptic: [1, 1, 2, 3, 3] },
+      collapse: n => n.slice(),
+      closed: a => `Dirichlet(${a.map(fmtp).join(', ')})`,
+      fmt: x => x.toFixed(2) + ' stars',
+      note: 'quality is the average rating the product would get from everyone, between 1 and 5 stars',
+      observed(n) { const s = n.reduce((u, v) => u + v, 0); return s ? `${s} rating${s === 1 ? '' : 's'}, average ${(n.reduce((u, v, k) => u + v * STARS[k], 0) / s).toFixed(2)}` : 'no ratings yet'; },
+      priorNote(a) { const s = a.reduce((u, v) => u + v, 0); return s ? `${fmtp(s)} pseudo-ratings before the data, averaging ${(a.reduce((u, v, k) => u + v * STARS[k], 0) / s).toFixed(2)} stars` : 'no pseudo-ratings'; },
+    },
+    share: {
+      values: [1, 0], range: [0, 1], c: 0.8, cstep: 0.01,
+      cats: ['positive (4–5 <span class="star">★</span>)', 'negative (1–3 <span class="star">★</span>)'],
+      presets: { flat: [1, 1], jeffreys: [0.5, 0.5], skeptic: [2, 8] },
+      collapse: n => [n[0] + n[1], n[2] + n[3] + n[4]],
+      closed: a => `Beta(${fmtp(a[0])}, ${fmtp(a[1])})`,
+      fmt: x => x.toFixed(2),
+      note: 'quality is the share of everyone who would give 4 or 5 stars, between 0 and 1',
+      observed(n) { const h = n[0] + n[1], s = h + n[2] + n[3] + n[4]; return s ? `${s} rating${s === 1 ? '' : 's'}, ${Math.round(100 * h / s)}% positive` : 'no ratings yet'; },
+      priorNote(a) { return `α = ${fmtp(a[0])} positive and β = ${fmtp(a[1])} negative ratings before the data`; },
+    },
+  };
+  const EXAMPLE = { a: [1, 0, 0, 0, 0], b: [60, 25, 10, 3, 2] };
+
+  // entry: 'counts' takes the number of ratings at each star; 'pct' takes the total and a percentage per star,
+  // as Amazon shows them, and the counts follow by rounding. counts are what the model uses either way.
+  const st = {
+    def: 'mean', preset: 'flat', entry: 'counts', total: { a: 0, b: 0 }, pct: { a: [0, 0, 0, 0, 0], b: [0, 0, 0, 0, 0] },
+    pseudo: { mean: DEFS.mean.presets.flat.slice(), share: DEFS.share.presets.flat.slice() },
+    c: { mean: DEFS.mean.c, share: DEFS.share.c },
+    counts: { a: EXAMPLE.a.slice(), b: EXAMPLE.b.slice() },
+  };
+
+  const hash = new URLSearchParams(location.hash.slice(1));
+  function hnum(k) { const x = parseFloat(hash.get(k)); return Number.isFinite(x) ? x : null; }
+  if (DEFS[hash.get('def')]) st.def = hash.get('def');
+  if (['flat', 'jeffreys', 'skeptic', 'custom'].includes(hash.get('prior'))) st.preset = hash.get('prior');
+  if (st.preset !== 'custom') st.pseudo[st.def] = DEFS[st.def].presets[st.preset].slice();
+  const hp = hash.get('pseudo');
+  if (hp) { const v = hp.split(',').map(Number); if (v.length === DEFS[st.def].values.length && v.every(x => x >= 0)) { st.pseudo[st.def] = v; st.preset = 'custom'; } }
+  if (hnum('c') !== null) st.c[st.def] = clamp(hnum('c'), ...DEFS[st.def].range);
+  for (const key of ['a', 'b']) {
+    const v = (hash.get(key) || '').split(',').map(Number);
+    if (v.length === 5 && v.every(x => Number.isInteger(x) && x >= 0)) st.counts[key] = v;
+  }
+  if (hash.get('entry') === 'pct') st.entry = 'pct';
+
+  function syncPct(key) {           // the Amazon-style view of the counts
+    const n = st.counts[key], total = n.reduce((u, v) => u + v, 0);
+    st.total[key] = total;
+    st.pct[key] = n.map(x => total ? Math.round(100 * x / total) : 0);
+  }
+  function deriveCounts(key) {      // counts from the total and the percentages, scaled to add to 100
+    const total = st.total[key], pct = st.pct[key], s = pct.reduce((u, v) => u + v, 0);
+    if (!total || s <= 0) { st.counts[key] = [0, 0, 0, 0, 0]; return; }
+    const raw = pct.map(x => total * x / s), out = raw.map(Math.floor);
+    const order = raw.map((r, k) => [r - out[k], k]).sort((x, y) => y[0] - x[0]);
+    for (let i = total - out.reduce((u, v) => u + v, 0); i > 0; i--) out[order[(i - 1) % 5][1]] += 1;
+    st.counts[key] = out;
+  }
+
+  // ---------- the posterior of a product's quality, by simulation ----------
+  const memo = {};
+  function analyze(key) {
+    if (memo[key]) return memo[key];
+    const d = DEFS[st.def], v = d.values, K = v.length, [lo, hi] = d.range;
+    const n = d.collapse(st.counts[key]), a = st.pseudo[st.def].map((x, k) => x + n[k]);
+    reseed(key === 'a' ? 17 : 23);
+    const q = new Float64Array(N);
+    let mean = 0;
+    for (let i = 0; i < N; i++) {
+      let s = 0, m = 0;
+      for (let k = 0; k < K; k++) { const g = a[k] > 0 ? gammaSample(a[k]) : 0; s += g; m += g * v[k]; }
+      q[i] = s > 0 ? m / s : (lo + hi) / 2;
+      mean += q[i];
+    }
+    mean /= N;
+    const sorted = Float64Array.from(q).sort();
+    // a smoothed histogram over the quality range, as a density
+    const w = (hi - lo) / BINS, hist = new Float64Array(BINS);
+    for (let i = 0; i < N; i++) hist[Math.min(BINS - 1, Math.floor((q[i] - lo) / w))] += 1;
+    const ks = 1.5, kw = 8, kern = [];
+    for (let j = -kw; j <= kw; j++) kern.push(Math.exp(-j * j / (2 * ks * ks)));
+    const ksum = kern.reduce((u, x) => u + x, 0);
+    const dens = new Float64Array(BINS);
+    for (let b = 0; b < BINS; b++) {
+      let s = 0;
+      for (let j = -kw; j <= kw; j++) { const i = b + j; if (i >= 0 && i < BINS) s += hist[i] * kern[j + kw]; }
+      dens[b] = s / (ksum * N * w);
+    }
+    const obs = n.reduce((u, x) => u + x, 0) ? n.reduce((u, x, k) => u + x * v[k], 0) / n.reduce((u, x) => u + x, 0) : null;
+    return (memo[key] = { a, sorted, mean, lo: sorted[Math.floor(0.025 * N)], hi: sorted[Math.floor(0.975 * N)], dens, w, obs, peak: Math.max(...dens) });
+  }
+  function probAbove(sorted, c) {       // share of samples above c
+    let lo = 0, hi = N;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (sorted[mid] > c) hi = mid; else lo = mid + 1; }
+    return (N - lo) / N;
+  }
+  function probGreater(sa, sb) {        // Pr(A > B) over all pairs of samples
+    let j = 0, total = 0;
+    for (let i = 0; i < N; i++) { while (j < N && sb[j] < sa[i]) j++; total += j; }
+    return total / (N * N);
+  }
+  function invalidate() { delete memo.a; delete memo.b; }
+
+  // ---------- rendering ----------
+  function renderRatings(key) {
+    const box = $('rat-' + key), n = st.counts[key], total = n.reduce((u, v) => u + v, 0), pct = st.entry === 'pct';
+    if (box.dataset.mode !== st.entry) {
+      box.dataset.mode = st.entry;
+      box.innerHTML = STARS.map((k, i) => `<label for="n-${key}-${i}">${k} <span class="star">★</span></label><span class="cell"><input type="number" id="n-${key}-${i}" min="0" max="${pct ? 100 : 1000000}" step="1">${pct ? '<span class="suffix">%</span>' : ''}</span><div class="bar"><i id="bar-${key}-${i}"></i></div><span class="pct" id="pct-${key}-${i}"></span>`).join('');
+      STARS.forEach((k, i) => $(`n-${key}-${i}`).addEventListener('input', e => {
+        if (st.entry === 'pct') { st.pct[key][i] = clamp(+e.target.value || 0, 0, 100); deriveCounts(key); }
+        else { st.counts[key][i] = clamp(Math.round(+e.target.value) || 0, 0, 1000000); syncPct(key); }
+        invalidate();
+        render();
+      }));
+    }
+    $('tot-wrap-' + key).hidden = !pct;
+    const tot = $('tot-' + key);
+    if (document.activeElement !== tot) tot.value = st.total[key];
+    STARS.forEach((k, i) => {
+      const el = $(`n-${key}-${i}`);
+      if (document.activeElement !== el) el.value = pct ? st.pct[key][i] : n[i];
+      const share = total ? n[i] / total : 0;
+      $(`bar-${key}-${i}`).style.width = (100 * share).toFixed(1) + '%';
+      $(`pct-${key}-${i}`).textContent = !total ? '' : pct ? String(n[i]) : Math.round(100 * share) + '%';
+    });
+    const s = st.pct[key].reduce((u, v) => u + v, 0);
+    $('note-' + key).textContent = pct && st.total[key] && Math.abs(s - 100) > 1 ? `the percentages add to ${fmtp(s)}%; they are scaled to 100%` : '';
+    $('obs-' + key).textContent = DEFS[st.def].observed(n);
+  }
+
+  function plot(key, res, ymax) {
+    const d = DEFS[st.def], [lo, hi] = d.range, c = st.c[st.def];
+    const X = x => L + (x - lo) / (hi - lo) * PW, Y = y => T + PH - y / ymax * PH;
+    const y0 = T + PH, xc = X(c).toFixed(1);
+    let g = `<defs><clipPath id="clip-${key}"><rect x="${L}" y="${T - 1}" width="${PW}" height="${PH + 1}"/></clipPath><clipPath id="tail-${key}"><rect x="${xc}" y="${T - 1}" width="${(W - R - X(c)).toFixed(1)}" height="${PH + 1}"/></clipPath></defs>`;
+    for (const t of ticks(0, ymax, 4)) {
+      const y = Y(t).toFixed(1);
+      if (t > 0) g += `<line class="grid-line" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/>`;
+      g += `<text class="tick" x="${L - 6}" y="${(+y + 4).toFixed(1)}" text-anchor="end">${tick(t)}</text>`;
+    }
+    for (const t of ticks(lo, hi, st.def === 'mean' ? 4 : 5)) {
+      const x = X(t).toFixed(1);
+      g += `<line class="axis" x1="${x}" x2="${x}" y1="${y0}" y2="${y0 + 5}"/>`;
+      g += `<text class="tick" x="${x}" y="${y0 + 18}" text-anchor="middle">${tick(t)}</text>`;
+    }
+    g += `<text class="axis-label" x="${W - R}" y="${H - 3}" text-anchor="end">${st.def === 'mean' ? 'mean rating (stars)' : 'share of positive ratings'}</text>`;
+    g += `<text class="axis-label" transform="translate(14 ${T + PH / 2}) rotate(-90)" text-anchor="middle">density</text>`;
+    let path = `M${X(lo).toFixed(1)} ${Y(0).toFixed(1)}`;
+    for (let b = 0; b < BINS; b++) path += `L${X(lo + (b + 0.5) * res.w).toFixed(1)} ${Y(res.dens[b]).toFixed(1)}`;
+    path += `L${X(hi).toFixed(1)} ${Y(0).toFixed(1)}`;
+    g += `<g clip-path="url(#clip-${key})">`;
+    g += `<path class="area" d="${path}Z"/>`;
+    g += `<path class="tail" d="${path}Z" clip-path="url(#tail-${key})"/>`;
+    g += `<path class="line" d="${path}"/>`;
+    g += `<line class="bar-line" x1="${xc}" x2="${xc}" y1="${T}" y2="${y0}"/>`;
+    g += `</g>`;
+    g += `<line class="axis" x1="${L}" x2="${W - R}" y1="${y0}" y2="${y0}"/>`;
+    g += `<line class="ci" x1="${X(res.lo).toFixed(1)}" x2="${X(res.hi).toFixed(1)}" y1="${y0 - 6}" y2="${y0 - 6}"/>`;
+    g += `<circle class="dot" cx="${X(res.mean).toFixed(1)}" cy="${y0 - 6}" r="3.5"/>`;
+    if (res.obs !== null) g += `<circle class="obs" cx="${X(res.obs).toFixed(1)}" cy="${y0 - 6}" r="3.5"/>`;
+    const left = c > lo + 0.85 * (hi - lo);
+    g += `<text class="bar-lab" x="${(X(c) + (left ? -5 : 5)).toFixed(1)}" y="${T + 12}" text-anchor="${left ? 'end' : 'start'}"><tspan class="m">c</tspan></text>`;
+    $('plot-' + key).innerHTML = g;
+  }
+
+  function render() {
+    const d = DEFS[st.def], c = st.c[st.def];
+    renderRatings('a');
+    renderRatings('b');
+    const ra = analyze('a'), rb = analyze('b');
+    const ymax = 1.1 * Math.max(ra.peak, rb.peak, 1e-9);
+    plot('a', ra, ymax);
+    plot('b', rb, ymax);
+    for (const [key, r] of [['a', ra], ['b', rb]]) {
+      $('p-' + key).textContent = probAbove(r.sorted, c).toFixed(2);
+      $('mean-' + key).textContent = d.fmt(r.mean);
+      $('ci-' + key).textContent = `[${d.fmt(r.lo).replace(' stars', '')}, ${d.fmt(r.hi)}]`;
+      $('post-' + key).textContent = d.closed(r.a);
+    }
+    const pab = probGreater(ra.sorted, rb.sorted);
+    $('ab').textContent = pab.toFixed(2);
+    $('who').textContent = pab > 0.5
+      ? `A is more likely the better product, ${(100 * pab).toFixed(0)}% to ${(100 * (1 - pab)).toFixed(0)}%`
+      : pab < 0.5 ? `B is more likely the better product, ${(100 * (1 - pab)).toFixed(0)}% to ${(100 * pab).toFixed(0)}%` : 'an even call';
+    $('c-val').textContent = d.fmt(c);
+    $('def-note').textContent = d.note;
+    $('prior-note').textContent = d.priorNote(st.pseudo[st.def]);
+    $('entry-note').textContent = st.entry === 'pct' ? 'the total number of ratings and the percentage at each star; the counts follow by rounding' : 'the number of ratings at each star';
+  }
+
+  function setupPseudo() {
+    const d = DEFS[st.def], box = $('pseudo');
+    box.innerHTML = d.values.map((v, k) => `<label for="ps-${k}">${d.cats[k]} <input type="number" id="ps-${k}" min="0" max="1000" step="0.5"></label>`).join('');
+    d.values.forEach((v, k) => {
+      $(`ps-${k}`).value = st.pseudo[st.def][k];
+      $(`ps-${k}`).addEventListener('input', e => {
+        st.pseudo[st.def][k] = clamp(+e.target.value || 0, 0, 1000);
+        st.preset = 'custom';
+        $('prior').value = 'custom';
+        invalidate();
+        render();
+      });
+    });
+  }
+  function setupBar() {
+    const d = DEFS[st.def], el = $('c');
+    el.min = d.range[0]; el.max = d.range[1]; el.step = d.cstep; el.value = st.c[st.def];
+  }
+  function applyPreset() {
+    if (st.preset !== 'custom') st.pseudo[st.def] = DEFS[st.def].presets[st.preset].slice();
+    setupPseudo();
+    invalidate();
+  }
+
+  $('def').value = st.def;
+  $('prior').value = st.preset;
+  $('def').addEventListener('change', e => {
+    st.def = e.target.value;
+    applyPreset();
+    setupBar();
+    render();
+  });
+  $('prior').addEventListener('change', e => {
+    st.preset = e.target.value;
+    applyPreset();
+    render();
+  });
+  $('c').addEventListener('input', e => { st.c[st.def] = +e.target.value; render(); });
+  $('swap').addEventListener('click', () => {
+    [st.counts.a, st.counts.b] = [st.counts.b, st.counts.a];
+    syncPct('a'); syncPct('b');
+    invalidate();
+    render();
+  });
+  $('example').addEventListener('click', () => {
+    st.counts.a = EXAMPLE.a.slice(); st.counts.b = EXAMPLE.b.slice();
+    syncPct('a'); syncPct('b');
+    invalidate();
+    render();
+  });
+  $('clear').addEventListener('click', () => {
+    st.counts.a = [0, 0, 0, 0, 0]; st.counts.b = [0, 0, 0, 0, 0];
+    syncPct('a'); syncPct('b');
+    invalidate();
+    render();
+  });
+
+  for (const el of document.querySelectorAll('input[name="entry"]')) {
+    el.checked = el.value === st.entry;
+    el.addEventListener('change', () => { if (el.checked) { st.entry = el.value; render(); } });
+  }
+  for (const key of ['a', 'b']) {
+    $('tot-' + key).addEventListener('input', e => {
+      st.total[key] = clamp(Math.round(+e.target.value) || 0, 0, 10000000);
+      deriveCounts(key);
+      invalidate();
+      render();
+    });
+  }
+  syncPct('a'); syncPct('b');
+  setupPseudo();
+  setupBar();
+  render();
+})();
+</script>
+</body>
+</html>
