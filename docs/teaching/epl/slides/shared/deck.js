@@ -300,7 +300,9 @@ async function startDeck(opts = {}) {
       const n = page.querySelector('.slide-number-pdf');
       if (n) n.textContent = slideLabel(page.querySelector('section')).join(' ');
     });
-    requestAnimationFrame(() => { document.documentElement.dataset.printReady = '1'; });
+    // images a figure asked for (the deck map's thumbnails) are loaded first
+    Promise.all(window.DECK_WAITS || []).then(() => setTimeout(() =>
+      requestAnimationFrame(() => { document.documentElement.dataset.printReady = '1'; }), 300));
   });
 
   Reveal.initialize(Object.assign({

@@ -64,19 +64,16 @@
 </section>
 
 <!-- Outline -->
-<section class="frame">
-  <div class="frametitle">Outline</div>
-  <div class="fbody"><div class="row center">
-    <div class="col" style="padding-left:30px">
-      <ol class="toc">
+<section class="frame" data-slide="map">
+  <ol class="toc" hidden>
         <li><a href="#/sec-cov">Random vectors and the multivariate Gaussian</a></li>
         <li><a href="#/sec-geom">Geometry of the Gaussian</a></li>
         <li><a href="#/sec-cond">Conditioning: predicting unobserved coordinates</a></li>
         <li><a href="#/sec-learn">From data to distribution</a></li>
       </ol>
-    </div>
-    <div class="fig" data-fig="outline"></div>
-  </div></div>
+  <div class="fig mapfig" data-fig="deckmap" data-init='{"a":-1,"b":0,"t":1}'></div>
+  <span class="fragment" data-set='{"t":2}'></span>
+  <aside class="notes">The mind map of the deck. Entering pulls back from the opening slides to the whole map; the click zooms into part 1.</aside>
 </section>
 
 <!-- ============ 1. Random vectors and the multivariate Gaussian ============ -->
@@ -325,6 +322,13 @@
   </div></div>
 </section>
 
+<!-- Map: from part 1 to part 2 -->
+<section class="frame" data-slide="map">
+  <div class="fig mapfig" data-fig="deckmap" data-init='{"a":0,"b":1,"t":1}'></div>
+  <span class="fragment" data-set='{"t":2}'></span>
+  <aside class="notes">Part 1 done: the map pulls back; the click zooms into part 2, the geometry of the Gaussian.</aside>
+</section>
+
 <!-- ============ 2. Geometry of the Gaussian ============ -->
 
 <section class="frame" id="sec-geom" data-map="-297,964">
@@ -470,6 +474,13 @@
     <div class="block alertblock fragment" data-set='{"x":0.9}' data-fragment-index="2"><div class="bt">Zero covariance does not imply independence</div><div class="bb">Independence implies zero covariance; the converse needs an assumption such as joint Gaussianity.</div></div>
   </div>
   <aside class="notes">Independence implies zero covariance when moments exist; the converse requires additional assumptions such as joint Gaussianity.</aside>
+</section>
+
+<!-- Map: from part 2 to part 3 -->
+<section class="frame" data-slide="map">
+  <div class="fig mapfig" data-fig="deckmap" data-init='{"a":1,"b":2,"t":1}'></div>
+  <span class="fragment" data-set='{"t":2}'></span>
+  <aside class="notes">Part 2 done: the map pulls back; the click zooms into part 3, conditioning.</aside>
 </section>
 
 <!-- ============ 3. Conditioning: predicting unobserved coordinates ============ -->
@@ -634,6 +645,13 @@
     </div>
   </div></div>
   <aside class="notes">Read the mean from right to left: observed deviation, scale by observed uncertainty, then use cross-covariance. Conditioning alone makes no causal claim.</aside>
+</section>
+
+<!-- Map: from part 3 to part 4 -->
+<section class="frame" data-slide="map">
+  <div class="fig mapfig" data-fig="deckmap" data-init='{"a":2,"b":3,"t":1}'></div>
+  <span class="fragment" data-set='{"t":2}'></span>
+  <aside class="notes">Part 3 done: the map pulls back; the click zooms into part 4, from data to distribution.</aside>
 </section>
 
 <!-- ============ 4. From data to distribution ============ -->
@@ -832,6 +850,7 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
 <script src="../shared/deck.js"></script>
+<script src="../shared/deckmap.js"></script>
 <script src="figs.js"></script>
 <script>startDeck();</script>
 </body>
