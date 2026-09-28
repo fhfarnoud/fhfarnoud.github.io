@@ -126,7 +126,9 @@
   function drawMap(svg) {
     const m = model(), NS = 'http://www.w3.org/2000/svg';
     const mk = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
-    const gl = mk('g', {}), gs = mk('g', {});
+    // edges and labels, then the boxes around slides, then the slides, then the numbers;
+    // the three decoration layers fade with the zoom (deco)
+    const gl = mk('g', { class: 'deco' }), gb = mk('g', { class: 'deco' }), gs = mk('g', {}), gn = mk('g', { class: 'deco' });
     const curve = (sx, sy, ex, ey, col, w, op) => { const my = (sy + ey) / 2;
       mk('path', { d: `M${sx},${sy} C${sx},${my} ${ex},${my} ${ex},${ey}`, fill: 'none', stroke: col, 'stroke-width': w, 'stroke-linecap': 'round', 'stroke-opacity': op }, gl);
       return t => { const u = 1 - t; return [u * u * u * sx + 3 * u * u * t * sx + 3 * u * t * t * ex + t * t * t * ex, u * u * u * sy + 3 * u * u * t * my + 3 * u * t * t * my + t * t * t * ey]; }; };
@@ -162,12 +164,22 @@
     m.drawn.forEach(i => {
       const [x, y] = m.pos[i], trunk = i === 0 || m.pre.includes(i), head = m.heads.some(h => h.slide === i);
       const col = trunk ? TRUNK : m.colour[i] || '#888', sw = trunk ? 22 : head ? 18 : 7;
+      mk('rect', { x, y, width: W, height: H, fill: 'none', stroke: col, 'stroke-width': 2 * sw }, gb);
       const g = mk('g', { class: 'mapslide-thumb', 'data-n': i + 1 }, gs);
-      mk('rect', { x, y, width: W, height: H, fill: '#fff', stroke: col, 'stroke-width': 2 * sw }, g);
+      mk('rect', { x, y, width: W, height: H, fill: '#fff' }, g);
       mk('image', { href: m.thumbs[i], x, y, width: W, height: H, preserveAspectRatio: 'xMidYMid meet' }, g);
-      mk('rect', { x: x + 16, y: y + H - 72, width: 22 + 26 * String(i + 1).length, height: 56, rx: 10, fill: 'rgba(40,36,33,.78)' }, g);
-      mk('text', { x: x + 27, y: y + H - 29, fill: '#fff', 'font-size': 40, 'font-weight': 600, 'font-family': 'system-ui,-apple-system,sans-serif' }, g).textContent = String(i + 1);
+      mk('rect', { x: x + 16, y: y + H - 72, width: 22 + 26 * String(i + 1).length, height: 56, rx: 10, fill: 'rgba(40,36,33,.78)' }, gn);
+      mk('text', { x: x + 27, y: y + H - 29, fill: '#fff', 'font-size': 40, 'font-weight': 600, 'font-family': 'system-ui,-apple-system,sans-serif' }, gn).textContent = String(i + 1);
     });
+    return gb;
+  }
+  // The edges, boxes and numbers belong to the map: seen from a single slide
+  // they are gone, and they fade in as the view widens (fully by 2.5 slides).
+  function showView(svg, v) {
+    const h = v.w * H / W;
+    svg.setAttribute('viewBox', `${v.cx - v.w / 2} ${v.cy - h / 2} ${v.w} ${h}`);
+    const op = String(clamp((v.w / W - 1.15) / (2.5 - 1.15)));
+    svg.querySelectorAll('.deco').forEach(g => { g.style.opacity = op; });
   }
 
   // printing waits until every thumbnail is in the cache (deck.js DECK_WAITS)
@@ -185,7 +197,7 @@
   // owns Escape, the deck leaves the key alone.
   let ov = null, busy = false;
   const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-  function setView(svg, v) { const h = v.w * H / W; svg.setAttribute('viewBox', `${v.cx - v.w / 2} ${v.cy - h / 2} ${v.w} ${h}`); }
+  const setView = showView;
   function slideView(i) { const p = model().pos[i]; return view({ x0: p[0], y0: p[1], x1: p[0] + W, y1: p[1] + H }, 1); }
   function fly(svg, A, B, ms, done) {
     const t0 = performance.now();
@@ -200,11 +212,11 @@
     ov = document.createElement('div'); ov.className = 'deckmap-overlay';
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet'); ov.appendChild(svg);
-    drawMap(svg);
+    const gb = drawMap(svg);
     if (cur >= 0) { const p = m.pos[cur];
       const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       for (const [k, v] of Object.entries({ x: p[0] - 60, y: p[1] - 60, width: W + 120, height: H + 120, rx: 30, fill: 'none', stroke: 'rgba(189,93,58,.75)', 'stroke-width': 56 })) r.setAttribute(k, v);
-      svg.appendChild(r); }
+      gb.appendChild(r); }
     svg.addEventListener('click', e => { const g = e.target.closest('.mapslide-thumb'); if (g) closeMap(+g.dataset.n - 1); });
     document.body.appendChild(ov);
     busy = true;
@@ -246,8 +258,7 @@
     },
     render(root, p) {
       const A = view(rectOf(p.a)), O = view(rectOf('all')), B = view(rectOf(p.b)), t = clamp(p.t, 0, 2);
-      const v = t <= 1 ? lerpView(A, O, t) : lerpView(O, B, t - 1), h = v.w * H / W;
-      root.querySelector('svg').setAttribute('viewBox', `${v.cx - v.w / 2} ${v.cy - h / 2} ${v.w} ${h}`);
+      showView(root.querySelector('svg'), t <= 1 ? lerpView(A, O, t) : lerpView(O, B, t - 1));
     }
   };
 })();
