@@ -114,8 +114,8 @@
     return boundsOf((h.slide >= 0 ? [h.slide] : []).concat(h.kids), true);
   }
   // a rectangle as a 16:9 view (centre, width), with a margin
-  function view(r) {
-    let w = (r.x1 - r.x0) * 1.08, h = (r.y1 - r.y0) * 1.08;
+  function view(r, pad = 1.08) {
+    let w = (r.x1 - r.x0) * pad, h = (r.y1 - r.y0) * pad;
     if (w / h > W / H) h = w * H / W; else w = h * W / H;
     return { cx: (r.x0 + r.x1) / 2, cy: (r.y0 + r.y1) / 2, w };
   }
@@ -177,6 +177,58 @@
     const m = model();
     (window.DECK_WAITS = window.DECK_WAITS || []).push(Promise.all(m.drawn.map(i => new Promise(res => {
       const im = new Image(); im.onload = im.onerror = res; im.src = m.thumbs[i]; }))));
+  }
+
+  // Escape (or O) opens the map over the deck: out of the current slide to
+  // the whole map; Escape again flies back in, a click on a slide flies into
+  // it and goes there. Inside the localtools viewer, whose own slide map
+  // owns Escape, the deck leaves the key alone.
+  let ov = null, busy = false;
+  const ease = u => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+  function setView(svg, v) { const h = v.w * H / W; svg.setAttribute('viewBox', `${v.cx - v.w / 2} ${v.cy - h / 2} ${v.w} ${h}`); }
+  function slideView(i) { const p = model().pos[i]; return view({ x0: p[0], y0: p[1], x1: p[0] + W, y1: p[1] + H }, 1); }
+  function fly(svg, A, B, ms, done) {
+    const t0 = performance.now();
+    const step = now => { const u = Math.min(1, (now - t0) / ms); setView(svg, lerpView(A, B, ease(u)));
+      if (u < 1) requestAnimationFrame(step); else if (done) done(); };
+    requestAnimationFrame(step);
+  }
+  function here() { const m = model(), i = Reveal.getIndices().h; return m.drawn.includes(i) ? i : -1; }
+  function openMap() {
+    if (ov || busy) return;
+    const m = model(), cur = here(), all = view(rectOf('all'));
+    ov = document.createElement('div'); ov.className = 'deckmap-overlay';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet'); ov.appendChild(svg);
+    drawMap(svg);
+    if (cur >= 0) { const p = m.pos[cur];
+      const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      for (const [k, v] of Object.entries({ x: p[0] - 60, y: p[1] - 60, width: W + 120, height: H + 120, rx: 30, fill: 'none', stroke: 'rgba(189,93,58,.75)', 'stroke-width': 56 })) r.setAttribute(k, v);
+      svg.appendChild(r); }
+    svg.addEventListener('click', e => { const g = e.target.closest('.mapslide-thumb'); if (g) closeMap(+g.dataset.n - 1); });
+    document.body.appendChild(ov);
+    busy = true;
+    const A = cur >= 0 ? slideView(cur) : all;
+    setView(svg, A); requestAnimationFrame(() => ov.classList.add('on'));
+    fly(svg, A, all, 900, () => { busy = false; });
+  }
+  function closeMap(to) {
+    if (!ov || busy) return;
+    const svg = ov.querySelector('svg'), m = model(), cur = here(), go = to == null ? cur : to;
+    const vb = svg.getAttribute('viewBox').split(' ').map(Number), A = { cx: vb[0] + vb[2] / 2, cy: vb[1] + vb[3] / 2, w: vb[2] };
+    const finish = () => { if (to != null) Reveal.slide(to); ov.remove(); ov = null; busy = false; };
+    busy = true;
+    if (go >= 0 && m.drawn.includes(go)) fly(svg, A, slideView(go), 700, finish); else finish();
+  }
+  if (!PRINT && !document.getElementById('html-page')) {
+    document.addEventListener('keydown', e => {
+      if (!ov) return;
+      e.preventDefault(); e.stopPropagation();
+      if (e.key === 'Escape' || e.key === 'o' || e.key === 'O') closeMap();
+    }, true);
+    const bind = () => Reveal.configure({ keyboard: Object.assign({}, Reveal.getConfig().keyboard, { 27: openMap, 79: openMap }) });
+    const rv = document.querySelector('.reveal');
+    if (window.Reveal && Reveal.isReady && Reveal.isReady()) bind(); else if (rv) rv.addEventListener('ready', bind);
   }
 
   FIGS.deckmap = {

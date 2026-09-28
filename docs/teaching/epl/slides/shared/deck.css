@@ -124,3 +124,6 @@ html.deck-print .knobs { display: none; }
 .mapfig { position: absolute; left: 0; top: 0; background: #efebe4; }
 .mapslide-thumb { cursor: pointer; }
 .deck-print .mapslide-thumb { cursor: default; }
+.deckmap-overlay { position: fixed; inset: 0; z-index: 100; background: #efebe4; opacity: 0; transition: opacity .25s; }
+.deckmap-overlay.on { opacity: 1; }
+.deckmap-overlay svg { width: 100%; height: 100%; display: block; }
