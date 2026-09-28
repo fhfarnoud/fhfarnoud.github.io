@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Multivariate Random Variables</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<link rel="stylesheet" href="../shared/deck.css">
+<style>
+/* Deck-local layout */
+.blockmat { display: grid; grid-template-columns: 90px 180px; grid-template-rows: 34px 90px 180px;
+  font-size: 30px; text-align: center; }
+.blockmat > div { display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1.5px solid #333; margin: -0.75px;
+  background-image: linear-gradient(to right, rgba(0,0,0,.14) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,.14) 1px, transparent 1px);
+  background-size: 45px 45px; }
+.blockmat .dim { font-size: 17px; color: #555; }
+.blockmat > .hd { border: none; font-size: 22px; color: #444; background-image: none; }
+.blockmat .aa { background-color: rgba(35,84,168,.13); } .blockmat .bb2 { background-color: rgba(0,128,0,.13); }
+.blockmat .ab { background-color: rgba(204,136,0,.13); }
+.outer { display: grid; grid-template-columns: 150px auto; gap: 4px 22px; align-items: center; font-size: 25px; margin: 0 0 12px; }
+.pairs { display: grid; grid-template-columns: auto auto; justify-content: start; gap: 4px 34px; font-size: 24px; margin: 0 0 4px; }
+.cards { display: flex; gap: 24px; margin: 0 0 18px; }
+.cards .altcard { flex: 1 1 0; }
+.cards.shrink .altcard { min-width: 0; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- Title -->
+<section class="frame" data-map="421,-756">
+  <svg class="bells" width="1280" height="720"></svg>
+  <div class="titlebox">
+    <div class="t">Multivariate Random Variables</div>
+    <div class="st">Part 3: How can we make accurate predictions based on data, and how accurate can they be?</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Probabilistic Machine Learning</div>
+    <div class="i">University of Virginia<br>Farzad Farnoud</div>
+    <div class="d">Chapter 4</div>
+  </div>
+</section>
+
+<!-- Opening illustration -->
+<section class="frame" data-slide="illus">
+  <div class="illus">
+    <img src="img/heights.png" alt="A parent marking a child's height on a door frame"
+         onerror="this.parentNode.innerHTML='&lt;div class=&quot;ph&quot;&gt;Missing image: '+this.getAttribute('src')+'&lt;/div&gt;'">
+  </div>
+  <div class="caption illus-cap">AI-generated illustration</div>
+  <div class="frametitle">Predicting a missing coordinate</div>
+  <div class="illus-text">
+    <div class="block"><div class="bt">Paired measurements</div><div class="bb">
+      $X_2$: parent's height.<br>
+      $X_1$: adult child's height.<br>
+      Both in standard deviations from their means.
+    </div></div>
+    <p>Model: $(X_1,X_2)$ jointly Gaussian, means 0, variances 1, correlation $\rho=0.5$.</p>
+    <p class="small" style="color:#555">Illustrative model, not measured height data.</p>
+    <p><span class="alert">Question:</span> Given a parent's height, what should we predict for the child's adult height, and how sure can we be?</p>
+  </div>
+  <aside class="notes">Take predictions without giving the formula. Return to this observation during conditioning.</aside>
+</section>
+
+<!-- Outline -->
+<section class="frame">
+  <div class="frametitle">Outline</div>
+  <div class="fbody"><div class="row center">
+    <div class="col" style="padding-left:30px">
+      <ol class="toc">
+        <li><a href="#/sec-cov">Random vectors and the multivariate Gaussian</a></li>
+        <li><a href="#/sec-geom">Geometry of the Gaussian</a></li>
+        <li><a href="#/sec-cond">Conditioning: predicting unobserved coordinates</a></li>
+        <li><a href="#/sec-learn">From data to distribution</a></li>
+      </ol>
+    </div>
+    <div class="fig" data-fig="outline"></div>
+  </div></div>
+</section>
+
+<!-- ============ 1. Random vectors and the multivariate Gaussian ============ -->
+
+<section class="frame" id="sec-cov" data-map="1437,-3142">
+  <div class="frametitle">Mean of a random vector</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="mean" data-init='{"mu":0,"b":0}'></div>
+    <div class="col">
+      <div class="block"><div class="bt">A random vector and its center</div><div class="bb">
+        \[\bX=\begin{pmatrix}X_1\\X_2\end{pmatrix},\qquad \bmu=\E\bX=\begin{pmatrix}\E X_1\\\E X_2\end{pmatrix}\]
+        Each dot is one pair. An observed pair is a deterministic vector $\bx$.
+      </div></div>
+      <p class="fragment" data-set='{"mu":1}'>Here $\bmu=(1,1)^T$. The arrow $\bx-\bmu$ is the pair's deviation from the center.</p>
+      <p class="fragment"><span class="alert">Question:</span> Add a fixed vector $\bb=(1,-3)^T$ to every pair. What happens to the mean, and to the deviation $\bx-\bmu$?</p>
+      <p class="fragment" data-set='{"b":1}'>Every point and the mean move by the same amount: $\E[\bX+\bb]=\bmu+\bb=(2,-2)^T$. The deviations $\bx-\bmu$ stay the same.</p>
+    </div>
+  </div></div>
+  <aside class="notes">Ask which part of the picture describes variability: the arrow from the mean to a point.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Covariance matrix of a two-dimensional vector</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="mean" data-init='{"mu":1,"b":0}' style="zoom:0.8"></div>
+    <div class="col">
+      <p>For $\bX=(X_1,X_2)^T$ with mean $\bmu=(\mu_1,\mu_2)^T$:</p>
+      \[\mK=\E[(\bX-\bmu)(\bX-\bmu)^T]\]
+      <div class="fragment" style="font-size:80%;margin:10px 0">
+        \[(\bX-\bmu)(\bX-\bmu)^T=\begin{pmatrix}\textcolor{#A0521B}{(X_1-\mu_1)^2}&\textcolor{#6A3D9A}{(X_1-\mu_1)(X_2-\mu_2)}\\\textcolor{#6A3D9A}{(X_2-\mu_2)(X_1-\mu_1)}&\textcolor{#A0521B}{(X_2-\mu_2)^2}\end{pmatrix}\]
+      </div>
+      <div class="fragment">
+        <p>Take the expectation entry by entry:</p>
+        \[\mK=\begin{pmatrix}\textcolor{#A0521B}{\var(X_1)}&\textcolor{#6A3D9A}{\cov(X_1,X_2)}\\\textcolor{#6A3D9A}{\cov(X_2,X_1)}&\textcolor{#A0521B}{\var(X_2)}\end{pmatrix}\]
+      </div>
+      <div class="block alertblock fragment"><div class="bt">Variances on the diagonal, covariances off it</div><div class="bb small">
+        The two off-diagonal entries are equal, so $\mK$ is symmetric. In $d$ dimensions, $\mK_{ij}=\cov(X_i,X_j)$ and $\mK_{ii}=\var(X_i)$.
+      </div></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Sign of the covariance</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="quad" data-init='{"q":0,"k":0}'></div>
+    <div class="col">
+      \[\cov(X_1,X_2)=\E[(X_1-\mu_1)(X_2-\mu_2)]\]
+      <p>The off-diagonal entry averages the product of the two deviations; with $\bmu=\bzero$ that product is $x_1x_2$.</p>
+      <p class="fragment" data-set='{"q":1}'><span class="alert">Question:</span> Which quadrants hold more of the points, and what sign will the average product $x_1x_2$ have?</p>
+      <div class="fragment" data-set='{"k":1}'>
+        <p>The positive products outweigh the negative ones in this model.</p>
+      </div>
+      <div class="fragment">
+        \[\mK=\begin{pmatrix}1&0.5\\0.5&1\end{pmatrix},\qquad \rho=\frac{\cov(X_1,X_2)}{\sigma_1\sigma_2}=0.5\]
+        <div class="block alertblock"><div class="bt">Covariance records how deviations move together</div><div class="bb small">It requires finite second moments.</div></div>
+      </div>
+    </div>
+  </div></div>
+  <aside class="notes">The notes call E[XY^T] a correlation matrix: it is an uncentered second moment, distinct from the normalized correlation coefficient rho here. Cov(X,Y)=E[XY^T]-E[X]E[Y]^T. The 400 dots are a sample; their average product is close to, not equal to, 0.5.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Covariance of multinomial counts</div>
+  <div class="fbody"><div class="row">
+    <div>
+      <div class="fig" data-fig="dice" data-init='{"s":0}'></div>
+      <p class="caption" style="margin-left:50px">Four illustrative batches of 36 fair, independent rolls.</p>
+    </div>
+    <div class="col">
+      <p>Example: $X_i$ counts face $i$ in 36 fair, independent rolls, and $\sum_{i=1}^6 X_i=36$.</p>
+      <p><span class="alert">Question:</span> If one face occurs more often, what happens to the room left for the others? Predict the sign of $\cov(X_i,X_j)$ for $i\ne j$.</p>
+      <p class="fragment" data-set='{"s":1}'>A new batch of 36 rolls: some counts rise, so others must fall.</p>
+      <p class="fragment" data-set='{"s":2}'></p>
+      <p class="fragment" data-set='{"s":3}'></p>
+      <div class="block fragment"><div class="bt">Multinomial counts, $n=36$</div><div class="bb">
+        \[\var(X_i)=5,\qquad\cov(X_i,X_j)=-1\]
+        for $i\ne j$. More of one face leaves fewer rolls for the others.
+      </div></div>
+    </div>
+  </div></div>
+  <aside class="notes">Ask for the covariance sign before the reveal. The negative covariance concerns counts across repeated batches of 36 rolls. Individual rolls remain independent.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Singular covariance matrices</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="dice" data-init='{"s":0}'></div>
+    <div class="col">
+      <p>Die counts in 36 rolls: $\var(X_i)=5$ and $\cov(X_i,X_j)=-1$. With $\bone=(1,\ldots,1)^T$,</p>
+      \[\mK=6\mI-\bone\bone^T.\]
+      <p class="fragment">Each row of $\mK$ sums to $5-5=0$, so $\mK\bone=\bzero$.</p>
+      <div class="block alertblock fragment"><div class="bt">The sum has zero variance</div><div class="bb">
+        \[\var\Big(\sum_{i=1}^6X_i\Big)=\bone^T\mK\bone=0\]
+        The total is always 36. A covariance matrix with a zero-variance direction is singular.
+      </div></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Linear transformations of a random vector</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="lin" data-init='{"a":0,"b":0}'></div>
+    <div class="col">
+      <div class="block"><div class="bt">Transform every deviation</div><div class="bb">
+        \[\begin{aligned}\bY&=\mA\bX+\bb\\ \E\bY&=\mA\bmu+\bb\\ \cov(\bY)&=\mA\,\cov(\bX)\,\mA^T\end{aligned}\]
+        Translation changes the center. The linear map stretches, rotates, or projects the deviations.
+      </div></div>
+      <p class="fragment" data-set='{"a":1}'>Start from $\cov(\bX)=\mI$. Stretch by $\sqrt{1.5}$ along $x_2$ and by $\sqrt{0.5}$ along $x_1$.</p>
+      <p class="fragment" data-set='{"b":1}'>Rotate by $45^\circ$: $\cov(\bY)=\mA\mA^T$ has the running model's covariance.</p>
+      <p class="fragment small">For a scalar projection, $\var(\ba^T\bX)=\ba^T\mK\ba\geq0$: covariance matrices are positive semidefinite.</p>
+    </div>
+  </div></div>
+  <aside class="notes">Trace one deviation through both maps. More generally Cov(AX+a,BY+b)=A Cov(X,Y) B^T. These identities do not require Gaussian distributions.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Your turn: covariance of prime and odd counts</div>
+  <div class="fbody"><div class="row">
+    <div class="col" style="flex:0 0 530px">
+      <div class="fig" data-fig="venn" data-init='{"hl":0}'></div>
+      \[\mA=\begin{pmatrix}0&1&1&0&1&0\\1&0&1&0&1&0\end{pmatrix}\]
+    </div>
+    <div class="col">
+      <p>Roll a fair die 36 times, independently. $Y_1$ counts prime faces; $Y_2$ counts odd faces. Thus $\bY=\mA\bX$, where $\cov(\bX)=\mK=6\mI-\bone\bone^T$.</p>
+      <ol class="parts">
+        <li>(a) Find the two expected counts, $\E\bY$.</li>
+        <li>(b) Predict the sign of $\cov(Y_1,Y_2)$. Then compute $\cov(\bY)$.</li>
+      </ol>
+      <p class="muted">90 seconds, in pairs.</p>
+    </div>
+  </div></div>
+  <aside class="notes">Students need only identify the expectation and covariance sign first. For one roll, P(prime and odd)=1/3, while P(prime)P(odd)=1/4. Multiply the difference 1/12 by 36 to obtain 3.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Your turn: covariance of prime and odd counts (a)</div>
+  <div class="fbody"><div class="row">
+    <div class="col" style="flex:0 0 530px">
+      <div class="fig" data-fig="venn" data-init='{"hl":0}'></div>
+      \[\mA=\begin{pmatrix}0&1&1&0&1&0\\1&0&1&0&1&0\end{pmatrix}\]
+    </div>
+    <div class="col">
+      <p>(a) Find the two expected counts, $\E\bY$.</p>
+      <div class="fragment">
+        <span class="structure">Solution</span>
+        \[\E\bY=\mA\,\E\bX=\mA\begin{pmatrix}6\\\vdots\\6\end{pmatrix}=\begin{pmatrix}18\\18\end{pmatrix}\]
+        <p>Each row of $\mA$ selects three faces, and each face is expected 6 times.</p>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Your turn: covariance of prime and odd counts (b)</div>
+  <div class="fbody"><div class="row">
+    <div class="col" style="flex:0 0 530px">
+      <div class="fig" data-fig="venn" data-init='{"hl":0}'></div>
+      \[\mA=\begin{pmatrix}0&1&1&0&1&0\\1&0&1&0&1&0\end{pmatrix}\]
+    </div>
+    <div class="col">
+      <p>(b) Predict the sign of $\cov(Y_1,Y_2)$. Then compute $\cov(\bY)$.</p>
+      <div class="fragment" data-set='{"hl":1}'>
+        <span class="structure">Solution</span>
+        <p class="small">Add the entries of $\mK$ over the selected faces: 5 for a face with itself, $-1$ for two different faces.</p>
+        \[\begin{aligned}\var(Y_1)&=3(5)+6(-1)=9\\ \cov(Y_1,Y_2)&=2(5)+7(-1)=3\\ \cov(\bY)&=\mA\mK\mA^T=\begin{pmatrix}9&3\\3&9\end{pmatrix}\end{aligned}\]
+        <p class="small">The correlation is $3/\sqrt{9\cdot9}=1/3$. Faces 3 and 5 contribute to both counts. Their overlap produces positive covariance.</p>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Projections of a jointly Gaussian vector</div>
+  <div class="fbody"><div class="row">
+    <div>
+      <div class="fig" data-fig="proj" data-init='{"al":0,"sc":1}'></div>
+      <div class="knobs"><label>direction of $\ba$ (degrees from the $x_2$ axis) <input type="range" data-param="al" data-digits="0" min="0" max="180" step="1"><output></output></label></div>
+    </div>
+    <div class="col">
+      <div class="block"><div class="bt">Jointly Gaussian</div><div class="bb">
+        Every linear combination of the coordinates is Gaussian, including constant combinations with zero variance.
+        \[\ba^T\bX\sim\cN(\ba^T\bmu,\ba^T\mK\ba)\]
+      </div></div>
+      <p class="small"><span class="alert">Predict:</span> as the unit vector $\ba$ turns, in which direction is the bell widest?</p>
+      <table class="vals">
+        <thead><tr><th>unit $\ba$</th><th>$\ba^T\mK\ba$</th></tr></thead>
+        <tbody>
+          <tr><td>$(0,1)^T$</td><td>1</td></tr>
+          <tr class="fragment" data-set='{"al":45}'><td>$(1,1)^T/\sqrt2$</td><td>1.5</td></tr>
+          <tr class="fragment" data-set='{"al":135}'><td>$(1,-1)^T/\sqrt2$</td><td>0.5</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div></div>
+  <aside class="notes">Vectors in (x1, x2) order. a=(0,1) projects onto x2: the marginal of X2. A vector generated by an affine transformation of independent standard normals is jointly Gaussian.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Variance of a sum of coordinates</div>
+  <div class="fbody"><div class="row">
+    <div>
+      <div class="fig" data-fig="proj" data-init='{"al":45,"sc":1,"ax":1}'></div>
+      <div class="knobs"><label>length of $\ba$ <input type="range" data-param="sc" min="0.5" max="2" step="0.01"><output></output></label></div>
+    </div>
+    <div class="col">
+      <p>For the running model,</p>
+      \[X_1+X_2\sim\cN(0,\underbrace{1+1+2(0.5)}_{3}).\]
+      <p class="fragment" data-set='{"sc":1.41421356}'>This is $\ba^T\bX$ with $\ba=(1,1)^T$, of length $\sqrt2$: the variance is $2\times1.5=3$.</p>
+      <p class="fragment small">The arrow shows only the direction of $\ba$; the ticks on the dashed line mark $\ba^T\bx$. A longer $\ba$ packs the ticks closer, so the same cloud projects to a wider spread.</p>
+      <p class="fragment">Gaussian marginals alone do not guarantee a jointly Gaussian vector.</p>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Correlation and the shape of the cloud</div>
+  <div class="fbody">
+    <p><span class="alert">Question:</span> Match each cloud to $\rho=-0.5$, $0$, or $0.5$.</p>
+    <div class="fig" data-fig="tilt3" data-init='{"rev":0}' style="margin:0 auto 14px"></div>
+    <p>All three models have $X_1\sim\cN(0,1)$ and $X_2\sim\cN(0,1)$, with $\mK=\begin{pmatrix}1&\rho\\\rho&1\end{pmatrix}$.</p>
+    <p class="fragment" data-set='{"rev":1}'>The covariance determines the tilt. The marginal variances stay at 1.</p>
+  </div>
+  <aside class="notes">Vote before revealing.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Marginals of a bivariate Gaussian</div>
+  <div class="fbody"><div class="row">
+    <div>
+      <div class="fig" data-fig="tilt" data-init='{"rho":-0.5}'></div>
+      <div class="knobs"><label>$\rho$ <input type="range" data-param="rho" min="-0.9" max="0.9" step="0.05"><output></output></label></div>
+    </div>
+    <div class="col">
+      <table class="vals">
+        <thead><tr><th>$\rho$</th><th>tilt</th><th>$\var(X_1)$</th><th>$\var(X_2)$</th></tr></thead>
+        <tbody>
+          <tr><td>$-0.5$</td><td>down</td><td>1</td><td>1</td></tr>
+          <tr class="fragment" data-set='{"rho":0}'><td>0</td><td>none</td><td>1</td><td>1</td></tr>
+          <tr class="fragment" data-set='{"rho":0.5}'><td>0.5</td><td>up</td><td>1</td><td>1</td></tr>
+        </tbody>
+      </table>
+      <div class="block alertblock fragment"><div class="bt">Correlation tilts the cloud and leaves the marginals fixed</div><div class="bb">Each marginal alone cannot tell these models apart. The relationship lives in the joint distribution, through the off-diagonal of $\mK$.</div></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ 2. Geometry of the Gaussian ============ -->
+
+<section class="frame" id="sec-geom" data-map="-297,964">
+  <div class="frametitle">Your turn: density and Mahalanobis distance</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="maha" data-init='{"r":0,"num":0}'></div>
+    <div class="col">
+      <p>Running model: $\bmu=\bzero$, $\mK=\begin{pmatrix}1&0.5\\0.5&1\end{pmatrix}$.</p>
+      <p>In $(x_1,x_2)$ order, A is $(2,2)$ and B is $(2,-2)$. Both are $\sqrt8$ from the mean.</p>
+      <ol class="parts">
+        <li>(a) Which point has lower density under this Gaussian? Vote, then explain.</li>
+        <li>(b) Compute the squared Mahalanobis distance \[\Delta^2(\bx,\bmu)=(\bx-\bmu)^T\mK^{-1}(\bx-\bmu)\] for A and for B.</li>
+      </ol>
+    </div>
+  </div></div>
+  <aside class="notes">Give one minute. The dashed Euclidean circle highlights what ordinary distance misses.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Your turn: density and Mahalanobis distance (a)</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="maha" data-init='{"r":0,"num":0}'></div>
+    <div class="col">
+      <p>(a) Which point has lower density under this Gaussian?</p>
+      <div class="fragment" data-set='{"r":1}'>
+        <span class="structure">Solution</span>
+        <p>A lies in the direction $(1,1)^T/\sqrt2$, where the cloud's variance is 1.5; B lies in the direction $(1,-1)^T/\sqrt2$, where it is only 0.5.</p>
+        <p>Measured in units of the spread in its direction, B is farther out: the density ellipse through B encloses the one through A.</p>
+        <p>B has lower density.</p>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Your turn: density and Mahalanobis distance (b)</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="maha" data-init='{"r":1,"num":0}'></div>
+    <div class="col">
+      <p>(b) Compute $\Delta^2$ for A and for B.</p>
+      <div class="fragment" data-set='{"num":1}'>
+        <span class="structure">Solution</span>
+        <p>With $\mK^{-1}=\frac13\begin{pmatrix}4&-2\\-2&4\end{pmatrix}$:</p>
+        \[\begin{aligned}\Delta^2&=\tfrac13\,(4x_1^2-4x_1x_2+4x_2^2)\\ \Delta_A^2&=\tfrac13\,(16-16+16)=\frac{16}{3}\\ \Delta_B^2&=\tfrac13\,(16+16+16)=16\end{aligned}\]
+      </div>
+      <div class="block alertblock fragment"><div class="bt">Euclidean distance does not measure how likely a point is</div><div class="bb small">
+        A and B are equally far from the mean, yet the density at A is $e^{(16-16/3)/2}\approx207$ times that at B. Mahalanobis distance measures in units of the cloud's spread and ranks them correctly.
+      </div></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">The multivariate Gaussian density</div>
+  <div class="fbody">
+    \[p_{\bX}(\bx)=\underbrace{\textcolor{#A0521B}{\frac{1}{(2\pi)^{d/2}|\mK|^{1/2}}}}_{\text{normalizes the density}}\exp\!\Big(-\frac12\underbrace{\textcolor{#087F80}{(\bx-\bmu)^T\mK^{-1}(\bx-\bmu)}}_{\Delta^2(\bx,\bmu)}\Big)\]
+    <div class="row" style="height:auto;margin-top:6px">
+      <div class="fig" data-fig="dens"></div>
+      <div class="col" style="padding-top:30px">
+        <p>The ordinary $d$-dimensional density requires $\mK$ positive definite.</p>
+        <p>The determinant accounts for the cloud's volume.</p>
+        <div class="block alertblock"><div class="bt">Density contours are Mahalanobis ellipses</div><div class="bb">Up to a constant, $\log p_{\bX}(\bx)=-\tfrac12\Delta^2(\bx,\bmu)$: within this Gaussian, larger Mahalanobis distance means lower density, and each ellipse $\Delta=\text{const}$ is a contour of equal density.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Whitening and Mahalanobis distance</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="white" data-init='{"r":0,"s":0}'></div>
+    <div class="col">
+      <div class="block"><div class="bt">Measure in units of the cloud's spread</div><div class="bb">
+        A whitening matrix $\mW$ has $\mW\mK\mW^T=\mI$: $\bZ=\mW(\bX-\bmu)$ has covariance $\mI$, and $\mK^{-1}=\mW^T\mW$ gives
+        \[\Delta^2(\bx,\bmu)=\|\mW(\bx-\bmu)\|^2=\|\bz\|^2.\]
+      </div></div>
+      <p class="fragment small" data-set='{"r":1}'>For the running model, $\mW$ rotates the long axis onto a coordinate axis,</p>
+      <p class="fragment small" data-set='{"s":1}'>then divides each axis by its standard deviation: the ellipses become circles, with $\|\bz_A\|\approx2.31$ and $\|\bz_B\|=4$.</p>
+      <div class="block alertblock fragment"><div class="bt">Whitening turns Mahalanobis distance into length</div><div class="bb small">Mahalanobis distance is invariant under invertible changes of coordinates when the mean and covariance are transformed too.</div></div>
+    </div>
+  </div></div>
+  <aside class="notes">One choice is W = Lambda^(-1/2) Q^T from the eigendecomposition K = Q Lambda Q^T: rotate into the principal directions, then divide by their standard deviations. Any W with W^T W = K^(-1) works, for example one built from a Cholesky factor.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Gaussian density as a function of Mahalanobis distance</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="dprof" data-init='{"ab":0}'></div>
+    <div class="col">
+      <p>Write the exponent with $\Delta$:</p>
+      \[p_{\bX}(\bx)=\frac{1}{(2\pi)^{d/2}|\mK|^{1/2}}\exp\Big(-\frac12\Delta^2(\bx,\bmu)\Big)\]
+      <p class="fragment">With the whitened $\bz=\mW(\bx-\bmu)$ and $\Delta=\|\bz\|$:</p>
+      <div class="fragment">\[p_{\bX}(\bx)=\frac{1}{|\mK|^{1/2}}\,p_{\bZ}(\bz),\qquad\bZ\sim\cN(\bzero,\mI)\]</div>
+      <p class="fragment small" data-set='{"ab":1}'>Running model, $|\mK|=0.75$: $p_{\bX}(A)\approx0.0128$ at $\Delta_A\approx2.31$ and $p_{\bX}(B)\approx6.2\times10^{-5}$ at $\Delta_B=4$, a ratio of $e^{(16-16/3)/2}\approx207$.</p>
+      <div class="block alertblock fragment"><div class="bt">The density depends on $\bx$ only through $\Delta$</div><div class="bb small">
+        Points on one Mahalanobis ellipse share a density. The factor $|\mK|^{-1/2}$ rescales the standard Gaussian for the cloud's volume.
+      </div></div>
+    </div>
+  </div></div>
+  <aside class="notes">The factor |K|^(-1/2) is the Jacobian of the whitening map: |det W| = |K|^(-1/2), because W K W^T = I.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Zero covariance and independence</div>
+  <div class="fbody">
+    <div class="row" style="height:auto">
+      <div class="col">
+        <div class="fig" data-fig="zg" data-init='{"on":0,"x":0}'></div>
+        <div class="block"><div class="bt">Jointly Gaussian, $\rho=0$</div><div class="bb">
+          $\mK=\mI$, so $\cov(X_1,X_2)=0$.
+        </div></div>
+      </div>
+      <div class="col">
+        <div class="fig" data-fig="zu" data-init='{"on":0,"x":0}'></div>
+        <div class="block"><div class="bt">A curved relationship</div><div class="bb">
+          $X\sim\uni(-1,1)$ and $Y=X^2$: $\cov(X,Y)=\E[X^3]-\E[X]\E[X^2]=0$.
+        </div></div>
+      </div>
+    </div>
+    <p><span class="alert">Question:</span> In which picture does observing one coordinate help predict the other?</p>
+  </div>
+  <aside class="notes">Ask students to explain in terms of conditional distributions.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Uncorrelated versus independent</div>
+  <div class="fbody">
+    <div class="row" style="height:auto">
+      <div class="col">
+        <div class="fig" data-fig="zg" data-init='{"on":1,"x":-0.7}' style="zoom:0.88"></div>
+        <div class="block"><div class="bt">Jointly Gaussian, $\rho=0$</div><div class="bb">
+          A diagonal covariance matrix implies independent components. Knowing one coordinate leaves the other's distribution unchanged.
+        </div></div>
+      </div>
+      <div class="col">
+        <div class="fig" data-fig="zu" data-init='{"on":1,"x":-0.7}' style="zoom:0.88"></div>
+        <div class="block"><div class="bt">A curved relationship</div><div class="bb">
+          $\cov(X,Y)=0$, yet knowing $X$ determines $Y$ exactly.
+        </div></div>
+      </div>
+    </div>
+    <p class="fragment" data-set='{"x":0.3}' data-fragment-index="1" style="display:none"></p>
+    <div class="block alertblock fragment" data-set='{"x":0.9}' data-fragment-index="2"><div class="bt">Zero covariance does not imply independence</div><div class="bb">Independence implies zero covariance; the converse needs an assumption such as joint Gaussianity.</div></div>
+  </div>
+  <aside class="notes">Independence implies zero covariance when moments exist; the converse requires additional assumptions such as joint Gaussianity.</aside>
+</section>
+
+<!-- ============ 3. Conditioning: predicting unobserved coordinates ============ -->
+
+<section class="frame" id="sec-cond" data-map="-335,980">
+  <div class="frametitle">Conditional distribution of a bivariate Gaussian</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="cond" data-init='{"rho":0.5,"x2":0}'></div>
+    <div class="col">
+      <p>Fix $X_2=x_2$ and renormalize the joint density along that slice.</p>
+      <table class="vals">
+        <thead><tr><th>$x_2$</th><th>mean</th><th>variance</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td>0</td><td>0.75</td></tr>
+          <tr class="fragment" data-fragment-index="1" data-set='{"x2":1}'><td>1</td><td>0.5</td><td>0.75</td></tr>
+          <tr class="fragment" data-fragment-index="2" data-set='{"x2":2}'><td>2</td><td>1</td><td>0.75</td></tr>
+        </tbody>
+      </table>
+      <div class="block alertblock fragment" data-fragment-index="2"><div class="bt">Return to the missing height</div><div class="bb">
+        \[X_1\mid X_2=2\sim\cN(1,0.75)\]
+        The predicted mean moves up to 1, and the variance falls from 1 to 0.75.
+      </div></div>
+    </div>
+  </div></div>
+  <aside class="notes">Recall students' opening guesses. Contrast conditioning with marginalization: integrate over all x2 to recover the dashed marginal. Conditioning at an exact continuous value uses a conditional density, not a positive-probability event.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Conditional mean as a function of the observation</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="trace" data-init='{"x2":-2,"fin":0}'></div>
+    <div class="col">
+      <p>Move the observed value $x_2$ from $-2.5$ to $2.5$ and follow the conditional mean of $X_1$.</p>
+      <table class="vals">
+        <thead><tr><th>$x_2$</th><th>$\E[X_1\mid X_2=x_2]$</th></tr></thead>
+        <tbody>
+          <tr><td>$-2$</td><td>$-1$</td></tr>
+          <tr class="fragment" data-set='{"x2":0}'><td>0</td><td>0</td></tr>
+          <tr class="fragment" data-set='{"x2":2}'><td>2</td><td>1</td></tr>
+        </tbody>
+      </table>
+      <div class="block alertblock fragment" data-set='{"x2":2.5,"fin":1}'><div class="bt">A line with slope $\rho$</div><div class="bb">
+        \[\E[X_1\mid X_2=x_2]=\rho x_2\]
+        The band of one conditional standard deviation, $\pm\sqrt{1-\rho^2}=\pm0.866$, has the same width at every $x_2$.
+      </div></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Effect of $\rho$ on the conditional distribution</div>
+  <div class="fbody"><div class="row">
+    <div>
+      <div class="fig" data-fig="cond" data-init='{"rho":-0.5,"x2":2}'></div>
+      <div class="knobs"><label>$\rho$ <input type="range" data-param="rho" min="-0.95" max="0.95" step="0.05"><output></output></label>
+        <label>$x_2$ <input type="range" data-param="x2" min="-2.5" max="2.5" step="0.1"><output></output></label></div>
+    </div>
+    <div class="col">
+      <div class="block"><div class="bt">Standardized, jointly Gaussian</div><div class="bb">
+        \[X_1\mid X_2=x_2\sim\cN(\rho x_2,\,1-\rho^2)\]
+        Observed: $x_2=2$.
+      </div></div>
+      <p class="small"><span class="alert">Predict:</span> as $\rho$ changes, what moves the peak, and what sets the width?</p>
+      <table class="vals" style="margin-bottom:10px">
+        <thead><tr><th>$\rho$</th><th>mean</th><th>variance</th></tr></thead>
+        <tbody>
+          <tr><td>$-0.5$</td><td>$-1$</td><td>0.75</td></tr>
+          <tr class="fragment" data-set='{"rho":0}'><td>0</td><td>0</td><td>1</td></tr>
+          <tr class="fragment" data-set='{"rho":0.5}'><td>0.5</td><td>1</td><td>0.75</td></tr>
+          <tr class="fragment" data-set='{"rho":0.9}'><td>0.9</td><td>1.8</td><td>0.19</td></tr>
+        </tbody>
+      </table>
+      <p class="small fragment">The peak moves to $\rho x_2$: up for $\rho>0$, down for $\rho<0$. The width depends only on $|\rho|$: $\rho=\pm0.5$ give the same variance 0.75.</p>
+    </div>
+  </div></div>
+  <aside class="notes">Live: move x2, then rho. Ask which control moves the peak and which also changes its width. At rho=0 the conditional equals the marginal.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Your turn: conditioning in the reverse direction</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="rev" data-init='{"v":1,"d1":0,"h":0,"hb":0,"d2":0,"L":0}'></div>
+    <div class="col">
+      <p>Standardized model with $\rho=0.5$; the highlighted points have $x_2\approx2$.</p>
+      <p><span class="alert">Question:</span> If we observe $X_2=2$, what is $\E[X_1\mid X_2=2]$?</p>
+      <div class="fragment" data-set='{"d1":1}'>\[\E[X_1\mid X_2=2]=\rho\cdot2=1\]</div>
+      <p class="fragment" data-set='{"h":1}'><span class="alert">Question:</span> If instead we observe $X_1=1$, what is $\E[X_2\mid X_1=1]$?</p>
+      <span class="fragment" data-set='{"hb":1}'></span>
+      <div class="fragment" data-set='{"d2":1}'>\[\E[X_2\mid X_1=1]=\rho\cdot1=0.5\]
+        <p class="small">Inverting the first answer would give 2.</p></div>
+      <p class="fragment" data-set='{"L":1}'>Both conditional means have slope $\rho$ in standardized units: $x_1=0.5\,x_2$ and $x_2=0.5\,x_1$. They are two different lines, not inverses of each other.</p>
+    </div>
+  </div></div>
+  <aside class="notes">60-second pair discussion. Each line minimizes squared prediction error in a different coordinate.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Two regression lines: mother and son heights</div>
+  <div class="fbody"><div class="row">
+    <div>
+      <div class="fig" data-fig="ms" data-init='{"L1":0,"L2":0,"sd":0}'></div>
+      <p class="caption" style="margin-left:40px;max-width:500px">Galton, F. (1886). Regression towards mediocrity in hereditary stature. <i>J. Anthropological Institute</i> 15, 246&ndash;263.</p>
+    </div>
+    <div class="col">
+      <p>Heights in cm: mother $M\sim\cN(163,6^2)$, son $S\sim\cN(177,7^2)$, jointly Gaussian with $\rho=0.5$. <span class="small" style="color:#555">Illustrative values near adult height statistics.</span></p>
+      <div class="fragment" data-set='{"L1":1}'>
+        <p>A mother of 175 cm, 2 SD above her mean:</p>
+        \[\E[S\mid M=175]=177+0.5\cdot\tfrac76\cdot12=184\]
+      </div>
+      <p class="fragment"><span class="alert">Question:</span> Does a son of 184 cm predict a mother of 175 cm?</p>
+      <div class="fragment" data-set='{"L2":1}'>
+        \[\E[M\mid S=184]=163+0.5\cdot\tfrac67\cdot7=166\]
+      </div>
+      <div class="block alertblock fragment" data-set='{"sd":1}'><div class="bt">Regression to the mean, in both directions</div><div class="bb">
+        2 SD above the mean predicts 1 SD; 1 SD predicts 0.5 SD. Neither line follows the SD line (dashed), which matches SDs one for one. The spread does not shrink: sons keep SD 7, mothers SD 6.
+      </div></div>
+    </div>
+  </div></div>
+  <aside class="notes">Take guesses on the question before revealing. Tall mothers have tall sons on average, but less tall; those sons have mothers who are tall, but less tall. No contradiction: each line averages over a different slice of the cloud. Galton (1886, pp. 253&ndash;254) on the reverse direction: &ldquo;The converse of this law is very far from being its numerical opposite.&rdquo; He found a son's most probable mid-parent deviates one third as much as the son, while a son deviates two thirds as much as his mid-parent.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Origin of the term &ldquo;regression&rdquo;</div>
+  <div class="fbody">
+    <div class="fig" data-fig="terms" data-init='{}' data-nudge='{"g86":[1,1],"ls":[-123,-5],"yule":[175,-5]}'></div>
+    <div class="cards shrink" style="margin-top:6px;font-size:24px">
+      <div class="altcard"><div class="al" style="color:#A0521B">Regression to the mean</div>
+        Galton (1886): children of tall parents are, on average, less tall. He called it &ldquo;regression towards mediocrity.&rdquo; It runs in both directions and needs only $|\rho|<1$:
+        \[\frac{\E[S\mid M=m]-177}{7}=\rho\,\frac{m-163}{6}.\]
+      </div>
+      <div class="altcard"><div class="al" style="color:#087F80">Regression in least squares</div>
+        Least squares is older than the word. Yule (1897) fit Galton's lines by least squares, and &ldquo;regression&rdquo; came to mean predicting $Y$ from $X$. The line $a+bX$ with least mean squared error has
+        \[b=\frac{\cov(X,Y)}{\var(X)}=\rho\,\frac{\sigma_Y}{\sigma_X}.\]
+      </div>
+    </div>
+    <div class="block alertblock fragment"><div class="bt">Every least-squares line regresses toward the mean</div><div class="bb">
+      In SD units the least-squares slope is $\rho$. For mothers and sons, $b=0.5\cdot\tfrac76=\tfrac7{12}$ cm per cm: the red line on the previous slide.
+    </div></div>
+  </div>
+  <aside class="notes">Legendre published least squares in 1805 and Gauss in 1809, both for orbits from astronomical observations. Galton first called the effect "reversion" (seeds, 1877) and changed to "regression" once he saw it was symmetric and not genetic (Gorroochurn 2016, The American Statistician). Yule, On the Theory of Correlation, JRSS 60 (1897), 812-854. The population least-squares slope Cov/Var holds for any joint distribution; it equals the conditional mean only when that is linear, as for jointly Gaussian pairs. Linear regression, next, fits this line from data.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Conditioning a partitioned Gaussian vector</div>
+  <div class="fbody"><div class="row">
+    <div class="col" style="flex:0 0 300px">
+      <div class="blockmat">
+        <div class="hd">predict</div><div class="hd">observe</div>
+        <div class="aa">$\mK_{aa}$<span class="dim">2×2</span></div><div class="ab">$\mK_{ab}$<span class="dim">2×4</span></div>
+        <div class="ab">$\mK_{ba}$<span class="dim">4×2</span></div><div class="bb2">$\mK_{bb}$<span class="dim">4×4</span></div>
+      </div>
+      <p style="margin-top:22px">$\bX_a\in\mathbb R^2$: the child's height and weight.<br>$\bX_b\in\mathbb R^4$: both parents' heights and weights.</p>
+    </div>
+    <div class="col">
+      <div class="block"><div class="bt">Partition a jointly Gaussian vector</div><div class="bb">
+        \[\bX=\begin{pmatrix}\bX_a\\\bX_b\end{pmatrix},\qquad\bmu=\begin{pmatrix}\bmu_a\\\bmu_b\end{pmatrix}\]
+        For invertible $\mK_{bb}$, $\bX_a\mid\bX_b=\bx_b\sim\cN(\bmu_{a|b},\mK_{a|b})$ with
+        \[\begin{aligned}\bmu_{a|b}&=\bmu_a+\underbrace{\mK_{ab}\mK_{bb}^{-1}}_{\text{uses the relationship}}(\bx_b-\bmu_b)\\ \mK_{a|b}&=\mK_{aa}-\underbrace{\mK_{ab}\mK_{bb}^{-1}\mK_{ba}}_{\text{reduction in uncertainty}}\end{aligned}\]
+      </div></div>
+      <p class="fragment small">With one coordinate in each block, this is the running model: $\mK_{ab}\mK_{bb}^{-1}=\rho=0.5$ and $\mK_{a|b}=1-\rho^2=0.75$.</p>
+      <div class="block alertblock fragment"><div class="bt">One update for any number of observed coordinates</div><div class="bb small">The conditional remains Gaussian. The covariance reduction is positive semidefinite.</div></div>
+    </div>
+  </div></div>
+  <aside class="notes">Read the mean from right to left: observed deviation, scale by observed uncertainty, then use cross-covariance. Conditioning alone makes no causal claim.</aside>
+</section>
+
+<!-- ============ 4. From data to distribution ============ -->
+
+<section class="frame" id="sec-learn" data-map="-2938,-3348">
+  <div class="frametitle">Frequentist view: log-likelihood of a Gaussian sample</div>
+  <div class="fbody"><div class="row">
+    <div>
+      <div class="fig" data-fig="mle4" data-init='{"c":0,"e":0}'></div>
+      <p class="caption" style="margin-left:50px">Four illustrative samples.</p>
+    </div>
+    <div class="col">
+      <p>So far the distribution was known, and we predicted unobserved quantities from observed ones.</p>
+      <p><span class="alert">Question:</span> How do we find the distribution itself?</p>
+      <p class="fragment">Suppose we observe the points on the left, iid from $\cN(\btheta,\mK)$ with $\btheta$ and $\mK$ unknown.</p>
+      <div class="block fragment"><div class="bt">Log-likelihood of $n$ iid samples</div><div class="bb">
+        \[\begin{aligned}\ell(\btheta,\mK)&=\sum_{i=1}^n\ln p(\bx_i;\btheta,\mK)\\&=\frac n2\ln|\mK^{-1}|-\frac12\sum_{i}(\bx_i-\btheta)^T\mK^{-1}(\bx_i-\btheta)+c\end{aligned}\]
+        using $|\mK^{-1}|=1/|\mK|$, with $c=-\frac{nd}{2}\ln(2\pi)$.
+      </div></div>
+      <p class="fragment"><span class="alert">Question:</span> Which $\btheta$ and $\mK$ make these points most likely?</p>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Frequentist view: ML estimate of the mean</div>
+  <div class="fbody"><div class="row">
+    <div>
+      <div class="fig" data-fig="mle4" data-init='{"c":0,"e":0}'></div>
+      <p class="caption" style="margin-left:50px">Four illustrative samples.</p>
+    </div>
+    <div class="col">
+      <p>Maximize over $\btheta$:</p>
+      \[\ell(\btheta,\mK)=\frac n2\ln|\mK^{-1}|-\frac12\sum_{i}(\bx_i-\btheta)^T\mK^{-1}(\bx_i-\btheta)+c\]
+      <p class="small">For symmetric $\mK^{-1}$: $\frac{\partial}{\partial\btheta}(\bx-\btheta)^T\mK^{-1}(\bx-\btheta)=-2(\bx-\btheta)^T\mK^{-1}$.</p>
+      <div class="fragment">
+        \[\begin{aligned}\frac{\partial\ell}{\partial\btheta}&=\sum_{i}(\bx_i-\btheta)^T\mK^{-1}=\bzero^T\\ \Rightarrow\quad&\boxed{\hat\btheta_{\mle}=\bar\bx=\frac1n\sum_{i=1}^n\bx_i}\end{aligned}\]
+      </div>
+      <div class="block alertblock fragment" data-set='{"c":1}'><div class="bt">The center does not depend on $\mK$</div><div class="bb">
+        $\mK^{-1}$ is invertible, so the residuals (dashed) sum to $\bzero$. Here $\bar\bx=\frac14(4,8)^T=(1,2)^T$.
+      </div></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Frequentist view: ML estimate of the covariance</div>
+  <div class="fbody"><div class="row">
+    <div>
+      <div class="fig" data-fig="mle4" data-init='{"c":1,"e":0}'></div>
+      <p class="caption" style="margin-left:50px">Four illustrative samples.</p>
+    </div>
+    <div class="col">
+      <p>Substitute $\hat\btheta_{\mle}=\bar\bx$ and maximize over the precision matrix $\Lambda=\mK^{-1}$:</p>
+      \[\ell(\Lambda)=\frac n2\ln|\Lambda|-\frac12\sum_{i}(\bx_i-\bar\bx)^T\Lambda(\bx_i-\bar\bx)+c\]
+      <p class="small">For symmetric $\Lambda$: $\frac{\partial}{\partial\Lambda}\,\bx^T\Lambda\bx=\bx\bx^T$ and $\frac{\partial}{\partial\Lambda}\ln|\Lambda|=\Lambda^{-1}$.</p>
+      <div class="fragment">
+        \[\frac{\partial\ell}{\partial\Lambda}=\frac n2\Lambda^{-1}-\frac12\sum_{i}(\bx_i-\bar\bx)(\bx_i-\bar\bx)^T=\mathsf 0\]
+      </div>
+      <div class="fragment" data-set='{"e":1}'>
+        \[\boxed{\hat\mK_{\mle}=\hat\Lambda^{-1}=\frac1n\sum_{i=1}^n(\bx_i-\bar\bx)(\bx_i-\bar\bx)^T}\]
+        <div class="block alertblock"><div class="bt">The ML covariance averages outer products</div><div class="bb">Each residual contributes one outer product, and dividing by $n$ averages them.</div></div>
+      </div>
+    </div>
+  </div></div>
+  <aside class="notes">Differentiating with respect to the precision matrix keeps both terms simple: the log-determinant gives its inverse and the quadratic form gives the outer product. Treating the entries of Lambda as free gives the same stationary point as imposing symmetry. The next slide computes the four outer products for these samples.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Frequentist view: ML covariance of the four samples</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="outer" data-init='{"k":0,"e":0}'></div>
+    <div class="col">
+      <p>Residuals $\bx_i-\bar\bx$ of the four samples, and their outer products $(\bx_i-\bar\bx)(\bx_i-\bar\bx)^T$:</p>
+      <div class="fig" data-fig="outfly" data-init='{"f":0}'>
+      <div class="pairs" style="gap:16px 34px;margin:6px 0 18px">
+        <div class="fragment" data-set='{"k":1}'>$\textcolor{#087F80}{\begin{pmatrix}-2\\-1\end{pmatrix}}\ \mapsto\ \htmlClass{s1}{\textcolor{#087F80}{\begin{pmatrix}4&2\\2&1\end{pmatrix}}}$</div>
+        <div class="fragment" data-set='{"k":2}'>$\textcolor{#B33362}{\begin{pmatrix}0\\-1\end{pmatrix}}\ \mapsto\ \htmlClass{s2}{\textcolor{#B33362}{\begin{pmatrix}0&0\\0&1\end{pmatrix}}}$</div>
+        <div class="fragment" data-set='{"k":3}'>$\textcolor{#A0521B}{\begin{pmatrix}1\\0\end{pmatrix}}\ \mapsto\ \htmlClass{s3}{\textcolor{#A0521B}{\begin{pmatrix}1&0\\0&0\end{pmatrix}}}$</div>
+        <div class="fragment" data-set='{"k":4}'>$\textcolor{#6A3D9A}{\begin{pmatrix}1\\2\end{pmatrix}}\ \mapsto\ \htmlClass{s4}{\textcolor{#6A3D9A}{\begin{pmatrix}1&2\\2&4\end{pmatrix}}}$</div>
+      </div>
+      \[\begin{aligned}\htmlClass{gA}{\hat\mK_{\mle}}&\htmlClass{gA}{{}=\tfrac14\Big(}\htmlClass{d1}{\textcolor{#087F80}{\begin{pmatrix}4&2\\2&1\end{pmatrix}}}\htmlClass{gA}{+}\htmlClass{d2}{\textcolor{#B33362}{\begin{pmatrix}0&0\\0&1\end{pmatrix}}}\htmlClass{gA}{+}\htmlClass{d3}{\textcolor{#A0521B}{\begin{pmatrix}1&0\\0&0\end{pmatrix}}}\htmlClass{gA}{+}\htmlClass{d4}{\textcolor{#6A3D9A}{\begin{pmatrix}1&2\\2&4\end{pmatrix}}}\htmlClass{gA}{\Big)}\\&\htmlClass{gR}{{}=\tfrac14\begin{pmatrix}6&4\\4&6\end{pmatrix}=\begin{pmatrix}1.5&1\\1&1.5\end{pmatrix}}\end{aligned}\]
+      </div>
+      <span class="fragment" data-set='{"f":1}'></span>
+      <p class="fragment small" data-set='{"e":1}'>The two residuals along the tilt supply the off-diagonal 4. The fitted $\Delta=1$ ellipse follows the tilt.</p>
+    </div>
+  </div></div>
+  <aside class="notes">Each click adds one residual and its outer product. The next click moves the four products into the average.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Frequentist view: bias of the ML covariance</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="bias" data-init='{"u":0}'></div>
+    <div class="col small">
+      <p>Residuals are measured from $\bar\bx$, which is fit to the same samples, so they run shorter than deviations from the true $\btheta^*$.</p>
+      <div class="fragment">
+        \[\begin{aligned}&\sum_i(\bx_i-\bar\bx)(\bx_i-\bar\bx)^T\\&\quad=\sum_i(\bx_i-\btheta^*)(\bx_i-\btheta^*)^T-n(\bar\bx-\btheta^*)(\bar\bx-\btheta^*)^T\\&\quad\text{has mean }n\mK^*-n\cdot\tfrac1n\mK^*=(n-1)\,\mK^*.\end{aligned}\]
+      </div>
+      <div class="fragment">
+        <p>So $\E\big[\hat\mK_{\mle}\big]=\frac{n-1}n\,\mK^*$. Dividing by $n-1$ instead is unbiased:</p>
+        \[\boxed{\frac1{n-1}\sum_{i=1}^n(\bx_i-\bar\bx)(\bx_i-\bar\bx)^T}\]
+      </div>
+      <p class="fragment" data-set='{"u":1}'>Here $\tfrac13\begin{pmatrix}6&4\\4&6\end{pmatrix}=\begin{pmatrix}2&4/3\\4/3&2\end{pmatrix}$: the same shape, a larger ellipse.</p>
+      <p class="fragment small">If $n\le d$, the sample covariance is necessarily singular: a nonsingular Gaussian fit needs enough independent directions.</p>
+    </div>
+  </div></div>
+  <aside class="notes">The identity follows by writing x_i - xbar = (x_i - theta*) - (xbar - theta*) and expanding; the cross terms sum to -n(xbar - theta*)(xbar - theta*)^T. Cov(xbar) = K*/n for iid samples. With n = 4 the unbiased estimate is 4/3 times the ML estimate.</aside>
+</section>
+
+
+<section class="frame">
+  <div class="frametitle">Bayesian view: posterior of the mean, known covariance</div>
+  <div class="fbody" style="display:flex;flex-direction:column;justify-content:space-evenly">
+    <div class="block"><div class="bt">Unknown mean, known observation covariance $\mK$</div><div class="bb">
+      \[\cpr{\bTheta\sim\cN(\bmu_0,\mS_0)},\qquad\clk{\bX_i\mid\bTheta\sim\cN(\bTheta,\mK)}\quad\text{conditionally iid}\]
+    </div></div>
+    <div class="cards">
+      <div class="altcard"><div class="al">One coordinate (Chapter 3)</div>
+        \[\cpo{\frac{1}{\tau_1^2}}=\cpr{\frac{1}{\tau_0^2}}+\clk{\frac{n}{\sigma^2}},\qquad
+          \cpo{\mu_1}=\cpo{\tau_1^2}\Big(\cpr{\frac{\theta_0}{\tau_0^2}}+\clk{\frac{n\bar y}{\sigma^2}}\Big)\]
+      </div>
+      <div class="altcard"><div class="al">A vector</div>
+        \[\cpo{\mS_n^{-1}}=\cpr{\mS_0^{-1}}+\clk{n\mK^{-1}},\qquad
+          \cpo{\hat\btheta_n}=\cpo{\mS_n}\big(\cpr{\mS_0^{-1}\bmu_0}+\clk{n\mK^{-1}\bar\bx}\big)\]
+      </div>
+    </div>
+    <p>The posterior is $\cpo{\cN(\hat\btheta_n,\mS_n)}$. The data mean has covariance $\mK/n$; its precision is $n\mK^{-1}$.</p>
+    <div class="block alertblock fragment"><div class="bt">Learning adds precision matrices</div><div class="bb">$\mK$ is the spread of one observation, and $\mS_n$ the uncertainty about the mean. This is Chapter 3's Gaussian update, with a separate uncertainty structure for different directions.</div></div>
+  </div>
+  <aside class="notes">Observation covariance K describes individual measurements; Sn describes uncertainty about the mean. Both covariance matrices are positive definite here.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Bayesian view: posterior mean with unequal precisions</div>
+  <div class="fbody"><div class="row">
+    <div class="fig" data-fig="bayes" data-init='{"w":0}'></div>
+    <div class="col">
+      <div class="block"><div class="bt">Predict the posterior center</div><div class="bb">
+        \[\cpr{\bmu_0=\begin{pmatrix}0\\0\end{pmatrix},\quad \mS_0=\begin{pmatrix}1&0\\0&4\end{pmatrix}}\]
+        \[\clk{\bar\bx=\begin{pmatrix}2\\2\end{pmatrix},\quad \frac{\mK}{n}=\begin{pmatrix}4&0\\0&1\end{pmatrix}}\]
+        Which source is more precise in each coordinate?
+      </div></div>
+      <div class="fragment" data-set='{"w":1}'>
+        \[\cpo{\hat\btheta_n=\begin{pmatrix}0.4\\1.6\end{pmatrix},\qquad\mS_n=0.8\,\mI}\]
+        <div class="block alertblock"><div class="bt">Different directions trust different evidence</div><div class="bb small">The prior gets more weight in coordinate 1; the data get more weight in coordinate 2. The posterior center is off the dashed line between the two centers.</div></div>
+      </div>
+    </div>
+  </div></div>
+  <aside class="notes">The animation adds the data precision gradually, from none to all of it; the dotted path is the posterior center along the way. Precisions per coordinate: 1 + 1/4 = 5/4 and 1/4 + 1 = 5/4.</aside>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Bayesian view: the posterior as the sample size grows</div>
+  <div class="fbody"><div class="row">
+    <div>
+      <div class="fig" data-fig="bayesn" data-init='{"n":1}'></div>
+      <div class="knobs"><label>$n$ <input type="range" data-param="n" data-digits="0" min="1" max="30" step="1"><output></output></label></div>
+    </div>
+    <div class="col">
+      <p>Same prior; individual observations have $\mK=\begin{pmatrix}4&0\\0&1\end{pmatrix}$, and the data mean stays at $\bar\bx=(2,2)^T$ while $n$ grows.</p>
+      <table class="vals">
+        <thead><tr><th>$n$</th><th>$\hat\btheta_n$</th><th>$\mS_n$</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>$(0.4,\,1.6)^T$</td><td>$\mathrm{diag}(0.8,\,0.8)$</td></tr>
+          <tr class="fragment" data-set='{"n":4}'><td>4</td><td>$(1,\,32/17)^T$</td><td>$\mathrm{diag}(0.5,\,4/17)$</td></tr>
+        </tbody>
+      </table>
+      <div class="block alertblock fragment"><div class="bt">More data moves the posterior to the data</div><div class="bb small">The data precision $n\mK^{-1}$ grows in both coordinates, and coordinate 2, where the data were already more precise, stays closer to $\bar\bx$.</div></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Summary</div>
+  <div class="fbody" style="top:100px">
+    <div class="sumrow"><svg class="icon" data-icon="cov" width="110" height="64"></svg>
+      <div>The mean locates a cloud; covariance describes its deviations and how a linear map transforms them.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="maha" width="110" height="64"></svg>
+      <div>Gaussian ellipses turn covariance into geometry. Mahalanobis distance measures deviations relative to that geometry.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="slice" width="110" height="64"></svg>
+      <div>Conditioning uses observed coordinates to shift the mean and reduce uncertainty about the remaining coordinates.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="bayes" width="110" height="64"></svg>
+      <div>Maximum likelihood learns the center and shape from data. Bayesian mean estimation combines prior and data precision.</div></div>
+    <div class="block" style="margin-top:6px"><div class="bt">Exit question</div><div class="bb">
+      For jointly Gaussian $X_1,X_2$ with $\rho=0$, what changes in the distribution of $X_1$ when we observe $X_2$?
+      <span class="fragment">Nothing: the two variables are independent, so the conditional equals the marginal.</span>
+    </div></div>
+    <p><span class="alert">Next:</span> Linear regression, Chapter 5.</p>
+  </div>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="figs.js"></script>
+<script>startDeck();</script>
+</body>
+</html>
