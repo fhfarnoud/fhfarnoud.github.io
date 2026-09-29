@@ -168,13 +168,13 @@ const ICONS = {};   // name -> function(svg), for <svg class="icon" data-icon="n
 
 // "n / N", with N counted before reveal wraps the slides into print pages.
 let NSLIDES = 0;
-function slideLabel(slide) { return [slide ? slide.dataset.n : '', '/', NSLIDES]; }
+function slideLabel(slide) { return [slide ? slide.dataset.n : '', '/', NSLIDES].concat(slide && slide.dataset.drawerPage ? ['· derivation'] : []); }
 
 // State = data-init, then the data-set of each visible fragment in order.
 function stateFor(root) {
   const p = JSON.parse(root.dataset.init || '{}');
   const slide = root.closest('section');
-  [...slide.querySelectorAll('.fragment.visible[data-set]')]
+  [...slide.querySelectorAll('.fragment.visible[data-set], .shown[data-set]')]
     .filter(f => !f.dataset.for || f.dataset.for === root.dataset.fig)
     .sort((a, b) => (+a.dataset.fragmentIndex || 0) - (+b.dataset.fragmentIndex || 0))
     .forEach(f => Object.assign(p, JSON.parse(f.dataset.set)));
@@ -302,6 +302,46 @@ function spread(box) {
   box.style.paddingTop = Math.floor((free - g * wide.length) / 2) + 'px';
   box.style.boxSizing = 'border-box';
 }
+// Derivation drawer: a slide's <div class="drawer"> gets a tab at the bottom
+// left; the tab or the D key opens it, and D, Escape or leaving the slide
+// closes it. In print, each such slide is followed by a copy of its final
+// state with the drawer open, labelled "n / N · derivation".
+function wireDrawers() {
+  const secs = [...document.querySelectorAll('.slides > section')].filter(s => s.querySelector(':scope > .drawer'));
+  if (PRINT) {
+    secs.forEach(sec => {
+      const c = sec.cloneNode(true);
+      c.classList.add('drawer-open'); c.dataset.drawerPage = '1'; c.removeAttribute('id');
+      c.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
+      c.querySelectorAll('.fragment').forEach(f => { f.classList.remove('fragment'); f.classList.add('shown'); });
+      c.querySelectorAll('aside.notes').forEach(a => a.remove());
+      sec.after(c);
+      c.querySelectorAll('.fig[data-fig]').forEach(root => { root.innerHTML = ''; FIGS[root.dataset.fig].init(root); draw(root, stateFor(root)); });
+    });
+    return;
+  }
+  const toggle = (sec, open) => {
+    if (!sec || !sec.querySelector(':scope > .drawer')) return;
+    open = open == null ? !sec.classList.contains('drawer-open') : open;
+    sec.classList.toggle('drawer-open', open);
+    sec.querySelector(':scope > .drawer-tab').textContent = open ? 'Close derivation \u25C2' : 'Derivation \u25B8';
+  };
+  secs.forEach(sec => {
+    const tab = document.createElement('div');
+    tab.className = 'drawer-tab'; tab.textContent = 'Derivation \u25B8';
+    tab.addEventListener('click', e => { e.stopPropagation(); toggle(sec); });
+    sec.appendChild(tab);
+  });
+  document.addEventListener('keydown', e => {
+    const sec = window.Reveal && Reveal.getCurrentSlide();
+    if (!sec || !sec.querySelector(':scope > .drawer') || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'd' || e.key === 'D') toggle(sec);
+    else if (e.key === 'Escape' && sec.classList.contains('drawer-open')) toggle(sec, false);
+    else return;
+    e.preventDefault(); e.stopPropagation();
+  }, true);
+  document.querySelector('.reveal').addEventListener('slidechanged', e => toggle(e.previousSlide, false));
+}
 async function startDeck(opts = {}) {
   if (PRINT) document.documentElement.classList.add('deck-print');
   document.querySelectorAll('.slides > section').forEach((sec, i) => { sec.dataset.n = i + 1; });
@@ -318,6 +358,7 @@ async function startDeck(opts = {}) {
   if (!PRINT) wireKnobs();
   await document.fonts.ready;
   document.querySelectorAll('.slides > section').forEach(balance);
+  wireDrawers();
 
   Reveal.on('ready', () => { document.querySelectorAll('.fig[data-fig]').forEach(r => show(r));
     document.documentElement.dataset.deckReady = '1'; });

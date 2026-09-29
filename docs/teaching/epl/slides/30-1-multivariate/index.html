@@ -775,12 +775,23 @@
           \cpo{\mu_1}=\cpo{\tau_1^2}\Big(\cpr{\frac{\theta_0}{\tau_0^2}}+\clk{\frac{n\bar y}{\sigma^2}}\Big)\]
       </div>
       <div class="altcard"><div class="al">A vector</div>
-        \[\cpo{\mS_n^{-1}}=\cpr{\mS_0^{-1}}+\clk{n\mK^{-1}},\qquad
-          \cpo{\hat\btheta_n}=\cpo{\mS_n}\big(\cpr{\mS_0^{-1}\bmu_0}+\clk{n\mK^{-1}\bar\bx}\big)\]
+        \[\htmlClass{dk1}{\cpo{\mS_n^{-1}}=\cpr{\mS_0^{-1}}+\clk{n\mK^{-1}}},\qquad
+          \htmlClass{dk2}{\cpo{\hat\btheta_n}=\cpo{\mS_n}\big(\cpr{\mS_0^{-1}\bmu_0}+\clk{n\mK^{-1}\bar\bx}\big)}\]
       </div>
     </div>
-    <p>The posterior is $\cpo{\cN(\hat\btheta_n,\mS_n)}$. The data mean has covariance $\mK/n$; its precision is $n\mK^{-1}$.</p>
+    <p>The posterior is $\cpo{\cN(\hat\btheta_n,\mS_n)}$. <span class="dk3">The data mean has covariance $\mK/n$; its precision is $n\mK^{-1}$.</span></p>
     <div class="block alertblock fragment"><div class="bt">Learning adds precision matrices</div><div class="bb">$\mK$ is the spread of one observation, and $\mS_n$ the uncertainty about the mean. This is Chapter 3's Gaussian update, with a separate uncertainty structure for different directions.</div></div>
+  </div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p>Log prior plus log likelihood, up to constants; then expand with $(\ba-\bb)^T\mA(\ba-\bb)=\ba^T\mA\ba-2\ba^T\mA\bb+\bb^T\mA\bb$ for symmetric $\mA$, use $\sum_i\bx_i=n\bar\bx$, and collect powers of $\btheta$:</p>
+    \[\begin{aligned}\ln p(\btheta\mid\bx_1^n)&=-\tfrac12(\btheta-\bmu_0)^T\mS_0^{-1}(\btheta-\bmu_0)\\
+      &\quad-\tfrac12\textstyle\sum_{i=1}^n(\bx_i-\btheta)^T\mK^{-1}(\bx_i-\btheta)+c\\
+      &=-\tfrac12\,\btheta^T\htmlClass{dk1}{(\mS_0^{-1}+n\mK^{-1})}\,\btheta+\btheta^T\htmlClass{dk2}{(\mS_0^{-1}\bmu_0+n\mK^{-1}\bar\bx)}+c'.\end{aligned}\]
+    <p>A Gaussian $\cN(\boldsymbol m,\mS)$ has $\ln p(\btheta)=-\tfrac12\,\btheta^T\mS^{-1}\btheta+\btheta^T\mS^{-1}\boldsymbol m+c''$. Matching the two:</p>
+    <p class="dk1">Quadratic terms: $\mS_n^{-1}=\mS_0^{-1}+n\mK^{-1}$.</p>
+    <p class="dk2">Linear terms: $\mS_n^{-1}\hat\btheta_n=\mS_0^{-1}\bmu_0+n\mK^{-1}\bar\bx$. Multiply by $\mS_n$.</p>
+    <p class="dk3">Given $\bTheta$, the $\bX_i$ are independent with covariance $\mK$, so $\cov(\bar\bX\mid\bTheta)=\frac{1}{n^2}\,n\mK=\mK/n$.</p>
   </div>
   <aside class="notes">Observation covariance K describes individual measurements; Sn describes uncertainty about the mean. Both covariance matrices are positive definite here.</aside>
 </section>
