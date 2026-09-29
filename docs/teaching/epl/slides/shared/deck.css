@@ -94,7 +94,7 @@ ol.toc a:hover { color: var(--struct); }
   overflow: hidden; background: #f3f3f3; display: flex; align-items: center; justify-content: center; }
 .illus img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .illus .ph { position: absolute; left: 40px; top: 45%; color: #888; font-size: 20px; }
-.illus-cap { position: absolute; left: 16px; bottom: 12px; margin: 0; padding: 2px 8px;
+.illus-cap { position: absolute; left: 16px; bottom: 40px; margin: 0; padding: 2px 8px;
   background: rgba(255,255,255,.8); border-radius: 4px; color: #444; }
 .illus-text { position: absolute; left: 540px; width: 640px; top: 112px; }
 section.lay-left .illus-text { left: 40px; }
