@@ -265,6 +265,43 @@ function toSlideEnd(d) {
     const i = +f.dataset.fragmentIndex; if (i > last) last = i; });
   Reveal.slide(h, 0, last >= 0 ? last : undefined);
 }
+// Vertical balance: a text column (a .col of a .row, or a .fbody without one)
+// spreads over the body's height, its blocks moved apart by up to BAL_GAP
+// each and the rest of the free height split above and below, and a figure
+// beside a column is centred. Measured once, before reveal clones slides for
+// printing; hidden build steps keep their space, so nothing moves on a click.
+const BAL_GAP = 34;
+function balance(sec) {
+  const hidden = getComputedStyle(sec).display === 'none';
+  if (hidden) sec.style.display = 'block';
+  sec.querySelectorAll('.fbody').forEach(fb => {
+    const row = fb.querySelector(':scope > .row');
+    if (!row) { spread(fb); return; }
+    const cols = [...row.children].filter(c => c.classList.contains('col'));
+    if (!cols.length) return;
+    [...row.children].forEach(c => { c.style.alignSelf = cols.includes(c) ? 'stretch' : 'center'; });
+    cols.forEach(spread);
+  });
+  if (hidden) sec.style.display = '';
+}
+function spread(box) {
+  // a display formula sits in auto-render's inline wrapper; its margins are on the inner block
+  const kids = [...box.children].map(k => k.tagName === 'SPAN' && k.querySelector(':scope > .katex-display') || k)
+    .filter(k => k.tagName !== 'ASIDE' && getComputedStyle(k).position !== 'absolute' && k.offsetHeight > 0);
+  if (!kids.length) return;
+  const top = box.getBoundingClientRect().top, last = kids[kids.length - 1];
+  const used = last.getBoundingClientRect().bottom - top, free = box.clientHeight - used - 6;
+  if (free < 24) return;
+  // no extra space inside a sentence: after a lead-in ending in a colon, or
+  // before a paragraph that goes on with the sentence (it starts lowercase)
+  const leadIn = k => k.tagName === 'P' && /:\s*$/.test(k.textContent);
+  const goesOn = k => k.firstChild && k.firstChild.nodeType === 3 && /^\s*[a-z]/.test(k.firstChild.data);
+  const wide = kids.slice(0, -1).filter((k, j) => !leadIn(k) && !goesOn(kids[j + 1]));
+  const g = Math.min(BAL_GAP, free / (wide.length + 2));
+  wide.forEach(k => { k.style.marginBottom = (parseFloat(getComputedStyle(k).marginBottom) + g) + 'px'; });
+  box.style.paddingTop = Math.floor((free - g * wide.length) / 2) + 'px';
+  box.style.boxSizing = 'border-box';
+}
 async function startDeck(opts = {}) {
   if (PRINT) document.documentElement.classList.add('deck-print');
   document.querySelectorAll('.slides > section').forEach((sec, i) => { sec.dataset.n = i + 1; });
@@ -280,6 +317,7 @@ async function startDeck(opts = {}) {
   document.querySelectorAll('.fig[data-fig]').forEach(root => { FIGS[root.dataset.fig].init(root); show(root); });
   if (!PRINT) wireKnobs();
   await document.fonts.ready;
+  document.querySelectorAll('.slides > section').forEach(balance);
 
   Reveal.on('ready', () => { document.querySelectorAll('.fig[data-fig]').forEach(r => show(r));
     document.documentElement.dataset.deckReady = '1'; });
