@@ -243,6 +243,27 @@
     if (window.Reveal && Reveal.isReady && Reveal.isReady()) bind(); else if (rv) rv.addEventListener('ready', bind);
   }
 
+  // Stepping forward off a map slide flies from the map's current view into
+  // the next slide's thumbnail, which then fades into the slide itself (the
+  // thumbnail shows the slide's final state).
+  if (!PRINT) {
+    const rv = document.querySelector('.reveal');
+    if (rv) rv.addEventListener('slidechanged', e => {
+      const prev = e.previousSlide, cur = e.currentSlide;
+      if (!prev || prev.dataset.slide !== 'map' || cur.dataset.slide === 'map') return;
+      const i = Reveal.getIndices(cur).h, src = prev.querySelector('.mapfig svg');
+      if (Reveal.getIndices(prev).h !== i - 1 || !model().drawn.includes(i) || !src) return;
+      const box = document.createElement('div'), svg = src.cloneNode(true);
+      box.className = 'mapfig mapzoom'; box.style.width = W + 'px'; box.style.height = H + 'px'; box.appendChild(svg); cur.appendChild(box);
+      // no cross-fade on this step: the copy replaces the map at once
+      prev.style.transition = cur.style.transition = 'none';
+      const vb = svg.getAttribute('viewBox').split(' ').map(Number);
+      fly(svg, { cx: vb[0] + vb[2] / 2, cy: vb[1] + vb[3] / 2, w: vb[2] }, slideView(i), 900, () => {
+        prev.style.transition = cur.style.transition = '';
+        box.classList.add('out'); setTimeout(() => box.remove(), 350); });
+    });
+  }
+
   FIGS.deckmap = {
     duration: 1600,
     enter: { t: 0 },

@@ -123,6 +123,8 @@ html.deck-print .knobs { display: none; }
 /* The deck map (deckmap.js): a full-slide mind map of thumbnails */
 .mapfig { position: absolute; left: 0; top: 0; background: #efebe4; }
 .mapslide-thumb { cursor: pointer; }
+.mapzoom { z-index: 50; pointer-events: none; transition: opacity .3s; }
+.mapzoom.out { opacity: 0; }
 .deck-print .mapslide-thumb { cursor: default; }
 .deckmap-overlay { position: fixed; inset: 0; z-index: 100; background: #efebe4; opacity: 0; transition: opacity .25s; }
 .deckmap-overlay.on { opacity: 1; }
