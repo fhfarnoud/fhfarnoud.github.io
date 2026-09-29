@@ -243,24 +243,35 @@
     if (window.Reveal && Reveal.isReady && Reveal.isReady()) bind(); else if (rv) rv.addEventListener('ready', bind);
   }
 
-  // Stepping forward off a map slide flies from the map's current view into
-  // the next slide's thumbnail, which then fades into the slide itself (the
-  // thumbnail shows the slide's final state).
+  // The map is one physical surface: stepping between a map slide and the
+  // slide next to it, either way, flies between that slide's thumbnail and
+  // the map, never cross-fades. Entering a map starts on the slide just left
+  // (forward, render's t = 0 view; backward, the flight below); leaving one
+  // flies into the slide being entered, and its thumbnail (the slide's final
+  // state) then fades into the slide.
   if (!PRINT) {
     const rv = document.querySelector('.reveal');
+    const vbOf = svg => { const b = svg.getAttribute('viewBox').split(' ').map(Number); return { cx: b[0] + b[2] / 2, cy: b[1] + b[3] / 2, w: b[2] }; };
+    const still = (a, b, ms) => { a.style.transition = b.style.transition = 'none';
+      setTimeout(() => { a.style.transition = b.style.transition = ''; }, ms); };
     if (rv) rv.addEventListener('slidechanged', e => {
       const prev = e.previousSlide, cur = e.currentSlide;
-      if (!prev || prev.dataset.slide !== 'map' || cur.dataset.slide === 'map') return;
-      const i = Reveal.getIndices(cur).h, src = prev.querySelector('.mapfig svg');
-      if (Reveal.getIndices(prev).h !== i - 1 || !model().drawn.includes(i) || !src) return;
+      if (!prev || (prev.dataset.slide === 'map') === (cur.dataset.slide === 'map')) return;
+      const i = Reveal.getIndices(cur).h, j = Reveal.getIndices(prev).h;
+      if (Math.abs(i - j) !== 1 || !model().drawn.includes(cur.dataset.slide === 'map' ? j : i)) return;
+      if (cur.dataset.slide === 'map') {
+        still(prev, cur, 1700);
+        // backward: deck.js draws the map's final state after this handler; fly out to it
+        const svg = cur.querySelector('.mapfig svg');
+        if (svg && j === i + 1) requestAnimationFrame(() => { const B = vbOf(svg); setView(svg, slideView(j)); fly(svg, slideView(j), B, 1200); });
+        return;
+      }
+      const src = prev.querySelector('.mapfig svg');
+      if (!src) return;
       const box = document.createElement('div'), svg = src.cloneNode(true);
       box.className = 'mapfig mapzoom'; box.style.width = W + 'px'; box.style.height = H + 'px'; box.appendChild(svg); cur.appendChild(box);
-      // no cross-fade on this step: the copy replaces the map at once
-      prev.style.transition = cur.style.transition = 'none';
-      const vb = svg.getAttribute('viewBox').split(' ').map(Number);
-      fly(svg, { cx: vb[0] + vb[2] / 2, cy: vb[1] + vb[3] / 2, w: vb[2] }, slideView(i), 900, () => {
-        prev.style.transition = cur.style.transition = '';
-        box.classList.add('out'); setTimeout(() => box.remove(), 350); });
+      still(prev, cur, 950);
+      fly(svg, vbOf(svg), slideView(i), 900, () => { box.classList.add('out'); setTimeout(() => box.remove(), 350); });
     });
   }
 
@@ -278,7 +289,9 @@
       });
     },
     render(root, p) {
-      const A = view(rectOf(p.a)), O = view(rectOf('all')), B = view(rectOf(p.b)), t = clamp(p.t, 0, 2);
+      const i = +root.closest('section').dataset.n - 1, m = model();
+      const A = m.drawn.includes(i - 1) ? slideView(i - 1) : view(rectOf(p.a));
+      const O = view(rectOf('all')), B = view(rectOf(p.b)), t = clamp(p.t, 0, 2);
       showView(root.querySelector('svg'), t <= 1 ? lerpView(A, O, t) : lerpView(O, B, t - 1));
     }
   };
