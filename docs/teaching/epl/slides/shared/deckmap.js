@@ -94,8 +94,12 @@
     };
     heads.forEach(h => { if (h.slide < 0) { const o = off(hub); h.at = [h.at[0] + o[0], h.at[1] + o[1]]; } });
     const pos = b.map((p, i) => { const o = off(i); return [p[0] + o[0], p[1] + o[1]]; });
-    const thumbs = all.map((s, i) => `img/thumbs/${i + 1}.jpg`);
-    return (M = { n, O, pre, hub, heads, colour, pos, drawn, thumbs });
+    // a slide next to a map slide is seen at full size when a zoom starts or
+    // ends on it, so on screen it is drawn from a sharp copy (make_thumbs.py)
+    const near = new Set(), small = all.map((s, i) => `img/thumbs/${i + 1}.jpg`);
+    all.forEach((s, i) => { if (isMap(s)) [i - 1, i + 1].forEach(j => { if (all[j] && !isMap(all[j])) near.add(j); }); });
+    const thumbs = small.map((t, i) => !PRINT && near.has(i) ? `img/thumbs/full/${i + 1}.jpg` : t);
+    return (M = { n, O, pre, hub, heads, colour, pos, drawn, thumbs, small });
   }
 
   // camera rectangles, in map units
@@ -167,7 +171,8 @@
       mk('rect', { x, y, width: W, height: H, fill: 'none', stroke: col, 'stroke-width': 2 * sw }, gb);
       const g = mk('g', { class: 'mapslide-thumb', 'data-n': i + 1 }, gs);
       mk('rect', { x, y, width: W, height: H, fill: '#fff' }, g);
-      mk('image', { href: m.thumbs[i], x, y, width: W, height: H, preserveAspectRatio: 'xMidYMid meet' }, g);
+      const im = mk('image', { href: m.thumbs[i], x, y, width: W, height: H, preserveAspectRatio: 'xMidYMid meet' }, g);
+      if (m.thumbs[i] !== m.small[i]) im.addEventListener('error', () => im.setAttribute('href', m.small[i]), { once: true });
       mk('rect', { x: x + 16, y: y + H - 72, width: 22 + 26 * String(i + 1).length, height: 56, rx: 10, fill: 'rgba(40,36,33,.78)' }, gn);
       mk('text', { x: x + 27, y: y + H - 29, fill: '#fff', 'font-size': 40, 'font-weight': 600, 'font-family': 'system-ui,-apple-system,sans-serif' }, gn).textContent = String(i + 1);
     });
