@@ -20,6 +20,12 @@
 .blockmat .ab { background-color: rgba(204,136,0,.13); }
 .outer { display: grid; grid-template-columns: 150px auto; gap: 4px 22px; align-items: center; font-size: 25px; margin: 0 0 12px; }
 .pairs { display: grid; grid-template-columns: auto auto; justify-content: start; gap: 4px 34px; font-size: 24px; margin: 0 0 4px; }
+/* the opening slide's needs, each tagged with its parts in the map's branch colours */
+ul.needs { list-style: none; padding: 0; margin: 0 0 16px; }
+ul.needs li { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 12px; }
+ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
+.partno { display: inline-block; width: 28px; height: 28px; border-radius: 50%; color: #fff; font-size: 17px; font-weight: 700;
+  text-align: center; line-height: 28px; margin-right: 3px; }
 .cards { display: flex; gap: 24px; margin: 0 0 18px; }
 .cards .altcard { flex: 1 1 0; }
 .cards.shrink .altcard { min-width: 0; }
@@ -49,16 +55,17 @@
          onerror="this.parentNode.innerHTML='&lt;div class=&quot;ph&quot;&gt;Missing image: '+this.getAttribute('src')+'&lt;/div&gt;'">
   </div>
   <div class="caption illus-cap">AI-generated illustration</div>
-  <div class="frametitle">Predicting a missing coordinate</div>
+  <div class="frametitle">From data to prediction</div>
   <div class="illus-text">
-    <div class="block"><div class="bt">Paired measurements</div><div class="bb">
-      $X_2$: parent's height.<br>
-      $X_1$: adult child's height.<br>
-      Both in standard deviations from their means.
-    </div></div>
-    <p>Model: $(X_1,X_2)$ jointly Gaussian, means 0, variances 1, correlation $\rho=0.5$.</p>
-    <p class="small" style="color:#555">Illustrative model, not measured height data.</p>
-    <p><span class="alert">Question:</span> Given a parent's height, what should we predict for the child's adult height, and how sure can we be?</p>
+    <p><span class="alert">Question:</span> How can we predict a child's adult height?</p>
+    <p>Can we use the parents' heights?</p>
+    <p style="margin-bottom:8px"><b>What we need:</b></p>
+    <ul class="needs">
+      <li><span class="tags"><span class="partno" style="background:#2354A8">1</span><span class="partno" style="background:#008000">2</span></span><span>A model of the relationship between the known (the parents' heights) and the unknown (the child's height). Today's model: the multivariate Gaussian.</span></li>
+      <li><span class="tags"><span class="partno" style="background:#B30000">3</span></span><span>A method for predicting the unknown from the known in that model.</span></li>
+      <li><span class="tags"><span class="partno" style="background:#762A83">4</span></span><span>A way to find the model from data.</span></li>
+    </ul>
+    <p class="small" style="color:#555">Running example: $X_1$ the adult child's height and $X_2$ a parent's height, in standard deviations from their means, jointly Gaussian with correlation $\rho=0.5$ (illustrative, not measured data).</p>
   </div>
   <aside class="notes">Take predictions without giving the formula. Return to this observation during conditioning.</aside>
 </section>
@@ -150,11 +157,23 @@
       <p class="fragment" data-set='{"s":2}'></p>
       <p class="fragment" data-set='{"s":3}'></p>
       <div class="block fragment"><div class="bt">Multinomial counts, $n=36$</div><div class="bb">
-        \[\var(X_i)=5,\qquad\cov(X_i,X_j)=-1\]
+        \[\htmlClass{dk2}{\var(X_i)=5},\qquad\htmlClass{dk1}{\cov(X_i,X_j)=-1}\]
         for $i\ne j$. More of one face leaves fewer rolls for the others.
       </div></div>
     </div>
   </div></div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p>Write each count as a sum over the rolls: $I_k(i)=1$ if roll $k$ shows face $i$, else 0, so $X_i=\sum_{k=1}^{36}I_k(i)$ and $\E[I_k(i)]=\frac16$.</p>
+    <p class="dk1">For $i\ne j$: $\cov(X_i,X_j)=\sum_{k}\sum_{l}\cov(I_k(i),I_l(j))$.</p>
+    <p class="dk1">Different rolls ($k\ne l$) are independent, so those terms are 0.</p>
+    <p class="dk1">Same roll ($k=l$): one roll cannot show both faces, so $I_k(i)I_k(j)=0$ and $\cov(I_k(i),I_k(j))=0-\frac16\cdot\frac16=-\frac1{36}$.</p>
+    <p class="dk1">Only the 36 same-roll terms remain: $\cov(X_i,X_j)=36\cdot\big(-\frac1{36}\big)=-1$. In general, with $n$ rolls and face probabilities $p_i$, it is $-np_ip_j$.</p>
+    <p class="dk2">$\var(X_i)$ the same way: only the same-roll terms remain, each $\var(I_k(i))=\frac16\cdot\frac56$, so $\var(X_i)=36\cdot\frac16\cdot\frac56=5$.</p>
+    <p>Check: the counts always total 36, so</p>
+    \[0=\var\Big(\sum_{i=1}^6X_i\Big)=6\cdot5+30\,\cov(X_i,X_j),\]
+    <p>giving $\cov(X_i,X_j)=-1$ again (30 ordered pairs $i\ne j$).</p>
+  </div>
   <aside class="notes">Ask for the covariance sign before the reveal. The negative covariance concerns counts across repeated batches of 36 rolls. Individual rolls remain independent.</aside>
 </section>
 
@@ -167,7 +186,7 @@
       \[\mK=6\mI-\bone\bone^T.\]
       <p class="fragment">Each row of $\mK$ sums to $5-5=0$, so $\mK\bone=\bzero$.</p>
       <div class="block alertblock fragment"><div class="bt">The sum has zero variance</div><div class="bb">
-        \[\var\Big(\sum_{i=1}^6X_i\Big)=\bone^T\mK\bone=0\]
+        \[\var\Big(\sum_{i=1}^6X_i\Big)=0\]
         The total is always 36. A covariance matrix with a zero-variance direction is singular.
       </div></div>
     </div>
@@ -180,14 +199,22 @@
     <div class="fig" data-fig="lin" data-init='{"a":0,"b":0}'></div>
     <div class="col">
       <div class="block"><div class="bt">Transform every deviation</div><div class="bb">
-        \[\begin{aligned}\bY&=\mA\bX+\bb\\ \E\bY&=\mA\bmu+\bb\\ \cov(\bY)&=\mA\,\cov(\bX)\,\mA^T\end{aligned}\]
+        \[\begin{aligned}\bY&=\mA\bX+\bb\\ \E\bY&=\htmlClass{dk1}{\mA\bmu+\bb}\\ \cov(\bY)&=\htmlClass{dk1}{\mA\,\cov(\bX)\,\mA^T}\end{aligned}\]
         Translation changes the center. The linear map stretches, rotates, or projects the deviations.
       </div></div>
       <p class="fragment" data-set='{"a":1}'>Start from $\cov(\bX)=\mI$. Stretch by $\sqrt{1.5}$ along $x_2$ and by $\sqrt{0.5}$ along $x_1$.</p>
-      <p class="fragment" data-set='{"b":1}'>Rotate by $45^\circ$: $\cov(\bY)=\mA\mA^T$ has the running model's covariance.</p>
-      <p class="fragment small">For a scalar projection, $\var(\ba^T\bX)=\ba^T\mK\ba\geq0$: covariance matrices are positive semidefinite.</p>
+      <p class="fragment" data-set='{"b":1}'><span class="dk2">Rotate by $45^\circ$: $\cov(\bY)=\mA\mA^T$ has the running model's covariance.</span></p>
+      <p class="fragment small">For a scalar projection, <span class="dk3">$\var(\ba^T\bX)=\ba^T\mK\ba\geq0$</span>: covariance matrices are positive semidefinite.</p>
     </div>
   </div></div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p class="dk1">Expectation is linear, so $\E\bY=\mA\,\E\bX+\bb=\mA\bmu+\bb$. The shift cancels in the deviation, $\bY-\E\bY=\mA(\bX-\bmu)$, so</p>
+    \[\htmlClass{dk1}{\cov(\bY)=\E\big[\mA(\bX-\bmu)(\bX-\bmu)^T\mA^T\big]=\mA\,\cov(\bX)\,\mA^T.}\]
+    <p class="dk2">In $(x_1,x_2)$ order, stretch by $\mathsf D=\mathrm{diag}(\sqrt{0.5},\sqrt{1.5})$, then rotate by $\mathsf R$. With $\cov(\bX)=\mI$, $\cov(\bY)=\mA\mA^T$:</p>
+    \[\htmlClass{dk2}{\begin{aligned}\mA=\mathsf R\mathsf D&=\tfrac1{\sqrt2}\begin{pmatrix}1&1\\-1&1\end{pmatrix}\begin{pmatrix}\sqrt{0.5}&0\\0&\sqrt{1.5}\end{pmatrix}=\begin{pmatrix}\frac12&\frac{\sqrt3}2\\[2pt]-\frac12&\frac{\sqrt3}2\end{pmatrix}\\ \mA\mA^T&=\begin{pmatrix}\frac14+\frac34&-\frac14+\frac34\\[2pt]-\frac14+\frac34&\frac14+\frac34\end{pmatrix}=\begin{pmatrix}1&0.5\\0.5&1\end{pmatrix}.\end{aligned}}\]
+    <p class="dk3">Take the single row $\mA=\ba^T$ and $\bb=\bzero$: $\var(\ba^T\bX)=\ba^T\mK\ba$. A variance is nonnegative, so $\ba^T\mK\ba\geq0$ for every $\ba$.</p>
+  </div>
   <aside class="notes">Trace one deviation through both maps. More generally Cov(AX+a,BY+b)=A Cov(X,Y) B^T. These identities do not require Gaussian distributions.</aside>
 </section>
 
@@ -257,19 +284,29 @@
     <div class="col">
       <div class="block"><div class="bt">Jointly Gaussian</div><div class="bb">
         Every linear combination of the coordinates is Gaussian, including constant combinations with zero variance.
-        \[\ba^T\bX\sim\cN(\ba^T\bmu,\ba^T\mK\ba)\]
+        \[\htmlClass{dk1}{\ba^T\bX\sim\cN(\ba^T\bmu,\ba^T\mK\ba)}\]
       </div></div>
       <p class="small"><span class="alert">Predict:</span> as the unit vector $\ba$ turns, in which direction is the bell widest?</p>
       <table class="vals">
         <thead><tr><th>unit $\ba$</th><th>$\ba^T\mK\ba$</th></tr></thead>
         <tbody>
-          <tr><td>$(0,1)^T$</td><td>1</td></tr>
-          <tr class="fragment" data-set='{"al":45}'><td>$(1,1)^T/\sqrt2$</td><td>1.5</td></tr>
-          <tr class="fragment" data-set='{"al":135}'><td>$(1,-1)^T/\sqrt2$</td><td>0.5</td></tr>
+          <tr><td>$(0,1)^T$</td><td><span class="dk2">1</span></td></tr>
+          <tr class="fragment" data-set='{"al":45}'><td>$(1,1)^T/\sqrt2$</td><td><span class="dk2">1.5</span></td></tr>
+          <tr class="fragment" data-set='{"al":135}'><td>$(1,-1)^T/\sqrt2$</td><td><span class="dk2">0.5</span></td></tr>
         </tbody>
       </table>
     </div>
   </div></div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p>$\bX$ is jointly Gaussian, so $\ba^T\bX$ is Gaussian, and its mean and variance determine it.</p>
+    <p class="dk1">Put the single row $\mA=\ba^T$ into $\E[\mA\bX]=\mA\bmu$ and $\cov(\mA\bX)=\mA\mK\mA^T$: the mean is $\ba^T\bmu$ and the variance is $\ba^T\mK\ba$.</p>
+    <p class="dk2">For $\ba=(a_1,a_2)^T$ and the running $\mK$,</p>
+    \[\htmlClass{dk2}{\ba^T\mK\ba=a_1^2+a_2^2+2(0.5)\,a_1a_2=1+a_1a_2}\]
+    <p class="dk2">for a unit vector, since $a_1^2+a_2^2=1$. Hence</p>
+    \[\htmlClass{dk2}{\begin{aligned}(0,1)^T&:\ 1+0=1\\ (1,1)^T/\sqrt2&:\ 1+\tfrac12=1.5\\ (1,-1)^T/\sqrt2&:\ 1-\tfrac12=0.5\end{aligned}}\]
+    <p class="dk2">$1+a_1a_2$ is largest at $a_1=a_2=1/\sqrt2$: the bell is widest along $(1,1)^T$.</p>
+  </div>
   <aside class="notes">Vectors in (x1, x2) order. a=(0,1) projects onto x2: the marginal of X2. A vector generated by an affine transformation of independent standard normals is jointly Gaussian.</aside>
 </section>
 
@@ -402,14 +439,23 @@
     <div class="fig" data-fig="white" data-init='{"r":0,"s":0}'></div>
     <div class="col">
       <div class="block"><div class="bt">Measure in units of the cloud's spread</div><div class="bb">
-        A whitening matrix $\mW$ has $\mW\mK\mW^T=\mI$: $\bZ=\mW(\bX-\bmu)$ has covariance $\mI$, and $\mK^{-1}=\mW^T\mW$ gives
-        \[\Delta^2(\bx,\bmu)=\|\mW(\bx-\bmu)\|^2=\|\bz\|^2.\]
+        A whitening matrix $\mW$ has $\mW\mK\mW^T=\mI$: <span class="dk1">$\bZ=\mW(\bX-\bmu)$ has covariance $\mI$</span>, and <span class="dk2">$\mK^{-1}=\mW^T\mW$</span> gives
+        \[\htmlClass{dk2}{\Delta^2(\bx,\bmu)=\|\mW(\bx-\bmu)\|^2}=\|\bz\|^2.\]
       </div></div>
       <p class="fragment small" data-set='{"r":1}'>For the running model, $\mW$ rotates the long axis onto a coordinate axis,</p>
-      <p class="fragment small" data-set='{"s":1}'>then divides each axis by its standard deviation: the ellipses become circles, with $\|\bz_A\|\approx2.31$ and $\|\bz_B\|=4$.</p>
+      <p class="fragment small" data-set='{"s":1}'>then divides each axis by its standard deviation: the ellipses become circles, with <span class="dk3">$\|\bz_A\|\approx2.31$ and $\|\bz_B\|=4$</span>.</p>
       <div class="block alertblock fragment"><div class="bt">Whitening turns Mahalanobis distance into length</div><div class="bb small">Mahalanobis distance is invariant under invertible changes of coordinates when the mean and covariance are transformed too.</div></div>
     </div>
   </div></div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p class="dk1">By the linear-transformation rule, $\cov(\bZ)=\mW\,\cov(\bX)\,\mW^T=\mW\mK\mW^T=\mI$.</p>
+    <p class="dk2">$\mW\mK\mW^T=\mI$ forces $\mW$ to be invertible, and then $\mK=\mW^{-1}\mW^{-T}$, so $\mK^{-1}=\mW^T\mW$. Substituting,</p>
+    \[\htmlClass{dk2}{\Delta^2(\bx,\bmu)=(\bx-\bmu)^T\mW^T\mW(\bx-\bmu)=\|\mW(\bx-\bmu)\|^2.}\]
+    <p class="dk3">Running model: $\mK$ has variance 1.5 along $(1,1)^T/\sqrt2$ and 0.5 along $(1,-1)^T/\sqrt2$. Rotate onto these directions, then divide by the standard deviations:</p>
+    \[\htmlClass{dk3}{\begin{aligned}\mW&=\begin{pmatrix}1/\sqrt{1.5}&0\\0&1/\sqrt{0.5}\end{pmatrix}\frac1{\sqrt2}\begin{pmatrix}1&1\\1&-1\end{pmatrix}\\ \bz_A&=\mW\begin{pmatrix}2\\2\end{pmatrix}=\begin{pmatrix}4/\sqrt3\\0\end{pmatrix},\quad \bz_B=\mW\begin{pmatrix}2\\-2\end{pmatrix}=\begin{pmatrix}0\\4\end{pmatrix}\end{aligned}}\]
+    <p class="dk3">So $\|\bz_A\|=4/\sqrt3\approx2.31$ and $\|\bz_B\|=4$. Their squares, $16/3$ and 16, are the values of $\Delta^2$ found for A and B.</p>
+  </div>
   <aside class="notes">One choice is W = Lambda^(-1/2) Q^T from the eigendecomposition K = Q Lambda Q^T: rotate into the principal directions, then divide by their standard deviations. Any W with W^T W = K^(-1) works, for example one built from a Cholesky factor.</aside>
 </section>
 
@@ -421,13 +467,21 @@
       <p>Write the exponent with $\Delta$:</p>
       \[p_{\bX}(\bx)=\frac{1}{(2\pi)^{d/2}|\mK|^{1/2}}\exp\Big(-\frac12\Delta^2(\bx,\bmu)\Big)\]
       <p class="fragment">With the whitened $\bz=\mW(\bx-\bmu)$ and $\Delta=\|\bz\|$:</p>
-      <div class="fragment">\[p_{\bX}(\bx)=\frac{1}{|\mK|^{1/2}}\,p_{\bZ}(\bz),\qquad\bZ\sim\cN(\bzero,\mI)\]</div>
-      <p class="fragment small" data-set='{"ab":1}'>Running model, $|\mK|=0.75$: $p_{\bX}(A)\approx0.0128$ at $\Delta_A\approx2.31$ and $p_{\bX}(B)\approx6.2\times10^{-5}$ at $\Delta_B=4$, a ratio of $e^{(16-16/3)/2}\approx207$.</p>
+      <div class="fragment">\[\htmlClass{dk1}{p_{\bX}(\bx)=\frac{1}{|\mK|^{1/2}}\,p_{\bZ}(\bz)},\qquad\bZ\sim\cN(\bzero,\mI)\]</div>
+      <p class="fragment small" data-set='{"ab":1}'><span class="dk2">Running model, $|\mK|=0.75$: $p_{\bX}(A)\approx0.0128$ at $\Delta_A\approx2.31$ and $p_{\bX}(B)\approx6.2\times10^{-5}$ at $\Delta_B=4$, a ratio of $e^{(16-16/3)/2}\approx207$.</span></p>
       <div class="block alertblock fragment"><div class="bt">The density depends on $\bx$ only through $\Delta$</div><div class="bb small">
         Points on one Mahalanobis ellipse share a density. The factor $|\mK|^{-1/2}$ rescales the standard Gaussian for the cloud's volume.
       </div></div>
     </div>
   </div></div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p>$\bz=\mW(\bx-\bmu)$ is an invertible linear change of variables, so $p_{\bX}(\bx)=p_{\bZ}(\bz)\,|\det\mW|$.</p>
+    <p class="dk1">Take determinants in $\mW\mK\mW^T=\mI$: $(\det\mW)^2|\mK|=1$, so $|\det\mW|=|\mK|^{-1/2}$. $\bZ$ is Gaussian with mean $\bzero$ and covariance $\mI$, and $\|\bz\|^2=\Delta^2(\bx,\bmu)$:</p>
+    \[\htmlClass{dk1}{p_{\bX}(\bx)=\frac{1}{|\mK|^{1/2}}\,p_{\bZ}(\bz)=\frac{1}{|\mK|^{1/2}}\,\frac{1}{(2\pi)^{d/2}}\,e^{-\|\bz\|^2/2}.}\]
+    <p class="dk2">Running model: $d=2$ and $|\mK|=1-0.5^2=0.75$.</p>
+    \[\htmlClass{dk2}{\begin{aligned}p_{\bX}(A)&=\frac{e^{-(16/3)/2}}{2\pi\sqrt{0.75}}\approx0.0128\\ p_{\bX}(B)&=\frac{e^{-16/2}}{2\pi\sqrt{0.75}}\approx6.2\times10^{-5}\\ \frac{p_{\bX}(A)}{p_{\bX}(B)}&=e^{(16-16/3)/2}=e^{16/3}\approx207\end{aligned}}\]
+  </div>
   <aside class="notes">The factor |K|^(-1/2) is the Jacobian of the whitening map: |det W| = |K|^(-1/2), because W K W^T = I.</aside>
 </section>
 
@@ -444,11 +498,16 @@
       <div class="col">
         <div class="fig" data-fig="zu" data-init='{"on":0,"x":0}'></div>
         <div class="block"><div class="bt">A curved relationship</div><div class="bb">
-          $X\sim\uni(-1,1)$ and $Y=X^2$: $\cov(X,Y)=\E[X^3]-\E[X]\E[X^2]=0$.
+          $X\sim\uni(-1,1)$ and $Y=X^2$: <span class="dk1">$\cov(X,Y)=\E[X^3]-\E[X]\E[X^2]=0$</span>.
         </div></div>
       </div>
     </div>
     <p><span class="alert">Question:</span> In which picture does observing one coordinate help predict the other?</p>
+  </div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p class="dk1">The density of $X\sim\uni(-1,1)$ is symmetric about 0, so its odd moments vanish: $\E[X]=\int_{-1}^1\tfrac12x\,dx=0$ and $\E[X^3]=\int_{-1}^1\tfrac12x^3\,dx=0$. With $Y=X^2$,</p>
+    \[\htmlClass{dk1}{\cov(X,Y)=\E[XY]-\E[X]\E[Y]=\E[X^3]-\E[X]\E[X^2]=0.}\]
   </div>
   <aside class="notes">Ask students to explain in terms of conditional distributions.</aside>
 </section>
@@ -460,7 +519,7 @@
       <div class="col">
         <div class="fig" data-fig="zg" data-init='{"on":1,"x":-0.7}' style="zoom:0.88"></div>
         <div class="block"><div class="bt">Jointly Gaussian, $\rho=0$</div><div class="bb">
-          A diagonal covariance matrix implies independent components. Knowing one coordinate leaves the other's distribution unchanged.
+          <span class="dk1">A diagonal covariance matrix implies independent components.</span> Knowing one coordinate leaves the other's distribution unchanged.
         </div></div>
       </div>
       <div class="col">
@@ -472,6 +531,12 @@
     </div>
     <p class="fragment" data-set='{"x":0.3}' data-fragment-index="1" style="display:none"></p>
     <div class="block alertblock fragment" data-set='{"x":0.9}' data-fragment-index="2"><div class="bt">Zero covariance does not imply independence</div><div class="bb">Independence implies zero covariance; the converse needs an assumption such as joint Gaussianity.</div></div>
+  </div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p class="dk1">Jointly Gaussian with $\rho=0$ means $\mK=\mathrm{diag}(\sigma_1^2,\sigma_2^2)$. Then $\mK^{-1}=\mathrm{diag}(1/\sigma_1^2,1/\sigma_2^2)$ and $|\mK|=\sigma_1^2\sigma_2^2$, so the exponent is a sum and the density a product:</p>
+    \[\htmlClass{dk1}{\begin{aligned}p_{\bX}(\bx)&=\frac{1}{2\pi\sigma_1\sigma_2}\exp\Big(-\frac{(x_1-\mu_1)^2}{2\sigma_1^2}-\frac{(x_2-\mu_2)^2}{2\sigma_2^2}\Big)\\&=\frac{e^{-(x_1-\mu_1)^2/2\sigma_1^2}}{\sqrt{2\pi}\,\sigma_1}\cdot\frac{e^{-(x_2-\mu_2)^2/2\sigma_2^2}}{\sqrt{2\pi}\,\sigma_2}=p_{X_1}(x_1)\,p_{X_2}(x_2).\end{aligned}}\]
+    <p class="dk1">The joint density is the product of the marginals, so $X_1$ and $X_2$ are independent. Here $\mK=\mI$: $\sigma_1=\sigma_2=1$.</p>
   </div>
   <aside class="notes">Independence implies zero covariance when moments exist; the converse requires additional assumptions such as joint Gaussianity.</aside>
 </section>
@@ -494,17 +559,27 @@
       <table class="vals">
         <thead><tr><th>$x_2$</th><th>mean</th><th>variance</th></tr></thead>
         <tbody>
-          <tr><td>0</td><td>0</td><td>0.75</td></tr>
-          <tr class="fragment" data-fragment-index="1" data-set='{"x2":1}'><td>1</td><td>0.5</td><td>0.75</td></tr>
-          <tr class="fragment" data-fragment-index="2" data-set='{"x2":2}'><td>2</td><td>1</td><td>0.75</td></tr>
+          <tr><td>0</td><td><span class="dk1">0</span></td><td><span class="dk2">0.75</span></td></tr>
+          <tr class="fragment" data-fragment-index="1" data-set='{"x2":1}'><td>1</td><td><span class="dk1">0.5</span></td><td><span class="dk2">0.75</span></td></tr>
+          <tr class="fragment" data-fragment-index="2" data-set='{"x2":2}'><td>2</td><td><span class="dk1">1</span></td><td><span class="dk2">0.75</span></td></tr>
         </tbody>
       </table>
       <div class="block alertblock fragment" data-fragment-index="2"><div class="bt">Return to the missing height</div><div class="bb">
-        \[X_1\mid X_2=2\sim\cN(1,0.75)\]
+        \[\htmlClass{dk3}{X_1\mid X_2=2\sim\cN(1,0.75)}\]
         The predicted mean moves up to 1, and the variance falls from 1 to 0.75.
       </div></div>
     </div>
   </div></div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p>Standardized model: $X_1,X_2$ jointly Gaussian with mean 0, variance 1, and $\cov(X_1,X_2)=\rho=0.5$. Subtract from $X_1$ the part that moves with $X_2$, $Y=X_1-\rho X_2$:</p>
+    \[\begin{aligned}\cov(Y,X_2)&=\cov(X_1,X_2)-\rho\var(X_2)=\rho-\rho=0\\ \var(Y)&=\var(X_1)-2\rho\cov(X_1,X_2)+\rho^2\var(X_2)=1-\rho^2\end{aligned}\]
+    <p>$(Y,X_2)$ is a linear map of $(X_1,X_2)$, so it is jointly Gaussian; with zero covariance, $Y\sim\cN(0,1-\rho^2)$ is independent of $X_2$. Given $X_2=x_2$, $X_1=\rho x_2+Y$, so</p>
+    \[X_1\mid X_2=x_2\sim\cN(\rho x_2,\,1-\rho^2).\]
+    <p class="dk1">Mean $\rho x_2=0.5\,x_2$: 0, 0.5 and 1 for $x_2=0,1,2$.</p>
+    <p class="dk2">Variance $1-\rho^2=1-0.25=0.75$, the same for every $x_2$.</p>
+    <p class="dk3">At $x_2=2$: $\cN(0.5\cdot2,\,0.75)=\cN(1,0.75)$.</p>
+  </div>
   <aside class="notes">Recall students' opening guesses. Contrast conditioning with marginalization: integrate over all x2 to recover the dashed marginal. Conditioning at an exact continuous value uses a conditional density, not a positive-probability event.</aside>
 </section>
 
@@ -588,17 +663,24 @@
       <p>Heights in cm: mother $M\sim\cN(163,6^2)$, son $S\sim\cN(177,7^2)$, jointly Gaussian with $\rho=0.5$. <span class="small" style="color:#555">Illustrative values near adult height statistics.</span></p>
       <div class="fragment" data-set='{"L1":1}'>
         <p>A mother of 175 cm, 2 SD above her mean:</p>
-        \[\E[S\mid M=175]=177+0.5\cdot\tfrac76\cdot12=184\]
+        \[\htmlClass{dk1}{\E[S\mid M=175]=177+0.5\cdot\tfrac76\cdot12=184}\]
       </div>
       <p class="fragment"><span class="alert">Question:</span> Does a son of 184 cm predict a mother of 175 cm?</p>
       <div class="fragment" data-set='{"L2":1}'>
-        \[\E[M\mid S=184]=163+0.5\cdot\tfrac67\cdot7=166\]
+        \[\htmlClass{dk2}{\E[M\mid S=184]=163+0.5\cdot\tfrac67\cdot7=166}\]
       </div>
       <div class="block alertblock fragment" data-set='{"sd":1}'><div class="bt">Regression to the mean, in both directions</div><div class="bb">
         2 SD above the mean predicts 1 SD; 1 SD predicts 0.5 SD. Neither line follows the SD line (dashed), which matches SDs one for one. The spread does not shrink: sons keep SD 7, mothers SD 6.
       </div></div>
     </div>
   </div></div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p>Standardize: $Z_X=(X-\mu_X)/\sigma_X$ and $Z_Y=(Y-\mu_Y)/\sigma_Y$ are jointly Gaussian with variance 1 and correlation $\rho$, so $\E[Z_Y\mid Z_X=z]=\rho z$. Observing $X=x$ is observing $Z_X=(x-\mu_X)/\sigma_X$:</p>
+    \[\begin{aligned}\E[Y\mid X=x]&=\mu_Y+\sigma_Y\,\E\Big[Z_Y\,\Big|\,Z_X=\frac{x-\mu_X}{\sigma_X}\Big]\\&=\mu_Y+\rho\,\frac{\sigma_Y}{\sigma_X}\,(x-\mu_X).\end{aligned}\]
+    <p class="dk1">Sons given mothers: $\mu_Y=177$, $\sigma_Y=7$, $\mu_X=163$, $\sigma_X=6$, and $x-\mu_X=175-163=12$. So $\E[S\mid M=175]=177+0.5\cdot\frac76\cdot12=177+7=184$.</p>
+    <p class="dk2">Mothers given sons: the roles swap, the slope becomes $0.5\cdot\frac67$, and $184-177=7$. So $\E[M\mid S=184]=163+0.5\cdot\frac67\cdot7=163+3=166$.</p>
+  </div>
   <aside class="notes">Take guesses on the question before revealing. Tall mothers have tall sons on average, but less tall; those sons have mothers who are tall, but less tall. No contradiction: each line averages over a different slice of the cloud. Galton (1886, pp. 253&ndash;254) on the reverse direction: &ldquo;The converse of this law is very far from being its numerical opposite.&rdquo; He found a son's most probable mid-parent deviates one third as much as the son, while a son deviates two thirds as much as his mid-parent.</aside>
 </section>
 
@@ -613,12 +695,20 @@
       </div>
       <div class="altcard"><div class="al" style="color:#087F80">Regression in least squares</div>
         Least squares is older than the word. Yule (1897) fit Galton's lines by least squares, and &ldquo;regression&rdquo; came to mean predicting $Y$ from $X$. The line $a+bX$ with least mean squared error has
-        \[b=\frac{\cov(X,Y)}{\var(X)}=\rho\,\frac{\sigma_Y}{\sigma_X}.\]
+        \[\htmlClass{dk1}{b=\frac{\cov(X,Y)}{\var(X)}=\rho\,\frac{\sigma_Y}{\sigma_X}}.\]
       </div>
     </div>
     <div class="block alertblock fragment"><div class="bt">Every least-squares line regresses toward the mean</div><div class="bb">
-      In SD units the least-squares slope is $\rho$. For mothers and sons, $b=0.5\cdot\tfrac76=\tfrac7{12}$ cm per cm: the red line on the previous slide.
+      In SD units the least-squares slope is $\rho$. For mothers and sons, <span class="dk2">$b=0.5\cdot\tfrac76=\tfrac7{12}$</span> cm per cm: the red line on the previous slide.
     </div></div>
+  </div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p>Minimize $f(a,b)=\E[(Y-a-bX)^2]$, a convex quadratic in $(a,b)$, by setting both partial derivatives to zero:</p>
+    \[\begin{aligned}\frac{\partial f}{\partial a}&=-2\,\E[Y-a-bX]=0\quad\Rightarrow\quad a=\E Y-b\,\E X\\ \frac{\partial f}{\partial b}&=-2\,\E[X(Y-a-bX)]=0\end{aligned}\]
+    <p class="dk1">Substitute $a$ into the second condition: $\E\big[X\big((Y-\E Y)-b(X-\E X)\big)\big]=0$, that is, $\cov(X,Y)-b\var(X)=0$. So</p>
+    \[\htmlClass{dk1}{b=\frac{\cov(X,Y)}{\var(X)}=\frac{\rho\,\sigma_X\sigma_Y}{\sigma_X^2}=\rho\,\frac{\sigma_Y}{\sigma_X}.}\]
+    <p class="dk2">Mothers ($X$) and sons ($Y$): $\rho=0.5$, $\sigma_X=6$, $\sigma_Y=7$, so $b=0.5\cdot\frac76=\frac7{12}\approx0.58$ cm per cm, the slope of $\E[S\mid M=m]$ on the previous slide.</p>
   </div>
   <aside class="notes">Legendre published least squares in 1805 and Gauss in 1809, both for orbits from astronomical observations. Galton first called the effect "reversion" (seeds, 1877) and changed to "regression" once he saw it was symmetric and not genetic (Gorroochurn 2016, The American Statistician). Yule, On the Theory of Correlation, JRSS 60 (1897), 812-854. The population least-squares slope Cov/Var holds for any joint distribution; it equals the conditional mean only when that is linear, as for jointly Gaussian pairs. Linear regression, next, fits this line from data.</aside>
 </section>
@@ -638,12 +728,21 @@
       <div class="block"><div class="bt">Partition a jointly Gaussian vector</div><div class="bb">
         \[\bX=\begin{pmatrix}\bX_a\\\bX_b\end{pmatrix},\qquad\bmu=\begin{pmatrix}\bmu_a\\\bmu_b\end{pmatrix}\]
         For invertible $\mK_{bb}$, $\bX_a\mid\bX_b=\bx_b\sim\cN(\bmu_{a|b},\mK_{a|b})$ with
-        \[\begin{aligned}\bmu_{a|b}&=\bmu_a+\underbrace{\mK_{ab}\mK_{bb}^{-1}}_{\text{uses the relationship}}(\bx_b-\bmu_b)\\ \mK_{a|b}&=\mK_{aa}-\underbrace{\mK_{ab}\mK_{bb}^{-1}\mK_{ba}}_{\text{reduction in uncertainty}}\end{aligned}\]
+        \[\begin{aligned}\bmu_{a|b}&=\htmlClass{dk1}{\bmu_a+\underbrace{\mK_{ab}\mK_{bb}^{-1}}_{\text{uses the relationship}}(\bx_b-\bmu_b)}\\ \mK_{a|b}&=\htmlClass{dk2}{\mK_{aa}-\underbrace{\mK_{ab}\mK_{bb}^{-1}\mK_{ba}}_{\text{reduction in uncertainty}}}\end{aligned}\]
       </div></div>
-      <p class="fragment small">With one coordinate in each block, this is the running model: $\mK_{ab}\mK_{bb}^{-1}=\rho=0.5$ and $\mK_{a|b}=1-\rho^2=0.75$.</p>
+      <p class="fragment small">With one coordinate in each block, this is the running model: <span class="dk3">$\mK_{ab}\mK_{bb}^{-1}=\rho=0.5$ and $\mK_{a|b}=1-\rho^2=0.75$</span>.</p>
       <div class="block alertblock fragment"><div class="bt">One update for any number of observed coordinates</div><div class="bb small">The conditional remains Gaussian. The covariance reduction is positive semidefinite.</div></div>
     </div>
   </div></div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p>Set $\mathsf C=\mK_{ab}\mK_{bb}^{-1}$ and $\bY=\bX_a-\mathsf C\bX_b$. By the linear-transformation rules, with $\mK_{ba}=\mK_{ab}^T$,</p>
+    \[\begin{aligned}\cov(\bY,\bX_b)&=\mK_{ab}-\mathsf C\mK_{bb}=\mathsf 0\\ \cov(\bY)&=\mK_{aa}-\mathsf C\mK_{ba}-\mK_{ab}\mathsf C^T+\mathsf C\mK_{bb}\mathsf C^T\\&=\mK_{aa}-\mK_{ab}\mK_{bb}^{-1}\mK_{ba}.\end{aligned}\]
+    <p>$(\bY,\bX_b)$ is jointly Gaussian with zero cross-covariance, so $\bY$ is independent of $\bX_b$, with mean $\bmu_a-\mathsf C\bmu_b$. Given $\bX_b=\bx_b$, $\bX_a=\bY+\mathsf C\bx_b$ is Gaussian with</p>
+    <p class="dk1">mean $\bmu_a-\mathsf C\bmu_b+\mathsf C\bx_b=\bmu_a+\mK_{ab}\mK_{bb}^{-1}(\bx_b-\bmu_b)$,</p>
+    <p class="dk2">covariance $\cov(\bY)=\mK_{aa}-\mK_{ab}\mK_{bb}^{-1}\mK_{ba}$; adding the constant $\mathsf C\bx_b$ does not change it.</p>
+    <p class="dk3">One standardized coordinate in each block: $\mK_{aa}=\mK_{bb}=1$ and $\mK_{ab}=\rho$, so $\mathsf C=\rho=0.5$ and $\mK_{a|b}=1-\rho^2=0.75$.</p>
+  </div>
   <aside class="notes">Read the mean from right to left: observed deviation, scale by observed uncertainty, then use cross-covariance. Conditioning alone makes no causal claim.</aside>
 </section>
 
@@ -707,16 +806,26 @@
     <div class="col">
       <p>Substitute $\hat\btheta_{\mle}=\bar\bx$ and maximize over the precision matrix $\Lambda=\mK^{-1}$:</p>
       \[\ell(\Lambda)=\frac n2\ln|\Lambda|-\frac12\sum_{i}(\bx_i-\bar\bx)^T\Lambda(\bx_i-\bar\bx)+c\]
-      <p class="small">For symmetric $\Lambda$: $\frac{\partial}{\partial\Lambda}\,\bx^T\Lambda\bx=\bx\bx^T$ and $\frac{\partial}{\partial\Lambda}\ln|\Lambda|=\Lambda^{-1}$.</p>
+      <p class="small">For symmetric $\Lambda$: <span class="dk1">$\frac{\partial}{\partial\Lambda}\,\bx^T\Lambda\bx=\bx\bx^T$</span> and <span class="dk2">$\frac{\partial}{\partial\Lambda}\ln|\Lambda|=\Lambda^{-1}$</span>.</p>
       <div class="fragment">
         \[\frac{\partial\ell}{\partial\Lambda}=\frac n2\Lambda^{-1}-\frac12\sum_{i}(\bx_i-\bar\bx)(\bx_i-\bar\bx)^T=\mathsf 0\]
       </div>
       <div class="fragment" data-set='{"e":1}'>
-        \[\boxed{\hat\mK_{\mle}=\hat\Lambda^{-1}=\frac1n\sum_{i=1}^n(\bx_i-\bar\bx)(\bx_i-\bar\bx)^T}\]
+        \[\htmlClass{dk3}{\boxed{\hat\mK_{\mle}=\hat\Lambda^{-1}=\frac1n\sum_{i=1}^n(\bx_i-\bar\bx)(\bx_i-\bar\bx)^T}}\]
         <div class="block alertblock"><div class="bt">The ML covariance averages outer products</div><div class="bb">Each residual contributes one outer product, and dividing by $n$ averages them.</div></div>
       </div>
     </div>
   </div></div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p>Differentiate entry by entry, treating the $\Lambda_{ij}$ as free variables.</p>
+    <p class="dk1">$\bx^T\Lambda\bx=\sum_{i,j}x_i\Lambda_{ij}x_j$, so $\partial(\bx^T\Lambda\bx)/\partial\Lambda_{ij}=x_ix_j$, the $(i,j)$ entry of $\bx\bx^T$.</p>
+    <p class="dk2">Expand $|\Lambda|$ along row $i$: $|\Lambda|=\sum_j\Lambda_{ij}C_{ij}$, where the cofactor $C_{ij}$ does not involve $\Lambda_{ij}$. So $\partial|\Lambda|/\partial\Lambda_{ij}=C_{ij}$. The inverse is the transposed cofactor matrix over the determinant, so for symmetric $\Lambda$</p>
+    \[\htmlClass{dk2}{\frac{\partial\ln|\Lambda|}{\partial\Lambda_{ij}}=\frac{C_{ij}}{|\Lambda|}=(\Lambda^{-1})_{ji}=(\Lambda^{-1})_{ij}.}\]
+    <p class="dk3">Apply the first fact to each residual $\bx_i-\bar\bx$ and set the gradient to $\mathsf 0$:</p>
+    \[\htmlClass{dk3}{\frac n2\hat\Lambda^{-1}=\frac12\sum_{i=1}^n(\bx_i-\bar\bx)(\bx_i-\bar\bx)^T.}\]
+    <p class="dk3">Multiply by $2/n$ and use $\hat\mK_{\mle}=\hat\Lambda^{-1}$. The log-determinant is concave and the other term is linear in $\Lambda$, so this stationary point is the maximum.</p>
+  </div>
   <aside class="notes">Differentiating with respect to the precision matrix keeps both terms simple: the log-determinant gives its inverse and the quadratic form gives the outer product. Treating the entries of Lambda as free gives the same stationary point as imposing symmetry. The next slide computes the four outer products for these samples.</aside>
 </section>
 
@@ -807,11 +916,20 @@
         Which source is more precise in each coordinate?
       </div></div>
       <div class="fragment" data-set='{"w":1}'>
-        \[\cpo{\hat\btheta_n=\begin{pmatrix}0.4\\1.6\end{pmatrix},\qquad\mS_n=0.8\,\mI}\]
+        \[\cpo{\htmlClass{dk2}{\hat\btheta_n=\begin{pmatrix}0.4\\1.6\end{pmatrix}},\qquad\htmlClass{dk1}{\mS_n=0.8\,\mI}}\]
         <div class="block alertblock"><div class="bt">Different directions trust different evidence</div><div class="bb small">The prior gets more weight in coordinate 1; the data get more weight in coordinate 2. The posterior center is off the dashed line between the two centers.</div></div>
       </div>
     </div>
   </div></div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p>Every matrix is diagonal, so each coordinate updates on its own. The prior precision is $\mS_0^{-1}=\mathrm{diag}(1,\tfrac14)$ and the data precision is $n\mK^{-1}=(\mK/n)^{-1}=\mathrm{diag}(\tfrac14,1)$.</p>
+    <p class="dk1">Add the precisions and invert:</p>
+    \[\htmlClass{dk1}{\mS_n^{-1}=\mathrm{diag}\big(1+\tfrac14,\ \tfrac14+1\big)=\tfrac54\,\mI,\qquad\mS_n=0.8\,\mI.}\]
+    <p class="dk2">With $\bmu_0=\bzero$,</p>
+    \[\htmlClass{dk2}{\begin{aligned}\hat\btheta_n&=\mS_n\big(\mS_0^{-1}\bmu_0+n\mK^{-1}\bar\bx\big)\\&=0.8\Big(\bzero+\begin{pmatrix}\tfrac14\cdot2\\1\cdot2\end{pmatrix}\Big)=0.8\begin{pmatrix}0.5\\2\end{pmatrix}=\begin{pmatrix}0.4\\1.6\end{pmatrix}.\end{aligned}}\]
+    <p class="dk2">Each coordinate averages the prior mean 0 and the data mean 2, weighted by their shares of the precision: the data get $\frac{1/4}{5/4}=0.2$ in coordinate 1 and $\frac{1}{5/4}=0.8$ in coordinate 2.</p>
+  </div>
   <aside class="notes">The animation adds the data precision gradually, from none to all of it; the dotted path is the posterior center along the way. Precisions per coordinate: 1 + 1/4 = 5/4 and 1/4 + 1 = 5/4.</aside>
 </section>
 
@@ -827,13 +945,20 @@
       <table class="vals">
         <thead><tr><th>$n$</th><th>$\hat\btheta_n$</th><th>$\mS_n$</th></tr></thead>
         <tbody>
-          <tr><td>1</td><td>$(0.4,\,1.6)^T$</td><td>$\mathrm{diag}(0.8,\,0.8)$</td></tr>
-          <tr class="fragment" data-set='{"n":4}'><td>4</td><td>$(1,\,32/17)^T$</td><td>$\mathrm{diag}(0.5,\,4/17)$</td></tr>
+          <tr><td>1</td><td><span class="dk1">$(0.4,\,1.6)^T$</span></td><td><span class="dk1">$\mathrm{diag}(0.8,\,0.8)$</span></td></tr>
+          <tr class="fragment" data-set='{"n":4}'><td>4</td><td><span class="dk2">$(1,\,32/17)^T$</span></td><td><span class="dk2">$\mathrm{diag}(0.5,\,4/17)$</span></td></tr>
         </tbody>
       </table>
       <div class="block alertblock fragment"><div class="bt">More data moves the posterior to the data</div><div class="bb small">The data precision $n\mK^{-1}$ grows in both coordinates, and coordinate 2, where the data were already more precise, stays closer to $\bar\bx$.</div></div>
     </div>
   </div></div>
+  <div class="drawer">
+    <div class="dh">Derivation</div>
+    <p>Per observation $\mK^{-1}=\mathrm{diag}(\tfrac14,1)$, so the data precision is $n\mK^{-1}=\mathrm{diag}(\tfrac n4,n)$. The prior has $\bmu_0=\bzero$ and $\mS_0^{-1}=\mathrm{diag}(1,\tfrac14)$. The matrices are diagonal, so coordinate by coordinate, with $\bar\bx=(2,2)^T$,</p>
+    \[\begin{aligned}(\mS_n)_{11}&=\frac{1}{1+n/4},&(\hat\btheta_n)_1&=(\mS_n)_{11}\cdot\frac n4\cdot2\\ (\mS_n)_{22}&=\frac{1}{1/4+n},&(\hat\btheta_n)_2&=(\mS_n)_{22}\cdot n\cdot2\end{aligned}\]
+    <p class="dk1">$n=1$: $(\mS_n)_{11}=(\mS_n)_{22}=\frac1{5/4}=0.8$, and $\hat\btheta_n=(0.8\cdot\frac12,\ 0.8\cdot2)^T=(0.4,\,1.6)^T$.</p>
+    <p class="dk2">$n=4$: $(\mS_n)_{11}=\frac12$ and $(\mS_n)_{22}=\frac1{17/4}=\frac4{17}$, so $\hat\btheta_n=(\frac12\cdot2,\ \frac4{17}\cdot8)^T=(1,\,\frac{32}{17})^T$.</p>
+  </div>
 </section>
 
 <section class="frame">
