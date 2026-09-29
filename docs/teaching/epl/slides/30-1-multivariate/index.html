@@ -65,7 +65,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
       <li><span class="tags"><span class="partno" style="background:#B30000">3</span></span><span>A method for predicting the unknown from the known in that model.</span></li>
       <li><span class="tags"><span class="partno" style="background:#762A83">4</span></span><span>A way to find the model from data.</span></li>
     </ul>
-    <p class="small" style="color:#555">Running example: $X_1$ the adult child's height and $X_2$ a parent's height, in standard deviations from their means, jointly Gaussian with correlation $\rho=0.5$ (illustrative, not measured data).</p>
+    <p class="small" style="color:#555">Running example: $X_1$ a parent's height and $X_2$ the adult child's height, in standard deviations from their means, jointly Gaussian with correlation $\rho=0.5$ (illustrative, not measured data).</p>
   </div>
   <aside class="notes">Take predictions without giving the formula. Return to this observation during conditioning.</aside>
 </section>
@@ -95,8 +95,8 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
         Each dot is one pair. An observed pair is a deterministic vector $\bx$.
       </div></div>
       <p class="fragment" data-set='{"mu":1}'>Here $\bmu=(1,1)^T$. The arrow $\bx-\bmu$ is the pair's deviation from the center.</p>
-      <p class="fragment"><span class="alert">Question:</span> Add a fixed vector $\bb=(1,-3)^T$ to every pair. What happens to the mean, and to the deviation $\bx-\bmu$?</p>
-      <p class="fragment" data-set='{"b":1}'>Every point and the mean move by the same amount: $\E[\bX+\bb]=\bmu+\bb=(2,-2)^T$. The deviations $\bx-\bmu$ stay the same.</p>
+      <p class="fragment"><span class="alert">Question:</span> Add a fixed vector $\bb=(-3,1)^T$ to every pair. What happens to the mean, and to the deviation $\bx-\bmu$?</p>
+      <p class="fragment" data-set='{"b":1}'>Every point and the mean move by the same amount: $\E[\bX+\bb]=\bmu+\bb=(-2,2)^T$. The deviations $\bx-\bmu$ stay the same.</p>
     </div>
   </div></div>
   <aside class="notes">Ask which part of the picture describes variability: the arrow from the mean to a point.</aside>
@@ -202,7 +202,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
         \[\begin{aligned}\bY&=\mA\bX+\bb\\ \E\bY&=\htmlClass{dk1}{\mA\bmu+\bb}\\ \cov(\bY)&=\htmlClass{dk1}{\mA\,\cov(\bX)\,\mA^T}\end{aligned}\]
         Translation changes the center. The linear map stretches, rotates, or projects the deviations.
       </div></div>
-      <p class="fragment" data-set='{"a":1}'>Start from $\cov(\bX)=\mI$. Stretch by $\sqrt{1.5}$ along $x_2$ and by $\sqrt{0.5}$ along $x_1$.</p>
+      <p class="fragment" data-set='{"a":1}'>Start from $\cov(\bX)=\mI$. Stretch by $\sqrt{1.5}$ along $x_1$ and by $\sqrt{0.5}$ along $x_2$.</p>
       <p class="fragment" data-set='{"b":1}'><span class="dk2">Rotate by $45^\circ$: $\cov(\bY)=\mA\mA^T$ has the running model's covariance.</span></p>
       <p class="fragment small">For a scalar projection, <span class="dk3">$\var(\ba^T\bX)=\ba^T\mK\ba\geq0$</span>: covariance matrices are positive semidefinite.</p>
     </div>
@@ -211,8 +211,8 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <div class="dh">Derivation</div>
     <p class="dk1">Expectation is linear, so $\E\bY=\mA\,\E\bX+\bb=\mA\bmu+\bb$. The shift cancels in the deviation, $\bY-\E\bY=\mA(\bX-\bmu)$, so</p>
     \[\htmlClass{dk1}{\cov(\bY)=\E\big[\mA(\bX-\bmu)(\bX-\bmu)^T\mA^T\big]=\mA\,\cov(\bX)\,\mA^T.}\]
-    <p class="dk2">In $(x_1,x_2)$ order, stretch by $\mathsf D=\mathrm{diag}(\sqrt{0.5},\sqrt{1.5})$, then rotate by $\mathsf R$. With $\cov(\bX)=\mI$, $\cov(\bY)=\mA\mA^T$:</p>
-    \[\htmlClass{dk2}{\begin{aligned}\mA=\mathsf R\mathsf D&=\tfrac1{\sqrt2}\begin{pmatrix}1&1\\-1&1\end{pmatrix}\begin{pmatrix}\sqrt{0.5}&0\\0&\sqrt{1.5}\end{pmatrix}=\begin{pmatrix}\frac12&\frac{\sqrt3}2\\[2pt]-\frac12&\frac{\sqrt3}2\end{pmatrix}\\ \mA\mA^T&=\begin{pmatrix}\frac14+\frac34&-\frac14+\frac34\\[2pt]-\frac14+\frac34&\frac14+\frac34\end{pmatrix}=\begin{pmatrix}1&0.5\\0.5&1\end{pmatrix}.\end{aligned}}\]
+    <p class="dk2">In $(x_1,x_2)$ order, stretch by $\mathsf D=\mathrm{diag}(\sqrt{1.5},\sqrt{0.5})$, then rotate by $\mathsf R$. With $\cov(\bX)=\mI$, $\cov(\bY)=\mA\mA^T$:</p>
+    \[\htmlClass{dk2}{\begin{aligned}\mA=\mathsf R\mathsf D&=\tfrac1{\sqrt2}\begin{pmatrix}1&-1\\1&1\end{pmatrix}\begin{pmatrix}\sqrt{1.5}&0\\0&\sqrt{0.5}\end{pmatrix}=\begin{pmatrix}\frac{\sqrt3}2&-\frac12\\[2pt]\frac{\sqrt3}2&\frac12\end{pmatrix}\\ \mA\mA^T&=\begin{pmatrix}\frac34+\frac14&\frac34-\frac14\\[2pt]\frac34-\frac14&\frac34+\frac14\end{pmatrix}=\begin{pmatrix}1&0.5\\0.5&1\end{pmatrix}.\end{aligned}}\]
     <p class="dk3">Take the single row $\mA=\ba^T$ and $\bb=\bzero$: $\var(\ba^T\bX)=\ba^T\mK\ba$. A variance is nonnegative, so $\ba^T\mK\ba\geq0$ for every $\ba$.</p>
   </div>
   <aside class="notes">Trace one deviation through both maps. More generally Cov(AX+a,BY+b)=A Cov(X,Y) B^T. These identities do not require Gaussian distributions.</aside>
@@ -279,7 +279,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <div class="fbody"><div class="row">
     <div>
       <div class="fig" data-fig="proj" data-init='{"al":0,"sc":1}'></div>
-      <div class="knobs"><label>direction of $\ba$ (degrees from the $x_2$ axis) <input type="range" data-param="al" data-digits="0" min="0" max="180" step="1"><output></output></label></div>
+      <div class="knobs"><label>direction of $\ba$ (degrees from the $x_1$ axis) <input type="range" data-param="al" data-digits="0" min="0" max="180" step="1"><output></output></label></div>
     </div>
     <div class="col">
       <div class="block"><div class="bt">Jointly Gaussian</div><div class="bb">
@@ -290,9 +290,9 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
       <table class="vals">
         <thead><tr><th>unit $\ba$</th><th>$\ba^T\mK\ba$</th></tr></thead>
         <tbody>
-          <tr><td>$(0,1)^T$</td><td><span class="dk2">1</span></td></tr>
+          <tr><td>$(1,0)^T$</td><td><span class="dk2">1</span></td></tr>
           <tr class="fragment" data-set='{"al":45}'><td>$(1,1)^T/\sqrt2$</td><td><span class="dk2">1.5</span></td></tr>
-          <tr class="fragment" data-set='{"al":135}'><td>$(1,-1)^T/\sqrt2$</td><td><span class="dk2">0.5</span></td></tr>
+          <tr class="fragment" data-set='{"al":135}'><td>$(-1,1)^T/\sqrt2$</td><td><span class="dk2">0.5</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -304,10 +304,10 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <p class="dk2">For $\ba=(a_1,a_2)^T$ and the running $\mK$,</p>
     \[\htmlClass{dk2}{\ba^T\mK\ba=a_1^2+a_2^2+2(0.5)\,a_1a_2=1+a_1a_2}\]
     <p class="dk2">for a unit vector, since $a_1^2+a_2^2=1$. Hence</p>
-    \[\htmlClass{dk2}{\begin{aligned}(0,1)^T&:\ 1+0=1\\ (1,1)^T/\sqrt2&:\ 1+\tfrac12=1.5\\ (1,-1)^T/\sqrt2&:\ 1-\tfrac12=0.5\end{aligned}}\]
+    \[\htmlClass{dk2}{\begin{aligned}(1,0)^T&:\ 1+0=1\\ (1,1)^T/\sqrt2&:\ 1+\tfrac12=1.5\\ (-1,1)^T/\sqrt2&:\ 1-\tfrac12=0.5\end{aligned}}\]
     <p class="dk2">$1+a_1a_2$ is largest at $a_1=a_2=1/\sqrt2$: the bell is widest along $(1,1)^T$.</p>
   </div>
-  <aside class="notes">Vectors in (x1, x2) order. a=(0,1) projects onto x2: the marginal of X2. A vector generated by an affine transformation of independent standard normals is jointly Gaussian.</aside>
+  <aside class="notes">Vectors in (x1, x2) order. a=(1,0) projects onto x1: the marginal of X1. A vector generated by an affine transformation of independent standard normals is jointly Gaussian.</aside>
 </section>
 
 <section class="frame">
@@ -374,7 +374,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <div class="fig" data-fig="maha" data-init='{"r":0,"num":0}'></div>
     <div class="col">
       <p>Running model: $\bmu=\bzero$, $\mK=\begin{pmatrix}1&0.5\\0.5&1\end{pmatrix}$.</p>
-      <p>In $(x_1,x_2)$ order, A is $(2,2)$ and B is $(2,-2)$. Both are $\sqrt8$ from the mean.</p>
+      <p>In $(x_1,x_2)$ order, A is $(2,2)$ and B is $(-2,2)$. Both are $\sqrt8$ from the mean.</p>
       <ol class="parts">
         <li>(a) Which point has lower density under this Gaussian? Vote, then explain.</li>
         <li>(b) Compute the squared Mahalanobis distance \[\Delta^2(\bx,\bmu)=(\bx-\bmu)^T\mK^{-1}(\bx-\bmu)\] for A and for B.</li>
@@ -392,7 +392,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
       <p>(a) Which point has lower density under this Gaussian?</p>
       <div class="fragment" data-set='{"r":1}'>
         <span class="structure">Solution</span>
-        <p>A lies in the direction $(1,1)^T/\sqrt2$, where the cloud's variance is 1.5; B lies in the direction $(1,-1)^T/\sqrt2$, where it is only 0.5.</p>
+        <p>A lies in the direction $(1,1)^T/\sqrt2$, where the cloud's variance is 1.5; B lies in the direction $(-1,1)^T/\sqrt2$, where it is only 0.5.</p>
         <p>Measured in units of the spread in its direction, B is farther out: the density ellipse through B encloses the one through A.</p>
         <p>B has lower density.</p>
       </div>
@@ -452,8 +452,8 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <p class="dk1">By the linear-transformation rule, $\cov(\bZ)=\mW\,\cov(\bX)\,\mW^T=\mW\mK\mW^T=\mI$.</p>
     <p class="dk2">$\mW\mK\mW^T=\mI$ forces $\mW$ to be invertible, and then $\mK=\mW^{-1}\mW^{-T}$, so $\mK^{-1}=\mW^T\mW$. Substituting,</p>
     \[\htmlClass{dk2}{\Delta^2(\bx,\bmu)=(\bx-\bmu)^T\mW^T\mW(\bx-\bmu)=\|\mW(\bx-\bmu)\|^2.}\]
-    <p class="dk3">Running model: $\mK$ has variance 1.5 along $(1,1)^T/\sqrt2$ and 0.5 along $(1,-1)^T/\sqrt2$. Rotate onto these directions, then divide by the standard deviations:</p>
-    \[\htmlClass{dk3}{\begin{aligned}\mW&=\begin{pmatrix}1/\sqrt{1.5}&0\\0&1/\sqrt{0.5}\end{pmatrix}\frac1{\sqrt2}\begin{pmatrix}1&1\\1&-1\end{pmatrix}\\ \bz_A&=\mW\begin{pmatrix}2\\2\end{pmatrix}=\begin{pmatrix}4/\sqrt3\\0\end{pmatrix},\quad \bz_B=\mW\begin{pmatrix}2\\-2\end{pmatrix}=\begin{pmatrix}0\\4\end{pmatrix}\end{aligned}}\]
+    <p class="dk3">Running model: $\mK$ has variance 1.5 along $(1,1)^T/\sqrt2$ and 0.5 along $(-1,1)^T/\sqrt2$. Rotate onto these directions, then divide by the standard deviations:</p>
+    \[\htmlClass{dk3}{\begin{aligned}\mW&=\begin{pmatrix}1/\sqrt{1.5}&0\\0&1/\sqrt{0.5}\end{pmatrix}\frac1{\sqrt2}\begin{pmatrix}1&1\\-1&1\end{pmatrix}\\ \bz_A&=\mW\begin{pmatrix}2\\2\end{pmatrix}=\begin{pmatrix}4/\sqrt3\\0\end{pmatrix},\quad \bz_B=\mW\begin{pmatrix}-2\\2\end{pmatrix}=\begin{pmatrix}0\\4\end{pmatrix}\end{aligned}}\]
     <p class="dk3">So $\|\bz_A\|=4/\sqrt3\approx2.31$ and $\|\bz_B\|=4$. Their squares, $16/3$ and 16, are the values of $\Delta^2$ found for A and B.</p>
   </div>
   <aside class="notes">One choice is W = Lambda^(-1/2) Q^T from the eigendecomposition K = Q Lambda Q^T: rotate into the principal directions, then divide by their standard deviations. Any W with W^T W = K^(-1) works, for example one built from a Cholesky factor.</aside>
@@ -553,53 +553,53 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
 <section class="frame" id="sec-cond" data-map="-335,980">
   <div class="frametitle">Conditional distribution of a bivariate Gaussian</div>
   <div class="fbody"><div class="row">
-    <div class="fig" data-fig="cond" data-init='{"rho":0.5,"x2":0}'></div>
+    <div class="fig" data-fig="cond" data-init='{"rho":0.5,"x1":0}'></div>
     <div class="col">
-      <p>Fix $X_2=x_2$ and renormalize the joint density along that slice.</p>
+      <p>Fix $X_1=x_1$ and renormalize the joint density along that slice.</p>
       <table class="vals">
-        <thead><tr><th>$x_2$</th><th>mean</th><th>variance</th></tr></thead>
+        <thead><tr><th>$x_1$</th><th>mean</th><th>variance</th></tr></thead>
         <tbody>
           <tr><td>0</td><td><span class="dk1">0</span></td><td><span class="dk2">0.75</span></td></tr>
-          <tr class="fragment" data-fragment-index="1" data-set='{"x2":1}'><td>1</td><td><span class="dk1">0.5</span></td><td><span class="dk2">0.75</span></td></tr>
-          <tr class="fragment" data-fragment-index="2" data-set='{"x2":2}'><td>2</td><td><span class="dk1">1</span></td><td><span class="dk2">0.75</span></td></tr>
+          <tr class="fragment" data-fragment-index="1" data-set='{"x1":1}'><td>1</td><td><span class="dk1">0.5</span></td><td><span class="dk2">0.75</span></td></tr>
+          <tr class="fragment" data-fragment-index="2" data-set='{"x1":2}'><td>2</td><td><span class="dk1">1</span></td><td><span class="dk2">0.75</span></td></tr>
         </tbody>
       </table>
       <div class="block alertblock fragment" data-fragment-index="2"><div class="bt">Return to the missing height</div><div class="bb">
-        \[\htmlClass{dk3}{X_1\mid X_2=2\sim\cN(1,0.75)}\]
+        \[\htmlClass{dk3}{X_2\mid X_1=2\sim\cN(1,0.75)}\]
         The predicted mean moves up to 1, and the variance falls from 1 to 0.75.
       </div></div>
     </div>
   </div></div>
   <div class="drawer">
     <div class="dh">Derivation</div>
-    <p>Standardized model: $X_1,X_2$ jointly Gaussian with mean 0, variance 1, and $\cov(X_1,X_2)=\rho=0.5$. Subtract from $X_1$ the part that moves with $X_2$, $Y=X_1-\rho X_2$:</p>
-    \[\begin{aligned}\cov(Y,X_2)&=\cov(X_1,X_2)-\rho\var(X_2)=\rho-\rho=0\\ \var(Y)&=\var(X_1)-2\rho\cov(X_1,X_2)+\rho^2\var(X_2)=1-\rho^2\end{aligned}\]
-    <p>$(Y,X_2)$ is a linear map of $(X_1,X_2)$, so it is jointly Gaussian; with zero covariance, $Y\sim\cN(0,1-\rho^2)$ is independent of $X_2$. Given $X_2=x_2$, $X_1=\rho x_2+Y$, so</p>
-    \[X_1\mid X_2=x_2\sim\cN(\rho x_2,\,1-\rho^2).\]
-    <p class="dk1">Mean $\rho x_2=0.5\,x_2$: 0, 0.5 and 1 for $x_2=0,1,2$.</p>
-    <p class="dk2">Variance $1-\rho^2=1-0.25=0.75$, the same for every $x_2$.</p>
-    <p class="dk3">At $x_2=2$: $\cN(0.5\cdot2,\,0.75)=\cN(1,0.75)$.</p>
+    <p>Standardized model: $X_1,X_2$ jointly Gaussian with mean 0, variance 1, and $\cov(X_1,X_2)=\rho=0.5$. Subtract from $X_2$ the part that moves with $X_1$, $Y=X_2-\rho X_1$:</p>
+    \[\begin{aligned}\cov(Y,X_1)&=\cov(X_2,X_1)-\rho\var(X_1)=\rho-\rho=0\\ \var(Y)&=\var(X_2)-2\rho\cov(X_2,X_1)+\rho^2\var(X_1)=1-\rho^2\end{aligned}\]
+    <p>$(Y,X_1)$ is a linear map of $(X_1,X_2)$, so it is jointly Gaussian; with zero covariance, $Y\sim\cN(0,1-\rho^2)$ is independent of $X_1$. Given $X_1=x_1$, $X_2=\rho x_1+Y$, so</p>
+    \[X_2\mid X_1=x_1\sim\cN(\rho x_1,\,1-\rho^2).\]
+    <p class="dk1">Mean $\rho x_1=0.5\,x_1$: 0, 0.5 and 1 for $x_1=0,1,2$.</p>
+    <p class="dk2">Variance $1-\rho^2=1-0.25=0.75$, the same for every $x_1$.</p>
+    <p class="dk3">At $x_1=2$: $\cN(0.5\cdot2,\,0.75)=\cN(1,0.75)$.</p>
   </div>
-  <aside class="notes">Recall students' opening guesses. Contrast conditioning with marginalization: integrate over all x2 to recover the dashed marginal. Conditioning at an exact continuous value uses a conditional density, not a positive-probability event.</aside>
+  <aside class="notes">Recall students' opening guesses. Contrast conditioning with marginalization: integrate over all x1 to recover the dashed marginal. Conditioning at an exact continuous value uses a conditional density, not a positive-probability event.</aside>
 </section>
 
 <section class="frame">
   <div class="frametitle">Conditional mean as a function of the observation</div>
   <div class="fbody"><div class="row">
-    <div class="fig" data-fig="trace" data-init='{"x2":-2,"fin":0}'></div>
+    <div class="fig" data-fig="trace" data-init='{"x1":-2,"fin":0}'></div>
     <div class="col">
-      <p>Move the observed value $x_2$ from $-2.5$ to $2.5$ and follow the conditional mean of $X_1$.</p>
+      <p>Move the observed value $x_1$ from $-2.5$ to $2.5$ and follow the conditional mean of $X_2$.</p>
       <table class="vals">
-        <thead><tr><th>$x_2$</th><th>$\E[X_1\mid X_2=x_2]$</th></tr></thead>
+        <thead><tr><th>$x_1$</th><th>$\E[X_2\mid X_1=x_1]$</th></tr></thead>
         <tbody>
           <tr><td>$-2$</td><td>$-1$</td></tr>
-          <tr class="fragment" data-set='{"x2":0}'><td>0</td><td>0</td></tr>
-          <tr class="fragment" data-set='{"x2":2}'><td>2</td><td>1</td></tr>
+          <tr class="fragment" data-set='{"x1":0}'><td>0</td><td>0</td></tr>
+          <tr class="fragment" data-set='{"x1":2}'><td>2</td><td>1</td></tr>
         </tbody>
       </table>
-      <div class="block alertblock fragment" data-set='{"x2":2.5,"fin":1}'><div class="bt">A line with slope $\rho$</div><div class="bb">
-        \[\E[X_1\mid X_2=x_2]=\rho x_2\]
-        The band of one conditional standard deviation, $\pm\sqrt{1-\rho^2}=\pm0.866$, has the same width at every $x_2$.
+      <div class="block alertblock fragment" data-set='{"x1":2.5,"fin":1}'><div class="bt">A line with slope $\rho$</div><div class="bb">
+        \[\E[X_2\mid X_1=x_1]=\rho x_1\]
+        The band of one conditional standard deviation, $\pm\sqrt{1-\rho^2}=\pm0.866$, has the same width at every $x_1$.
       </div></div>
     </div>
   </div></div>
@@ -609,14 +609,14 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <div class="frametitle">Effect of $\rho$ on the conditional distribution</div>
   <div class="fbody"><div class="row">
     <div>
-      <div class="fig" data-fig="cond" data-init='{"rho":-0.5,"x2":2}'></div>
+      <div class="fig" data-fig="cond" data-init='{"rho":-0.5,"x1":2}'></div>
       <div class="knobs"><label>$\rho$ <input type="range" data-param="rho" min="-0.95" max="0.95" step="0.05"><output></output></label>
-        <label>$x_2$ <input type="range" data-param="x2" min="-2.5" max="2.5" step="0.1"><output></output></label></div>
+        <label>$x_1$ <input type="range" data-param="x1" min="-2.5" max="2.5" step="0.1"><output></output></label></div>
     </div>
     <div class="col">
       <div class="block"><div class="bt">Standardized, jointly Gaussian</div><div class="bb">
-        \[X_1\mid X_2=x_2\sim\cN(\rho x_2,\,1-\rho^2)\]
-        Observed: $x_2=2$.
+        \[X_2\mid X_1=x_1\sim\cN(\rho x_1,\,1-\rho^2)\]
+        Observed: $x_1=2$.
       </div></div>
       <p class="small"><span class="alert">Predict:</span> as $\rho$ changes, what moves the peak, and what sets the width?</p>
       <table class="vals" style="margin-bottom:10px">
@@ -628,10 +628,10 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
           <tr class="fragment" data-set='{"rho":0.9}'><td>0.9</td><td>1.8</td><td>0.19</td></tr>
         </tbody>
       </table>
-      <p class="small fragment">The peak moves to $\rho x_2$: up for $\rho>0$, down for $\rho<0$. The width depends only on $|\rho|$: $\rho=\pm0.5$ give the same variance 0.75.</p>
+      <p class="small fragment">The peak moves to $\rho x_1$: up for $\rho>0$, down for $\rho<0$. The width depends only on $|\rho|$: $\rho=\pm0.5$ give the same variance 0.75.</p>
     </div>
   </div></div>
-  <aside class="notes">Live: move x2, then rho. Ask which control moves the peak and which also changes its width. At rho=0 the conditional equals the marginal.</aside>
+  <aside class="notes">Live: move x1, then rho. Ask which control moves the peak and which also changes its width. At rho=0 the conditional equals the marginal.</aside>
 </section>
 
 <section class="frame">
@@ -639,14 +639,14 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <div class="fbody"><div class="row">
     <div class="fig" data-fig="rev" data-init='{"v":1,"d1":0,"h":0,"hb":0,"d2":0,"L":0}'></div>
     <div class="col">
-      <p>Standardized model with $\rho=0.5$; the highlighted points have $x_2\approx2$.</p>
-      <p><span class="alert">Question:</span> If we observe $X_2=2$, what is $\E[X_1\mid X_2=2]$?</p>
-      <div class="fragment" data-set='{"d1":1}'>\[\E[X_1\mid X_2=2]=\rho\cdot2=1\]</div>
-      <p class="fragment" data-set='{"h":1}'><span class="alert">Question:</span> If instead we observe $X_1=1$, what is $\E[X_2\mid X_1=1]$?</p>
+      <p>Standardized model with $\rho=0.5$; the highlighted points have $x_1\approx2$.</p>
+      <p><span class="alert">Question:</span> If we observe $X_1=2$, what is $\E[X_2\mid X_1=2]$?</p>
+      <div class="fragment" data-set='{"d1":1}'>\[\E[X_2\mid X_1=2]=\rho\cdot2=1\]</div>
+      <p class="fragment" data-set='{"h":1}'><span class="alert">Question:</span> If instead we observe $X_2=1$, what is $\E[X_1\mid X_2=1]$?</p>
       <span class="fragment" data-set='{"hb":1}'></span>
-      <div class="fragment" data-set='{"d2":1}'>\[\E[X_2\mid X_1=1]=\rho\cdot1=0.5\]
+      <div class="fragment" data-set='{"d2":1}'>\[\E[X_1\mid X_2=1]=\rho\cdot1=0.5\]
         <p class="small">Inverting the first answer would give 2.</p></div>
-      <p class="fragment" data-set='{"L":1}'>Both conditional means have slope $\rho$ in standardized units: $x_1=0.5\,x_2$ and $x_2=0.5\,x_1$. They are two different lines, not inverses of each other.</p>
+      <p class="fragment" data-set='{"L":1}'>Both conditional means have slope $\rho$ in standardized units: $x_2=0.5\,x_1$ and $x_1=0.5\,x_2$. They are two different lines, not inverses of each other.</p>
     </div>
   </div></div>
   <aside class="notes">60-second pair discussion. Each line minimizes squared prediction error in a different coordinate.</aside>
@@ -790,7 +790,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
         \[\begin{aligned}\frac{\partial\ell}{\partial\btheta}&=\sum_{i}(\bx_i-\btheta)^T\mK^{-1}=\bzero^T\\ \Rightarrow\quad&\boxed{\hat\btheta_{\mle}=\bar\bx=\frac1n\sum_{i=1}^n\bx_i}\end{aligned}\]
       </div>
       <div class="block alertblock fragment" data-set='{"c":1}'><div class="bt">The center does not depend on $\mK$</div><div class="bb">
-        $\mK^{-1}$ is invertible, so the residuals (dashed) sum to $\bzero$. Here $\bar\bx=\frac14(4,8)^T=(1,2)^T$.
+        $\mK^{-1}$ is invertible, so the residuals (dashed) sum to $\bzero$. Here $\bar\bx=\frac14(8,4)^T=(2,1)^T$.
       </div></div>
     </div>
   </div></div>
@@ -837,12 +837,12 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
       <p>Residuals $\bx_i-\bar\bx$ of the four samples, and their outer products $(\bx_i-\bar\bx)(\bx_i-\bar\bx)^T$:</p>
       <div class="fig" data-fig="outfly" data-init='{"f":0}'>
       <div class="pairs" style="gap:16px 34px;margin:6px 0 18px">
-        <div class="fragment" data-set='{"k":1}'>$\textcolor{#087F80}{\begin{pmatrix}-2\\-1\end{pmatrix}}\ \mapsto\ \htmlClass{s1}{\textcolor{#087F80}{\begin{pmatrix}4&2\\2&1\end{pmatrix}}}$</div>
-        <div class="fragment" data-set='{"k":2}'>$\textcolor{#B33362}{\begin{pmatrix}0\\-1\end{pmatrix}}\ \mapsto\ \htmlClass{s2}{\textcolor{#B33362}{\begin{pmatrix}0&0\\0&1\end{pmatrix}}}$</div>
-        <div class="fragment" data-set='{"k":3}'>$\textcolor{#A0521B}{\begin{pmatrix}1\\0\end{pmatrix}}\ \mapsto\ \htmlClass{s3}{\textcolor{#A0521B}{\begin{pmatrix}1&0\\0&0\end{pmatrix}}}$</div>
-        <div class="fragment" data-set='{"k":4}'>$\textcolor{#6A3D9A}{\begin{pmatrix}1\\2\end{pmatrix}}\ \mapsto\ \htmlClass{s4}{\textcolor{#6A3D9A}{\begin{pmatrix}1&2\\2&4\end{pmatrix}}}$</div>
+        <div class="fragment" data-set='{"k":1}'>$\textcolor{#087F80}{\begin{pmatrix}-1\\-2\end{pmatrix}}\ \mapsto\ \htmlClass{s1}{\textcolor{#087F80}{\begin{pmatrix}1&2\\2&4\end{pmatrix}}}$</div>
+        <div class="fragment" data-set='{"k":2}'>$\textcolor{#B33362}{\begin{pmatrix}-1\\0\end{pmatrix}}\ \mapsto\ \htmlClass{s2}{\textcolor{#B33362}{\begin{pmatrix}1&0\\0&0\end{pmatrix}}}$</div>
+        <div class="fragment" data-set='{"k":3}'>$\textcolor{#A0521B}{\begin{pmatrix}0\\1\end{pmatrix}}\ \mapsto\ \htmlClass{s3}{\textcolor{#A0521B}{\begin{pmatrix}0&0\\0&1\end{pmatrix}}}$</div>
+        <div class="fragment" data-set='{"k":4}'>$\textcolor{#6A3D9A}{\begin{pmatrix}2\\1\end{pmatrix}}\ \mapsto\ \htmlClass{s4}{\textcolor{#6A3D9A}{\begin{pmatrix}4&2\\2&1\end{pmatrix}}}$</div>
       </div>
-      \[\begin{aligned}\htmlClass{gA}{\hat\mK_{\mle}}&\htmlClass{gA}{{}=\tfrac14\Big(}\htmlClass{d1}{\textcolor{#087F80}{\begin{pmatrix}4&2\\2&1\end{pmatrix}}}\htmlClass{gA}{+}\htmlClass{d2}{\textcolor{#B33362}{\begin{pmatrix}0&0\\0&1\end{pmatrix}}}\htmlClass{gA}{+}\htmlClass{d3}{\textcolor{#A0521B}{\begin{pmatrix}1&0\\0&0\end{pmatrix}}}\htmlClass{gA}{+}\htmlClass{d4}{\textcolor{#6A3D9A}{\begin{pmatrix}1&2\\2&4\end{pmatrix}}}\htmlClass{gA}{\Big)}\\&\htmlClass{gR}{{}=\tfrac14\begin{pmatrix}6&4\\4&6\end{pmatrix}=\begin{pmatrix}1.5&1\\1&1.5\end{pmatrix}}\end{aligned}\]
+      \[\begin{aligned}\htmlClass{gA}{\hat\mK_{\mle}}&\htmlClass{gA}{{}=\tfrac14\Big(}\htmlClass{d1}{\textcolor{#087F80}{\begin{pmatrix}1&2\\2&4\end{pmatrix}}}\htmlClass{gA}{+}\htmlClass{d2}{\textcolor{#B33362}{\begin{pmatrix}1&0\\0&0\end{pmatrix}}}\htmlClass{gA}{+}\htmlClass{d3}{\textcolor{#A0521B}{\begin{pmatrix}0&0\\0&1\end{pmatrix}}}\htmlClass{gA}{+}\htmlClass{d4}{\textcolor{#6A3D9A}{\begin{pmatrix}4&2\\2&1\end{pmatrix}}}\htmlClass{gA}{\Big)}\\&\htmlClass{gR}{{}=\tfrac14\begin{pmatrix}6&4\\4&6\end{pmatrix}=\begin{pmatrix}1.5&1\\1&1.5\end{pmatrix}}\end{aligned}\]
       </div>
       <span class="fragment" data-set='{"f":1}'></span>
       <p class="fragment small" data-set='{"e":1}'>The two residuals along the tilt supply the off-diagonal 4. The fitted $\Delta=1$ ellipse follows the tilt.</p>
@@ -973,7 +973,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <div class="sumrow"><svg class="icon" data-icon="bayes" width="110" height="64"></svg>
       <div>Maximum likelihood learns the center and shape from data. Bayesian mean estimation combines prior and data precision.</div></div>
     <div class="block" style="margin-top:6px"><div class="bt">Exit question</div><div class="bb">
-      For jointly Gaussian $X_1,X_2$ with $\rho=0$, what changes in the distribution of $X_1$ when we observe $X_2$?
+      For jointly Gaussian $X_1,X_2$ with $\rho=0$, what changes in the distribution of $X_2$ when we observe $X_1$?
       <span class="fragment">Nothing: the two variables are independent, so the conditional equals the marginal.</span>
     </div></div>
     <p><span class="alert">Next:</span> Linear regression, Chapter 5.</p>
