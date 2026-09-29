@@ -123,8 +123,14 @@
     if (w / h > W / H) h = w * H / W; else w = h * W / H;
     return { cx: (r.x0 + r.x1) / 2, cy: (r.y0 + r.y1) / 2, w };
   }
+  // Zoom about the one map point that sits at the same place on screen in
+  // both views, so every point, the slide being left or entered included,
+  // moves on a straight line across the screen. Without a zoom, pan.
   function lerpView(A, B, u) {
-    return { cx: A.cx + (B.cx - A.cx) * u, cy: A.cy + (B.cy - A.cy) * u, w: Math.exp(Math.log(A.w) + (Math.log(B.w) - Math.log(A.w)) * u) };
+    const w = Math.exp(Math.log(A.w) + (Math.log(B.w) - Math.log(A.w)) * u);
+    if (Math.abs(Math.log(B.w / A.w)) < 1e-3) return { cx: A.cx + (B.cx - A.cx) * u, cy: A.cy + (B.cy - A.cy) * u, w };
+    const px = (B.cx * A.w - A.cx * B.w) / (A.w - B.w), py = (B.cy * A.w - A.cy * B.w) / (A.w - B.w), k = w / A.w;
+    return { cx: px + (A.cx - px) * k, cy: py + (A.cy - py) * k, w };
   }
 
   function drawMap(svg) {
