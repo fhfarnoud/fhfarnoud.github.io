@@ -303,7 +303,7 @@ function spread(box) {
   box.style.boxSizing = 'border-box';
 }
 // Derivation drawer: a slide's <div class="drawer"> gets a tab at the bottom
-// left; the tab or the D key opens it, and D, Escape or leaving the slide
+// right; the tab or the D key opens it, and D, Escape or leaving the slide
 // closes it. In print, each such slide is followed by a copy of its final
 // state with the drawer open, labelled "n / N · derivation".
 function wireDrawers() {

@@ -114,9 +114,9 @@ section.lay-panel .illus-text { background: rgba(255,255,255,.82); padding: 16px
 .knobs output { min-width: 3.2em; font-variant-numeric: tabular-nums; }
 html.deck-print .knobs { display: none; }
 
-/* Slide numbers, bottom right as in the Beamer footline */
+/* Slide numbers, bottom left (the bottom right holds the derivation tab) */
 .reveal .slide-number, .reveal .slide-number-pdf { background: rgba(255,255,255,.8); padding: 1px 6px; border-radius: 4px; color: #666;
-  font-family: KaTeX_SansSerif, sans-serif; font-size: 16px; right: 16px; bottom: 10px; left: auto; top: auto; }
+  font-family: KaTeX_SansSerif, sans-serif; font-size: 16px; left: 16px; bottom: 10px; right: auto; top: auto; }
 .reveal .slide-number a { color: #666; text-decoration: none; }
 .reveal .slide-number-delimiter { margin: 0 4px; }
 
@@ -154,7 +154,7 @@ section.frame .fbody { transition: transform .45s cubic-bezier(.2, .7, .2, 1); t
 .drawer-open .fbody .dk1 { box-shadow: 0 0 0 6px var(--dk1); background: color-mix(in srgb, var(--dk1) 12%, transparent); }
 .drawer-open .fbody .dk2 { box-shadow: 0 0 0 6px var(--dk2); background: color-mix(in srgb, var(--dk2) 12%, transparent); }
 .drawer-open .fbody .dk3 { box-shadow: 0 0 0 6px var(--dk3); background: color-mix(in srgb, var(--dk3) 12%, transparent); }
-.drawer-tab { position: absolute; left: 40px; bottom: 8px; z-index: 25; font-size: 17px; color: var(--struct);
+.drawer-tab { position: absolute; right: 40px; bottom: 8px; z-index: 25; font-size: 17px; color: var(--struct);
   background: var(--blockbody); border-radius: 6px; padding: 3px 12px; cursor: pointer; user-select: none; }
 .drawer-tab:hover { background: #d9d4e6; }
 .deck-print .drawer-tab { display: none; }
