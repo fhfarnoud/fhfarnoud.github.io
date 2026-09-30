@@ -76,8 +76,9 @@ function normals(seed, n) {   // n pairs of iid N(0,1), Box-Muller
   }
   return out;
 }
-// The running cloud: (z, w) iid N(0,1); x2 = z, x1 = rho z + sqrt(1-rho^2) w.
+// The running cloud: (z, w) iid N(0,1); x1 = z, x2 = rho z + sqrt(1-rho^2) w.
 const PTS = normals(20260924, 400);
+const corrPts = rho => PTS.map(([z, w]) => [z, rho * z + Math.sqrt(1 - rho * rho) * w]);
 
 // A square plot of [-R,R]^2; X maps the horizontal coordinate, Y the vertical.
 function frame2d(x0, y0, S, R) {
@@ -96,11 +97,11 @@ function arrowD(x1, y1, x2, y2, L = 12) {
   return `M${x1},${y1}L${x2},${y2}M${x2},${y2}L${x2 - h * Math.cos(a - s)},${y2 - h * Math.sin(a - s)}` +
     `L${x2 - h * Math.cos(a + s)},${y2 - h * Math.sin(a + s)}Z`;
 }
-// Grid, arrowed axes, tick labels, and axis names (x2 horizontal, x1 vertical
+// Grid, arrowed axes, tick labels, and axis names (x1 horizontal, x2 vertical
 // unless o.names says otherwise).
 function axes(root, svg, P, o = {}) {
   const g = el(svg, 'g'), R = P.R, G = o.grid ?? 3, ticks = o.ticks ?? [-2, 2];
-  const [nx, ny] = o.names ?? ['$x_2$', '$x_1$'];
+  const [nx, ny] = o.names ?? ['$x_1$', '$x_2$'];
   for (let i = -G; i <= G; i++) {
     el(g, 'line', { x1: P.X(i), x2: P.X(i), y1: P.Y(-R), y2: P.Y(R), stroke: C.grid });
     el(g, 'line', { y1: P.Y(i), y2: P.Y(i), x1: P.X(-R), x2: P.X(R), stroke: C.grid });
@@ -111,10 +112,53 @@ function axes(root, svg, P, o = {}) {
     el(g, 'text', { x: P.X(v) + 4, y: P.Y(0) + 20, 'text-anchor': 'start', 'font-size': 16, fill: '#555' }).textContent = minus(v);
     el(g, 'text', { x: P.X(0) - 7, y: P.Y(v) + 5, 'text-anchor': 'end', 'font-size': 16, fill: '#555' }).textContent = minus(v);
   }
-  label(root, 'ax2', nx, P.X(R) + 10, P.Y(0) + 8, 't', '#444');
-  label(root, 'ax1', ny, P.X(0) + 8, P.Y(R) - 14, 'l', '#444');
+  label(root, 'axh', nx, P.X(R) + 10, P.Y(0) + 8, 't', '#444');
+  label(root, 'axv', ny, P.X(0) + 8, P.Y(R) - 14, 'l', '#444');
   return g;
 }
+// A plot of [xlo,xhi] x [ylo,yhi], W x H pixels at (x0, y0).
+function box2d(x0, y0, W, H, xlo, xhi, ylo, yhi) {
+  return { x0, y0, W, H, xlo, xhi, ylo, yhi,
+    X: x => x0 + (x - xlo) / (xhi - xlo) * W, Y: y => y0 + (yhi - y) / (yhi - ylo) * H };
+}
+// Axes of a box2d: grid every o.step, axes crossing at (o.ox, o.oy), ticks
+// o.xt and o.yt, and axis names (x1 horizontal, x2 vertical by default).
+function axesBox(root, svg, B, o = {}) {
+  const g = el(svg, 'g'), step = o.step ?? 1;
+  if (o.grid !== false) {
+    for (let v = Math.ceil(B.xlo / step) * step; v <= B.xhi; v += step)
+      el(g, 'line', { x1: B.X(v), x2: B.X(v), y1: B.Y(B.ylo), y2: B.Y(B.yhi), stroke: C.grid });
+    for (let v = Math.ceil(B.ylo / step) * step; v <= B.yhi; v += step)
+      el(g, 'line', { y1: B.Y(v), y2: B.Y(v), x1: B.X(B.xlo), x2: B.X(B.xhi), stroke: C.grid });
+  }
+  const ox = o.ox ?? 0, oy = o.oy ?? 0;
+  arrow(g, B.X(B.xlo), B.Y(oy), B.X(B.xhi) + 16, B.Y(oy), C.axis);
+  arrow(g, B.X(ox), B.Y(B.ylo), B.X(ox), B.Y(B.yhi) - 16, C.axis);
+  for (const v of o.xt ?? []) el(g, 'text', { x: B.X(v), y: B.Y(oy) + 20, 'text-anchor': 'middle', 'font-size': 16, fill: '#555' }).textContent = minus(v);
+  for (const v of o.yt ?? []) el(g, 'text', { x: B.X(ox) - 7, y: B.Y(v) + 5, 'text-anchor': 'end', 'font-size': 16, fill: '#555' }).textContent = minus(v);
+  const [nx, ny] = o.names ?? ['$x_1$', '$x_2$'];
+  label(root, 'bx', nx, B.X(B.xhi) + 10, B.Y(oy) + 8, 't', '#444');
+  label(root, 'by', ny, B.X(ox) + 8, B.Y(B.yhi) - 14, 'l', '#444');
+  return g;
+}
+// A vector arrow whose stroked tip lands exactly on (x2, y2), or `gap` px short
+// of it (to touch the edge of a dot drawn there).  Draw it with
+// 'stroke-linejoin': 'round' and stroke-width w.  Returns the full path d, the
+// head alone, and the base (bx, by) where a separately drawn shaft should end.
+function vecParts(x1, y1, x2, y2, L = 14, w = 3.5, gap = 0) {
+  const len = Math.hypot(x2 - x1, y2 - y1), e = gap + w / 2;
+  if (len - e < 2) return { d: '', head: '', bx: x1, by: y1 };
+  const ux = (x2 - x1) / len, uy = (y2 - y1) / len, a = Math.atan2(uy, ux), s = 0.42;
+  const tx = x2 - ux * e, ty = y2 - uy * e, h = Math.min(L, (len - e) * 0.6);
+  const bx = tx - ux * h * Math.cos(s), by = ty - uy * h * Math.cos(s);
+  const head = `M${tx.toFixed(1)},${ty.toFixed(1)}L${(tx - h * Math.cos(a - s)).toFixed(1)},${(ty - h * Math.sin(a - s)).toFixed(1)}` +
+    `L${(tx - h * Math.cos(a + s)).toFixed(1)},${(ty - h * Math.sin(a + s)).toFixed(1)}Z`;
+  return { d: `M${x1.toFixed(1)},${y1.toFixed(1)}L${bx.toFixed(1)},${by.toFixed(1)}` + head, head, bx, by };
+}
+const vecD = (...a) => vecParts(...a).d;
+// A polyline through [x, y] pixel points.
+const pathOf = pts => pts.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ',' + q[1].toFixed(1)).join('');
+const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
 function cloud(svg, cls = 'pt', n = PTS.length) {
   const g = el(svg, 'g');
   for (let i = 0; i < n; i++) el(g, 'circle', { class: cls, r: 2.6 });
@@ -163,7 +207,286 @@ function bellPath(cx, sd, h, base, sx) {
   return d;
 }
 
-const FIGS = {};    // name -> { init(root), render(root, p), duration?, linear?, enter? }
+// ---------------------------------------------------------------- figure scenes
+// A figure may be one drawing function instead of init + render:
+//
+//   FIGS.name = { size: [W, H], draw(g, p) { const P = g.plot(box); P.axes(); P.dot([1, 1]); } }
+//
+// draw paints the whole picture from the state p, every frame: in pixels
+// through the scene g, or in data coordinates through a plot P = g.plot(box)
+// (box from frame2d or box2d).  The scene keeps the SVG elements and updates
+// them in place, in call order (later marks on top); a mark not drawn in a
+// frame is removed, and a label not drawn is hidden.  Every mark takes a
+// style object whose defaults are the house style below; `color`, `fill` and
+// `stroke` (the edge of a mark whose colour is its fill, null for none) take a
+// role name of C (prior, like, post, ...) or any CSS colour, and a key with a
+// hyphen ('stroke-linecap') passes through as an SVG attribute.
+const STYLE = {
+  curve: 3.5,           // width of a density's curve (a secondary curve: w 2.5)
+  fill: 0.18,           // fill-opacity under a density
+  dot: 7,               // radius of a marked point, drawn with a white 1.5 outline
+  vec: [3.5, 14],       // width and head length of a vector
+  contour: 2,           // width of an ellipse
+  cloud: [2.6, 0.3],    // radius and fill-opacity of a cloud's dots
+  dash: '9 6',          // dash: true
+  tick: [16, '#555'],   // tick numbers: size and colour
+  axisName: '#444'
+};
+const colorOf = c => C[c] || c;
+// Style object -> SVG attributes, over `base`; `color` goes to colorAttr.
+function paint(st, base, colorAttr = 'stroke') {
+  const a = Object.assign({}, base);
+  for (const k in st) {
+    const v = st[k];
+    if (k === 'color') a[colorAttr] = colorOf(v);
+    else if (k === 'w') a['stroke-width'] = v;
+    else if (k === 'dash') a['stroke-dasharray'] = v === true ? STYLE.dash : v;
+    else if (k === 'fill') a.fill = colorOf(v);
+    else if (k === 'stroke') a.stroke = v == null ? v : colorOf(v);
+    else if (k === 'fo') a['fill-opacity'] = v;
+    else if (k === 'so') a['stroke-opacity'] = v;
+    else if (k === 'opacity') a.opacity = v;
+    else if (k === 'cap') a['stroke-linecap'] = v;
+    else if (k === 'join') a['stroke-linejoin'] = v;
+    else if (k === 'cls') a.class = v;
+    else if (k.includes('-') || k === 'transform') a[k] = v;
+  }
+  return a;
+}
+// The filled head of an axis arrow ending at (x2, y2), as arrow() draws it.
+function arrowHeadD(x1, y1, x2, y2, L = 10) {
+  const a = Math.atan2(y2 - y1, x2 - x1), s = 0.42;
+  return `M${x2},${y2} L${x2 - L * Math.cos(a - s)},${y2 - L * Math.sin(a - s)} L${x2 - L * Math.cos(a + s)},${y2 - L * Math.sin(a + s)} Z`;
+}
+
+class Scene {
+  constructor(root, W, H, svg) {
+    this.root = root; this.W = W; this.H = H;
+    this.svg = svg || newSvg(root, W, H);
+  }
+  begin() { this.at = [this.svg, 0]; this.shown = new Set(); }
+  // Any SVG element, at the cursor: reused when the tag matches, else created there.
+  el(tag, attrs) {
+    const [par, i] = this.at;
+    let e = par.children[i];
+    if (!e || e.tagName !== tag) {
+      e = document.createElementNS(NS, tag);
+      par.insertBefore(e, par.children[i] || null);
+    }
+    for (const k of e._keys || []) if (attrs[k] == null) e.removeAttribute(k);
+    const keys = [];
+    for (const k in attrs) if (attrs[k] != null) { e.setAttribute(k, attrs[k]); keys.push(k); }
+    e._keys = keys;
+    this.at[1]++;
+    return e;
+  }
+  // A <g>; the marks fn draws go into it.
+  group(attrs, fn) {
+    const e = this.el('g', attrs || {}), save = this.at;
+    this.at = [e, 0];
+    fn();
+    this.trim();
+    this.at = save;
+    return e;
+  }
+  trim() { const [par, i] = this.at; while (par.children.length > i) par.lastElementChild.remove(); }
+  end() {
+    this.trim();
+    this.root.querySelectorAll(':scope > .lab').forEach(d => {
+      if (!this.shown.has(d.dataset.k)) { d.style.opacity = 0; d.style.visibility = 'hidden'; }
+    });
+  }
+  // An HTML label (KaTeX in $…$) at pixel point [x, y]; st: color, opacity, dx, dy.
+  label(key, s, [x, y], anchor = 'l', st = {}) {
+    this.shown.add(key);
+    label(this.root, key, s, x + (st.dx || 0), y + (st.dy || 0), anchor, colorOf(st.color || C.ink), st.opacity ?? 1);
+  }
+  // SVG text at pixel point [x, y], by default a tick number; st: anchor, size, color.
+  text([x, y], s, st = {}) {
+    const { color, anchor, size, ...rest } = st;
+    const e = this.el('text', paint(rest, { x, y, 'text-anchor': anchor || 'middle',
+      'font-size': size || STYLE.tick[0], fill: colorOf(color || STYLE.tick[1]) }));
+    if (e.textContent !== String(s)) e.textContent = s;
+    return e;
+  }
+  line([x1, y1], [x2, y2], st = {}) {
+    return this.el('line', paint(st, { x1, y1, x2, y2, stroke: C.ink, 'stroke-width': 1.5 }));
+  }
+  path(pts, st = {}) {
+    return this.el('path', paint(st, { d: pathOf(pts) + (st.close ? 'Z' : ''), fill: 'none', stroke: C.ink, 'stroke-width': 2 }));
+  }
+  // A thin arrow with a filled head, as the axes draw them (colour C.axis).
+  arrow([x1, y1], [x2, y2], st = {}) {
+    const { color, w, head, ...rest } = st, col = colorOf(color || C.axis);
+    this.el('line', paint(rest, { x1, y1, x2, y2, stroke: col, 'stroke-width': w ?? 1.5 }));
+    return this.el('path', paint(rest, { d: arrowHeadD(x1, y1, x2, y2, head ?? 10), fill: col }));
+  }
+  plot(B) { return new Plot(this, B); }
+}
+
+// Marks in the data coordinates of a frame2d or box2d.
+class Plot {
+  constructor(g, B) {
+    this.g = g; this.B = B;
+    this.xlo = B.xlo ?? -B.R; this.xhi = B.xhi ?? B.R;
+    this.ylo = B.ylo ?? -B.R; this.yhi = B.yhi ?? B.R;
+  }
+  X(x) { return this.B.X(x); }
+  Y(y) { return this.B.Y(y); }
+  px([x, y]) { return [this.B.X(x), this.B.Y(y)]; }
+  d(pts, close) { return pathOf(pts.map(q => this.px(q))) + (close ? 'Z' : ''); }
+  // [from, to] in n steps
+  steps(st, lo, hi, n) {
+    const a = st.from ?? lo, b = st.to ?? hi, m = st.n ?? n, out = [];
+    for (let i = 0; i <= m; i++) out.push(a + (b - a) * i / m);
+    return out;
+  }
+  line(a, b, st = {}) { return this.g.line(this.px(a), this.px(b), st); }
+  // A polyline through data points; st.close closes it.
+  path(pts, st = {}) { return this.g.path(pts.map(q => this.px(q)), st); }
+  arrow(a, b, st = {}) { return this.g.arrow(this.px(a), this.px(b), st); }
+  // y = f(x) on [from, to]; the pen lifts where y is not finite or above the plot.
+  curve(f, st = {}) {
+    let d = '', pen = false;
+    for (const x of this.steps(st, this.xlo, this.xhi, 200)) {
+      const y = f(x);
+      if (!Number.isFinite(y) || y > this.yhi) { pen = false; continue; }
+      d += (pen ? 'L' : 'M') + this.X(x).toFixed(1) + ',' + this.Y(Math.max(y, this.ylo)).toFixed(1); pen = true;
+    }
+    return this.g.el('path', paint(st, { d, fill: 'none', stroke: C.ink, 'stroke-width': STYLE.curve }));
+  }
+  // The curve t -> fn(t) = [x, y] for t in [from, to] (st.from, st.to required).
+  param(fn, st = {}) {
+    return this.path(this.steps(st, 0, 1, 200).map(fn), st);
+  }
+  // The region between y = f(x) and st.base (a number or a function; default
+  // the bottom of the plot), cut at the top and bottom of the plot.
+  area(f, st = {}) {
+    const xs = this.steps(st, this.xlo, this.xhi, 200), cut = y => clamp(y, this.ylo, this.yhi);
+    const base = typeof st.base === 'function' ? st.base : () => st.base ?? this.ylo;
+    const pts = xs.map(x => [x, cut(f(x))]).concat(xs.slice().reverse().map(x => [x, cut(base(x))]));
+    const { color, ...rest } = st;
+    return this.g.el('path', paint(rest, { d: this.d(pts, true), fill: colorOf(color || C.ink),
+      'fill-opacity': STYLE.fill, stroke: 'none' }));
+  }
+  // A density: the area under f, filled lightly, and its curve on top.
+  density(f, st = {}) {
+    const { fo, ...line } = st;
+    this.area(f, { color: st.color, fo: fo ?? STYLE.fill, from: st.from, to: st.to, n: st.n, opacity: st.opacity });
+    return this.curve(f, Object.assign({ join: 'round' }, line));
+  }
+  // A marked point: radius st.r, a white outline unless st.outline is false.
+  dot(at, st = {}) {
+    const [cx, cy] = this.px(at), { r, outline, ...rest } = st;
+    return this.g.el('circle', paint(rest, Object.assign({ cx, cy, r: r ?? STYLE.dot, fill: C.ink },
+      outline === false ? {} : { stroke: '#fff', 'stroke-width': 1.5 }), 'fill'));
+  }
+  // A vector from a to b: its tip lands on b, or st.gap px short of it (a dot
+  // of that radius at b); st.dash draws the shaft dashed and the head solid.
+  vec(a, b, st = {}) {
+    const [x1, y1] = this.px(a), [x2, y2] = this.px(b), { w, head, gap, dash, color, ...rest } = st;
+    const W = w ?? STYLE.vec[0], col = colorOf(color || C.ink);
+    const v = vecParts(x1, y1, x2, y2, head ?? STYLE.vec[1], W, gap ?? 0);
+    if (!dash) return this.g.el('path', paint(rest, { d: v.d, stroke: col, 'stroke-width': W, fill: col, 'stroke-linejoin': 'round' }));
+    this.g.el('line', paint(rest, { x1, y1, x2: v.bx, y2: v.by, stroke: col, 'stroke-width': W,
+      'stroke-dasharray': dash === true ? STYLE.dash : dash }));
+    return this.g.el('path', paint(rest, { d: v.head, fill: col, stroke: col, 'stroke-width': W, 'stroke-linejoin': 'round' }));
+  }
+  // The Mahalanobis-r contour (st.r, default 1) of a Gaussian centred at st.at:
+  // K is a correlation rho (unit variances) or a covariance [[a, b], [b, c]].
+  ellipse(K, st = {}) {
+    const { r = 1, at = [0, 0], ...rest } = st;
+    const d = typeof K === 'number' ? ellipse(this.B, K, r, at[0], at[1])
+      : covEllipse(this.B, K[0][0], K[0][1], K[1][1], r, at[0], at[1]);
+    return this.g.el('path', paint(rest, { d, fill: 'none', stroke: C.prior, 'stroke-width': STYLE.contour }));
+  }
+  // Dots at data points (st.r, st.color, st.fo); st.each(i, [x, y]) may return
+  // {r, color, fo} for one dot.  Dots outside the plot are hidden unless st.clip is false.
+  cloud(pts, st = {}) {
+    const r0 = st.r ?? STYLE.cloud[0], c0 = colorOf(st.color || C.prior), f0 = st.fo ?? STYLE.cloud[1];
+    return this.g.group(st.opacity != null ? { opacity: st.opacity } : {}, () => pts.forEach((q, i) => {
+      const o = st.each ? st.each(i, q) || {} : {};
+      const out = st.clip !== false && (q[0] < this.xlo || q[0] > this.xhi || q[1] < this.ylo || q[1] > this.yhi);
+      this.g.el('circle', { class: 'pt', r: o.r ?? r0, cx: this.X(q[0]), cy: this.Y(q[1]),
+        fill: colorOf(o.color || c0), 'fill-opacity': out ? 0 : o.fo ?? f0 });
+    }));
+  }
+  // Bars of heights hs centred at xs, st.width data units wide, from st.base (0).
+  bars(xs, hs, st = {}) {
+    const { width = 0.64, base = 0, color, ...rest } = st, col = colorOf(color || C.prior);
+    return xs.map((x, i) => this.g.el('rect', paint(rest, { x: this.X(x - width / 2), width: this.X(width) - this.X(0),
+      y: this.Y(Math.max(hs[i], base)), height: Math.abs(this.Y(base) - this.Y(hs[i])),
+      fill: col, 'fill-opacity': 0.55, stroke: col, 'stroke-width': 1.5 })));
+  }
+  rect(a, b, st = {}) {
+    const [x1, y1] = this.px(a), [x2, y2] = this.px(b), { color, ...rest } = st;
+    return this.g.el('rect', paint(rest, { x: Math.min(x1, x2), y: Math.min(y1, y2), width: Math.abs(x2 - x1),
+      height: Math.abs(y2 - y1), fill: colorOf(color || C.ink), stroke: 'none' }));
+  }
+  text(at, s, st = {}) {
+    const [x, y] = this.px(at);
+    return this.g.text([x + (st.dx || 0), y + (st.dy || 0)], s, st);
+  }
+  label(key, s, at, anchor = 'l', st = {}) { this.g.label(key, s, this.px(at), anchor, st); }
+  // Axes.  A square frame2d plot gets the centred cross of axes(): a grid at
+  // the integers up to o.grid (3), ticks o.ticks ([-2, 2]) on both axes.  A
+  // box2d plot gets axesBox(): a grid every o.step (1) unless o.grid is false,
+  // axes crossing at (o.ox, o.oy) = (0, 0), ticks o.xt and o.yt.  Names o.names
+  // (x1 across, x2 up); o.opacity fades them.
+  axes(o = {}) {
+    const g = this.g, B = this.B, grid = C.grid, ax = (x1, y1, x2, y2) => g.arrow([x1, y1], [x2, y2]);
+    const [nx, ny] = o.names ?? ['$x_1$', '$x_2$'];
+    const ga = o.opacity != null ? { opacity: o.opacity } : {}, la = { color: STYLE.axisName, opacity: o.opacity ?? 1 };
+    if (B.R != null && B.xlo == null) {
+      const R = B.R, G = o.grid ?? 3;
+      g.group(ga, () => {
+        for (let i = -G; i <= G; i++) {
+          g.el('line', { x1: B.X(i), x2: B.X(i), y1: B.Y(-R), y2: B.Y(R), stroke: grid });
+          g.el('line', { y1: B.Y(i), y2: B.Y(i), x1: B.X(-R), x2: B.X(R), stroke: grid });
+        }
+        ax(B.X(-R), B.Y(0), B.X(R) + 16, B.Y(0));
+        ax(B.X(0), B.Y(-R), B.X(0), B.Y(R) - 16);
+        for (const v of o.ticks ?? [-2, 2]) {
+          g.text([B.X(v) + 4, B.Y(0) + 20], minus(v), { anchor: 'start' });
+          g.text([B.X(0) - 7, B.Y(v) + 5], minus(v), { anchor: 'end' });
+        }
+      });
+      g.label('axh', nx, [B.X(R) + 10, B.Y(0) + 8], 't', la);
+      g.label('axv', ny, [B.X(0) + 8, B.Y(R) - 14], 'l', la);
+      return;
+    }
+    const step = o.step ?? 1, ox = o.ox ?? 0, oy = o.oy ?? 0;
+    g.group(ga, () => {
+      if (o.grid !== false) {
+        for (let v = Math.ceil(B.xlo / step) * step; v <= B.xhi; v += step)
+          g.el('line', { x1: B.X(v), x2: B.X(v), y1: B.Y(B.ylo), y2: B.Y(B.yhi), stroke: grid });
+        for (let v = Math.ceil(B.ylo / step) * step; v <= B.yhi; v += step)
+          g.el('line', { y1: B.Y(v), y2: B.Y(v), x1: B.X(B.xlo), x2: B.X(B.xhi), stroke: grid });
+      }
+      ax(B.X(B.xlo), B.Y(oy), B.X(B.xhi) + 16, B.Y(oy));
+      ax(B.X(ox), B.Y(B.ylo), B.X(ox), B.Y(B.yhi) - 16);
+      for (const v of o.xt ?? []) g.text([B.X(v), B.Y(oy) + 20], minus(v));
+      for (const v of o.yt ?? []) g.text([B.X(ox) - 7, B.Y(v) + 5], minus(v), { anchor: 'end' });
+    });
+    g.label('bx', nx, [B.X(B.xhi) + 10, B.Y(oy) + 8], 't', la);
+    g.label('by', ny, [B.X(ox) + 8, B.Y(B.yhi) - 14], 'l', la);
+  }
+}
+// A figure written as { size, draw }: the engine's init and render for it.
+function sceneFig(f) {
+  f.init = root => { root._scene = new Scene(root, f.size[0], f.size[1]); };
+  f.render = (root, p) => {
+    let g = root._scene;
+    if (!g) {   // a print page's clone: its SVG came without the scene, so it is redrawn from nothing
+      const svg = root.querySelector(':scope > svg');
+      svg.replaceChildren();
+      g = root._scene = new Scene(root, f.size[0], f.size[1], svg);
+    }
+    g.begin(); f.draw(g, p); g.end();
+  };
+}
+
+const FIGS = {};    // name -> { init(root), render(root, p) } or { size, draw(g, p) }; duration?, linear?, enter?
 const ICONS = {};   // name -> function(svg), for <svg class="icon" data-icon="name">
 
 // "n / N", with N counted before reveal wraps the slides into print pages.
@@ -335,6 +658,9 @@ function wireDrawers() {
   document.addEventListener('keydown', e => {
     const sec = window.Reveal && Reveal.getCurrentSlide();
     if (!sec || !sec.querySelector(':scope > .drawer') || e.metaKey || e.ctrlKey || e.altKey) return;
+    // typing in a field (a comment box in the viewer) is not a shortcut
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
     if (e.key === 'd' || e.key === 'D') toggle(sec);
     else if (e.key === 'Escape' && sec.classList.contains('drawer-open')) toggle(sec, false);
     else return;
@@ -342,7 +668,229 @@ function wireDrawers() {
   }, true);
   document.querySelector('.reveal').addEventListener('slidechanged', e => toggle(e.previousSlide, false));
 }
+// Slide markup.  A deck may write its slides in this vocabulary, which
+// expandSlides() turns into the layout markup the rest of the engine and
+// deck.css work on, before anything else runs:
+//
+//   <section><h2>Title</h2> … </section>   a frame: everything except the title,
+//                                           <drawer> and <notes> is its body
+//   <fig name="mean" init="mu=0 b=0">       a figure and its initial state
+//   <column> … </column>                    a text column; figures and columns
+//                                           next to each other form a row, and a
+//                                           figure keeps the caption (p.caption)
+//                                           and sliders written right after it
+//   <block title="…">, <alertblock title="…">   blocks; class "small" sets the body small
+//   <knob param="rho" min="-0.9" max="0.9" step="0.05" digits="2">$\rho$</knob>
+//                                           a slider for the figure (for="name",
+//                                           default: the slide's first figure);
+//                                           consecutive knobs share one bar
+//   pause, pause="b=1"                      on any element: it appears on the next
+//                                           click, which also sets the figure state
+//   <alert>, <drawer>, <notes>              \alert, the derivation drawer, speaker notes
+//   <narration><say>…</say>…</narration>    spoken narration, one <say> per state (before
+//                                           the first build step, then after each)
+//
+// A state is written "k=v k=v" (numbers, true/false, or words) or as JSON.
+// A slide written directly in the layout markup is left as it is.
+function stateAttr(s) {
+  s = (s || '').trim();
+  if (!s) return null;
+  if (s[0] === '{') return s;
+  const o = {};
+  for (const kv of s.split(/[\s,]+/)) {
+    const i = kv.indexOf('='), v = kv.slice(i + 1);
+    let val; try { val = JSON.parse(v); } catch (e) { val = v; }
+    o[kv.slice(0, i)] = val;
+  }
+  return JSON.stringify(o);
+}
+// e's attributes (less `drop`) and children on a new element; classes `cls` first.
+function retag(e, tag, cls = '', drop = []) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  for (const a of [...e.attributes]) {
+    if (drop.includes(a.name)) continue;
+    if (a.name === 'class') { if (a.value.trim()) n.classList.add(...a.value.trim().split(/\s+/)); }
+    else n.setAttribute(a.name, a.value);
+  }
+  while (e.firstChild) n.appendChild(e.firstChild);
+  e.replaceWith(n);
+  return n;
+}
+function expandSlides(slides) {
+  const all = sel => [...slides.querySelectorAll(sel)];
+  all('fig').forEach(e => {
+    const n = retag(e, 'div', 'fig', ['name', 'init']);
+    n.dataset.fig = e.getAttribute('name');
+    const s = stateAttr(e.getAttribute('init'));
+    if (s) n.dataset.init = s;
+  });
+  all('knob').forEach(e => {
+    if (!e.isConnected || e.parentNode.classList.contains('knobs')) return;
+    const bar = document.createElement('div');
+    bar.className = 'knobs';
+    if (e.hasAttribute('for')) bar.dataset.for = e.getAttribute('for');
+    e.before(bar);
+    for (let k = e; k && k.tagName === 'KNOB';) {
+      const next = k.nextElementSibling, label = document.createElement('label');
+      while (k.firstChild) label.appendChild(k.firstChild);
+      const inp = document.createElement('input');
+      inp.type = 'range'; inp.dataset.param = k.getAttribute('param');
+      if (k.hasAttribute('digits')) inp.dataset.digits = k.getAttribute('digits');
+      for (const a of ['min', 'max', 'step']) inp.setAttribute(a, k.getAttribute(a));
+      label.append(' ', inp, document.createElement('output'));
+      if (bar.children.length) bar.append(' ');
+      bar.appendChild(label); k.remove();
+      k = next;
+    }
+  });
+  all('block, alertblock').forEach(e => {
+    const alert = e.tagName === 'ALERTBLOCK', title = e.getAttribute('title');
+    const small = e.classList.contains('small');
+    const n = retag(e, 'div', alert ? 'block alertblock' : 'block', ['title']);
+    n.classList.remove('small');
+    const bb = document.createElement('div');
+    bb.className = small ? 'bb small' : 'bb';
+    while (n.firstChild) bb.appendChild(n.firstChild);
+    if (title != null) { const bt = document.createElement('div'); bt.className = 'bt'; bt.innerHTML = title; n.appendChild(bt); }
+    n.appendChild(bb);
+  });
+  all('alert').forEach(e => retag(e, 'span', 'alert'));
+  all('column').forEach(e => retag(e, 'div', 'col'));
+  all('notes').forEach(e => retag(e, 'aside', 'notes'));
+  all('narration').forEach(e => { retag(e, 'aside', 'narration').querySelectorAll('say').forEach(x => retag(x, 'p', 'say')); });
+  all('drawer').forEach(e => {
+    const n = retag(e, 'div', 'drawer'), dh = document.createElement('div');
+    dh.className = 'dh'; dh.textContent = 'Derivation';
+    n.prepend(dh);
+  });
+  slides.querySelectorAll(':scope > section').forEach(sec => {
+    sec.classList.add('frame');
+    const h = sec.querySelector(':scope > h2');
+    if (!h) return;
+    h.classList.add('frametitle');
+    if (sec.querySelector(':scope > .fbody')) return;   // a body written out keeps its own layout
+    const body = document.createElement('div');
+    body.className = 'fbody';
+    [...sec.childNodes].forEach(c => {
+      if (c === h || c.nodeType === 1 && (c.matches('.drawer, aside.notes, aside.narration'))) return;
+      body.appendChild(c);
+    });
+    h.after(body);
+    rows(body);
+  });
+  all('[pause]').forEach(e => {
+    e.classList.add('fragment');
+    const s = stateAttr(e.getAttribute('pause'));
+    if (s) e.dataset.set = s;
+    e.removeAttribute('pause');
+  });
+}
+// A run of figures and columns side by side becomes a row, each figure with
+// the caption and sliders written right after it.
+function rows(body) {
+  const kids = [...body.children], isFig = k => k.matches('.fig'), isCol = k => k.matches('.col');
+  const trails = k => k.matches('p.caption, .knobs');
+  for (let i = 0; i < kids.length;) {
+    if (!isFig(kids[i]) && !isCol(kids[i])) { i++; continue; }
+    const items = [];
+    let j = i;
+    while (j < kids.length && (isFig(kids[j]) || isCol(kids[j]))) {
+      const it = [kids[j++]];
+      if (isFig(it[0])) while (j < kids.length && trails(kids[j])) it.push(kids[j++]);
+      items.push(it);
+    }
+    if (items.length > 1 && items.some(it => isCol(it[0]))) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      kids[i].before(row);
+      for (const it of items) {
+        if (it.length === 1) { row.appendChild(it[0]); continue; }
+        const g = document.createElement('div');
+        row.appendChild(g); it.forEach(k => g.appendChild(k));
+      }
+    }
+    i = j;
+  }
+}
+// Narration: a slide's <narration> holds one <say> per state, before the first
+// build step and then after each.  N, or the tab at the bottom right, starts
+// it: the current state is spoken, the next step is taken when it ends, and it
+// goes on into the next slide while that one is narrated too.  N or Escape
+// stops it; moving by hand while it runs speaks the new state instead.  A state
+// rendered by shared/narrate.py plays its audio file (narration/manifest.json,
+// keyed by the SHA-1 of the text); any other is spoken by the browser's voice.
+function wireNarration() {
+  if (PRINT) return;
+  const synth = window.speechSynthesis, tabs = [];
+  let on = false, token = 0, voice = null, audio = null, files = {};
+  fetch('narration/manifest.json').then(r => r.ok ? r.json() : null).then(m => { if (m) files = m.files || {}; }).catch(() => {});
+  const pick = () => {
+    const vs = synth ? synth.getVoices().filter(v => /^en[-_]/i.test(v.lang)) : [];
+    for (const re of [/Premium/i, /Enhanced/i, /Google US English/i, /en[-_]US/i]) {
+      const v = vs.find(v => re.test(v.name) || re.test(v.lang)); if (v) return v;
+    }
+    return vs[0] || null;
+  };
+  if (synth) { voice = pick(); synth.addEventListener('voiceschanged', () => { voice = pick(); }); }
+  const says = sec => sec ? [...sec.querySelectorAll(':scope > aside.narration > .say')] : [];
+  const stateOf = () => { const f = Reveal.getIndices().f; return f == null || f < 0 ? 0 : f + 1; };
+  const label = () => tabs.forEach(t => { t.textContent = on ? 'Stop narration ■' : 'Narration ▸'; });
+  const hush = () => { if (audio) { audio.pause(); audio = null; } if (synth) synth.cancel(); };
+  const stop = () => { on = false; token++; hush(); label(); };
+  const sha1 = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-1', new TextEncoder().encode(t)))]
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+  const next = my => {
+    if (my !== token || !on) return;
+    if (Reveal.availableFragments().next) Reveal.nextFragment();
+    else if (says(Reveal.getSlides()[Reveal.getIndices().h + 1]).length) Reveal.next();
+    else stop();
+  };
+  const speak = async () => {
+    const my = ++token; hush();
+    if (!on) return;
+    const say = says(Reveal.getCurrentSlide())[stateOf()];
+    if (!say) { stop(); return; }
+    const text = say.textContent.replace(/\s+/g, ' ').trim();
+    const file = crypto.subtle ? files[await sha1(text)] : null;
+    if (my !== token) return;
+    if (file) {
+      audio = new Audio('narration/' + file);
+      audio.onended = () => next(my);
+      audio.play().catch(() => stop());
+      return;
+    }
+    if (!synth) { stop(); return; }
+    // one utterance per sentence: Chrome drops long utterances part-way
+    const parts = text.match(/[^.!?]+[.!?]*/g) || [];
+    parts.forEach((txt, i) => {
+      const u = new SpeechSynthesisUtterance(txt.trim());
+      if (voice) u.voice = voice;
+      u.rate = 0.97;
+      if (i === parts.length - 1) u.onend = () => next(my);
+      synth.speak(u);
+    });
+  };
+  const toggle = () => { if (on) stop(); else { on = true; label(); speak(); } };
+  document.querySelectorAll('.slides > section').forEach(sec => {
+    if (!says(sec).length) return;
+    const t = document.createElement('div');
+    t.className = 'narr-tab';
+    t.addEventListener('click', e => { e.stopPropagation(); toggle(); });
+    sec.appendChild(t); tabs.push(t);
+  });
+  label();
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, [contenteditable="true"]')) return;
+    if (e.key === 'n' || e.key === 'N') toggle();
+    else if (e.key === 'Escape' && on) stop();
+    else return;
+    e.preventDefault(); e.stopPropagation();
+  }, true);
+  ['slidechanged', 'fragmentshown', 'fragmenthidden'].forEach(ev => Reveal.on(ev, () => { if (on) speak(); }));
+}
 async function startDeck(opts = {}) {
+  expandSlides(document.querySelector('.slides'));
   if (PRINT) document.documentElement.classList.add('deck-print');
   document.querySelectorAll('.slides > section').forEach((sec, i) => { sec.dataset.n = i + 1; });
   NSLIDES = document.querySelectorAll('.slides > section').length;
@@ -352,6 +900,7 @@ async function startDeck(opts = {}) {
     delimiters: [{ left: '\\[', right: '\\]', display: true }, { left: '$', right: '$', display: false }] });
   document.querySelectorAll('svg.bells').forEach(bells);
   document.querySelectorAll('svg.icon').forEach(svg => ICONS[svg.dataset.icon](svg));
+  Object.values(FIGS).forEach(f => { if (f.draw && !f.render) sceneFig(f); });
   // Build every figure once, in its slide's initial state, before reveal
   // clones slides for printing: clones then carry the SVG and labels.
   document.querySelectorAll('.fig[data-fig]').forEach(root => { FIGS[root.dataset.fig].init(root); show(root); });
@@ -359,6 +908,7 @@ async function startDeck(opts = {}) {
   await document.fonts.ready;
   document.querySelectorAll('.slides > section').forEach(balance);
   wireDrawers();
+  wireNarration();
 
   Reveal.on('ready', () => { document.querySelectorAll('.fig[data-fig]').forEach(r => show(r));
     document.documentElement.dataset.deckReady = '1'; });

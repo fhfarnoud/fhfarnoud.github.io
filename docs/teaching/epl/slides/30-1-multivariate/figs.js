@@ -1,11 +1,9 @@
 // Figures of the Chapter 4 deck.  Each FIGS entry draws from one parameter
 // object (see ../shared/deck.js); x1 is horizontal and x2 vertical throughout.
-// The shared axes() names the axes the other way round by default, so every
-// call here passes names: AX.
 
 Object.assign(MACROS, {
   '\\bX': '\\boldsymbol{X}', '\\bZ': '\\boldsymbol{Z}', '\\bY': '\\boldsymbol{Y}', '\\bx': '\\boldsymbol{x}',
-  '\\bz': '\\boldsymbol{z}', '\\bq': '\\boldsymbol{q}', '\\ba': '\\boldsymbol{a}',
+  '\\bz': '\\boldsymbol{z}', '\\bq': '\\boldsymbol{q}', '\\bu': '\\boldsymbol{u}', '\\by': '\\boldsymbol{y}', '\\be': '\\boldsymbol{e}', '\\mU': '\\mathsf{U}', '\\ba': '\\boldsymbol{a}',
   '\\bb': '\\boldsymbol{b}', '\\bmu': '\\boldsymbol{\\mu}', '\\btheta': '\\boldsymbol{\\theta}',
   '\\bTheta': '\\boldsymbol{\\Theta}', '\\bzero': '\\boldsymbol{0}', '\\bone': '\\boldsymbol{1}',
   '\\mK': '\\mathsf{K}', '\\mA': '\\mathsf{A}', '\\mS': '\\mathsf{S}', '\\mI': '\\mathsf{I}',
@@ -15,53 +13,14 @@ Object.assign(MACROS, {
   '\\cpr': '\\textcolor{##2354A8}{#1}', '\\clk': '\\textcolor{##008000}{#1}',
   '\\cpo': '\\textcolor{##B30000}{#1}', '\\cml': '\\textcolor{##616161}{#1}'
 });
-const S75 = Math.sqrt(0.75), AX = ['$x_1$', '$x_2$'];
+const S75 = Math.sqrt(0.75);
 
-// A plot of [xlo,xhi] x [ylo,yhi], W x H pixels at (x0, y0).
-function box2d(x0, y0, W, H, xlo, xhi, ylo, yhi) {
-  return { x0, y0, W, H, xlo, xhi, ylo, yhi,
-    X: x => x0 + (x - xlo) / (xhi - xlo) * W, Y: y => y0 + (yhi - y) / (yhi - ylo) * H };
-}
-function axesBox(root, svg, B, o = {}) {
-  const g = el(svg, 'g'), step = o.step ?? 1;
-  if (o.grid !== false) {
-    for (let v = Math.ceil(B.xlo / step) * step; v <= B.xhi; v += step)
-      el(g, 'line', { x1: B.X(v), x2: B.X(v), y1: B.Y(B.ylo), y2: B.Y(B.yhi), stroke: C.grid });
-    for (let v = Math.ceil(B.ylo / step) * step; v <= B.yhi; v += step)
-      el(g, 'line', { y1: B.Y(v), y2: B.Y(v), x1: B.X(B.xlo), x2: B.X(B.xhi), stroke: C.grid });
-  }
-  const ox = o.ox ?? 0, oy = o.oy ?? 0;
-  arrow(g, B.X(B.xlo), B.Y(oy), B.X(B.xhi) + 16, B.Y(oy), C.axis);
-  arrow(g, B.X(ox), B.Y(B.ylo), B.X(ox), B.Y(B.yhi) - 16, C.axis);
-  for (const v of o.xt ?? []) el(g, 'text', { x: B.X(v), y: B.Y(oy) + 20, 'text-anchor': 'middle', 'font-size': 16, fill: '#555' }).textContent = minus(v);
-  for (const v of o.yt ?? []) el(g, 'text', { x: B.X(ox) - 7, y: B.Y(v) + 5, 'text-anchor': 'end', 'font-size': 16, fill: '#555' }).textContent = minus(v);
-  const [nx, ny] = o.names ?? AX;
-  label(root, 'bx', nx, B.X(B.xhi) + 10, B.Y(oy) + 8, 't', '#444');
-  label(root, 'by', ny, B.X(ox) + 8, B.Y(B.yhi) - 14, 'l', '#444');
-  return g;
-}
-// A vector arrow whose stroked tip lands exactly on (x2, y2), or `gap` px short
-// of it (to touch the edge of a dot drawn there).  Draw it with
-// 'stroke-linejoin': 'round' and stroke-width w.  Returns the full path d, the
-// head alone, and the base (bx, by) where a separately drawn shaft should end.
-function vecParts(x1, y1, x2, y2, L = 14, w = 3.5, gap = 0) {
-  const len = Math.hypot(x2 - x1, y2 - y1), e = gap + w / 2;
-  if (len - e < 2) return { d: '', head: '', bx: x1, by: y1 };
-  const ux = (x2 - x1) / len, uy = (y2 - y1) / len, a = Math.atan2(uy, ux), s = 0.42;
-  const tx = x2 - ux * e, ty = y2 - uy * e, h = Math.min(L, (len - e) * 0.6);
-  const bx = tx - ux * h * Math.cos(s), by = ty - uy * h * Math.cos(s);
-  const head = `M${tx.toFixed(1)},${ty.toFixed(1)}L${(tx - h * Math.cos(a - s)).toFixed(1)},${(ty - h * Math.sin(a - s)).toFixed(1)}` +
-    `L${(tx - h * Math.cos(a + s)).toFixed(1)},${(ty - h * Math.sin(a + s)).toFixed(1)}Z`;
-  return { d: `M${x1.toFixed(1)},${y1.toFixed(1)}L${bx.toFixed(1)},${by.toFixed(1)}` + head, head, bx, by };
-}
-const vecD = (...a) => vecParts(...a).d;
-const pathOf = pts => pts.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ',' + q[1].toFixed(1)).join('');
 
 // ---------------------------------------------------------------- outline
 FIGS.outline = {
   init(root) {
     const svg = newSvg(root, 400, 400), P = frame2d(20, 20, 360, 3.2);
-    axes(root, svg, P, { ticks: [], names: AX });
+    axes(root, svg, P, { ticks: [] });
     cloud(svg); placeCloud(root, P, 0.5, 2);
     for (const r of [1, 2]) el(svg, 'path', { d: ellipse(P, 0.5, r), fill: 'none', stroke: C.prior, 'stroke-width': 2 });
     el(svg, 'line', { x1: P.X(2), x2: P.X(2), y1: P.Y(-3.2), y2: P.Y(3.2), stroke: C.like, 'stroke-width': 3.5 });
@@ -75,101 +34,75 @@ FIGS.outline = {
 // model comes later); MX is the realization's deviation from mu, (x1, x2).
 const MP = frame2d(40, 20, 470, 4.5), MX = [2, 1.5], M0 = 1, BV = [-3, 1];   // BV: the shift b, (x1, x2)
 FIGS.mean = {
-  duration: 1300,
-  init(root) {
-    const svg = newSvg(root, 580, 540), P = MP;
-    axes(root, svg, P, { grid: 4, ticks: [-4, -2, 2, 4], names: AX });
-    cloud(svg);
-    el(svg, 'line', { class: 'bl', stroke: '#666', 'stroke-width': 2, 'stroke-dasharray': '6 5' });
-    el(svg, 'path', { class: 'bh', fill: '#666', stroke: '#666', 'stroke-width': 2, 'stroke-linejoin': 'round' });
-    el(svg, 'path', { class: 'dev', stroke: C.teal, 'stroke-width': 3.5, fill: C.teal, 'stroke-linejoin': 'round' });
-    el(svg, 'circle', { class: 'xdot', r: 7, fill: C.teal, stroke: '#fff', 'stroke-width': 1.5 });
-    el(svg, 'circle', { class: 'mdot', r: 8, fill: C.ink, stroke: '#fff', 'stroke-width': 1.5 });
-  },
-  render(root, p) {
-    const P = MP, b = p.b;
-    $$(root, 'pt').forEach((c, i) => {
-      const [z, w] = PTS[i], h = M0 + z + b * BV[0], v = M0 + 0.5 * z + S75 * w + b * BV[1];
-      attr(c, { cx: P.X(h), cy: P.Y(v), fill: C.prior, 'fill-opacity': Math.abs(h) > P.R || Math.abs(v) > P.R ? 0 : 0.3 });
-    });
-    const mx = P.X(M0 + b * BV[0]), my = P.Y(M0 + b * BV[1]), xx = P.X(M0 + MX[0] + b * BV[0]), xy = P.Y(M0 + MX[1] + b * BV[1]);
-    attr($(root, 'mdot'), { cx: mx, cy: my, opacity: p.mu });
-    attr($(root, 'xdot'), { cx: xx, cy: xy, opacity: p.mu });
-    attr($(root, 'dev'), { d: vecD(mx, my, xx, xy, 14, 3.5, 8), opacity: p.mu });
-    const bo = clamp(b * 4), bv = vecParts(P.X(M0), P.Y(M0), mx, my, 12, 2, 9);
-    attr($(root, 'bl'), { x1: P.X(M0), y1: P.Y(M0), x2: bv.bx, y2: bv.by, opacity: bo });
-    attr($(root, 'bh'), { d: bv.head, opacity: bo });
-    const moved = b > 0.5;
-    label(root, 'mu', moved ? '$\\bmu+\\bb$' : '$\\bmu$', moved ? mx - 12 : mx + 12, my + 6, moved ? 'tr' : 'tl', C.ink, p.mu);
-    label(root, 'x', moved ? '$\\bx+\\bb$' : '$\\bx$', xx + 12, xy, 'l', C.teal, p.mu);
-    label(root, 'dev', '$\\bx-\\bmu$', (mx + xx) / 2 + 12, (my + xy) / 2 + 6, 'tl', C.teal, p.mu);
-    label(root, 'b', '$\\bb$', P.X(M0 + b * BV[0] / 2), P.Y(M0 + b * BV[1] / 2) + 10, 't', '#555', bo);
+  duration: 1300, size: [580, 540],
+  draw(g, p) {
+    const P = g.plot(MP), at = (h, v) => [M0 + h + p.b * BV[0], M0 + v + p.b * BV[1]];   // shifted by b as p.b runs 0 -> 1
+    P.axes({ grid: 4, ticks: [-4, -2, 2, 4] });
+    P.cloud(PTS.map(([z, w]) => at(z, 0.5 * z + S75 * w)));
+    const m = at(0, 0), x = at(...MX), bo = clamp(p.b * 4), moved = p.b > 0.5;
+    P.vec([M0, M0], m, { color: '#666', w: 2, head: 12, gap: 9, dash: '6 5', opacity: bo });
+    P.vec(m, x, { color: 'teal', gap: 8, opacity: p.mu });
+    P.dot(x, { color: 'teal', opacity: p.mu });
+    P.dot(m, { r: 8, opacity: p.mu });
+    P.label('mu', moved ? '$\\bmu+\\bb$' : '$\\bmu$', m, moved ? 'tr' : 'tl', { dx: moved ? -12 : 12, dy: 6, opacity: p.mu });
+    P.label('x', moved ? '$\\bx+\\bb$' : '$\\bx$', x, 'l', { dx: 12, color: 'teal', opacity: p.mu });
+    P.label('dev', '$\\bx-\\bmu$', mid(m, x), 'tl', { dx: 12, dy: 6, color: 'teal', opacity: p.mu });
+    P.label('b', '$\\bb$', mid([M0, M0], m), 't', { dy: 10, color: '#555', opacity: bo });
   }
 };
 
 // ---------------------------------------------------------------- quadrant products
 const QP = frame2d(40, 20, 450, 3.2);
 FIGS.quad = {
-  duration: 2400,
-  init(root) {
-    const svg = newSvg(root, 560, 560), P = QP, R = P.R;
-    for (const [sx, sy] of [[1, 1], [-1, -1], [-1, 1], [1, -1]]) {
-      const pos = sx * sy > 0;
-      el(svg, 'rect', { class: 'qr', x: Math.min(P.X(0), P.X(sx * R)), y: Math.min(P.Y(0), P.Y(sy * R)),
-        width: P.S / 2, height: P.S / 2, fill: pos ? C.teal : C.rose });
-    }
-    axes(root, svg, P, { names: AX });
-    cloud(svg); placeCloud(root, P, 0.5);
-  },
-  render(root, p) {
-    const P = QP, N = PTS.length, m = Math.round(p.k * N);
-    $$(root, 'qr').forEach(r => attr(r, { 'fill-opacity': 0.1 * p.q }));
-    let sum = 0, np = 0;
-    $$(root, 'pt').forEach((c, i) => {
-      const [z, w] = PTS[i], x2 = 0.5 * z + S75 * w, pr = z * x2;
-      if (i < m) { sum += pr; np += pr > 0; }
-      const out = Math.abs(z) > P.R || Math.abs(x2) > P.R;
-      attr(c, out ? { 'fill-opacity': 0 } : i < m ? { fill: pr > 0 ? C.teal : C.rose, 'fill-opacity': 0.85, r: 3 } : { fill: C.prior, 'fill-opacity': 0.3, r: 2.6 });
-    });
+  duration: 2400, size: [560, 560],
+  draw(g, p) {
+    const P = g.plot(QP), R = QP.R, pts = corrPts(0.5), m = Math.round(p.k * pts.length);
+    for (const [sx, sy] of [[1, 1], [-1, -1], [-1, 1], [1, -1]])
+      P.rect([0, 0], [sx * R, sy * R], { color: sx * sy > 0 ? 'teal' : 'rose', fo: 0.1 * p.q, stroke: null });
+    P.axes();
+    // the first m points on the plot are coloured by the sign of x1 x2
+    const pr = pts.map(([a, b]) => a * b), done = pr.slice(0, m), np = done.filter(v => v > 0).length, on = m > 0 ? 1 : 0;
+    P.cloud(pts, { each: (i, [a, b]) => i < m && Math.abs(a) <= R && Math.abs(b) <= R
+      ? { color: pr[i] > 0 ? 'teal' : 'rose', fo: 0.85, r: 3 } : null });
     for (const [k, x, y, pos] of [['s1', 2.6, 2.8, 1], ['s2', -2.6, -2.8, 1], ['s3', -2.6, 2.8, 0], ['s4', 2.6, -2.8, 0]])
-      label(root, k, pos ? '$+$' : '$-$', P.X(x), P.Y(y), 'c', pos ? C.teal : C.rose, p.q);
-    const on = m > 0 ? 1 : 0;
-    label(root, 'cnt', `products $x_1x_2$: <span style="color:${C.teal}">${np} positive</span>, <span style="color:${C.rose}">${m - np} negative</span>`,
-      P.X(-P.R), P.Y(-P.R) + 34, 'tl', '#333', on);
-    label(root, 'avg', `average product: ${m ? fmt(sum / m) : ''}`, P.X(-P.R), P.Y(-P.R) + 62, 'tl', '#333', on);
+      P.label(k, pos ? '$+$' : '$-$', [x, y], 'c', { color: pos ? 'teal' : 'rose', opacity: p.q });
+    P.label('cnt', `products $x_1x_2$: <span style="color:${C.teal}">${np} positive</span>, <span style="color:${C.rose}">${m - np} negative</span>`,
+      [-R, -R], 'tl', { dy: 34, color: '#333', opacity: on });
+    P.label('avg', `average product: ${m ? fmt(done.reduce((s, v) => s + v, 0) / m) : ''}`, [-R, -R], 'tl', { dy: 66, color: '#333', opacity: on });
   }
 };
 
 // ---------------------------------------------------------------- die counts
-const DSAMP = [[4, 7, 8, 5, 6, 6], [5, 9, 10, 3, 2, 7], [6, 5, 7, 7, 6, 5], [3, 6, 9, 8, 3, 7]];
+// s = 0, 1, 2 fixes X1 = 6, 2, 10.  The other five counts are one illustrative
+// draw given X1: the remaining 36 - X1 rolls land on faces 2 to 6 with
+// probability 1/5 each, so their average is exactly (36 - X1)/5 (the amber line).
+const DX1 = [6, 2, 10], DREST = [[5, 8, 8, 3, 6], [7, 6, 8, 3, 10], [7, 5, 4, 8, 2]];
 const DB = box2d(70, 50, 440, 400, 0.4, 6.6, 0, 12);
 FIGS.dice = {
-  duration: 1000,
-  init(root) {
-    const svg = newSvg(root, 620, 520), B = DB;
-    const g = el(svg, 'g');
-    for (let v = 0; v <= 12; v += 2) {
-      el(g, 'line', { x1: B.X(0.4), x2: B.X(6.6), y1: B.Y(v), y2: B.Y(v), stroke: C.grid });
-      el(g, 'text', { x: B.X(0.4) - 8, y: B.Y(v) + 5, 'text-anchor': 'end', 'font-size': 16, fill: '#555' }).textContent = v;
-    }
-    el(g, 'line', { x1: B.X(0.4), x2: B.X(6.6), y1: B.Y(0), y2: B.Y(0), stroke: C.axis, 'stroke-width': 1.5 });
-    el(g, 'line', { x1: B.X(0.4), x2: B.X(0.4), y1: B.Y(0), y2: B.Y(12), stroke: C.axis, 'stroke-width': 1.5 });
-    for (let i = 1; i <= 6; i++) {
-      el(svg, 'rect', { class: 'bar', x: B.X(i - 0.32), width: B.X(0.64) - B.X(0), fill: C.prior, 'fill-opacity': 0.55, stroke: C.prior, 'stroke-width': 1.5 });
-      el(g, 'text', { x: B.X(i), y: B.Y(0) + 22, 'text-anchor': 'middle', 'font-size': 18, fill: '#333' }).textContent = i;
-    }
-    el(svg, 'line', { x1: B.X(0.4), x2: B.X(6.6), y1: B.Y(6), y2: B.Y(6), stroke: C.ink, 'stroke-width': 2, 'stroke-dasharray': '7 5' });
-    label(root, 'face', 'die face $i$', B.X(3.5), B.Y(0) + 34, 't', '#444');
-    label(root, 'cnt', 'count $X_i$', B.X(0.4) - 50, B.Y(12) - 26, 'l', '#444');
-    label(root, 'mean', '$\\E[X_i]=6$', B.X(6.6) + 6, B.Y(6), 'l', C.ink);
-  },
-  render(root, p) {
-    const B = DB, i0 = Math.min(Math.floor(p.s), 3), i1 = Math.min(i0 + 1, 3), u = p.s - i0;
-    const h = DSAMP[i0].map((v, j) => lerp(v, DSAMP[i1][j], u));
-    $$(root, 'bar').forEach((r, j) => attr(r, { y: B.Y(h[j]), height: B.Y(0) - B.Y(h[j]) }));
-    h.forEach((v, j) => label(root, 'v' + j, '' + Math.round(v), B.X(j + 1), B.Y(v) - 4, 'b', C.prior));
-    label(root, 'batch', `batch ${Math.round(p.s) + 1} of 36 rolls: total $${h.reduce((a, b) => a + b, 0).toFixed(0)}$`,
-      B.X(3.5), B.Y(12) - 18, 'c', '#333');
+  duration: 1000, size: [620, 520],
+  draw(g, p) {
+    const P = g.plot(DB), i0 = Math.min(Math.floor(p.s), 2), i1 = Math.min(i0 + 1, 2), u = p.s - i0;
+    const x1 = lerp(DX1[i0], DX1[i1], u), rest = DREST[i0].map((v, j) => lerp(v, DREST[i1][j], u));
+    const h = [x1, ...rest], faces = [1, 2, 3, 4, 5, 6], k = Math.round(x1);
+    g.group({}, () => {
+      for (let v = 0; v <= 12; v += 2) {
+        P.line([0.4, v], [6.6, v], { color: C.grid, w: null });
+        P.text([0.4, v], v, { anchor: 'end', dx: -8, dy: 5 });
+      }
+      P.line([0.4, 0], [6.6, 0], { color: C.axis });
+      P.line([0.4, 0], [0.4, 12], { color: C.axis });
+      for (const i of faces) P.text([i, 0], i, { dy: 22, size: 18, color: '#333' });
+    });
+    P.bars([1], [x1], { color: 'like' });
+    P.bars(faces.slice(1), rest);
+    P.line([0.4, 6], [6.6, 6], { w: 2, dash: '7 5' });
+    P.line([1.5, (36 - x1) / 5], [6.6, (36 - x1) / 5], { color: 'postC', w: 3, dash: '10 6' });
+    P.label('face', 'die face $i$', [3.5, 0], 't', { dy: 34, color: '#444' });
+    P.label('cnt', 'count $X_i$', [0.4, 12], 'l', { dx: -50, dy: -26, color: '#444' });
+    P.label('mean', '$\\E[X_i]=6$', [6.6, 6], 'l', { dx: 6 });
+    h.forEach((v, j) => P.label('v' + j, '' + Math.round(v), [j + 1, v], 'b', { dy: -4, color: j ? 'prior' : 'like' }));
+    P.label('batch', `$X_1=${k}$: faces 2 to 6 share $${36 - k}$ rolls,<br>on average $${fmt((36 - k) / 5, 1)}$ each`,
+      [3.5, 12], 'b', { dy: -6, color: '#333' });
   }
 };
 
@@ -181,220 +114,267 @@ function linMap(h, v, a, b) {
   return [x * Math.cos(t) - y * Math.sin(t), x * Math.sin(t) + y * Math.cos(t)];
 }
 FIGS.lin = {
-  duration: 1400,
-  init(root) {
-    const svg = newSvg(root, 560, 560), P = LP;
-    axes(root, svg, P, { names: AX });
-    cloud(svg);
-    el(svg, 'path', { class: 'c1', fill: 'none', stroke: C.prior, 'stroke-width': 2.5 });
-    el(svg, 'path', { class: 'c2', fill: 'none', stroke: C.prior, 'stroke-width': 2 });
-    el(svg, 'path', { class: 'dev', stroke: C.teal, 'stroke-width': 3.5, fill: C.teal, 'stroke-linejoin': 'round' });
-    el(svg, 'circle', { class: 'xdot', r: 7, fill: C.teal, stroke: '#fff', 'stroke-width': 1.5 });
-  },
-  render(root, p) {
-    const P = LP, m = (h, v) => linMap(h, v, p.a, p.b);
-    $$(root, 'pt').forEach((c, i) => {
-      const [h, v] = m(PTS[i][0], PTS[i][1]);
-      attr(c, { cx: P.X(h), cy: P.Y(v), fill: C.prior, 'fill-opacity': Math.abs(h) > P.R || Math.abs(v) > P.R ? 0 : 0.3 });
-    });
-    for (const [k, r] of [['c1', 1], ['c2', 2]]) {
-      const pts = [];
-      for (let i = 0; i <= 120; i++) { const t = i / 120 * 2 * Math.PI, [h, v] = m(r * Math.cos(t), r * Math.sin(t)); pts.push([P.X(h), P.Y(v)]); }
-      attr($(root, k), { d: pathOf(pts) });
-    }
-    const [dh, dv] = m(LDEV[0], LDEV[1]);
-    attr($(root, 'dev'), { d: vecD(P.X(0), P.Y(0), P.X(dh), P.Y(dv), 14, 3.5, 8) });
-    attr($(root, 'xdot'), { cx: P.X(dh), cy: P.Y(dv) });
+  duration: 1400, size: [560, 560],
+  draw(g, p) {
+    const P = g.plot(LP), R = LP.R, m = ([h, v]) => linMap(h, v, p.a, p.b);
+    P.axes();
+    P.cloud(PTS.map(m));
+    for (const [r, w] of [[1, 2.5], [2, 2]])   // the images of the circles r = 1, 2
+      P.param(t => m([r * Math.cos(t), r * Math.sin(t)]), { from: 0, to: 2 * Math.PI, n: 120, color: 'prior', w });
+    const x = m(LDEV);
+    P.vec([0, 0], x, { color: 'teal', gap: 8 });
+    P.dot(x, { color: 'teal' });
     // Covariance of the mapped cloud, M M^T, shown in (x1, x2) order.
     const sx = lerp(1, Math.sqrt(1.5), p.a), sy = lerp(1, Math.sqrt(0.5), p.a), t = p.b * Math.PI / 4;
     const c = Math.cos(t), s = Math.sin(t);
     const hh = sx * sx * c * c + sy * sy * s * s, vv = sx * sx * s * s + sy * sy * c * c, hv = (sx * sx - sy * sy) * s * c;
-    label(root, 'K', `$\\cov=\\begin{pmatrix}${fmt(hh)}&${fmt(hv)}\\\\${fmt(hv)}&${fmt(vv)}\\end{pmatrix}$`,
-      P.X(-P.R) + 8, P.Y(P.R) + 8, 'tl', C.ink);
+    P.label('K', `$\\cov=\\begin{pmatrix}${fmt(hh)}&${fmt(hv)}\\\\${fmt(hv)}&${fmt(vv)}\\end{pmatrix}$`,
+      [-R, R], 'tl', { dx: 8, dy: 8 });
     // The map in (x1, x2) order: x1' = sx c x1 - sy s x2, x2' = sx s x1 + sy c x2.
-    label(root, 'A', `$\\mA=\\begin{pmatrix}${fmt(sx * c)}&${fmt(-sy * s)}\\\\${fmt(sx * s)}&${fmt(sy * c)}\\end{pmatrix}$`,
-      P.X(P.R) - 8, P.Y(-P.R) - 8, 'br', C.teal, clamp(4 * Math.max(p.a, p.b)));
+    P.label('A', `$\\mA=\\begin{pmatrix}${fmt(sx * c)}&${fmt(-sy * s)}\\\\${fmt(sx * s)}&${fmt(sy * c)}\\end{pmatrix}$`,
+      [R, -R], 'br', { dx: -8, dy: -8, color: 'teal', opacity: clamp(4 * Math.max(p.a, p.b)) });
   }
 };
 
 // ---------------------------------------------------------------- prime and odd faces
-FIGS.venn = {
-  init(root) {
-    const k = 1.2, svg = newSvg(root, 440 * k, 300 * k);
-    const E1 = [165, 140, 125, 105].map(v => v * k), E2 = [275, 140, 125, 105].map(v => v * k);   // cx, cy, rx, ry
-    const inside = (E, x, y) => ((x - E[0]) / E[2]) ** 2 + ((y - E[1]) / E[3]) ** 2 <= 1;
-    const lens = [];
-    for (let i = 0; i < 720; i++) {
-      const t = i / 720 * 2 * Math.PI;
-      for (const [E, F] of [[E1, E2], [E2, E1]]) {
-        const x = E[0] + E[2] * Math.cos(t), y = E[1] + E[3] * Math.sin(t);
-        if (inside(F, x, y)) lens.push([x, y]);
-      }
+// Pixel coordinates of a 440 x 300 layout, scaled by VK.  VE: the two ellipses (cx, cy,
+// rx, ry); VLENS: their overlap, the arc of each inside the other, in angle order.
+const VK = 1.2, VE = [[165, 140, 125, 105], [275, 140, 125, 105]].map(E => E.map(v => v * VK));
+const VLENS = (() => {
+  const inside = (E, x, y) => ((x - E[0]) / E[2]) ** 2 + ((y - E[1]) / E[3]) ** 2 <= 1, lens = [];
+  for (let i = 0; i < 720; i++) {
+    const t = i / 720 * 2 * Math.PI;
+    for (const [E, F] of [[VE[0], VE[1]], [VE[1], VE[0]]]) {
+      const x = E[0] + E[2] * Math.cos(t), y = E[1] + E[3] * Math.sin(t);
+      if (inside(F, x, y)) lens.push([x, y]);
     }
-    lens.sort((a, b) => Math.atan2(a[1] - 140 * k, a[0] - 220 * k) - Math.atan2(b[1] - 140 * k, b[0] - 220 * k));
-    el(svg, 'ellipse', { cx: E1[0], cy: E1[1], rx: E1[2], ry: E1[3], fill: C.teal, 'fill-opacity': 0.1, stroke: C.teal, 'stroke-width': 2.5 });
-    el(svg, 'ellipse', { cx: E2[0], cy: E2[1], rx: E2[2], ry: E2[3], fill: C.brown, 'fill-opacity': 0.1, stroke: C.brown, 'stroke-width': 2.5 });
-    el(svg, 'path', { class: 'lens', d: pathOf(lens) + 'Z', fill: C.postC, stroke: 'none' });
+  }
+  return lens.sort((a, b) => Math.atan2(a[1] - 140 * VK, a[0] - 220 * VK) - Math.atan2(b[1] - 140 * VK, b[0] - 220 * VK));
+})();
+FIGS.venn = {
+  size: [440 * VK, 300 * VK],
+  draw(g, p) {
+    VE.forEach(([cx, cy, rx, ry], j) => { const c = j ? C.brown : C.teal;
+      g.el('ellipse', { cx, cy, rx, ry, fill: c, 'fill-opacity': 0.1, stroke: c, 'stroke-width': 2.5 }); });
+    g.path(VLENS, { close: true, fill: 'postC', fo: 0.4 * (p.hl || 0), color: 'none', w: null });
     for (const [key, s, x, y] of [['f2', '2', 95, 140], ['f1', '1', 345, 140], ['f3', '3', 220, 105], ['f5', '5', 220, 175]])
-      label(root, key, `$${s}$`, x * k, y * k, 'c', C.ink);
-    label(root, 'pr', 'prime', 110 * k, 22 * k, 'c', C.teal);
-    label(root, 'od', 'odd', 330 * k, 22 * k, 'c', C.brown);
-    label(root, 'no', '$4$ and $6$ count in neither', 220 * k, 272 * k, 'c', '#444');
-  },
-  render(root, p) { attr($(root, 'lens'), { 'fill-opacity': 0.4 * (p.hl || 0) }); }
+      g.label(key, `$${s}$`, [x * VK, y * VK], 'c');
+    g.label('pr', 'prime', [110 * VK, 22 * VK], 'c', { color: 'teal' });
+    g.label('od', 'odd', [330 * VK, 22 * VK], 'c', { color: 'brown' });
+    g.label('no', '$4$ and $6$ count in neither', [220 * VK, 272 * VK], 'c', { color: '#444' });
+  }
 };
 
 // ---------------------------------------------------------------- projections
 const PP = frame2d(30, 20, 370, 3.2), PD = box2d(470, 110, 250, 250, -4.5, 4.5, 0, 0.62);
 FIGS.proj = {
-  duration: 1300,
-  init(root) {
-    const svg = newSvg(root, 760, 440), P = PP, B = PD;
-    axes(root, svg, P, { names: AX });
-    cloud(svg); placeCloud(root, P, 0.5);
-    $$(root, 'pt').forEach(c => attr(c, { 'fill-opacity': 0.2 }));
-    for (const r of [1, 2]) el(svg, 'path', { d: ellipse(P, 0.5, r), fill: 'none', stroke: C.prior, 'stroke-width': 2, 'stroke-opacity': 0.7 });
-    el(svg, 'line', { class: 'dir', stroke: C.ink, 'stroke-width': 1.5, 'stroke-dasharray': '7 5' });
-    el(svg, 'line', { class: 'perp', stroke: C.brown, 'stroke-width': 2, 'stroke-dasharray': '4 4' });
-    el(svg, 'circle', { cx: P.X(2), cy: P.Y(0), r: 5, fill: C.brown });
-    el(svg, 'circle', { class: 'foot', r: 5, fill: C.brown });
-    el(svg, 'path', { class: 'avec', stroke: C.teal, 'stroke-width': 4, fill: C.teal, 'stroke-linejoin': 'round' });
+  duration: 1300, size: [760, 440],
+  draw(g, p) {
+    const P = g.plot(PP), B = g.plot(PD), R = PP.R, pts = corrPts(0.5);
+    const al = p.al * Math.PI / 180, sc = p.sc ?? 1, ch = Math.cos(al), cv = Math.sin(al);
+    P.axes();
+    P.cloud(pts, { fo: 0.2 });
+    P.ellipse(0.5, { so: 0.7 });
+    P.ellipse(0.5, { r: 2, so: 0.7 });
+    P.line([-R * ch, -R * cv], [R * ch, R * cv], { dash: '7 5' });
+    const t0 = 2 * ch, foot = [t0 * ch, t0 * cv];   // the point (x1, x2) = (2, 0) and its foot on the line
+    P.line([2, 0], foot, { color: 'brown', w: 2, dash: '4 4' });
+    P.dot([2, 0], { r: 5, color: 'brown', outline: false });
+    P.dot(foot, { r: 5, color: 'brown', outline: false });
+    P.vec([0, 0], [sc * ch, sc * cv], { color: 'teal', w: 4 });   // the vector a, at its length
     // ticks of a^T x along the dashed line (shown when p.ax): a^T x = v sits at distance v / |a|
-    for (let k = 0; k < 4; k++) el(svg, 'line', { class: 'tk' + k, stroke: C.ink, 'stroke-width': 2 });
-    // density panel for a^T x
-    const g = el(svg, 'g');
-    for (const v of [-4, -2, 0, 2, 4]) {
-      el(g, 'line', { x1: B.X(v), x2: B.X(v), y1: B.Y(0), y2: B.Y(0) + 6, stroke: C.axis });
-      el(g, 'text', { x: B.X(v), y: B.Y(0) + 24, 'text-anchor': 'middle', 'font-size': 16, fill: '#555' }).textContent = minus(v);
-    }
-    for (let i = 0; i < 18; i++) el(svg, 'rect', { class: 'hb', x: B.X(-4.5 + 0.5 * i) + 1, width: B.X(0.5) - B.X(0) - 2, fill: C.prior, 'fill-opacity': 0.18 });
-    el(svg, 'path', { class: 'bell', fill: 'none', stroke: C.prior, 'stroke-width': 3 });
-    arrow(g, B.X(-4.5), B.Y(0), B.X(4.5) + 14, B.Y(0), C.axis);
-    label(root, 'px', '$\\ba^T\\bx$', B.X(0), B.Y(0) + 40, 't', '#444');
-    label(root, 'py', '<span class="cap">density; bars: the 400 dots</span>', B.X(-4.5), B.Y(0.62) - 60, 'l', '#555');
-  },
-  render(root, p) {
-    const P = PP, B = PD, al = p.al * Math.PI / 180, sc = p.sc ?? 1, ch = Math.cos(al), cv = Math.sin(al), R = P.R;
-    attr($(root, 'dir'), { x1: P.X(-R * ch), y1: P.Y(-R * cv), x2: P.X(R * ch), y2: P.Y(R * cv) });
-    attr($(root, 'avec'), { d: vecD(P.X(0), P.Y(0), P.X(ch), P.Y(cv), 14, 4) });   // the direction of a, unit length
+    const nh = -cv * 0.1, nv = ch * 0.1;
     [-4, -2, 2, 4].forEach((v, k) => {
-      const t = v / sc, on = (p.ax ?? 0) * (Math.abs(t) < R - 0.2 ? 1 : 0), nh = -cv * 0.1, nv = ch * 0.1;
-      attr($(root, 'tk' + k), { x1: P.X(t * ch - nh), y1: P.Y(t * cv - nv), x2: P.X(t * ch + nh), y2: P.Y(t * cv + nv), opacity: on });
-      label(root, 'tl' + k, minus(v), P.X(t * ch + 2.6 * nh), P.Y(t * cv + 2.6 * nv), 'c', C.ink, on);
+      const t = v / sc, on = (p.ax ?? 0) * (Math.abs(t) < R - 0.2 ? 1 : 0);
+      P.line([t * ch - nh, t * cv - nv], [t * ch + nh, t * cv + nv], { w: 2, opacity: on });
+      P.label('tl' + k, minus(v), [t * ch + 2.6 * nh, t * cv + 2.6 * nv], 'c', { opacity: on });
     });
-    const t0 = 2 * ch;   // the point (x1, x2) = (2, 0) and its foot on the line
-    attr($(root, 'foot'), { cx: P.X(t0 * ch), cy: P.Y(t0 * cv) });
-    attr($(root, 'perp'), { x1: P.X(2), y1: P.Y(0), x2: P.X(t0 * ch), y2: P.Y(t0 * cv) });
-    const a1 = sc * ch, a2 = sc * cv, v = sc * sc * (1 + 0.5 * Math.sin(2 * al));
-    if (p.ax ?? 0) label(root, 'a', '$\\ba/\\|\\ba\\|$', P.X(ch + 0.12 * cv), P.Y(cv - 0.28 * ch), 'tl', C.teal);   // opposite side from the ticks
-    else label(root, 'a', '$\\ba$', P.X(1.3 * ch), P.Y(1.3 * cv), 'c', C.teal);
+    // density panel for a^T x
+    g.group({}, () => {
+      for (const v of [-4, -2, 0, 2, 4]) {
+        g.line(B.px([v, 0]), [B.X(v), B.Y(0) + 6], { color: C.axis, w: null });
+        B.text([v, 0], minus(v), { dy: 24 });
+      }
+      g.arrow(B.px([-4.5, 0]), [B.X(4.5) + 14, B.Y(0)]);
+    });
     // histogram of a^T x over the 400 points
-    const cnt = new Array(18).fill(0);
-    PTS.forEach(([z, w]) => { const t = a1 * z + a2 * (0.5 * z + S75 * w), b = Math.floor((t + 4.5) / 0.5); if (b >= 0 && b < 18) cnt[b]++; });
-    $$(root, 'hb').forEach((r, i) => { const d = Math.min(cnt[i] / (PTS.length * 0.5), 0.62); attr(r, { y: B.Y(d), height: B.Y(0) - B.Y(d) }); });
-    let d = '';
-    for (let i = 0; i <= 180; i++) { const t = -4.5 + 9 * i / 180; d += (i ? 'L' : 'M') + B.X(t).toFixed(1) + ',' + B.Y(Math.min(phi(t, 0, v), 0.62)).toFixed(1); }
-    attr($(root, 'bell'), { d });
-    label(root, 'av', `$\\ba=(${fmt(a1)},\\,${fmt(a2)})^T$`, B.X(-4.5), B.Y(0.62) - 30, 'l', C.teal);
-    label(root, 'var', `$\\ba^T\\mK\\ba=${fmt(v)}$`, B.X(0) + 12, B.Y(Math.min(phi(0, 0, v), 0.62)) - 4, 'bl', C.prior);
+    const a1 = sc * ch, a2 = sc * cv, v = sc * sc * (1 + 0.5 * Math.sin(2 * al)), cnt = new Array(18).fill(0);
+    pts.forEach(([x1, x2]) => { const b = Math.floor((a1 * x1 + a2 * x2 + 4.5) / 0.5); if (b >= 0 && b < 18) cnt[b]++; });
+    cnt.forEach((c, i) => { const d = Math.min(c / (pts.length * 0.5), 0.62);
+      g.el('rect', { x: B.X(-4.5 + 0.5 * i) + 1, width: B.X(0.5) - B.X(0) - 2, y: B.Y(d), height: B.Y(0) - B.Y(d), fill: C.prior, 'fill-opacity': 0.18 }); });
+    B.curve(t => Math.min(phi(t, 0, v), 0.62), { n: 180, color: 'prior', w: 3 });
+    P.label('a', '$\\ba$', [sc * ch / 2, sc * cv / 2], 'c', { dx: 20 * cv, dy: 20 * ch, color: 'teal' });   // beside the arrow's middle, on the side away from the ticks
+    B.label('px', '$\\ba^T\\bx$', [0, 0], 't', { dy: 40, color: '#444' });
+    B.label('py', '<span class="cap">density; bars: the 400 dots</span>', [-4.5, 0.62], 'l', { dy: -60, color: '#555' });
+    B.label('av', `$\\ba=(${fmt(a1)},\\,${fmt(a2)})^T$`, [-4.5, 0.62], 'l', { dy: -30, color: 'teal' });
+    B.label('var', `$\\ba^T\\mK\\ba=${fmt(v)}$`, [0, Math.min(phi(0, 0, v), 0.62)], 'bl', { dx: 12, dy: -4, color: 'prior' });
   }
 };
 
 // ---------------------------------------------------------------- three tilts
 FIGS.tilt3 = {
-  init(root) {
-    const svg = newSvg(root, 1110, 300), rhos = [-0.5, 0, 0.5], s = 270;
-    rhos.forEach((rho, j) => {
-      const P = frame2d(20 + j * 380, 10, s, 3.2), g = el(svg, 'g');
-      el(g, 'line', { x1: P.X(-3.2), x2: P.X(3.2), y1: P.Y(0), y2: P.Y(0), stroke: C.axis });
-      el(g, 'line', { y1: P.Y(-3.2), y2: P.Y(3.2), x1: P.X(0), x2: P.X(0), stroke: C.axis });
-      const sq = Math.sqrt(1 - rho * rho);
-      PTS.forEach(([z, w]) => el(g, 'circle', { cx: P.X(z), cy: P.Y(rho * z + sq * w), r: 2, fill: C.prior, 'fill-opacity': 0.3 }));
-      for (const r of [1, 2]) el(g, 'path', { d: ellipse(P, rho, r), fill: 'none', stroke: C.prior, 'stroke-width': 2 });
-      label(root, 'n' + j, 'ABC'[j], P.X(-3.2) - 4, P.Y(3.2) + 4, 'tl', C.ink);
-      label(root, 'x' + j, '$x_1$', P.X(3.2) + 6, P.Y(0), 'l', '#444');
-      label(root, 'y' + j, '$x_2$', P.X(0) + 6, P.Y(3.2) + 2, 'tl', '#444');
-      label(root, 'r' + j, `$\\rho=${rho}$`, P.X(0), P.Y(-3.2) + 6, 't', C.post, 0);
+  size: [1110, 300],
+  draw(g, p) {
+    [-0.5, 0, 0.5].forEach((rho, j) => {
+      const P = g.plot(frame2d(20 + j * 380, 10, 270, 3.2));
+      g.group({}, () => {
+        P.line([-3.2, 0], [3.2, 0], { color: C.axis, w: null });
+        P.line([0, -3.2], [0, 3.2], { color: C.axis, w: null });
+        corrPts(rho).forEach(q => P.dot(q, { r: 2, color: 'prior', fo: 0.3, outline: false }));
+        P.ellipse(rho);
+        P.ellipse(rho, { r: 2 });
+      });
+      P.label('n' + j, 'ABC'[j], [-3.2, 3.2], 'tl', { dx: -4, dy: 4 });
+      P.label('x' + j, '$x_1$', [3.2, 0], 'l', { dx: 6, color: '#444' });
+      P.label('y' + j, '$x_2$', [0, 3.2], 'tl', { dx: 6, dy: 2, color: '#444' });
+      P.label('r' + j, `$\\rho=${rho}$`, [0, -3.2], 't', { dy: 6, color: 'post', opacity: p.rev });
     });
-  },
-  render(root, p) { [0, 1, 2].forEach(j => { const d = root.querySelector(`.lab[data-k="r${j}"]`); if (d) { d.style.opacity = p.rev; d.style.visibility = p.rev ? 'visible' : 'hidden'; } }); }
+  }
 };
 
 // ---------------------------------------------------------------- rho sweeps, marginals fixed
-const TL = frame2d(40, 120, 380, 3.2);
+// The marginals: X1's 34 px above the plot, X2's 30 px to its right, 180 px per unit of density.
+const TL = frame2d(40, 120, 380, 3.2), TLT = box2d(TL.x0, TL.y0 - 34 - 180, TL.S, 180, -3.2, 3.2, 0, 1),
+  TLS = box2d(TL.x0 + TL.S + 30, TL.y0, 180, TL.S, 0, 1, -3.2, 3.2);
 FIGS.tilt = {
-  duration: 1300,
-  init(root) {
-    const svg = newSvg(root, 640, 540), P = TL, R = P.R;
-    axes(root, svg, P, { names: AX });
-    cloud(svg);
-    el(svg, 'path', { class: 'c1', fill: 'none', stroke: C.prior, 'stroke-width': 2 });
-    el(svg, 'path', { class: 'c2', fill: 'none', stroke: C.prior, 'stroke-width': 2 });
-    // marginal of X1 above the plot, marginal of X2 to its right
-    let top = '', side = '';
-    for (let i = 0; i <= 120; i++) {
-      const t = -R + 2 * R * i / 120;
-      top += (i ? 'L' : 'M') + P.X(t).toFixed(1) + ',' + (P.Y(R) - 34 - 180 * phi(t, 0, 1)).toFixed(1);
-      side += (i ? 'L' : 'M') + (P.X(R) + 30 + 180 * phi(t, 0, 1)).toFixed(1) + ',' + P.Y(t).toFixed(1);
+  duration: 1300, size: [640, 540],
+  draw(g, p) {
+    const P = g.plot(TL), R = TL.R, bell = P.steps({}, -R, R, 120).map(t => [t, phi(t, 0, 1)]);
+    P.axes();
+    P.cloud(corrPts(p.rho));
+    P.ellipse(p.rho);
+    P.ellipse(p.rho, { r: 2 });
+    const st = { close: true, fill: 'prior', fo: 0.12, color: 'prior', w: 2.5 };
+    g.plot(TLT).path([...bell, [R, 0], [-R, 0]], st);
+    g.plot(TLS).path([...bell.map(([t, d]) => [d, t]), [0, -R], [0, R]], st);
+    P.label('m1', '<span class="cap">marginal of $X_1$</span>', [R * 0.4, R], 'l', { dy: -80, color: 'prior' });
+    P.label('m2', '<span class="cap">marginal of $X_2$</span>', [R, -R], 'tl', { dx: 40, dy: 14, color: 'prior' });
+    P.label('mn', 'both $\\cN(0,1)$', [R, -R], 'tl', { dx: 40, dy: 40, color: 'prior' });
+    P.label('K', `$\\mK=\\begin{pmatrix}1&${fmt(p.rho)}\\\\${fmt(p.rho)}&1\\end{pmatrix}$`, [-R, R], 'tl', { dx: 6, dy: 8 });
+  }
+};
+
+// ---------------------------------------------------------------- distance from the mean, 1-D then 2-D
+// d = 0: the 1-D density with x in standard deviations from the mean, marked at
+// z = 0..3 with its value relative to the peak, e^{-z^2/2}; d = 1: the running
+// model's Mahalanobis ellipses Delta = 1, 2, 3.
+const G1 = box2d(40, 60, 470, 380, -3.6, 3.6, 0, 0.55), G2 = frame2d(40, 20, 470, 4.2);
+FIGS.dist = {
+  duration: 1200, size: [580, 540],
+  draw(g, p) {
+    const A = g.plot(G1), B = g.plot(G2), a = 1 - p.d, b = p.d, f = x => phi(x, 0, 1);
+    A.density(f, { color: 'prior', opacity: a });
+    g.arrow(A.px([-3.6, 0]), [A.X(3.6) + 16, A.Y(0)], { opacity: a });
+    for (let k = -3; k <= 3; k++) {
+      g.line([A.X(k), A.Y(0)], [A.X(k), A.Y(0) + 6], { color: C.axis, opacity: a });
+      const s = k === 0 ? '\\mu' : `\\mu${k > 0 ? '+' : '-'}${Math.abs(k) > 1 ? Math.abs(k) : ''}\\sigma`;
+      A.label('t' + k, `<span class="cap">$${s}$</span>`, [k, 0], 't', { dy: 10, color: '#555', opacity: a });
     }
-    el(svg, 'path', { d: top + `L${P.X(R)},${P.Y(R) - 34}L${P.X(-R)},${P.Y(R) - 34}Z`, fill: C.prior, 'fill-opacity': 0.12, stroke: C.prior, 'stroke-width': 2.5 });
-    el(svg, 'path', { d: side + `L${P.X(R) + 30},${P.Y(-R)}L${P.X(R) + 30},${P.Y(R)}Z`, fill: C.prior, 'fill-opacity': 0.12, stroke: C.prior, 'stroke-width': 2.5 });
-    label(root, 'm1', '<span class="cap">marginal of $X_1$</span>', P.X(R * 0.4), P.Y(R) - 80, 'l', C.prior);
-    label(root, 'm2', '<span class="cap">marginal of $X_2$</span>', P.X(R) + 40, P.Y(-R) + 14, 'tl', C.prior);
-    label(root, 'mn', 'both $\\cN(0,1)$', P.X(R) + 40, P.Y(-R) + 40, 'tl', C.prior);
-  },
-  render(root, p) {
-    const P = TL;
-    placeCloud(root, P, p.rho);
-    attr($(root, 'c1'), { d: ellipse(P, p.rho, 1) });
-    attr($(root, 'c2'), { d: ellipse(P, p.rho, 2) });
-    label(root, 'K', `$\\mK=\\begin{pmatrix}1&${fmt(p.rho)}\\\\${fmt(p.rho)}&1\\end{pmatrix}$`, P.X(-P.R) + 6, P.Y(P.R) + 8, 'tl', C.ink);
+    [0, 1, 2, 3].forEach(z => {
+      A.line([z, 0], [z, f(z)], { color: 'prior', w: 1.5, dash: '6 5', opacity: a });
+      A.dot([z, f(z)], { color: 'prior', r: 6, opacity: a });
+      A.label('r' + z, ['$1$', '$0.61$', '$0.14$', '$0.011$'][z], [z, f(z)], 'bl', { dx: 7, dy: -7, color: 'prior', opacity: a });
+    });
+    A.label('xn', '$x$', [3.6, 0], 't', { dx: 10, dy: 8, color: '#444', opacity: a });
+    A.label('rel', '<span class="cap">relative to the peak: $e^{-z^2/2}$</span>', [-3.6, 0.48], 'tl', { color: '#555', opacity: a });
+    B.axes({ ticks: [], opacity: b });
+    B.cloud(corrPts(0.5), { fo: 0.2, opacity: b });
+    for (const r of [1, 2, 3]) {
+      B.ellipse(0.5, { r, w: 2.5, opacity: b });
+      B.label('D' + r, `$\\Delta=${r}$`, [r / 2, r], 'b', { dy: -3, color: 'prior', opacity: b });   // above the ellipse's highest point
+    }
+    B.dot([0, 0], { r: 6, opacity: b });
+    B.label('mu', '$\\bmu$', [0, 0], 'tl', { dx: 8, dy: 4, opacity: b });
+  }
+};
+
+// ---------------------------------------------------------------- a diagonal covariance
+// K = diag(1.5^2, 0.5^2): the point x - mu = (1.5, 1) is one standard deviation
+// out along x1 and two along x2, so Delta^2 = 1 + 4 = 5.
+const DG = frame2d(40, 20, 470, 3.7), DGS = [1.5, 0.5], DGX = [1.5, 1];
+FIGS.diag = {
+  size: [580, 540],
+  draw(g) {
+    const P = g.plot(DG), K = [[DGS[0] ** 2, 0], [0, DGS[1] ** 2]], tk = { color: C.axis, w: 1.5 };
+    P.axes({ ticks: [] });
+    P.cloud(PTS.map(([z, w]) => [DGS[0] * z, DGS[1] * w]), { fo: 0.22 });
+    for (const r of [1, 2]) {
+      P.ellipse(K, { r });
+      P.label('D' + r, `$\\Delta=${r}$`, [-r * DGS[0] * Math.SQRT1_2, -r * DGS[1] * Math.SQRT1_2], 'tr', { dx: -2, dy: 2, color: 'prior' });
+    }
+    // the axes in standard deviations: ticks at sigma and 2 sigma
+    for (const k of [1, 2]) {
+      g.line(P.px([k * DGS[0], 0]), [P.X(k * DGS[0]), P.Y(0) + 7], tk);
+      g.line(P.px([0, k * DGS[1]]), [P.X(0) - 7, P.Y(k * DGS[1])], tk);
+      P.label('tx' + k, `$${k > 1 ? k : ''}\\sigma_1$`, [k * DGS[0], 0], 'tl', { dx: 4, dy: 6, color: '#555' });
+      P.label('ty' + k, `$${k > 1 ? k : ''}\\sigma_2$`, [0, k * DGS[1]], 'br', { dx: -6, dy: -3, color: '#555' });
+    }
+    P.line(DGX, [0, DGX[1]], { color: '#888', w: 1.5, dash: '5 4' });
+    P.vec([0, 0], [DGX[0], 0], { color: 'teal', w: 3 });
+    P.vec([DGX[0], 0], DGX, { color: 'brown', w: 3, head: 10, gap: 7 });
+    P.dot([0, 0], { r: 6 });
+    P.dot(DGX);
+    P.label('x', '$\\bx$', DGX, 'bl', { dx: 8, dy: -6 });
+    P.label('mu', '$\\bmu$', [0, 0], 'tr', { dx: -6, dy: 22 });
+    P.label('d2', '$\\Delta^2=1^2+2^2=5$', [0.3, -3.1], 'l');
+  }
+};
+
+// ---------------------------------------------------------------- principal directions
+// th = 0: the diagonal covariance diag(1.5, 0.5); th = 1: the same picture turned
+// by 45 degrees, which is the running model (eigenvectors (1,1)/sqrt2 and
+// (-1,1)/sqrt2, eigenvalues 1.5 and 0.5).  The point has principal coordinates
+// y = (1.5, 0.5), so Delta^2 = 1.5^2/1.5 + 0.5^2/0.5 = 2 in both states.
+const PR = frame2d(40, 20, 470, 3.2), PY = [1.5, 0.5];
+const PRPTS = corrPts(0.5).map(([a, b]) => [(a + b) / Math.SQRT2, (b - a) / Math.SQRT2]);   // the running cloud in principal coordinates
+FIGS.princ = {
+  duration: 1600, size: [580, 540],
+  draw(g, p) {
+    const P = g.plot(PR), R = PR.R, f = p.th * Math.PI / 4, c = Math.cos(f), s = Math.sin(f), on = p.th > 0.5;
+    const rot = ([a, b]) => [a * c - b * s, a * s + b * c];
+    const K = [[1.5 * c * c + 0.5 * s * s, s * c], [s * c, 1.5 * s * s + 0.5 * c * c]];
+    P.axes({ ticks: [] });
+    P.cloud(PRPTS.map(rot), { fo: 0.22 });
+    P.line(rot([-R, 0]), rot([R, 0]), { color: '#888', dash: '6 5' });
+    P.line(rot([0, -R]), rot([0, R]), { color: '#888', dash: '6 5' });
+    for (const r of [1, 2]) P.ellipse(K, { r });
+    const x = rot(PY), f1 = rot([PY[0], 0]);
+    P.vec([0, 0], f1, { color: 'teal', w: 3 });
+    P.vec(f1, x, { color: 'brown', w: 3, head: 10, gap: 7 });
+    P.dot([0, 0], { r: 6 });
+    P.dot(x);
+    P.label('v1', on ? '$\\bu_1$: $\\lambda_1=1.5$' : '$\\sigma_1^2=1.5$', rot([2.7, 0]), on ? 'br' : 'b', { dy: -6, color: '#555' });
+    P.label('v2', on ? '$\\bu_2$: $\\lambda_2=0.5$' : '$\\sigma_2^2=0.5$', rot([0, 2.3]), on ? 'tr' : 'l', { dx: on ? -4 : 8, dy: on ? 4 : 0, color: '#555' });
+    P.label('c1', on ? '$y_1=1.5$' : '$x_1=1.5$', rot([0.9, 0]), 'tl', { dx: 4, dy: 6, color: 'teal' });
+    P.label('c2', on ? '$y_2=0.5$' : '$x_2=0.5$', mid(f1, x), on ? 'l' : 'r', { dx: on ? 12 : -10, dy: on ? 4 : 0, color: 'brown' });
+    P.label('x', '$\\bx$', x, 'bl', { dx: 8, dy: -6 });
+    P.label('mu', '$\\bmu$', [0, 0], 'tr', { dx: -6, dy: 6 });
+    P.label('d2', '$\\Delta^2=\\tfrac{1.5^2}{1.5}+\\tfrac{0.5^2}{0.5}=2$', [0.3, -2.7], 'l');
+    P.label('turn', '<span class="cap">running model: the diagonal case turned by $45^\\circ$</span>', [-R, R], 'tl', { color: '#555', opacity: clamp((p.th - 0.8) / 0.2) });
   }
 };
 
 // ---------------------------------------------------------------- which point is more unusual
 const HP = frame2d(40, 20, 470, 5.2), DA = Math.sqrt(16 / 3), DBd = 4;
-function mahaBase(root, svg, P) {
-  axes(root, svg, P, { grid: 5, ticks: [-4, -2, 2, 4], names: AX });
-  for (const r of [1, 2]) el(svg, 'path', { d: ellipse(P, 0.5, r), fill: 'none', stroke: C.prior, 'stroke-width': 2, 'stroke-opacity': 0.8 });
-}
 FIGS.maha = {
-  duration: 1400,
-  init(root) {
-    const svg = newSvg(root, 580, 540), P = HP;
-    mahaBase(root, svg, P);
-    el(svg, 'circle', { cx: P.X(0), cy: P.Y(0), r: Math.sqrt(8) * P.k, fill: 'none', stroke: '#777', 'stroke-width': 1.8, 'stroke-dasharray': '7 5' });
-    el(svg, 'path', { class: 'ea', fill: C.teal, 'fill-opacity': 0.06, stroke: C.teal, 'stroke-width': 3 });
-    el(svg, 'path', { class: 'eb', fill: C.rose, 'fill-opacity': 0.05, stroke: C.rose, 'stroke-width': 3 });
-    el(svg, 'circle', { cx: P.X(2), cy: P.Y(2), r: 8, fill: C.teal, stroke: '#fff', 'stroke-width': 1.5 });
-    el(svg, 'circle', { cx: P.X(-2), cy: P.Y(2), r: 8, fill: C.rose, stroke: '#fff', 'stroke-width': 1.5 });
-    label(root, 'A', 'A', P.X(2) + 12, P.Y(2) - 6, 'bl', C.teal);
-    label(root, 'B', 'B', P.X(-2) - 12, P.Y(2) - 6, 'br', C.rose);
-    label(root, 'eu', '<span class="cap">Euclidean distance $\\sqrt8$</span>', P.X(0), P.Y(-Math.sqrt(8)) + 8, 't', '#555');
-  },
-  render(root, p) {
-    const P = HP;
-    attr($(root, 'ea'), { d: ellipse(P, 0.5, Math.max(p.r, 0.01) * DA), opacity: p.r > 0.01 ? 1 : 0 });
-    attr($(root, 'eb'), { d: ellipse(P, 0.5, Math.max(p.r, 0.01) * DBd), opacity: p.r > 0.01 ? 1 : 0 });
-    label(root, 'la', '$\\Delta_A^2=16/3$', P.X(3.3), P.Y(1.1), 'l', C.teal, clamp((p.r - 0.8) / 0.2) * (p.num || 0));
-    label(root, 'lb', '$\\Delta_B^2=16$', P.X(-4.9), P.Y(4.1), 'l', C.rose, clamp((p.r - 0.8) / 0.2) * (p.num || 0));
+  duration: 1400, size: [580, 540],
+  draw(g, p) {
+    const P = g.plot(HP), r = Math.max(p.r, 0.01), on = p.r > 0.01 ? 1 : 0;
+    P.axes({ grid: 5, ticks: [-4, -2, 2, 4] });
+    P.ellipse(0.5, { so: 0.8 });
+    P.ellipse(0.5, { r: 2, so: 0.8 });
+    P.dot([0, 0], { r: Math.sqrt(8) * HP.k, fill: 'none', stroke: '#777', w: 1.8, dash: '7 5' });
+    P.ellipse(0.5, { r: r * DA, color: 'teal', fill: 'teal', fo: 0.06, w: 3, opacity: on });
+    P.ellipse(0.5, { r: r * DBd, color: 'rose', fill: 'rose', fo: 0.05, w: 3, opacity: on });
+    P.dot([2, 2], { r: 8, color: 'teal' });
+    P.dot([-2, 2], { r: 8, color: 'rose' });
+    P.label('A', 'A', [2, 2], 'bl', { dx: 12, dy: -6, color: 'teal' });
+    P.label('B', 'B', [-2, 2], 'br', { dx: -12, dy: -6, color: 'rose' });
+    P.label('eu', '<span class="cap">Euclidean distance $\\sqrt8$</span>', [0, -Math.sqrt(8)], 'tl', { dx: 6, dy: 4, color: '#555' });
   }
 };
 
 // ---------------------------------------------------------------- density contours
-FIGS.dens = {
-  init(root) {
-    const svg = newSvg(root, 400, 400), P = frame2d(20, 20, 350, 3.2);
-    axes(root, svg, P, { ticks: [], names: AX });
-    for (const r of [3, 2.5, 2, 1.5, 1, 0.5]) el(svg, 'path', { d: ellipse(P, 0.5, r), fill: C.prior, 'fill-opacity': 0.13, stroke: C.prior, 'stroke-width': r % 1 ? 0.8 : 2 });
-    el(svg, 'circle', { cx: P.X(0), cy: P.Y(0), r: 5, fill: C.ink });
-    label(root, 'd1', '$\\Delta=1$', P.X(0.6) + 4, P.Y(-0.6), 'l', C.prior);
-    label(root, 'd2', '$\\Delta=2$', P.X(1.2) + 6, P.Y(-1.2), 'l', C.prior);
-    label(root, 'mu', '$\\bmu$', P.X(0) - 8, P.Y(0) + 4, 'tr', C.ink);
-  },
-  render() {}
-};
-
 // ---------------------------------------------------------------- whitening
 const WP = frame2d(40, 20, 470, 5.2);
 function whiten(h, v, r, s) {
@@ -402,131 +382,97 @@ function whiten(h, v, r, s) {
   return [x * lerp(1, 1 / Math.sqrt(1.5), s), y * lerp(1, 1 / Math.sqrt(0.5), s)];
 }
 FIGS.white = {
-  duration: 1500,
-  init(root) {
-    const svg = newSvg(root, 580, 540), P = WP;
-    axes(root, svg, P, { grid: 5, ticks: [-4, -2, 2, 4], names: AX });
-    cloud(svg);
-    for (const k of ['c1', 'c2']) el(svg, 'path', { class: k, fill: 'none', stroke: C.prior, 'stroke-width': 2 });
-    el(svg, 'path', { class: 'ea', fill: 'none', stroke: C.teal, 'stroke-width': 3 });
-    el(svg, 'path', { class: 'eb', fill: 'none', stroke: C.rose, 'stroke-width': 3 });
-    el(svg, 'circle', { class: 'pa', r: 8, fill: C.teal, stroke: '#fff', 'stroke-width': 1.5 });
-    el(svg, 'circle', { class: 'pb', r: 8, fill: C.rose, stroke: '#fff', 'stroke-width': 1.5 });
-  },
-  render(root, p) {
-    const P = WP, m = (h, v) => whiten(h, v, p.r, p.s), R = P.R;
-    $$(root, 'pt').forEach((c, i) => {
-      const [z, w] = PTS[i], [h, v] = m(z, 0.5 * z + S75 * w);
-      attr(c, { cx: P.X(h), cy: P.Y(v), fill: C.prior, 'fill-opacity': Math.abs(h) > R || Math.abs(v) > R ? 0 : 0.25, r: 2.4 });
-    });
-    const ring = (rr) => {   // Mahalanobis-rr contour of the running model, mapped
-      const pts = [];
-      for (let i = 0; i <= 120; i++) {
-        const t = i / 120 * 2 * Math.PI, u = rr * Math.sqrt(1.5) * Math.cos(t), w = rr * Math.sqrt(0.5) * Math.sin(t);
-        const [h, v] = m((u - w) / Math.SQRT2, (u + w) / Math.SQRT2); pts.push([P.X(h), P.Y(v)]);
-      }
-      return pathOf(pts);
-    };
-    attr($(root, 'c1'), { d: ring(1) }); attr($(root, 'c2'), { d: ring(2) });
-    attr($(root, 'ea'), { d: ring(DA) }); attr($(root, 'eb'), { d: ring(DBd) });
-    const [ah, av] = m(2, 2), [bh, bv] = m(-2, 2);
-    attr($(root, 'pa'), { cx: P.X(ah), cy: P.Y(av) }); attr($(root, 'pb'), { cx: P.X(bh), cy: P.Y(bv) });
-    label(root, 'A', 'A', P.X(ah) + 10, P.Y(av) - 8, 'bl', C.teal);
-    label(root, 'B', 'B', P.X(bh) - 10, P.Y(bv) - 8, 'br', C.rose);
-    const z = p.s > 0.5;
-    label(root, 'ax2', z ? '$z_1$' : '$x_1$', P.X(R) + 10, P.Y(0) + 8, 't', '#444');   // keys of the shared axes()
-    label(root, 'ax1', z ? '$z_2$' : '$x_2$', P.X(0) + 8, P.Y(R) - 14, 'l', '#444');
-    label(root, 'na', '$\\|\\bz_A\\|=2.31$', P.X(2.4), P.Y(-4.5), 'l', C.teal, clamp((p.s - 0.8) / 0.2));
-    label(root, 'nb', '$\\|\\bz_B\\|=4$', P.X(bh) + 14, P.Y(bv) - 12, 'bl', C.rose, clamp((p.s - 0.8) / 0.2));
+  duration: 1500, size: [580, 540],
+  draw(g, p) {
+    const P = g.plot(WP), m = ([h, v]) => whiten(h, v, p.r, p.s), fade = clamp((p.s - 0.8) / 0.2);
+    P.axes({ grid: 5, ticks: [-4, -2, 2, 4], names: p.s > 0.5 ? ['$z_1$', '$z_2$'] : ['$x_1$', '$x_2$'] });
+    P.cloud(corrPts(0.5).map(m), { r: 2.4, fo: 0.25 });
+    const ring = (r, st) => P.param(t => {   // Mahalanobis-r contour of the running model, mapped
+      const u = r * Math.sqrt(1.5) * Math.cos(t), w = r * Math.sqrt(0.5) * Math.sin(t);
+      return m([(u - w) / Math.SQRT2, (u + w) / Math.SQRT2]);
+    }, Object.assign({ from: 0, to: 2 * Math.PI, n: 120 }, st));
+    ring(1, { color: 'prior' });
+    ring(2, { color: 'prior' });
+    ring(DA, { color: 'teal', w: 3 });
+    ring(DBd, { color: 'rose', w: 3 });
+    const a = m([2, 2]), b = m([-2, 2]);
+    P.dot(a, { r: 8, color: 'teal' });
+    P.dot(b, { r: 8, color: 'rose' });
+    P.label('A', 'A', a, 'bl', { dx: 10, dy: -8, color: 'teal' });
+    P.label('B', 'B', b, 'br', { dx: -10, dy: -8, color: 'rose' });
+    P.label('na', '$\\|\\bz_A\\|=2.31$', [2.4, -4.5], 'l', { color: 'teal', opacity: fade });
+    P.label('nb', '$\\|\\bz_B\\|=4$', b, 'bl', { dx: 14, dy: -12, color: 'rose', opacity: fade });
   }
 };
 
 // ---------------------------------------------------------------- zero covariance
 const ZG = frame2d(20, 10, 290, 3.2);
 FIGS.zg = {
-  duration: 1200,
-  init(root) {
-    const svg = newSvg(root, 560, 310), P = ZG;
-    axes(root, svg, P, { names: AX });
-    cloud(svg);
-    for (const r of [1, 2]) el(svg, 'path', { d: ellipse(P, 0, r), fill: 'none', stroke: C.prior, 'stroke-width': 2 });
-    el(svg, 'line', { class: 'slice', y1: P.Y(-3.2), y2: P.Y(3.2), stroke: C.like, 'stroke-width': 3.5 });
-  },
-  render(root, p) {
-    const P = ZG, x = p.x * 2;   // the slice at x1 = 2x, so both panels move together
-    placeCloud(root, P, 0, p.on ? x : null);
-    attr($(root, 'slice'), { x1: P.X(x), x2: P.X(x), opacity: p.on });
-    label(root, 'c', `$X_2\\mid X_1=${fmt(x, 1)}$<br>$\\sim\\cN(0,1)$`, P.X(3.2) + 34, P.Y(1.4), 'l', C.post, p.on);
-    label(root, 'c2', '<span class="cap">the same for every $x_1$</span>', P.X(3.2) + 34, P.Y(0.1), 'l', C.post, p.on);
+  duration: 1200, size: [560, 310],
+  draw(g, p) {
+    const P = g.plot(ZG), x = p.x * 2;   // the slice at x1 = 2x, so both panels move together
+    P.axes();
+    P.cloud(corrPts(0), { each: (i, [z]) => p.on && Math.abs(z - x) < 0.1 ? { color: 'post', fo: 0.95, r: 3.6 } : null });
+    P.ellipse(0);
+    P.ellipse(0, { r: 2 });
+    P.line([x, -3.2], [x, 3.2], { color: 'like', w: 3.5, opacity: p.on });
+    P.label('c', `$X_2\\mid X_1=${fmt(x, 1)}$<br>$\\sim\\cN(0,1)$`, [3.2, 1.4], 'l', { dx: 34, color: 'post', opacity: p.on });
+    P.label('c2', '<span class="cap">the same for every $x_1$</span>', [3.2, 0.1], 'l', { dx: 34, color: 'post', opacity: p.on });
   }
 };
 const ZU = box2d(30, 20, 300, 250, -1.2, 1.2, -0.25, 1.25);
 const ZX = (() => { const r = mulberry32(2026); return Array.from({ length: 70 }, () => 2 * r() - 1); })();
 FIGS.zu = {
-  duration: 1200,
-  init(root) {
-    const svg = newSvg(root, 560, 310), B = ZU;
-    axesBox(root, svg, B, { step: 0.5, xt: [-1, 1], yt: [1], names: ['$x$', '$y$'] });
-    let d = '';
-    for (let i = 0; i <= 80; i++) { const x = -1 + 2 * i / 80; d += (i ? 'L' : 'M') + B.X(x).toFixed(1) + ',' + B.Y(x * x).toFixed(1); }
-    el(svg, 'path', { d, fill: 'none', stroke: C.prior, 'stroke-width': 2, 'stroke-opacity': 0.6 });
-    ZX.forEach(x => el(svg, 'circle', { cx: B.X(x), cy: B.Y(x * x), r: 3.2, fill: C.prior, 'fill-opacity': 0.45 }));
-    el(svg, 'line', { class: 'slice', y1: B.Y(-0.25), y2: B.Y(1.25), stroke: C.like, 'stroke-width': 3.5 });
-    el(svg, 'circle', { class: 'dot', r: 8, fill: C.post, stroke: '#fff', 'stroke-width': 1.5 });
-  },
-  render(root, p) {
-    const B = ZU;
-    attr($(root, 'slice'), { x1: B.X(p.x), x2: B.X(p.x), opacity: p.on });
-    attr($(root, 'dot'), { cx: B.X(p.x), cy: B.Y(p.x * p.x), opacity: p.on });
-    label(root, 'c', `$Y\\mid X=${fmt(p.x, 1)}$<br>equals $${fmt(Math.round(p.x * 10) ** 2 / 100)}$`, B.X(1.2) + 30, B.Y(0.85), 'l', C.post, p.on);
-    label(root, 'c2', '<span class="cap">exactly, with no spread</span>', B.X(1.2) + 30, B.Y(0.5), 'l', C.post, p.on);
+  duration: 1200, size: [560, 310],
+  draw(g, p) {
+    const P = g.plot(ZU);
+    P.axes({ step: 0.5, xt: [-1, 1], yt: [1], names: ['$x$', '$y$'] });
+    P.curve(x => x * x, { from: -1, to: 1, n: 80, color: 'prior', w: 2, so: 0.6 });
+    ZX.forEach(x => P.dot([x, x * x], { r: 3.2, color: 'prior', fo: 0.45, outline: false }));
+    P.line([p.x, -0.25], [p.x, 1.25], { color: 'like', w: 3.5, opacity: p.on });
+    P.dot([p.x, p.x * p.x], { r: 8, color: 'post', opacity: p.on });
+    P.label('c', `$Y\\mid X=${fmt(p.x, 1)}$<br>equals $${fmt(Math.round(p.x * 10) ** 2 / 100)}$`, [1.2, 0.85], 'l', { dx: 30, color: 'post', opacity: p.on });
+    P.label('c2', '<span class="cap">exactly, with no spread</span>', [1.2, 0.5], 'l', { dx: 30, color: 'post', opacity: p.on });
   }
 };
 
 // ---------------------------------------------------------------- four samples (ML)
 // Samples (x1, x2) = (1,-1), (1,1), (2,2), (4,2): mean (2, 1), K_mle = [[1.5, 1], [1, 1.5]].
 const FP = box2d(50, 20, 380, 380, -0.5, 4.5, -1.5, 3.5), F4 = [[1, -1], [1, 1], [2, 2], [4, 2]];   // (x1, x2)
-const FC = [2, 1], fitEllipse = (B, r) => covEllipse(B, 1.5, 1, 1.5, r, FC[0], FC[1]);
-function fourBase(root, svg, B) {
-  axesBox(root, svg, B, { xt: [2, 4], yt: [2] });
-  F4.forEach(([h, v]) => el(svg, 'circle', { cx: B.X(h), cy: B.Y(v), r: 8, fill: C.like, stroke: '#fff', 'stroke-width': 1.5 }));
+const FC = [2, 1];
+function fourBase(P) {
+  P.axes({ xt: [2, 4], yt: [2] });
+  F4.forEach(q => P.dot(q, { r: 8, color: 'like' }));
 }
+const fitEllipse = (P, st) => P.ellipse([[1.5, 1], [1, 1.5]], Object.assign({ at: FC, color: 'mle', fill: 'mle', fo: 0.08, w: 3 }, st));
 FIGS.mle4 = {
-  duration: 1000,
-  init(root) {
-    const svg = newSvg(root, 480, 440), B = FP;
-    fourBase(root, svg, B);
-    el(svg, 'path', { class: 'ell', d: fitEllipse(B, 1), fill: C.mle, 'fill-opacity': 0.08, stroke: C.mle, 'stroke-width': 3 });
-    const g = el(svg, 'g', { class: 'ctr' });
-    F4.forEach(([h, v]) => el(g, 'line', { x1: B.X(FC[0]), y1: B.Y(FC[1]), x2: B.X(h), y2: B.Y(v), stroke: C.mle, 'stroke-width': 1.8, 'stroke-dasharray': '6 5' }));
-    el(g, 'circle', { cx: B.X(FC[0]), cy: B.Y(FC[1]), r: 8, fill: C.mle, stroke: '#fff', 'stroke-width': 1.5 });
-  },
-  render(root, p) {
-    attr($(root, 'ctr'), { opacity: p.c });
-    attr($(root, 'ell'), { opacity: p.e });
-    label(root, 'xb', '$\\bar\\bx$', FP.X(FC[0]) + 12, FP.Y(FC[1]) + 2, 'tl', '#555', p.c);
-    label(root, 'cf', '<span class="cap">$\\Delta=1$ for $\\hat\\mK_{\\mle}$</span>', FP.X(2.75), FP.Y(0.15), 'bl', '#555', p.e);
+  duration: 1000, size: [480, 440],
+  draw(g, p) {
+    const P = g.plot(FP);
+    fourBase(P);
+    fitEllipse(P, { opacity: p.e });
+    g.group({ opacity: p.c }, () => {
+      F4.forEach(q => P.line(FC, q, { color: 'mle', w: 1.8, dash: '6 5' }));
+      P.dot(FC, { r: 8, color: 'mle' });
+    });
+    P.label('xb', '$\\bar\\bx$', FC, 'tl', { dx: 12, dy: 2, color: '#555', opacity: p.c });
+    P.label('cf', '<span class="cap">$\\Delta=1$ for $\\hat\\mK_{\\mle}$</span>', [2.75, 0.15], 'bl', { color: '#555', opacity: p.e });
   }
 };
 // Residual colours, shared with the text of the outer-product slide.
 const RC = ['#087F80', '#B33362', '#A0521B', '#6A3D9A'];
 FIGS.outer = {
-  duration: 900,
-  init(root) {
-    const svg = newSvg(root, 480, 440), B = FP;
-    fourBase(root, svg, B);
-    el(svg, 'path', { class: 'ell', d: fitEllipse(B, 1), fill: C.mle, 'fill-opacity': 0.08, stroke: C.mle, 'stroke-width': 3 });
+  duration: 900, size: [480, 440],
+  draw(g, p) {
+    const P = g.plot(FP);
+    fourBase(P);
+    fitEllipse(P, { opacity: p.e });
     // residuals in (x1, x2), in the text's order
     [[-1, -2], [-1, 0], [0, 1], [2, 1]].forEach(([h, v], i) =>
-      el(svg, 'path', { class: 'r' + i, d: vecD(B.X(FC[0]), B.Y(FC[1]), B.X(FC[0] + h), B.Y(FC[1] + v), 14, 3.5, 9),
-        stroke: RC[i], fill: RC[i], 'stroke-width': 3.5, 'stroke-linejoin': 'round' }));
-    el(svg, 'circle', { cx: B.X(FC[0]), cy: B.Y(FC[1]), r: 8, fill: C.mle, stroke: '#fff', 'stroke-width': 1.5 });
-  },
-  render(root, p) {
-    for (let i = 0; i < 4; i++) attr($(root, 'r' + i), { opacity: clamp(p.k - i) });
-    attr($(root, 'ell'), { opacity: p.e });
-    label(root, 'xb', '$\\bar\\bx$', FP.X(FC[0]) + 14, FP.Y(FC[1]) + 4, 'tl', '#555');
-    label(root, 'cf', '<span class="cap">$\\Delta=1$ for $\\hat\\mK_{\\mle}$</span>', FP.X(2.75), FP.Y(0.15), 'bl', '#555', p.e);
+      P.vec(FC, [FC[0] + h, FC[1] + v], { color: RC[i], gap: 9, opacity: clamp(p.k - i) }));
+    P.dot(FC, { r: 8, color: 'mle' });
+    P.label('xb', '$\\bar\\bx$', FC, 'tl', { dx: 14, dy: 4, color: '#555' });
+    P.label('cf', '<span class="cap">$\\Delta=1$ for $\\hat\\mK_{\\mle}$</span>', [2.75, 0.15], 'bl', { color: '#555', opacity: p.e });
   }
 };
 
@@ -556,79 +502,60 @@ FIGS.outfly = {
 
 // ML ellipse (divide by n) and the unbiased one (divide by n - 1 = 3): 4/3 K_mle.
 FIGS.bias = {
-  duration: 1000,
-  init(root) {
-    const svg = newSvg(root, 480, 440), B = FP;
-    fourBase(root, svg, B);
-    el(svg, 'path', { d: fitEllipse(B, 1), fill: C.mle, 'fill-opacity': 0.08, stroke: C.mle, 'stroke-width': 3 });
-    el(svg, 'path', { class: 'unb', d: covEllipse(B, 2, 4 / 3, 2, 1, FC[0], FC[1]), fill: 'none', stroke: C.teal, 'stroke-width': 3, 'stroke-dasharray': '9 6' });
-    el(svg, 'circle', { cx: B.X(FC[0]), cy: B.Y(FC[1]), r: 8, fill: C.mle, stroke: '#fff', 'stroke-width': 1.5 });
+  duration: 1000, size: [480, 440],
+  draw(g, p) {
+    const P = g.plot(FP);
+    fourBase(P);
+    fitEllipse(P);
+    P.ellipse([[2, 4 / 3], [4 / 3, 2]], { at: FC, color: 'teal', w: 3, dash: true, opacity: p.u });
+    P.dot(FC, { r: 8, color: 'mle' });
     // leaders: ML to its bottom-right minor-axis point, unbiased to its top-left one
-    el(svg, 'line', { x1: B.X(3), y1: B.Y(-0.55), x2: B.X(2.5), y2: B.Y(0.5), stroke: C.mle, 'stroke-width': 1.2 });
-    el(svg, 'line', { class: 'ul', x1: B.X(0.6), y1: B.Y(2.75), x2: B.X(2 - Math.sqrt(1 / 3)), y2: B.Y(1 + Math.sqrt(1 / 3)), stroke: C.teal, 'stroke-width': 1.2 });
-    label(root, 'xb', '$\\bar\\bx$', B.X(FC[0]) + 12, B.Y(FC[1]) + 2, 'tl', '#555');
-    label(root, 'ml', 'divide by $n$', B.X(3) - 20, B.Y(-0.55) + 2, 'tl', C.mle);
-  },
-  render(root, p) {
-    attr($(root, 'unb'), { opacity: p.u }); attr($(root, 'ul'), { opacity: p.u });
-    label(root, 'un', 'divide by $n-1$', FP.X(0.6), FP.Y(2.75) - 4, 'b', C.teal, p.u);
+    P.line([3, -0.55], [2.5, 0.5], { color: 'mle', w: 1.2 });
+    P.line([0.6, 2.75], [2 - Math.sqrt(1 / 3), 1 + Math.sqrt(1 / 3)], { color: 'teal', w: 1.2, opacity: p.u });
+    P.label('xb', '$\\bar\\bx$', FC, 'tl', { dx: 12, dy: 2, color: '#555' });
+    P.label('ml', 'divide by $n$', [3, -0.55], 'tl', { dx: -20, dy: 2, color: 'mle' });
+    P.label('un', 'divide by $n-1$', [0.6, 2.75], 'b', { dy: -4, color: 'teal', opacity: p.u });
   }
 };
 
 // ---------------------------------------------------------------- Bayesian mean
 const BY = box2d(60, 20, 460, 460, -2.6, 4.6, -2.6, 4.6);
-function bayesBase(root, svg, B) {
-  axesBox(root, svg, B, { xt: [2, 4], yt: [2, 4], names: ['$\\theta_1$', '$\\theta_2$'] });
-  el(svg, 'line', { x1: B.X(0), y1: B.Y(0), x2: B.X(2), y2: B.Y(2), stroke: '#888', 'stroke-width': 1.8, 'stroke-dasharray': '6 5' });
-  el(svg, 'path', { d: covEllipse(B, 1, 0, 4), fill: C.prior, 'fill-opacity': 0.07, stroke: C.prior, 'stroke-width': 3 });
-  el(svg, 'circle', { cx: B.X(0), cy: B.Y(0), r: 7, fill: C.prior, stroke: '#fff', 'stroke-width': 1.5 });
-  el(svg, 'path', { class: 'dat', fill: C.like, 'fill-opacity': 0.07, stroke: C.like, 'stroke-width': 3 });
-  el(svg, 'circle', { cx: B.X(2), cy: B.Y(2), r: 7, fill: C.like, stroke: '#fff', 'stroke-width': 1.5 });
-  el(svg, 'path', { class: 'trail', fill: 'none', stroke: C.post, 'stroke-width': 2.5, 'stroke-dasharray': '2 5', 'stroke-linecap': 'round' });
-  el(svg, 'path', { class: 'post', fill: C.post, 'fill-opacity': 0.1, stroke: C.post, 'stroke-width': 3.5 });
-  el(svg, 'circle', { class: 'pc', r: 8, fill: C.post, stroke: '#fff', 'stroke-width': 1.5 });
-  label(root, 'pr', 'prior', B.X(0) - 12, B.Y(-2) - 12, 'r', C.prior);
+// Posterior after data of weight u: prior N(0, diag(1,4)), data precision diag(u/4, u), data mean (2,2).
+function post2(u) {
+  const p1 = 1 + u / 4, p2 = 0.25 + u;
+  return { m1: u / 4 * 2 / p1, m2: u * 2 / p2, v1: 1 / p1, v2: 1 / p2 };
 }
-// Posterior with prior N(0, diag(1,4)) and data precision diag(wn/4, wn), data mean (2,2).
-function post2(prec1, prec2) {
-  const p1 = 1 + prec1, p2 = 0.25 + prec2;
-  return { m1: prec1 * 2 / p1, m2: prec2 * 2 / p2, v1: 1 / p1, v2: 1 / p2 };
-}
-function drawPost(root, B, q, trail, show) {
-  attr($(root, 'post'), { d: covEllipse(B, q.v1, 0, q.v2, 1, q.m1, q.m2), opacity: show });
-  attr($(root, 'pc'), { cx: B.X(q.m1), cy: B.Y(q.m2), opacity: show });
-  attr($(root, 'trail'), { d: pathOf(trail.map(([a, b]) => [B.X(a), B.Y(b)])), opacity: show });
+// The prior, the data mean with covariance K, and the posterior at weight u1 (opacity on) with
+// the trail of its mean from weight u0 in n steps; returns that posterior.
+function bayesBase(P, K, u0, u1, n, on) {
+  const q = post2(u1);
+  P.axes({ xt: [2, 4], yt: [2, 4], names: ['$\\theta_1$', '$\\theta_2$'] });
+  P.line([0, 0], [2, 2], { color: '#888', w: 1.8, dash: '6 5' });
+  P.ellipse([[1, 0], [0, 4]], { fill: 'prior', fo: 0.07, w: 3 });
+  P.dot([0, 0], { color: 'prior' });
+  P.ellipse(K, { at: [2, 2], color: 'like', fill: 'like', fo: 0.07, w: 3 });
+  P.dot([2, 2], { color: 'like' });
+  P.path(P.steps({}, u0, u1, n).map(u => { const t = post2(u); return [t.m1, t.m2]; }),
+    { color: 'post', w: 2.5, dash: '2 5', cap: 'round', opacity: on });
+  P.ellipse([[q.v1, 0], [0, q.v2]], { at: [q.m1, q.m2], color: 'post', fill: 'post', fo: 0.1, w: 3.5, opacity: on });
+  P.dot([q.m1, q.m2], { r: 8, color: 'post', opacity: on });
+  P.label('pr', 'prior', [0, -2], 'tr', { dx: -6, dy: 6, color: 'prior' });
+  return q;
 }
 FIGS.bayes = {
-  duration: 2200,
-  init(root) {
-    const svg = newSvg(root, 580, 520), B = BY;
-    bayesBase(root, svg, B);
-    attr($(root, 'dat'), { d: covEllipse(B, 4, 0, 1, 1, 2, 2) });
-    label(root, 'dm', 'data mean', B.X(2), B.Y(3) - 6, 'b', C.like);
-  },
-  render(root, p) {
-    const B = BY, w = p.w, tr = [];
-    for (let i = 0; i <= 60; i++) { const u = w * i / 60, q = post2(u / 4, u); tr.push([q.m1, q.m2]); }
-    const q = post2(w / 4, w), on = clamp(w * 4);
-    drawPost(root, B, q, tr, on);
-    label(root, 'po', 'posterior', B.X(q.m1) + 12, B.Y(q.m2 + Math.sqrt(q.v2)) - 6, 'bl', C.post, clamp((w - 0.8) / 0.2));
+  duration: 2200, size: [580, 520],
+  draw(g, p) {
+    const P = g.plot(BY), q = bayesBase(P, [[4, 0], [0, 1]], 0, p.w, 60, clamp(p.w * 4));
+    P.label('dm', 'data mean', [2, 3], 'b', { dy: -6, color: 'like' });
+    P.label('po', 'posterior', [q.m1, q.m2 + Math.sqrt(q.v2)], 'br', { dx: -12, dy: -6, color: 'post', opacity: clamp((p.w - 0.8) / 0.2) });
   }
 };
 FIGS.bayesn = {
-  duration: 1600,
-  init(root) {
-    const svg = newSvg(root, 580, 520), B = BY;
-    bayesBase(root, svg, B);
-  },
-  render(root, p) {
-    const B = BY, n = p.n, tr = [];
-    for (let i = 0; i <= 80; i++) { const m = 1 + (n - 1) * i / 80, q = post2(m / 4, m); tr.push([q.m1, q.m2]); }
-    const q = post2(n / 4, n);
-    attr($(root, 'dat'), { d: covEllipse(B, 4 / n, 0, 1 / n, 1, 2, 2) });
-    drawPost(root, B, q, tr, 1);
-    label(root, 'dm', 'data mean, $\\mK/n$', B.X(2), B.Y(2 + 1 / Math.sqrt(n)) - 6, 'b', C.like);
-    label(root, 'nn', `$n=${fmt(n, 0)}$: $\\hat\\btheta_n=(${fmt(q.m1)},\\,${fmt(q.m2)})^T$`, B.X(4.6), B.Y(-2.5), 'br', C.post);
+  duration: 1600, size: [580, 520],
+  draw(g, p) {
+    const P = g.plot(BY), n = p.n, q = bayesBase(P, [[4 / n, 0], [0, 1 / n]], 1, n, 80, 1);
+    P.label('dm', 'data mean, $\\mK/n$', [2, 2 + 1 / Math.sqrt(n)], 'b', { dy: -6, color: 'like' });
+    P.label('nn', `$n=${fmt(n, 0)}$: $\\hat\\btheta_n=(${fmt(q.m1)},\\,${fmt(q.m2)})^T$`, [4.6, -2.5], 'br', { color: 'post' });
   }
 };
 
@@ -636,53 +563,37 @@ FIGS.bayesn = {
 // Conditioning slides: the cloud with a vertical slice at x1, and the conditional
 // density of X2 on a side axis that shares the cloud's vertical x2 scale.
 const CP = frame2d(34, 30, 390, 3.2), SX0 = CP.X(3.2) + 44, SW = 165;   // density 1.0 = SW px
+const CS = box2d(SX0, CP.Y(3.2), SW, CP.S, 0, 1, -3.2, 3.2);   // the side axis: density across, x2 as in CP
 FIGS.cond = {
-  init(root) {
-    const svg = newSvg(root, 760, 480), P = CP, R = P.R;
-    axes(root, svg, P, { names: AX });
-    cloud(svg);
-    el(svg, 'path', { class: 'ct1', fill: 'none', stroke: C.prior, 'stroke-width': 2 });
-    el(svg, 'path', { class: 'ct2', fill: 'none', stroke: C.prior, 'stroke-width': 2 });
-    el(svg, 'line', { class: 'slice', y1: P.Y(-R), y2: P.Y(R), stroke: C.like, 'stroke-width': 3.5 });
-    el(svg, 'line', { class: 'guide', stroke: C.post, 'stroke-width': 1.5, 'stroke-dasharray': '6 5' });
-    el(svg, 'circle', { class: 'dot', r: 7, fill: C.post, stroke: '#fff', 'stroke-width': 1.5 });
-    // side axis
-    const g = el(svg, 'g');
-    el(g, 'line', { x1: SX0, x2: SX0, y1: P.Y(-R), y2: P.Y(R), stroke: C.axis, 'stroke-width': 1.5 });
-    arrow(g, SX0, P.Y(-R), SX0 + SW + 26, P.Y(-R), C.axis);
-    for (const v of [0.5, 1]) {
-      el(g, 'line', { x1: SX0 + v * SW, x2: SX0 + v * SW, y1: P.Y(-R), y2: P.Y(-R) + 6, stroke: C.axis });
-      el(g, 'text', { x: SX0 + v * SW, y: P.Y(-R) + 24, 'text-anchor': 'middle', 'font-size': 16, fill: '#555' }).textContent = v;
-    }
-    let d = '';
-    for (let i = 0; i <= 160; i++) { const t = -R + 2 * R * i / 160; d += (i ? 'L' : 'M') + (SX0 + phi(t, 0, 1) * SW).toFixed(1) + ',' + P.Y(t).toFixed(1); }
-    el(svg, 'path', { d, fill: 'none', stroke: C.prior, 'stroke-width': 2.5, 'stroke-dasharray': '8 6' });
-    el(svg, 'path', { class: 'cfill', fill: C.post, 'fill-opacity': 0.15, stroke: 'none' });
-    el(svg, 'path', { class: 'cline', fill: 'none', stroke: C.post, 'stroke-width': 3 });
-    el(svg, 'line', { class: 'lead', stroke: C.prior, 'stroke-width': 1.2 });
-    label(root, 'dens', 'density', SX0 + SW + 32, P.Y(-R), 'l', '#444');
-  },
-  render(root, p) {
-    const P = CP, R = P.R, m = p.rho * p.x1, v = 1 - p.rho * p.rho;
-    placeCloud(root, P, p.rho, p.x1);
-    attr($(root, 'ct1'), { d: ellipse(P, p.rho, 1) });
-    attr($(root, 'ct2'), { d: ellipse(P, p.rho, 2) });
-    attr($(root, 'slice'), { x1: P.X(p.x1), x2: P.X(p.x1) });
-    attr($(root, 'dot'), { cx: P.X(p.x1), cy: P.Y(m) });
-    const peak = SX0 + phi(m, m, v) * SW;
-    attr($(root, 'guide'), { x1: P.X(p.x1), y1: P.Y(m), x2: peak, y2: P.Y(m) });
-    let d = '';
-    for (let i = 0; i <= 200; i++) { const t = -R + 2 * R * i / 200; d += (i ? 'L' : 'M') + (SX0 + phi(t, m, v) * SW).toFixed(1) + ',' + P.Y(t).toFixed(1); }
-    attr($(root, 'cline'), { d });
-    attr($(root, 'cfill'), { d: `M${SX0},${P.Y(-R)}` + d.replace(/^M/, 'L') + `L${SX0},${P.Y(R)}Z` });
-    label(root, 'slice', `$x_1=${fmt(p.x1)}$`, P.X(p.x1), P.Y(-R) + 8, 't', C.like);
-    label(root, 'cond', `<span class="cap">conditional</span><br>$\\mathcal N(${fmt(m)},\\,${fmt(v)})$`,
-      peak + 12, P.Y(m), 'l', C.post);
-    // The marginal's label sits on the side away from the conditional's peak.
+  size: [760, 480],
+  draw(g, p) {
+    const P = g.plot(CP), S = g.plot(CS), R = CP.R, m = p.rho * p.x1, v = 1 - p.rho * p.rho, pk = phi(m, m, v);
+    P.axes();
+    P.cloud(corrPts(p.rho), { each: (i, [z]) => Math.abs(z - p.x1) < 0.1 ? { color: 'post', fo: 0.95, r: 3.6 } : null });
+    P.ellipse(p.rho);
+    P.ellipse(p.rho, { r: 2 });
+    P.line([p.x1, -R], [p.x1, R], { color: 'like', w: 3.5 });
+    g.line(P.px([p.x1, m]), [S.X(pk), P.Y(m)], { color: 'post', dash: '6 5' });
+    P.dot([p.x1, m], { color: 'post' });
+    g.group({}, () => {   // the side axis: density across, x2 shared with the cloud
+      S.line([0, -R], [0, R], { color: C.axis });
+      g.arrow(S.px([0, -R]), [S.X(1) + 26, S.Y(-R)]);
+      for (const t of [0.5, 1]) {
+        g.line([S.X(t), S.Y(-R)], [S.X(t), S.Y(-R) + 6], { color: C.axis, w: null });
+        S.text([t, -R], t, { dy: 24 });
+      }
+    });
+    S.param(t => [phi(t, 0, 1), t], { from: -R, to: R, n: 160, color: 'prior', w: 2.5, dash: '8 6' });
+    const curve = S.steps({}, -R, R, 200).map(t => [phi(t, m, v), t]);
+    S.path([[0, -R], ...curve, [0, R]], { close: true, fill: 'post', fo: 0.15, color: 'none', w: null });
+    S.path(curve, { color: 'post', w: 3 });
+    // the marginal's label sits on the side away from the conditional's peak
     const side = m > -0.25 ? -1 : 1, fade = clamp(Math.abs(m + 0.25) / 0.2);
-    const ty = P.Y(side * 2.35), cx = SX0 + phi(1.6, 0, 1) * SW, cy = P.Y(side * 1.6);
-    attr($(root, 'lead'), { x1: SX0 + 62, y1: ty, x2: cx, y2: cy, opacity: fade });
-    label(root, 'marg', '<span class="cap">marginal</span> $\\mathcal N(0,1)$', SX0 + 66, ty, 'l', C.prior, fade);
+    g.line([S.X(0) + 62, P.Y(side * 2.35)], S.px([phi(1.6, 0, 1), side * 1.6]), { color: 'prior', w: 1.2, opacity: fade });
+    S.label('dens', 'density', [1, -R], 'l', { dx: 32, color: '#444' });
+    P.label('slice', `$x_1=${fmt(p.x1)}$`, [p.x1, -R], 't', { dy: 8, color: 'like' });
+    S.label('cond', `<span class="cap">conditional</span><br>$\\mathcal N(${fmt(m)},\\,${fmt(v)})$`, [pk, m], 'l', { dx: 12, color: 'post' });
+    S.label('marg', '<span class="cap">marginal</span> $\\mathcal N(0,1)$', [0, side * 2.35], 'l', { dx: 66, color: 'prior', opacity: fade });
   }
 };
 
@@ -690,84 +601,56 @@ FIGS.cond = {
 const TP = frame2d(34, 30, 520, 3.2), TRHO = 0.5, TS = Math.sqrt(1 - TRHO * TRHO), TX0 = -2.5;
 FIGS.trace = {
   enter: { x1: -2.5 },
-  duration: 1100,
-  init(root) {
-    const svg = newSvg(root, 700, 600), P = TP;
-    axes(root, svg, P, { names: AX });
-    cloud(svg);
-    placeCloud(root, P, TRHO);
-    root.querySelectorAll('.pt').forEach(c => attr(c, { 'fill-opacity': 0.22 }));
-    el(svg, 'path', { d: ellipse(P, TRHO, 1), fill: 'none', stroke: C.prior, 'stroke-width': 2, 'stroke-opacity': 0.7 });
-    el(svg, 'path', { d: ellipse(P, TRHO, 2), fill: 'none', stroke: C.prior, 'stroke-width': 2, 'stroke-opacity': 0.7 });
-    el(svg, 'path', { class: 'band', fill: C.post, 'fill-opacity': 0.14, stroke: 'none' });
-    el(svg, 'line', { class: 'slice', y1: P.Y(-P.R), y2: P.Y(P.R), stroke: C.like, 'stroke-width': 3.5 });
-    el(svg, 'line', { class: 'trail', stroke: C.post, 'stroke-width': 4, 'stroke-linecap': 'round' });
-    el(svg, 'circle', { class: 'dot', r: 8, fill: C.post, stroke: '#fff', 'stroke-width': 1.5 });
-    const g = el(svg, 'g', { class: 'bar' });
-    const bx = P.X(2.5) + 16, top = P.Y(TRHO * 2.5 + TS), bot = P.Y(TRHO * 2.5 - TS);
-    el(g, 'line', { x1: bx, x2: bx, y1: top, y2: bot, stroke: C.post, 'stroke-width': 2 });
-    for (const y of [top, bot]) el(g, 'line', { x1: bx - 6, x2: bx + 6, y1: y, y2: y, stroke: C.post, 'stroke-width': 2 });
-  },
-  render(root, p) {
-    const P = TP, x = p.x1, fin = p.fin;
-    let up = '', lo = '';
-    for (let i = 0; i <= 60; i++) {
-      const t = TX0 + (x - TX0) * i / 60;
-      up += (i ? 'L' : 'M') + P.X(t).toFixed(1) + ',' + P.Y(TRHO * t + TS).toFixed(1);
-      lo = 'L' + P.X(t).toFixed(1) + ',' + P.Y(TRHO * t - TS).toFixed(1) + lo;
-    }
-    attr($(root, 'band'), { d: up + lo + 'Z' });
-    attr($(root, 'trail'), { x1: P.X(TX0), y1: P.Y(TRHO * TX0), x2: P.X(x), y2: P.Y(TRHO * x) });
-    attr($(root, 'slice'), { x1: P.X(x), x2: P.X(x), opacity: 1 - fin });
-    attr($(root, 'dot'), { cx: P.X(x), cy: P.Y(TRHO * x), opacity: 1 - fin });
-    attr($(root, 'bar'), { opacity: fin });
-    label(root, 'slice', `$x_1=${fmt(x)}$`, P.X(x), P.Y(-P.R) + 8, 't', C.like, 1 - fin);
-    label(root, 'line', '$\\E[X_2\\mid X_1=x_1]=\\rho x_1$', P.X(2.5) + 4, P.Y(TRHO * 2.5 + TS) - 10, 'br', C.post, fin);
-    label(root, 'band', '$\\pm0.866$', P.X(2.5) + 28, P.Y(TRHO * 2.5), 'l', C.post, fin);
+  duration: 1100, size: [700, 600],
+  draw(g, p) {
+    const P = g.plot(TP), R = TP.R, x = p.x1, fin = p.fin;
+    P.axes();
+    P.cloud(corrPts(TRHO), { fo: 0.22 });
+    P.ellipse(TRHO, { so: 0.7 });
+    P.ellipse(TRHO, { r: 2, so: 0.7 });
+    P.area(t => TRHO * t + TS, { from: TX0, to: x, n: 60, base: t => TRHO * t - TS, color: 'post', fo: 0.14 });
+    P.line([x, -R], [x, R], { color: 'like', w: 3.5, opacity: 1 - fin });
+    P.line([TX0, TRHO * TX0], [x, TRHO * x], { color: 'post', w: 4, cap: 'round' });
+    P.dot([x, TRHO * x], { r: 8, color: 'post', opacity: 1 - fin });
+    const bx = P.X(2.5) + 16, top = P.Y(TRHO * 2.5 + TS), bot = P.Y(TRHO * 2.5 - TS);   // the band's width at x1 = 2.5
+    g.group({ opacity: fin }, () => {
+      g.line([bx, top], [bx, bot], { color: 'post', w: 2 });
+      for (const y of [top, bot]) g.line([bx - 6, y], [bx + 6, y], { color: 'post', w: 2 });
+    });
+    P.label('slice', `$x_1=${fmt(x)}$`, [x, -R], 't', { dy: 8, color: 'like', opacity: 1 - fin });
+    P.label('line', '$\\E[X_2\\mid X_1=x_1]=\\rho x_1$', [2.5, TRHO * 2.5 + TS], 'br', { dx: 4, dy: -10, color: 'post', opacity: fin });
+    P.label('band', '$\\pm0.866$', [2.5, TRHO * 2.5], 'l', { dx: 28, color: 'post', opacity: fin });
   }
 };
 
 // Reverse the prediction on a denser sample (1500 points, seed 7, bands of half-width
 // 0.2: the x1 ~ 2 band averages x2 = 1.13 and the x2 ~ 1 band x1 = 0.52).  Highlight
 // the band x1 ~ 2, mark E[X2 | X1 = 2] = 1; then the band x2 ~ 1 and E[X1 | X2 = 1] = 0.5.
-const RP = frame2d(96, 30, 460, 3.2), RPTS = normals(7, 1500), RB = 0.2;
+const RP = frame2d(96, 30, 460, 3.2), RB = 0.2, RPTS = normals(7, 1500).map(([z, w]) => [z, 0.5 * z + S75 * w])
+  .filter(([x1, x2]) => Math.abs(x1) < RP.R && Math.abs(x2) < RP.R);   // (x1, x2), those on the plot
 FIGS.rev = {
-  duration: 1200,
-  init(root) {
-    const svg = newSvg(root, 700, 540), P = RP, R = P.R;
-    axes(root, svg, P, { names: AX });
-    const g = el(svg, 'g');
-    RPTS.forEach(([z, w]) => {
-      const x1 = z, x2 = 0.5 * z + S75 * w;
-      if (Math.abs(x1) < R && Math.abs(x2) < R) el(g, 'circle', { class: 'rp', cx: P.X(x1), cy: P.Y(x2), r: 2.2, 'data-a': +(Math.abs(x1 - 2) < RB), 'data-b': +(Math.abs(x2 - 1) < RB) });
-    });
-    el(svg, 'path', { d: ellipse(P, 0.5, 1), fill: 'none', stroke: C.prior, 'stroke-width': 2, 'stroke-opacity': 0.7 });
-    el(svg, 'path', { d: ellipse(P, 0.5, 2), fill: 'none', stroke: C.prior, 'stroke-width': 2, 'stroke-opacity': 0.7 });
-    el(svg, 'line', { class: 'vs', x1: P.X(2), x2: P.X(2), y1: P.Y(-R), y2: P.Y(R), stroke: C.like, 'stroke-width': 3 });
-    el(svg, 'line', { class: 'hs', x1: P.X(-R), x2: P.X(R), y1: P.Y(1), y2: P.Y(1), stroke: C.like, 'stroke-width': 3 });
-    el(svg, 'line', { class: 'l1', stroke: C.post, 'stroke-width': 3.5, 'stroke-linecap': 'round' });
-    el(svg, 'line', { class: 'l2', stroke: C.postC, 'stroke-width': 3.5, 'stroke-linecap': 'round' });
-    el(svg, 'circle', { class: 'd1', cx: P.X(2), cy: P.Y(1), r: 8, fill: C.post, stroke: '#fff', 'stroke-width': 1.5 });
-    el(svg, 'circle', { class: 'd2', cx: P.X(0.5), cy: P.Y(1), r: 8, fill: C.postC, stroke: '#fff', 'stroke-width': 1.5 });
-  },
-  render(root, p) {
-    const P = RP, R = P.R, a = clamp(2 * p.L), b = clamp(2 * p.L - 1);
+  duration: 1200, size: [700, 540],
+  draw(g, p) {
+    const P = g.plot(RP), R = RP.R, a = clamp(2 * p.L), b = clamp(2 * p.L - 1);
     const hb = p.hb ?? 0, hv = p.v * (1 - hb), hh = hb;   // band weights: the x1 band fades as the x2 band lights up
-    root.querySelectorAll('.rp').forEach(c => {
-      const t = Math.max(+c.dataset.a * hv, +c.dataset.b * hh);
-      attr(c, { fill: t > 0.5 ? C.teal : C.prior, 'fill-opacity': (0.2 + 0.75 * t).toFixed(2), r: (2.2 + 1.2 * t).toFixed(2) });
-    });
-    attr($(root, 'vs'), { opacity: p.v });
-    attr($(root, 'hs'), { opacity: p.h });
-    attr($(root, 'd1'), { opacity: p.d1 });
-    attr($(root, 'd2'), { opacity: p.d2 });
-    label(root, 'vs', '$x_1=2$', P.X(2), P.Y(-R) + 8, 't', C.like, p.v);
-    label(root, 'hs', '$x_2=1$', P.X(-R) - 8, P.Y(1), 'r', C.like, p.h);
+    P.axes();
+    P.cloud(RPTS, { each: (i, [x1, x2]) => {
+      const t = Math.max((Math.abs(x1 - 2) < RB) * hv, (Math.abs(x2 - 1) < RB) * hh);
+      return { color: t > 0.5 ? 'teal' : 'prior', fo: 0.2 + 0.75 * t, r: 2.2 + 1.2 * t };
+    } });
+    P.ellipse(0.5, { so: 0.7 });
+    P.ellipse(0.5, { r: 2, so: 0.7 });
+    P.line([2, -R], [2, R], { color: 'like', w: 3, opacity: p.v });
+    P.line([-R, 1], [R, 1], { color: 'like', w: 3, opacity: p.h });
     // red: x2 = 0.5 x1 from (-R, -R/2); amber: x1 = 0.5 x2 from (-R/2, -R)
-    attr($(root, 'l1'), { x1: P.X(-R), y1: P.Y(-R / 2), x2: P.X(-R + 2 * R * a), y2: P.Y(-R / 2 + R * a), opacity: a > 0 ? 1 : 0 });
-    attr($(root, 'l2'), { x1: P.X(-R / 2), y1: P.Y(-R), x2: P.X(-R / 2 + R * b), y2: P.Y(-R + 2 * R * b), opacity: b > 0 ? 1 : 0 });
-    label(root, 'l1', '$x_2=0.5\\,x_1$', P.X(R) + 8, P.Y(R / 2), 'l', C.post, clamp((a - 0.8) / 0.2));
-    label(root, 'l2', '$x_1=0.5\\,x_2$', P.X(R / 2), P.Y(R) - 6, 'b', C.postC, clamp((b - 0.8) / 0.2));
+    P.line([-R, -R / 2], [-R + 2 * R * a, -R / 2 + R * a], { color: 'post', w: 3.5, cap: 'round', opacity: a > 0 ? 1 : 0 });
+    P.line([-R / 2, -R], [-R / 2 + R * b, -R + 2 * R * b], { color: 'postC', w: 3.5, cap: 'round', opacity: b > 0 ? 1 : 0 });
+    P.dot([2, 1], { r: 8, color: 'post', opacity: p.d1 });
+    P.dot([0.5, 1], { r: 8, color: 'postC', opacity: p.d2 });
+    P.label('vs', '$x_1=2$', [2, -R], 't', { dy: 8, color: 'like', opacity: p.v });
+    P.label('hs', '$x_2=1$', [-R, 1], 'r', { dx: -8, color: 'like', opacity: p.h });
+    P.label('l1', '$x_2=0.5\\,x_1$', [R, R / 2], 'l', { dx: 8, color: 'post', opacity: clamp((a - 0.8) / 0.2) });
+    P.label('l2', '$x_1=0.5\\,x_2$', [R / 2, R], 'b', { dy: -6, color: 'postC', opacity: clamp((b - 0.8) / 0.2) });
   }
 };
 
@@ -777,70 +660,54 @@ const MS = { mm: 163, sm: 6, ms: 177, ss: 7, rho: 0.5 },
   MB = box2d(62, 40, 360, 396, 144, 184, 156, 200);
 const msSon = m => MS.ms + MS.rho * MS.ss / MS.sm * (m - MS.mm);     // E[S | M=m]
 const msMom = s => MS.mm + MS.rho * MS.sm / MS.ss * (s - MS.ms);     // E[M | S=s]
+const msSD = s => MS.mm + (s - MS.ms) * MS.sm / MS.ss;               // SD line: s - 177 = (7/6)(m - 163)
 FIGS.ms = {
-  duration: 1200,
-  init(root) {
-    const svg = newSvg(root, 565, 480), B = MB;
-    axesBox(root, svg, B, { step: 10, ox: B.xlo, oy: B.ylo, xt: [150, 160, 170, 180],
-      yt: [160, 170, 180, 190, 200], names: ['$m$', '$s$'] });
-    const g = el(svg, 'g');
-    PTS.forEach(([z, w]) => {
-      const m = MS.mm + MS.sm * z, s = MS.ms + MS.ss * (MS.rho * z + S75 * w);
-      if (m > B.xlo && m < B.xhi && s > B.ylo && s < B.yhi)
-        el(g, 'circle', { cx: B.X(m), cy: B.Y(s), r: 2.6, fill: C.prior, 'fill-opacity': 0.25 });
-    });
-    const a = MS.sm ** 2, c = MS.ss ** 2, b = MS.rho * MS.sm * MS.ss;
-    for (const r of [1, 2]) el(svg, 'path', { d: covEllipse(B, a, b, c, r, MS.mm, MS.ms), fill: 'none', stroke: C.prior, 'stroke-width': 2, 'stroke-opacity': 0.7 });
-    // SD line s - 177 = (7/6)(m - 163), clipped to the box
-    el(svg, 'line', { class: 'sdl', x1: B.X(MS.mm + (B.ylo - MS.ms) * MS.sm / MS.ss), y1: B.Y(B.ylo),
-      x2: B.X(MS.mm + (B.yhi - MS.ms) * MS.sm / MS.ss), y2: B.Y(B.yhi), stroke: '#555', 'stroke-width': 2.5, 'stroke-dasharray': '8 6' });
-    el(svg, 'line', { class: 'vs', x1: B.X(175), x2: B.X(175), y1: B.Y(B.ylo), y2: B.Y(B.yhi), stroke: C.like, 'stroke-width': 3 });
-    el(svg, 'line', { class: 'hs', x1: B.X(B.xlo), x2: B.X(B.xhi), y1: B.Y(184), y2: B.Y(184), stroke: C.like, 'stroke-width': 3 });
-    el(svg, 'line', { class: 'l1', stroke: C.post, 'stroke-width': 3.5, 'stroke-linecap': 'round' });
-    el(svg, 'line', { class: 'l2', stroke: C.postC, 'stroke-width': 3.5, 'stroke-linecap': 'round' });
-    el(svg, 'circle', { class: 'd1', cx: B.X(175), cy: B.Y(184), r: 8, fill: C.post, stroke: '#fff', 'stroke-width': 1.5 });
-    el(svg, 'circle', { class: 'd2', cx: B.X(166), cy: B.Y(184), r: 8, fill: C.postC, stroke: '#fff', 'stroke-width': 1.5 });
-    el(svg, 'circle', { cx: B.X(MS.mm), cy: B.Y(MS.ms), r: 4, fill: C.ink });
-  },
-  render(root, p) {
-    const B = MB, a = clamp(p.L1), b = clamp(p.L2);
-    const m1 = lerp(B.xlo, B.xhi, a), s2 = lerp(B.ylo, B.yhi, b);
-    attr($(root, 'l1'), { x1: B.X(B.xlo), y1: B.Y(msSon(B.xlo)), x2: B.X(m1), y2: B.Y(msSon(m1)), opacity: a > 0 ? 1 : 0 });
-    attr($(root, 'l2'), { x1: B.X(msMom(B.ylo)), y1: B.Y(B.ylo), x2: B.X(msMom(s2)), y2: B.Y(s2), opacity: b > 0 ? 1 : 0 });
-    attr($(root, 'vs'), { opacity: clamp(3 * a) });
-    attr($(root, 'd1'), { opacity: clamp((a - 0.75) / 0.15) });
-    attr($(root, 'hs'), { opacity: clamp(3 * b) });
-    attr($(root, 'd2'), { opacity: clamp((b - 0.6) / 0.15) });
-    attr($(root, 'sdl'), { opacity: p.sd });
-    label(root, 'vs', '$m=175$', B.X(175) - 6, B.Y(B.ylo) - 6, 'br', C.like, clamp(3 * a));
-    label(root, 'hs', '$s=184$', B.X(B.xlo) + 6, B.Y(184) - 6, 'bl', C.like, clamp(3 * b));
-    label(root, 'l1', '$\\E[S\\mid M=m]$', B.X(B.xhi) + 8, B.Y(msSon(B.xhi)), 'l', C.post, clamp((a - 0.8) / 0.2));
-    label(root, 'l2', '$\\E[M\\mid S=s]$', B.X(msMom(B.yhi)), B.Y(B.yhi) - 6, 'b', C.postC, clamp((b - 0.8) / 0.2));
-    label(root, 'sdl', 'SD line', B.X(MS.mm + (B.yhi - MS.ms) * MS.sm / MS.ss) + 8, B.Y(B.yhi), 'l', '#555', p.sd);
+  duration: 1200, size: [565, 480],
+  draw(g, p) {
+    const P = g.plot(MB), B = MB, a = clamp(p.L1), b = clamp(p.L2);
+    const m1 = lerp(B.xlo, B.xhi, a), s2 = lerp(B.ylo, B.yhi, b), c = MS.rho * MS.sm * MS.ss;
+    P.axes({ step: 10, ox: B.xlo, oy: B.ylo, xt: [150, 160, 170, 180], yt: [160, 170, 180, 190, 200], names: ['$m$', '$s$'] });
+    P.cloud(corrPts(MS.rho).map(([z, x]) => [MS.mm + MS.sm * z, MS.ms + MS.ss * x])
+      .filter(([m, s]) => m > B.xlo && m < B.xhi && s > B.ylo && s < B.yhi), { fo: 0.25 });
+    for (const r of [1, 2]) P.ellipse([[MS.sm ** 2, c], [c, MS.ss ** 2]], { r, at: [MS.mm, MS.ms], so: 0.7 });
+    P.line([msSD(B.ylo), B.ylo], [msSD(B.yhi), B.yhi], { color: '#555', w: 2.5, dash: '8 6', opacity: p.sd });
+    P.line([175, B.ylo], [175, B.yhi], { color: 'like', w: 3, opacity: clamp(3 * a) });
+    P.line([B.xlo, 184], [B.xhi, 184], { color: 'like', w: 3, opacity: clamp(3 * b) });
+    P.line([B.xlo, msSon(B.xlo)], [m1, msSon(m1)], { color: 'post', w: 3.5, cap: 'round', opacity: a > 0 ? 1 : 0 });
+    P.line([msMom(B.ylo), B.ylo], [msMom(s2), s2], { color: 'postC', w: 3.5, cap: 'round', opacity: b > 0 ? 1 : 0 });
+    P.dot([175, 184], { r: 8, color: 'post', opacity: clamp((a - 0.75) / 0.15) });
+    P.dot([166, 184], { r: 8, color: 'postC', opacity: clamp((b - 0.6) / 0.15) });
+    P.dot([MS.mm, MS.ms], { r: 4, outline: false });
+    P.label('vs', '$m=175$', [175, B.ylo], 'br', { dx: -6, dy: -6, color: 'like', opacity: clamp(3 * a) });
+    P.label('hs', '$s=184$', [B.xlo, 184], 'bl', { dx: 6, dy: -6, color: 'like', opacity: clamp(3 * b) });
+    P.label('l1', '$\\E[S\\mid M=m]$', [B.xhi, msSon(B.xhi)], 'l', { dx: 8, color: 'post', opacity: clamp((a - 0.8) / 0.2) });
+    P.label('l2', '$\\E[M\\mid S=s]$', [msMom(B.yhi), B.yhi], 'b', { dy: -6, color: 'postC', opacity: clamp((b - 0.8) / 0.2) });
+    P.label('sdl', 'SD line', [msSD(B.yhi), B.yhi], 'l', { dx: 8, color: '#555', opacity: p.sd });
   }
 };
 
 // Terminology timeline: the least-squares thread (teal) and Galton's word (brown)
-// meet at Yule 1897.
+// meet at Yule 1897.  Years across, 10 px each; vertically, px above the time axis.
+const TMB = box2d(60, 0, 1000, 150, 1800, 1900, -75, 75);
 FIGS.terms = {
-  init(root) {
-    const svg = newSvg(root, 1150, 150), X = y => 60 + (y - 1800) * 10, A = 75;
-    el(svg, 'line', { x1: X(1795), x2: X(1905), y1: A, y2: A, stroke: C.axis, 'stroke-width': 1.5 });
+  size: [1150, 150],
+  draw(g) {
+    const P = g.plot(TMB);
+    P.line([1795, 0], [1905, 0], { color: C.axis });
     for (const y of [1800, 1850, 1900]) {
-      el(svg, 'line', { x1: X(y), x2: X(y), y1: A - 5, y2: A + 5, stroke: C.axis, 'stroke-width': 1.5 });
-      el(svg, 'text', { x: X(y), y: A + 22, 'text-anchor': 'middle', 'font-size': 15, fill: '#777' }).textContent = y;
+      P.line([y, 5], [y, -5], { color: C.axis });
+      P.text([y, 0], y, { dy: 22, size: 15, color: '#777' });
     }
-    el(svg, 'path', { d: `M${X(1805)},${A - 18}L${X(1890)},${A - 18}L${X(1897)},${A}`, fill: 'none', stroke: C.teal, 'stroke-width': 4, 'stroke-linejoin': 'round' });
-    el(svg, 'path', { d: `M${X(1877)},${A + 18}L${X(1890)},${A + 18}L${X(1897)},${A}`, fill: 'none', stroke: C.brown, 'stroke-width': 4, 'stroke-linejoin': 'round' });
-    for (const y of [1805, 1809]) el(svg, 'circle', { cx: X(y), cy: A - 18, r: 7, fill: C.teal, stroke: '#fff', 'stroke-width': 1.5 });
-    for (const y of [1877, 1886]) el(svg, 'circle', { cx: X(y), cy: A + 18, r: 7, fill: C.brown, stroke: '#fff', 'stroke-width': 1.5 });
-    el(svg, 'circle', { cx: X(1897), cy: A, r: 9, fill: C.ink, stroke: '#fff', 'stroke-width': 1.5 });
-    label(root, 'ls', 'Least squares: Legendre 1805, Gauss 1809', X(1805) - 8, A - 30, 'bl', C.teal);
-    label(root, 'g77', 'Galton 1877, seeds: &ldquo;reversion&rdquo;', X(1877) + 8, A + 30, 'tr', C.brown);
-    label(root, 'g86', 'Galton 1886, heights: &ldquo;regression&rdquo;', X(1886) - 8, A + 30, 'tl', C.brown);
-    label(root, 'yule', 'Yule 1897: regression lines by least squares', X(1897) + 16, A - 30, 'br', C.ink);
-  },
-  render() {}
+    P.path([[1805, 18], [1890, 18], [1897, 0]], { color: 'teal', w: 4, join: 'round' });
+    P.path([[1877, -18], [1890, -18], [1897, 0]], { color: 'brown', w: 4, join: 'round' });
+    for (const y of [1805, 1809]) P.dot([y, 18], { color: 'teal' });
+    for (const y of [1877, 1886]) P.dot([y, -18], { color: 'brown' });
+    P.dot([1897, 0], { r: 9 });
+    P.label('ls', 'Least squares: Legendre 1805, Gauss 1809', [1805, 30], 'bl', { dx: -8, color: 'teal' });
+    P.label('g77', 'Galton 1877, seeds: &ldquo;reversion&rdquo;', [1877, -30], 'tr', { dx: 8, color: 'brown' });
+    P.label('g86', 'Galton 1886, heights: &ldquo;regression&rdquo;', [1886, -30], 'tl', { dx: -8, color: 'brown' });
+    P.label('yule', 'Yule 1897: regression lines by least squares', [1897, 30], 'br', { dx: 16 });
+  }
 };
 
 // Density of the running model against Mahalanobis distance: c exp(-Delta^2 / 2),
@@ -848,33 +715,25 @@ FIGS.terms = {
 const DPB = box2d(80, 20, 420, 300, 0, 4.6, 0, 0.2), DPC = 1 / (2 * Math.PI * Math.sqrt(0.75));
 const dpf = D => DPC * Math.exp(-D * D / 2);
 FIGS.dprof = {
-  duration: 900,
-  init(root) {
-    const svg = newSvg(root, 560, 400), B = DPB, g = el(svg, 'g');
-    for (const v of [0.05, 0.1, 0.15, 0.2]) el(g, 'line', { x1: B.X(0), x2: B.X(4.6), y1: B.Y(v), y2: B.Y(v), stroke: C.grid });
-    arrow(g, B.X(0), B.Y(0), B.X(4.6) + 16, B.Y(0), C.axis);
-    arrow(g, B.X(0), B.Y(0), B.X(0), B.Y(0.2) - 16, C.axis);
-    for (const v of [0, 1, 2, 3, 4]) el(g, 'text', { x: B.X(v), y: B.Y(0) + 22, 'text-anchor': 'middle', 'font-size': 16, fill: '#555' }).textContent = v;
-    for (const v of [0.05, 0.1, 0.15]) el(g, 'text', { x: B.X(0) - 8, y: B.Y(v) + 5, 'text-anchor': 'end', 'font-size': 16, fill: '#555' }).textContent = v;
-    label(root, 'ax', '$\\Delta$', B.X(4.6) + 10, B.Y(0) + 8, 't', '#444');
-    label(root, 'ay', 'density', B.X(0) + 8, B.Y(0.2) - 14, 'l', '#444');
-    let d = '';
-    for (let i = 0; i <= 200; i++) { const D = 4.6 * i / 200; d += (i ? 'L' : 'M') + B.X(D).toFixed(1) + ',' + B.Y(dpf(D)).toFixed(1); }
-    el(svg, 'path', { d: d + `L${B.X(4.6)},${B.Y(0)}L${B.X(0)},${B.Y(0)}Z`, fill: C.prior, 'fill-opacity': 0.1, stroke: 'none' });
-    el(svg, 'path', { d, fill: 'none', stroke: C.prior, 'stroke-width': 3 });
+  size: [560, 400],
+  draw(g) {
+    const P = g.plot(DPB);
+    g.group({}, () => {
+      for (const v of [0.05, 0.1, 0.15, 0.2]) P.line([0, v], [4.6, v], { color: C.grid, w: null });
+      g.arrow(P.px([0, 0]), [P.X(4.6) + 16, P.Y(0)]);
+      g.arrow(P.px([0, 0]), [P.X(0), P.Y(0.2) - 16]);
+      for (const v of [0, 1, 2, 3, 4]) P.text([v, 0], v, { dy: 22 });
+      for (const v of [0.05, 0.1, 0.15]) P.text([0, v], v, { anchor: 'end', dx: -8, dy: 5 });
+    });
+    P.label('ax', '$\\Delta$', [4.6, 0], 't', { dx: 10, dy: 8, color: '#444' });
+    P.label('ay', 'density', [0, 0.2], 'l', { dx: 8, dy: -14, color: '#444' });
+    P.path([...P.steps({}, 0, 4.6, 200).map(D => [D, dpf(D)]), [4.6, 0], [0, 0]], { close: true, fill: 'prior', fo: 0.1, color: 'none', w: null });
+    P.curve(dpf, { color: 'prior', w: 3 });
     for (const D of [1, 2]) {
-      el(svg, 'line', { x1: B.X(D), x2: B.X(D), y1: B.Y(0), y2: B.Y(dpf(D)), stroke: C.prior, 'stroke-width': 1.5, 'stroke-dasharray': '5 4' });
-      label(root, 'c' + D, `$\\Delta=${D}$`, B.X(D) - 6, B.Y(dpf(D) / 2), 'r', C.prior);
+      P.line([D, 0], [D, dpf(D)], { color: 'prior', dash: '5 4' });
+      P.label('c' + D, `$\\Delta=${D}$`, [D, dpf(D) / 2], 'r', { dx: -6, color: 'prior' });
     }
-    el(svg, 'circle', { class: 'pa', cx: B.X(Math.sqrt(16 / 3)), cy: B.Y(dpf(Math.sqrt(16 / 3))), r: 7, fill: C.teal, stroke: '#fff', 'stroke-width': 1.5 });
-    el(svg, 'circle', { class: 'pb', cx: B.X(4), cy: B.Y(dpf(4)), r: 7, fill: C.rose, stroke: '#fff', 'stroke-width': 1.5 });
-    label(root, 'ttl', '$p_{\\bX}(\\bx)=\\frac{1}{2\\pi\\sqrt{0.75}}\\,e^{-\\Delta^2/2}$', B.X(2.3), B.Y(0.17), 'l', C.prior);
-  },
-  render(root, p) {
-    const B = DPB;
-    attr($(root, 'pa'), { opacity: p.ab }); attr($(root, 'pb'), { opacity: p.ab });
-    label(root, 'la', 'A', B.X(Math.sqrt(16 / 3)) + 4, B.Y(dpf(Math.sqrt(16 / 3))) - 10, 'bl', C.teal, p.ab);
-    label(root, 'lb', 'B', B.X(4), B.Y(dpf(4)) - 12, 'b', C.rose, p.ab);
+    P.label('ttl', '$p_{\\bX}(\\bx)=\\frac{1}{2\\pi\\sqrt{0.75}}\\,e^{-\\Delta^2/2}$', [2.3, 0.17], 'l', { color: 'prior' });
   }
 };
 

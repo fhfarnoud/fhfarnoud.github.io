@@ -26,6 +26,7 @@ html, body { background: #fff; }
 .frametitle { position: absolute; left: 0; top: 0; width: 1280px; height: 77px;
   box-sizing: border-box; padding-left: 30px; background: var(--struct);
   color: #fff; font-size: 38px; line-height: 77px; white-space: nowrap; }
+h2.frametitle { margin: 0; font-weight: normal; }
 .fbody { position: absolute; left: 40px; right: 40px; top: 100px; bottom: 44px; }
 .row { display: flex; gap: 30px; align-items: flex-start; height: 100%; }
 .row.center { align-items: center; }
@@ -158,3 +159,8 @@ section.frame .fbody { transition: transform .45s cubic-bezier(.2, .7, .2, 1); t
   background: var(--blockbody); border-radius: 6px; padding: 3px 12px; cursor: pointer; user-select: none; }
 .drawer-tab:hover { background: #d9d4e6; }
 .deck-print .drawer-tab { display: none; }
+.reveal aside.narration { display: none; }
+.narr-tab { position: absolute; right: 180px; bottom: 8px; z-index: 25; font-size: 17px; color: var(--struct);
+  background: #e7e4ee; border-radius: 6px; padding: 3px 10px; cursor: pointer; user-select: none; }
+.narr-tab:hover { background: #d9d4e6; }
+.deck-print .narr-tab { display: none; }
