@@ -36,16 +36,6 @@
       id="MathJax-script"
     ></script>
      
-    <script
-      type="text/javascript"
-      src="//cdnjs.cloudflare.com/ajax/libs/jsxgraph/1.1.0/jsxgraphcore.js"
-    ></script>
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="//cdnjs.cloudflare.com/ajax/libs/jsxgraph/1.1.0/jsxgraph.css"
-    />
-    
     <script src="assets/js/coding.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <!--<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/jquery-ui.min.js"></script>-->
@@ -164,7 +154,7 @@
       <!-- variables for replacement -->
       <h1 id="linear-systems-and-filtering">Linear systems and filtering</h1>
 
-<div style="float;"><img src=".//media/image7.png" width="250px"></div>
+<div class="figrow"><img src=".//media/image7.png" width="300px" alt="The iTunes equalizer window, with ten sliders labelled by frequency"></div>
 
 <p>This audio equalizer from Apple iTunes is made possible by a collection of digital <em>frequency-selective</em> filters.</p>
 
@@ -174,12 +164,13 @@
 
 <p>In the olden days, if we wanted to process information, we had to build a machine to accomplish a very specific task. The ability of the processing to adapt to the signal or task was very limited.</p>
 
-<div style="float;"><img src=".//media/image1.jpeg" width="250px"></div>
-<p>A mechanical clock contains a series of gears calibrated to tell time.
-What if we suddenly decided an hour was composed of 100 minutes instead of 60? We’d need a new clock! (Image credit: Jose Manuel/Wikipedia)</p>
-
-<div style="float;"><img src=".//media/image2.jpeg" width="250px"></div>
-<p>A sextant is specifically constructed to measure angles between objects in the sky and the horizon.</p>
+<div class="figrow">
+<img src=".//media/image1.jpeg" width="260px" alt="The gear train of a mechanical clock">
+<img src=".//media/image2.jpeg" width="170px" alt="A sextant">
+</div>
+<p class="figcaption">A mechanical clock contains a series of gears calibrated to tell time.
+What if we suddenly decided an hour was composed of 100 minutes instead of 60? We'd need a new clock! (Image credit: Jose Manuel/Wikipedia)
+A sextant is specifically constructed to measure angles between objects in the sky and the horizon.</p>
 
 <p>Many of these devices are <em>programmable</em>, allowing us to process signals how we see fit.</p>
 
@@ -195,7 +186,7 @@ What if we suddenly decided an hour was composed of 100 minutes instead of 60? W
 
 <p>There are many kinds of digital filters. The <em>equalizer</em> shown earlier is one example. What is an equalizer?</p>
 
-<p>Applications of filtering</p>
+<h3 id="applications-of-filtering">Applications of filtering</h3>
 
 <p>The notion of filtering is not new to digital, however. It has shown up for a long time in many mundane places:</p>
 
@@ -208,30 +199,29 @@ What if we suddenly decided an hour was composed of 100 minutes instead of 60? W
 </ul>
 
 <p>Let’s think how we use digital filters in our everyday lives:</p>
+
 <ul>
   <li>Clean up noise in the video and audio we watch and listen to</li>
   <li>One way to allow multiple cell phones to communicate at the same time</li>
   <li>How a GPS receiver identifies satellites</li>
-  <li>How movies play smoothly on high-frame-rate TV’s and computer monitors</li>
+  <li>How movies play smoothly on high-frame-rate TVs and computer monitors</li>
 </ul>
 
 <p>What is being filtered in each of these examples?</p>
 
-<p>Peer activity</p>
-
-<p>Instructions: Take few moments and discuss one of the digital filtering applications we identified with someone next to (or seated near) you.
-Note your answers to these three questions:</p>
+<div class="exercise">
+Take a few moments and consider one of the digital filtering applications above.
+Note your answers to these three questions:
 <ul>
-  <li>What is the input signal?</li>
-  <li>What is the desired output signal?</li>
-  <li>What is removed from the input signal? (Or, what is preserved in the output?)</li>
+<li>What is the input signal?</li>
+<li>What is the desired output signal?</li>
+<li>What is removed from the input signal? (Or, what is preserved in the output?)</li>
 </ul>
-
-<p>We will discuss your answers as a group.</p>
+</div>
 
 <h2 id="lets-talk-about-systems">Let’s talk about systems</h2>
 
-<p>A system (call it <em>T</em>) takes one or more inputs $x_1, x_2, \cdots,$ and produces one or more outputs $y_1, y_2, \cdots,$</p>
+<p>A system (call it <em>T</em>) takes one or more inputs $x_1, x_2, \cdots,$ and produces one or more outputs $y_1, y_2, \cdots.$</p>
 
 <p>Let’s constrain ourselves to one input and one output to start.</p>
 
@@ -239,76 +229,105 @@ Note your answers to these three questions:</p>
 $x[n]$ and outputs $y[n]$.</p>
 
 <p>The following diagram describes such a system:</p>
-<div style="float;"><img src=".//media/image8.png" width="250px"></div>
+
+<div class="figrow"><img src="assets/img/ls-system.svg" width="380px" alt="A box labelled T with an arrow labelled x of n entering and an arrow labelled y of n leaving"></div>
 
 <p>The distinction of working with discrete-valued digital signals is important, but makes analysis much more complicated.</p>
 
 <h3 id="properties-of-systems">Properties of systems</h3>
 
 <p>While a complete discussion of system properties is more appropriate for a later course, there are a couple of important properties that will make our study of filters much easier:</p>
+
 <ul>
   <li>Linearity</li>
   <li>Time invariance</li>
 </ul>
 
-<p>We already saw linearity in another context: the spectrum of a signal.</p>
+<p>We already saw linearity in another context: <a href="fourier.html">the spectrum of a signal</a>.</p>
 
-<p>Linearity of a system is the same principle: additivity and scaling</p>
+<p>Linearity of a system is the same principle: additivity and scaling.</p>
 
-<p>For an input $x[n]$, the system $T$ produces the output
-$y[n] = T(x[n])$</p>
+<p>For an input $x[n]$, the system $T$ produces the output</p>
 
-<p>Then,
-\(y_1[n] = T(x_1[n]), \quad y_2[n] = T(x_2[n])\)</p>
+\[y[n] = T(x[n]).\]
 
-<p>then additivity and scaling say
-\(y_1[n] + y_2[n] = T(x_1[n] + x_2[n]), \qquad c\,y_1[n] = T(c\,x_1[n]),\)</p>
+<p>Then,</p>
 
-<p>and the two together give
-\(a\,y_1[n] + b\,y_2[n] = T(a\,x_1[n] + b\,x_2[n]).\)</p>
+\[y_1[n] = T(x_1[n]), \quad y_2[n] = T(x_2[n])\]
+
+<p>then additivity and scaling say</p>
+
+\[y_1[n] + y_2[n] = T(x_1[n] + x_2[n]), \qquad c\,y_1[n] = T(c\,x_1[n]),\]
+
+<p>and the two together give</p>
+
+\[a\,y_1[n] + b\,y_2[n] = T(a\,x_1[n] + b\,x_2[n]).\]
 
 <p>Linearity is a very powerful property that ensures systems are well-behaved:</p>
 
-<p>The system behaves the same no matter how the signal is scaled.</p>
-
-<p>Given a input composed of multiple signals, we can describe the output by processing those component signals individually.</p>
+<ul>
+  <li>The system behaves the same no matter how the signal is scaled.</li>
+  <li>Given an input composed of multiple signals, we can describe the output by processing those component signals individually.</li>
+</ul>
 
 <p>Unfortunately, very little in the world is strictly linear:</p>
 
-<p>Quantization is fundamentally nonlinear, so digital processing is inherently nonlinear.</p>
-
-<p>Real systems have physical limits on the range of possible inputs and outputs. These limits cause saturating, nonlinear behavior.</p>
+<ul>
+  <li>
+<a href="representation.html#quantization">Quantization</a> is fundamentally nonlinear, so digital processing is inherently nonlinear.</li>
+  <li>Real systems have physical limits on the range of possible inputs and outputs. These limits cause saturating, nonlinear behavior.</li>
+</ul>
 
 <p>Fortunately, real systems can be approximately linear over a useful range.</p>
 
 <h4 id="which-is-linearnonlinear">Which is linear/nonlinear?</h4>
 
-<p>Consider idealized examples of the following systems. Which are linear?</p>
+<div class="exercise">
+Consider idealized examples of the following systems. Which are linear?
 <ul>
-  <li>Amplifier</li>
-  <li>EKG-based heart rate monitor</li>
-  <li>Quantizer
-<!-- linear linear non-linear -->
-Now, some mathematical examples:</li>
-  <li>$T(x[n]) = (x[n])^2$.</li>
-  <li>$T(x[n]) = x[n] - x[n-1]$</li>
-  <li>$T(x[n]) = 2$
-<!-- non-linear linear non-linear -->
-</li>
+<li>Amplifier</li>
+<li>EKG-based heart rate monitor</li>
+<li>Quantizer</li>
 </ul>
+<button onclick="showSolution(this,'ls1')" style="float:right;">Show Solution</button>
+<div id="ls1" style="display:none;" class="solution">
+Amplifier: linear.<br>
+EKG-based heart rate monitor: linear.<br>
+Quantizer: nonlinear.
+</div>
+</div>
+
+<div class="exercise">
+Now, some mathematical examples. Which are linear?
+<ul>
+<li>$T(x[n]) = (x[n])^2$</li>
+<li>$T(x[n]) = x[n] - x[n-1]$</li>
+<li>$T(x[n]) = 2$</li>
+</ul>
+<button onclick="showSolution(this,'ls2')" style="float:right;">Show Solution</button>
+<div id="ls2" style="display:none;" class="solution">
+$T(x[n]) = (x[n])^2$: nonlinear.<br>
+$T(x[n]) = x[n] - x[n-1]$: linear.<br>
+$T(x[n]) = 2$: nonlinear.
+</div>
+</div>
 
 <h3 id="time-invariance">Time Invariance</h3>
-<p>Time invariance is another simplifying property that some systems have: processing a time-shifted input produces the output, time-shifted by the same amount.
-$y[n] = T(x[n]) \rightarrow y[n-n_0] = T(x[n-n_0])$</p>
+
+<p>Time invariance is another simplifying property that some systems have: processing a time-shifted input produces the output, time-shifted by the same amount.</p>
+
+\[y[n] = T(x[n]) \rightarrow y[n-n_0] = T(x[n-n_0])\]
 
 <p>Some examples:</p>
+
 <ul>
-  <li>$T(x[n]) = x[n+1]$.</li>
+  <li>$T(x[n]) = x[n+1]$</li>
   <li>$T(x[n]) = \frac12(x[n] + x[n-1])$</li>
   <li>$T(x[n]) = (x[n])^2$</li>
 </ul>
 
 <p>Let’s show the following are not time-invariant:</p>
+
 <ul>
   <li>$T(x[n]) = (-1)^n x[n]$</li>
   <li>$T(x[n]) = x[2n]$</li>
@@ -316,14 +335,13 @@ $y[n] = T(x[n]) \rightarrow y[n-n_0] = T(x[n-n_0])$</p>
 
 <p>Some real-world examples of time-invariant systems:</p>
 
-<p>The audio equalizer</p>
+<ul>
+  <li>The audio equalizer</li>
+  <li>Noise-cancelling headphones</li>
+</ul>
 
-<p>Noise-cancelling headphones</p>
-
-<p>A real-world example that is not time-invariant:</p>
-
-<p>Many systems behave differently as the environment changes, e.g., a car
-(road, fuel), sound system (humidity, temperature)</p>
+<p>A real-world example that is not time-invariant: many systems behave differently as the environment changes, e.g., a car
+(road, fuel), sound system (humidity, temperature).</p>
 
 <h2 id="linear-time-invariant-lti-systems">Linear, time invariant (LTI) systems</h2>
 
@@ -333,40 +351,41 @@ $y[n] = T(x[n]) \rightarrow y[n-n_0] = T(x[n-n_0])$</p>
 
 <h3 id="analog-systems-and-filters">Analog systems and filters</h3>
 
-<p>Most of the processing of signals is performed in the digital realm</p>
+<p>Most of the processing of signals is performed in the digital realm, but there are also analog systems and filters.</p>
 
-<p>But there are also analog systems and filters</p>
+<p>For example, a microphone, before the A-to-D converter, is an analog system:</p>
 
-<p>For example, a microphone, before the A-to-D converter, is an analog system</p>
+<ul>
+  <li>Input: sound waves, analog</li>
+  <li>Output: voltage signal, analog</li>
+</ul>
 
-<p>Input: sound waves, analog</p>
+<p>The principles are the same (although there are also significant differences), and the concepts are easier to understand and observe with analog systems. So we’ll focus on analog LTI systems for the rest of this part of the course. For an analog system, time invariance and linearity read</p>
 
-<p>Output: voltage signal, analog</p>
+\[x( t ) \rightarrow y( t ) \Rightarrow x( t - T ) \rightarrow y(t - T),\]
 
-<p>The principles are the same (although there are also significant differences)</p>
+\[x_{1}( t ) \rightarrow y_{1}( t ),\ x_{2}( t ) \rightarrow y_{2}( t ) \Rightarrow ax_{1}( t ) + bx_{2}( t ) \rightarrow ay_{1}( t ) + by_{2}( t ).\]
 
-<p>The concepts are easier to understand and observe with analog systems</p>
+<div class="exercise">
+Determine which ones are LTI.
+<ul style="line-height:2.6;">
+<li>$y( t ) = \dfrac{1}{2}x\left( t - \dfrac{1}{6} \right)$</li>
+<li>$y( t ) = x(3t)$</li>
+<li>$y( t ) = \dfrac{dx( t )}{dt}$</li>
+<li>$y( t ) = \dfrac{1}{2\pi}\dfrac{dx( t )}{dt} - \dfrac{1}{( 2\pi )^{2}}\dfrac{d^{2}x( t )}{dt^{2}}$</li>
+<li>$y( t ) = x( t )^{2} - x(t/2)$</li>
+</ul>
+<button onclick="showSolution(this,'ls3')" style="float:right;">Show Solution</button>
+<div id="ls3" style="display:none; line-height:2.6;" class="solution">
+$y(t) = \dfrac{1}{2}x\left(t - \dfrac{1}{6}\right)$: LTI.<br>
+$y(t) = x(3t)$: linear, but not time-invariant.<br>
+$y(t) = \dfrac{dx(t)}{dt}$: LTI.<br>
+$y(t) = \dfrac{1}{2\pi}\dfrac{dx(t)}{dt} - \dfrac{1}{(2\pi)^{2}}\dfrac{d^{2}x(t)}{dt^{2}}$: LTI, a linear combination of derivatives.<br>
+$y(t) = x(t)^{2} - x(t/2)$: neither linear (the square) nor time-invariant (the $t/2$).
+</div>
+</div>
 
-<p>So we’ll focus on analog LTI systems for the rest of the lecture</p>
-
-<p>$x\left( t \right) \rightarrow y\left( t \right) \Rightarrow x\left( t - T \right) \rightarrow y(t - T)$</p>
-
-<p>$x_{1}\left( t \right) \rightarrow y_{1}\left( t \right),x_{2}\left( t \right) \rightarrow y_{2}\left( t \right) \Rightarrow ax_{1}\left( t \right) + bx_{2}\left( t \right) \rightarrow ay_{1}\left( t \right) + by_{2}\left( t \right)$</p>
-
-<p>Determine which ones are LTI.</p>
-
-<p>$y\left( t \right) = \frac{1}{2}x\left( t - \frac{1}{6} \right)$
-<!-- LTI -->
-$y\left( t \right) = x(3t)$
-<!-- L non-TI -->
-$y\left( t \right) = \frac{dx\left( t \right)}{dt}$
-<!-- LTI -->
-$y\left( t \right) = \frac{1}{2\pi}\frac{dx\left( t \right)}{dt} - \frac{1}{\left( 2\pi \right)^{2}}\frac{d^{2}x\left( t \right)}{dt^{2}}$
-<!-- LTI: a linear combination of derivatives -->
-$y\left( t \right) = x\left( t \right)^{2} - x(t/2)$
-<!-- neither linear (the square) nor time-invariant (the t/2) --></p>
-
-<p>In the next section we look at what these systems do to a single frequency, which
+<p>In the <a href="freqresponse.html">next section</a> we look at what these systems do to a single frequency, which
 turns out to be the whole story for the LTI ones.</p>
 
       <footer>
