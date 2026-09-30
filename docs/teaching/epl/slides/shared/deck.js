@@ -814,7 +814,7 @@ function rows(body) {
 // Toolbar: one bar at the bottom of the screen (never in print) with the
 // outline, the previous and next slide, narration, the transcript and the
 // derivation drawer.  It shows when the mouse moves and fades
-// after a few idle seconds, except while narration plays or the transcript is open.
+// after a few idle seconds, except while narration plays.
 //
 // Narration: a slide's <narration> holds one <say> per state, before the first
 // build step and then after each.  Play (or N) speaks the current state, takes
@@ -824,8 +824,9 @@ function rows(body) {
 // move to, and N or Escape stops it.  A state rendered by
 // shared/narrate.py plays its audio file (narration/manifest.json, keyed by the
 // SHA-1 of the text, played from memory so seeking works on any server); any
-// other is spoken by the browser's voice.  The transcript (T) shows the slide's
-// narration as text, the current state marked; clicking a paragraph goes there.
+// other is spoken by the browser's voice.  The transcript (T) is a drawer like the
+// derivation's: the slide's narration as text, the current state marked, staying
+// open from slide to slide until closed; clicking a paragraph goes to that state.
 const COURSE_PAGE = 'https://fhfarnoud.github.io/pml.html#chapters';   // the toolbar's Course link
 const ICON = Object.fromEntries(Object.entries({
   course: '<path d="M4 11l8-7 8 7M6 9.5V20h12V9.5"/>',
@@ -876,11 +877,22 @@ function wireToolbar() {
   sel.value = String(speed);
   if (sel.value !== String(speed)) { speed = 1; sel.value = '1'; }
 
-  const tr = document.createElement('div');
-  tr.className = 'narr-transcript';
-  tr.innerHTML = '<div class="nt-head">Transcript<button class="nt-close" title="Close (T)">✕</button></div><div class="nt-body"></div>';
-  host.appendChild(tr);
-  const trBody = tr.querySelector('.nt-body');
+  // the transcript: a drawer on each narrated slide, in the derivation drawer's place,
+  // one paragraph per state; clicking a paragraph goes to that state
+  document.querySelectorAll('.slides > section').forEach(sec => {
+    const list = says(sec);
+    if (!list.length) return;
+    const d = document.createElement('div');
+    d.className = 'tdrawer';
+    d.innerHTML = '<div class="dh">Transcript</div>';
+    list.forEach((say, i) => {
+      const para = document.createElement('p');
+      para.textContent = say.textContent.replace(/\s+/g, ' ').trim();
+      para.addEventListener('click', e => { e.stopPropagation(); Reveal.slide(slides().indexOf(sec), 0, i - 1); });
+      d.appendChild(para);
+    });
+    sec.appendChild(d);
+  });
 
   const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
   const showTime = () => {
@@ -888,20 +900,27 @@ function wireToolbar() {
     seek.disabled = false; seek.value = audio.currentTime / audio.duration;
     time.textContent = `${clock(audio.currentTime)} / ${clock(audio.duration)}`;
   };
-  const fillTranscript = () => {
-    if (!trOn) return;
-    const list = says(Reveal.getCurrentSlide()), cur = stateOf();
-    trBody.innerHTML = '';
-    if (!list.length) { trBody.innerHTML = '<p class="nt-none">No narration on this slide.</p>'; return; }
-    list.forEach((say, i) => {
-      const para = document.createElement('p');
-      para.textContent = say.textContent.replace(/\s+/g, ' ').trim();
-      if (i === cur) para.className = 'cur';
-      para.addEventListener('click', () => Reveal.slide(Reveal.getIndices().h, 0, i - 1));
-      trBody.appendChild(para);
-    });
-    const c = trBody.querySelector('.cur');
-    if (c) c.scrollIntoView({ block: 'nearest' });
+  // open the transcript drawer on the current slide while the transcript is on, and mark the
+  // current state; moving to another slide, the drawer is already open there instead of sliding in
+  const instant = (sec, open) => {
+    sec.classList.add('drawer-instant'); sec.classList.toggle('trans-open', open);
+    void sec.offsetWidth; requestAnimationFrame(() => sec.classList.remove('drawer-instant'));
+  };
+  let trSec = null;
+  const showTranscript = () => {
+    const sec = Reveal.getCurrentSlide(), d = sec && sec.querySelector(':scope > .tdrawer');
+    if (!sec) return;
+    if (sec !== trSec) {
+      const old = trSec;
+      if (old && old.classList.contains('trans-open')) setTimeout(() => { if (old !== Reveal.getCurrentSlide()) instant(old, false); }, 500);
+      instant(sec, trOn && !!d);
+      trSec = sec;
+    } else sec.classList.toggle('trans-open', trOn && !!d);
+    if (!d) return;
+    const ps = [...d.querySelectorAll('p')], cur = ps[stateOf()];
+    ps.forEach(p => p.classList.toggle('cur', p === cur));
+    if (trOn && cur && (cur.offsetTop < d.scrollTop || cur.offsetTop + cur.offsetHeight > d.scrollTop + d.clientHeight - 72))
+      d.scrollTop = cur.offsetTop - 56;
   };
   const refresh = () => {   // the parts of the bar that follow the slide and the player
     const sec = Reveal.getCurrentSlide();
@@ -913,8 +932,9 @@ function wireToolbar() {
     const dr = sec && sec.querySelector(':scope > .drawer');
     derivBtn.disabled = !dr;
     derivBtn.classList.toggle('active', !!dr && sec.classList.contains('drawer-open'));
+    transBtn.disabled = !trOn && !(sec && sec.querySelector(':scope > .tdrawer'));
     transBtn.classList.toggle('active', trOn);
-    showTime(); fillTranscript();
+    showTime(); showTranscript();
   };
 
   const hush = () => { if (audio) { audio.pause(); audio = null; } if (synth) synth.cancel(); };
@@ -971,13 +991,17 @@ function wireToolbar() {
     else if (synth) { if (paused) synth.pause(); else if (pending) { synth.resume(); speak(); } else synth.resume(); }
     refresh();
   };
-  const toggleTranscript = () => { trOn = !trOn; tr.classList.toggle('on', trOn); refresh(); };
+  const toggleTranscript = () => {
+    trOn = !trOn;
+    if (trOn) DRAWER.toggle(Reveal.getCurrentSlide(), false);   // one drawer at a time
+    refresh();
+  };
 
   // idle fading: the bar hides a few seconds after the last mouse move, once nothing holds it up
   let idle = 0;
   const arm = () => {
     clearTimeout(idle);
-    idle = setTimeout(() => { if ((on && !paused) || trOn || bar.matches(':hover')) arm(); else bar.classList.remove('shown'); }, 2800);
+    idle = setTimeout(() => { if ((on && !paused) || bar.matches(':hover')) arm(); else bar.classList.remove('shown'); }, 2800);
   };
   const wake = () => { bar.classList.add('shown'); arm(); };
   document.addEventListener('mousemove', wake);
@@ -990,26 +1014,29 @@ function wireToolbar() {
   play.addEventListener('click', playPause);
   transBtn.addEventListener('click', toggleTranscript);
   derivBtn.addEventListener('click', () => DRAWER.toggle(Reveal.getCurrentSlide()));
-  tr.querySelector('.nt-close').addEventListener('click', toggleTranscript);
   seek.addEventListener('input', () => { if (audio && isFinite(audio.duration)) audio.currentTime = +seek.value * audio.duration; });
   sel.addEventListener('change', () => {
     speed = +sel.value;
     if (audio) audio.playbackRate = speed;
     try { localStorage.setItem('deck-narration-speed', String(speed)); } catch (e) { /* storage blocked */ }
   });
-  // clicks and keys in the bar and the transcript belong to them, not to reveal
-  [bar, tr].forEach(el => { el.addEventListener('keydown', e => e.stopPropagation()); el.addEventListener('click', e => e.stopPropagation()); });
+  // clicks and keys in the bar belong to it, not to reveal
+  bar.addEventListener('keydown', e => e.stopPropagation()); bar.addEventListener('click', e => e.stopPropagation());
 
   document.addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
     if (e.key === 'n' || e.key === 'N') toggleNarration();
     else if (e.key === 't' || e.key === 'T') toggleTranscript();
+    else if (e.key === 'Escape' && Reveal.getCurrentSlide()?.classList.contains('trans-open')) toggleTranscript();
     else if (e.key === 'Escape' && on) stop();
     else return;
     e.preventDefault(); e.stopPropagation();
   }, true);
   ['slidechanged', 'fragmentshown', 'fragmenthidden'].forEach(ev => Reveal.on(ev, () => { if (on) speak(); refresh(); }));
-  document.addEventListener('deckdrawer', refresh);
+  document.addEventListener('deckdrawer', () => {   // opening the derivation closes the transcript
+    if (trOn && Reveal.getCurrentSlide()?.classList.contains('drawer-open')) trOn = false;
+    refresh();
+  });
   Reveal.on('ready', () => { refresh(); wake(); });
 }
 async function startDeck(opts = {}) {
