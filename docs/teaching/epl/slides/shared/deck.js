@@ -9,6 +9,8 @@
 // drawn directly in its own state.  Nothing else about a figure is stored.
 
 const PRINT = /print-pdf/i.test(location.search);
+// ?print-pdf&final prints one page per slide in its final state (a reading copy)
+const FINAL = PRINT && /[?&]final\b/i.test(location.search);
 const MACROS = { '\\E': '\\operatorname{\\mathbb{E}}', '\\cN': '\\mathcal{N}' };
 const C = { prior: '#2354A8', like: '#008000', post: '#B30000', postC: '#CC8800',
   pred: '#762A83', mle: '#616161', teal: '#087F80', rose: '#B33362', brown: '#A0521B',
@@ -625,10 +627,11 @@ function spread(box) {
   box.style.paddingTop = Math.floor((free - g * wide.length) / 2) + 'px';
   box.style.boxSizing = 'border-box';
 }
-// Derivation drawer: a slide's <div class="drawer"> gets a tab at the bottom
-// right; the tab or the D key opens it, and D, Escape or leaving the slide
+// Derivation drawer: a slide's <div class="drawer"> opens from the toolbar's
+// Derivation button or the D key, and D, Escape or leaving the slide
 // closes it. In print, each such slide is followed by a copy of its final
 // state with the drawer open, labelled "n / N · derivation".
+const DRAWER = { toggle: () => {} };   // the toolbar's Derivation button calls DRAWER.toggle
 function wireDrawers() {
   const secs = [...document.querySelectorAll('.slides > section')].filter(s => s.querySelector(':scope > .drawer'));
   if (PRINT) {
@@ -647,14 +650,9 @@ function wireDrawers() {
     if (!sec || !sec.querySelector(':scope > .drawer')) return;
     open = open == null ? !sec.classList.contains('drawer-open') : open;
     sec.classList.toggle('drawer-open', open);
-    sec.querySelector(':scope > .drawer-tab').textContent = open ? 'Close derivation \u25C2' : 'Derivation \u25B8';
+    document.dispatchEvent(new CustomEvent('deckdrawer'));
   };
-  secs.forEach(sec => {
-    const tab = document.createElement('div');
-    tab.className = 'drawer-tab'; tab.textContent = 'Derivation \u25B8';
-    tab.addEventListener('click', e => { e.stopPropagation(); toggle(sec); });
-    sec.appendChild(tab);
-  });
+  DRAWER.toggle = toggle;
   document.addEventListener('keydown', e => {
     const sec = window.Reveal && Reveal.getCurrentSlide();
     if (!sec || !sec.querySelector(':scope > .drawer') || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -813,17 +811,36 @@ function rows(body) {
     i = j;
   }
 }
+// Toolbar: one bar at the bottom of the screen (never in print) with the
+// outline, the previous and next slide, narration, the transcript and the
+// derivation drawer.  It shows when the mouse moves and fades
+// after a few idle seconds, except while narration plays or the transcript is open.
+//
 // Narration: a slide's <narration> holds one <say> per state, before the first
-// build step and then after each.  N, or the tab at the bottom right, starts
-// it: the current state is spoken, the next step is taken when it ends, and it
-// goes on into the next slide while that one is narrated too.  N or Escape
-// stops it; moving by hand while it runs speaks the new state instead.  A state
-// rendered by shared/narrate.py plays its audio file (narration/manifest.json,
-// keyed by the SHA-1 of the text); any other is spoken by the browser's voice.
-function wireNarration() {
+// build step and then after each.  Play (or N) speaks the current state, takes
+// the next step when it ends, and goes on into the next slide while that one is
+// narrated too; pause, seek within the state and speed (remembered in this
+// browser) are on the bar, a paused player stays paused on whatever state you
+// move to, and N or Escape stops it.  A state rendered by
+// shared/narrate.py plays its audio file (narration/manifest.json, keyed by the
+// SHA-1 of the text, played from memory so seeking works on any server); any
+// other is spoken by the browser's voice.  The transcript (T) shows the slide's
+// narration as text, the current state marked; clicking a paragraph goes there.
+const COURSE_PAGE = 'https://fhfarnoud.github.io/pml.html#chapters';   // the toolbar's Course link
+const ICON = Object.fromEntries(Object.entries({
+  course: '<path d="M4 11l8-7 8 7M6 9.5V20h12V9.5"/>',
+  outline: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+  prev: '<path d="M15 5l-7 7 7 7"/>',
+  next: '<path d="M9 5l7 7-7 7"/>',
+  play: '<path d="M8 5v14l11-7z" fill="currentColor"/>',
+  pause: '<path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor" stroke="none"/>',
+  trans: '<path d="M5 4h14v16H5zM8 9h8M8 13h8M8 17h5"/>',
+}).map(([k, d]) => [k, `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`]));
+function wireToolbar() {
   if (PRINT) return;
-  const synth = window.speechSynthesis, tabs = [];
-  let on = false, token = 0, voice = null, audio = null, files = {};
+  const synth = window.speechSynthesis, blobs = {};
+  let on = false, paused = false, pending = false, token = 0, voice = null, audio = null, files = {}, speed = 1, trOn = false;
+  try { speed = +localStorage.getItem('deck-narration-speed') || 1; } catch (e) { /* storage blocked */ }
   fetch('narration/manifest.json').then(r => r.ok ? r.json() : null).then(m => { if (m) files = m.files || {}; }).catch(() => {});
   const pick = () => {
     const vs = synth ? synth.getVoices().filter(v => /^en[-_]/i.test(v.lang)) : [];
@@ -835,59 +852,165 @@ function wireNarration() {
   if (synth) { voice = pick(); synth.addEventListener('voiceschanged', () => { voice = pick(); }); }
   const says = sec => sec ? [...sec.querySelectorAll(':scope > aside.narration > .say')] : [];
   const stateOf = () => { const f = Reveal.getIndices().f; return f == null || f < 0 ? 0 : f + 1; };
-  const label = () => tabs.forEach(t => { t.textContent = on ? 'Stop narration ■' : 'Narration ▸'; });
+  const slides = () => Reveal.getSlides();
+
+  // mounted beside .reveal, not on <body>: a viewer that embeds the deck scopes deck.css to that container
+  const host = document.querySelector('.reveal').parentElement;
+  const bar = document.createElement('div');
+  bar.className = 'deck-toolbar';
+  bar.innerHTML =
+    `<div class="tb-group"><a class="tb-course" href="${COURSE_PAGE}" title="Course page: all chapters, slides and demos">${ICON.course}Course</a></div>` +
+    `<div class="tb-group"><button class="tb-outline" title="Outline">${ICON.outline}Outline</button>` +
+    `<button class="tb-prev" title="Previous slide">${ICON.prev}</button>` +
+    `<button class="tb-next" title="Next slide">${ICON.next}</button></div>` +
+    `<div class="tb-group tb-narr"><button class="tb-play" title="Play narration (N)">${ICON.play}</button>` +
+    '<input class="tb-seek" type="range" min="0" max="1" step="0.001" value="0" title="Seek">' +
+    '<span class="tb-time">0:00</span><select class="tb-speed" title="Speed">' +
+    [0.75, 1, 1.25, 1.5, 1.75, 2].map(v => `<option value="${v}">${v}×</option>`).join('') + '</select></div>' +
+    `<div class="tb-group"><button class="tb-trans" title="Transcript (T)">${ICON.trans}Transcript</button>` +
+    '<button class="tb-deriv" title="Derivation (D)">Derivation</button></div>';
+  host.appendChild(bar);
+  const q = c => bar.querySelector('.' + c);
+  const play = q('tb-play'), seek = q('tb-seek'), time = q('tb-time'), sel = q('tb-speed');
+  const transBtn = q('tb-trans'), derivBtn = q('tb-deriv'), narrGroup = q('tb-narr');
+  sel.value = String(speed);
+  if (sel.value !== String(speed)) { speed = 1; sel.value = '1'; }
+
+  const tr = document.createElement('div');
+  tr.className = 'narr-transcript';
+  tr.innerHTML = '<div class="nt-head">Transcript<button class="nt-close" title="Close (T)">✕</button></div><div class="nt-body"></div>';
+  host.appendChild(tr);
+  const trBody = tr.querySelector('.nt-body');
+
+  const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+  const showTime = () => {
+    if (!on || !audio || !isFinite(audio.duration)) { seek.value = 0; seek.disabled = !(on && audio); time.textContent = on && !audio ? 'voice' : '0:00'; return; }
+    seek.disabled = false; seek.value = audio.currentTime / audio.duration;
+    time.textContent = `${clock(audio.currentTime)} / ${clock(audio.duration)}`;
+  };
+  const fillTranscript = () => {
+    if (!trOn) return;
+    const list = says(Reveal.getCurrentSlide()), cur = stateOf();
+    trBody.innerHTML = '';
+    if (!list.length) { trBody.innerHTML = '<p class="nt-none">No narration on this slide.</p>'; return; }
+    list.forEach((say, i) => {
+      const para = document.createElement('p');
+      para.textContent = say.textContent.replace(/\s+/g, ' ').trim();
+      if (i === cur) para.className = 'cur';
+      para.addEventListener('click', () => Reveal.slide(Reveal.getIndices().h, 0, i - 1));
+      trBody.appendChild(para);
+    });
+    const c = trBody.querySelector('.cur');
+    if (c) c.scrollIntoView({ block: 'nearest' });
+  };
+  const refresh = () => {   // the parts of the bar that follow the slide and the player
+    const sec = Reveal.getCurrentSlide();
+    const has = says(sec).length > 0;
+    narrGroup.classList.toggle('off', !has && !on);
+    play.disabled = !has && !on;
+    play.innerHTML = on && !paused ? ICON.pause : ICON.play;
+    play.title = on ? (paused ? 'Resume' : 'Pause') : 'Play narration (N)';
+    const dr = sec && sec.querySelector(':scope > .drawer');
+    derivBtn.disabled = !dr;
+    derivBtn.classList.toggle('active', !!dr && sec.classList.contains('drawer-open'));
+    transBtn.classList.toggle('active', trOn);
+    showTime(); fillTranscript();
+  };
+
   const hush = () => { if (audio) { audio.pause(); audio = null; } if (synth) synth.cancel(); };
-  const stop = () => { on = false; token++; hush(); label(); };
+  const stop = () => { on = false; paused = false; pending = false; token++; hush(); refresh(); };
   const sha1 = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-1', new TextEncoder().encode(t)))]
     .map(b => b.toString(16).padStart(2, '0')).join('');
   const next = my => {
     if (my !== token || !on) return;
     if (Reveal.availableFragments().next) Reveal.nextFragment();
-    else if (says(Reveal.getSlides()[Reveal.getIndices().h + 1]).length) Reveal.next();
+    else if (says(slides()[Reveal.getIndices().h + 1]).length) Reveal.next();
     else stop();
   };
   const speak = async () => {
-    const my = ++token; hush();
+    const my = ++token; hush(); pending = false;   // a paused player stays paused on the new state
     if (!on) return;
     const say = says(Reveal.getCurrentSlide())[stateOf()];
     if (!say) { stop(); return; }
+    refresh();
     const text = say.textContent.replace(/\s+/g, ' ').trim();
     const file = crypto.subtle ? files[await sha1(text)] : null;
     if (my !== token) return;
     if (file) {
-      audio = new Audio('narration/' + file);
+      if (!blobs[file]) {
+        try { blobs[file] = URL.createObjectURL(await (await fetch('narration/' + file)).blob()); }
+        catch (e) { blobs[file] = 'narration/' + file; }
+        if (my !== token) return;
+      }
+      audio = new Audio(blobs[file]);
+      audio.playbackRate = speed;
+      audio.onloadedmetadata = audio.ontimeupdate = showTime;
       audio.onended = () => next(my);
-      audio.play().catch(() => stop());
+      showTime();
+      if (!paused) audio.play().catch(() => stop());
       return;
     }
+    showTime();
     if (!synth) { stop(); return; }
+    if (paused) { pending = true; return; }   // spoken on resume
     // one utterance per sentence: Chrome drops long utterances part-way
     const parts = text.match(/[^.!?]+[.!?]*/g) || [];
     parts.forEach((txt, i) => {
       const u = new SpeechSynthesisUtterance(txt.trim());
       if (voice) u.voice = voice;
-      u.rate = 0.97;
+      u.rate = 0.97 * speed;
       if (i === parts.length - 1) u.onend = () => next(my);
       synth.speak(u);
     });
   };
-  const toggle = () => { if (on) stop(); else { on = true; label(); speak(); } };
-  document.querySelectorAll('.slides > section').forEach(sec => {
-    if (!says(sec).length) return;
-    const t = document.createElement('div');
-    t.className = 'narr-tab';
-    t.addEventListener('click', e => { e.stopPropagation(); toggle(); });
-    sec.appendChild(t); tabs.push(t);
+  const toggleNarration = () => { if (on) stop(); else { on = true; speak(); } };
+  const playPause = () => {
+    if (!on) { toggleNarration(); return; }
+    paused = !paused;
+    if (audio) { if (paused) audio.pause(); else audio.play().catch(() => stop()); }
+    else if (synth) { if (paused) synth.pause(); else if (pending) { synth.resume(); speak(); } else synth.resume(); }
+    refresh();
+  };
+  const toggleTranscript = () => { trOn = !trOn; tr.classList.toggle('on', trOn); refresh(); };
+
+  // idle fading: the bar hides a few seconds after the last mouse move, once nothing holds it up
+  let idle = 0;
+  const arm = () => {
+    clearTimeout(idle);
+    idle = setTimeout(() => { if ((on && !paused) || trOn || bar.matches(':hover')) arm(); else bar.classList.remove('shown'); }, 2800);
+  };
+  const wake = () => { bar.classList.add('shown'); arm(); };
+  document.addEventListener('mousemove', wake);
+  document.addEventListener('touchstart', wake);
+
+  const go = h => { if (h >= 0 && h < slides().length) Reveal.slide(h, 0, -1); };
+  q('tb-outline').addEventListener('click', () => go(slides().findIndex(x => x.dataset.slide === 'map')));
+  q('tb-prev').addEventListener('click', () => go(Reveal.getIndices().h - 1));
+  q('tb-next').addEventListener('click', () => go(Reveal.getIndices().h + 1));
+  play.addEventListener('click', playPause);
+  transBtn.addEventListener('click', toggleTranscript);
+  derivBtn.addEventListener('click', () => DRAWER.toggle(Reveal.getCurrentSlide()));
+  tr.querySelector('.nt-close').addEventListener('click', toggleTranscript);
+  seek.addEventListener('input', () => { if (audio && isFinite(audio.duration)) audio.currentTime = +seek.value * audio.duration; });
+  sel.addEventListener('change', () => {
+    speed = +sel.value;
+    if (audio) audio.playbackRate = speed;
+    try { localStorage.setItem('deck-narration-speed', String(speed)); } catch (e) { /* storage blocked */ }
   });
-  label();
+  // clicks and keys in the bar and the transcript belong to them, not to reveal
+  [bar, tr].forEach(el => { el.addEventListener('keydown', e => e.stopPropagation()); el.addEventListener('click', e => e.stopPropagation()); });
+
   document.addEventListener('keydown', e => {
-    if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, [contenteditable="true"]')) return;
-    if (e.key === 'n' || e.key === 'N') toggle();
+    if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+    if (e.key === 'n' || e.key === 'N') toggleNarration();
+    else if (e.key === 't' || e.key === 'T') toggleTranscript();
     else if (e.key === 'Escape' && on) stop();
     else return;
     e.preventDefault(); e.stopPropagation();
   }, true);
-  ['slidechanged', 'fragmentshown', 'fragmenthidden'].forEach(ev => Reveal.on(ev, () => { if (on) speak(); }));
+  ['slidechanged', 'fragmentshown', 'fragmenthidden'].forEach(ev => Reveal.on(ev, () => { if (on) speak(); refresh(); }));
+  document.addEventListener('deckdrawer', refresh);
+  Reveal.on('ready', () => { refresh(); wake(); });
 }
 async function startDeck(opts = {}) {
   expandSlides(document.querySelector('.slides'));
@@ -908,7 +1031,7 @@ async function startDeck(opts = {}) {
   await document.fonts.ready;
   document.querySelectorAll('.slides > section').forEach(balance);
   wireDrawers();
-  wireNarration();
+  wireToolbar();
 
   Reveal.on('ready', () => { document.querySelectorAll('.fig[data-fig]').forEach(r => show(r));
     document.documentElement.dataset.deckReady = '1'; });
@@ -925,6 +1048,7 @@ async function startDeck(opts = {}) {
   // Printing: each page is a clone with its own set of visible fragments.
   Reveal.on('pdf-ready', () => {
     document.querySelectorAll('.pdf-page').forEach(page => {
+      if (FINAL) page.querySelectorAll('.fragment').forEach(f => f.classList.add('visible'));
       page.querySelectorAll('.fig[data-fig]').forEach(root => FIGS[root.dataset.fig].render(root, stateFor(root)));
       const n = page.querySelector('.slide-number-pdf');
       if (n) n.textContent = slideLabel(page.querySelector('section')).join(' ');
@@ -939,7 +1063,7 @@ async function startDeck(opts = {}) {
     center: false, hash: true, controls: false, progress: false,
     slideNumber: slideLabel, showSlideNumber: 'all',
     transition: 'fade', transitionSpeed: 'fast', backgroundTransition: 'none',
-    pdfSeparateFragments: true, pdfMaxPagesPerSlide: 1,
+    pdfSeparateFragments: !FINAL, pdfMaxPagesPerSlide: 1,
     // up/down move between slides, landing on each slide's final state (every
     // build step shown); left/right step through the current slide's
     // fragments and, past its last (first) step, go on to the next (previous)

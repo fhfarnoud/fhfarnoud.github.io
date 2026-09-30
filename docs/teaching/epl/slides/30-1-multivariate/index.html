@@ -264,30 +264,38 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
 <section id="sec-geom" data-map="-297,964">
   <h2>From Gaussian RVs to jointly Gaussian vectors</h2>
   <column>
-    <p>In one dimension, $X\sim\cN(\mu,\sigma^2)$ has density</p>
-    \[p_X(x)=\frac{1}{\sqrt{2\pi}\,\sigma}\,e^{-z^2/2},\qquad z=\frac{x-\mu}{\sigma}.\]
-    <p>Distance from the mean is measured in standard deviations: $|z|$ scales $|x-\mu|$ by the spread $\sigma$. The density falls exponentially in $z^2$.</p>
+    <p>One dimension, $X\sim\cN(\mu,\sigma^2)$:</p>
+    \[p_X(x)=\frac{1}{\sqrt{2\pi}\,\sigma}\,e^{-z^2/2},\qquad z=\frac{x-\mu}{\sigma}\]
+    <p>$|z|$ is the distance from the mean in standard deviations, and the density falls exponentially in $z^2$.</p>
     <div pause="d=1">
-      <p>In more dimensions the distance is scaled as well, by a different amount in each direction, because the spread differs from one direction to another. This is the Mahalanobis distance:</p>
-      \[\Delta(\bx,\bmu)=\sqrt{(\bx-\bmu)^T\mK^{-1}(\bx-\bmu)}.\]
-      <p>Let's see how this distance behaves for different $\mK$.</p>
+      <p>Several dimensions: the Mahalanobis distance</p>
+      \[\Delta(\bx,\bmu)=\sqrt{(\bx-\bmu)^T\mK^{-1}(\bx-\bmu)}\]
+      <p>$\mK$ controls the geometry of the distance: the shape and tilt of its ellipses.</p>
     </div>
   </column>
   <fig name="dist" init="d=0"></fig>
+  <narration>
+    <say>We now turn to jointly Gaussian random vectors. Like the one-dimensional Gaussian, they show up in a wide range of applications, especially wherever many small effects add up. To see what they look like, start with a single Gaussian random variable X, with mean mu and standard deviation sigma. Its density, on the right, peaks at the mean and falls off on both sides. What matters is z, the distance from the mean divided by sigma. So distance is measured in standard deviations: a point two units from the mean is far out when sigma is one half, and close in when sigma is ten. The density depends on x only through z, and it falls off exponentially in z squared. That is why it drops so quickly: at one standard deviation it is about sixty percent of the peak, at two about fourteen percent, and at three only about one percent.</say>
+    <say>Now move to two or more dimensions. We still measure distance from the mean in units of the spread, but the spread now depends on the direction: this cloud stretches out along the diagonal and is squeezed across it. The Mahalanobis distance on the slide handles this: it uses the inverse of the covariance matrix K to scale each direction by its own spread. The covariance matrix K controls the geometry of this distance. The curves on the right are the points where Delta equals one, two, and three, and K sets their shape and tilt: they are ellipses, longest in the direction where the data spread most. Let's see how this distance behaves for different covariance matrices K.</say>
+  </narration>
 </section>
 
 <section>
   <h2>Mahalanobis distance for a diagonal covariance</h2>
   <column>
-    <p>A diagonal covariance matrix means uncorrelated coordinates, with variances $\sigma_1^2$ and $\sigma_2^2$:</p>
-    \[\mK=\begin{pmatrix}\sigma_1^2&0\\0&\sigma_2^2\end{pmatrix},\qquad\mK^{-1}=\begin{pmatrix}1/\sigma_1^2&0\\0&1/\sigma_2^2\end{pmatrix}.\]
+    <p>Diagonal covariance, uncorrelated coordinates:</p>
+    \[\mK=\begin{pmatrix}\sigma_1^2&0\\0&\sigma_2^2\end{pmatrix},\qquad\mK^{-1}=\begin{pmatrix}1/\sigma_1^2&0\\0&1/\sigma_2^2\end{pmatrix}\]
     <div pause>
-      <p>The definition then gives</p>
-      \[\begin{aligned}\Delta^2&=(\bx-\bmu)^T\mK^{-1}(\bx-\bmu)\\&=\frac{(x_1-\mu_1)^2}{\sigma_1^2}+\frac{(x_2-\mu_2)^2}{\sigma_2^2}.\end{aligned}\]
+      \[\begin{aligned}\Delta^2&=(\bx-\bmu)^T\mK^{-1}(\bx-\bmu)\\&=\frac{(x_1-\mu_1)^2}{\sigma_1^2}+\frac{(x_2-\mu_2)^2}{\sigma_2^2}\end{aligned}\]
     </div>
-    <alertblock pause title="Each coordinate is measured in its own standard deviations" class="small">Here $\sigma_1=1.5$ and $\sigma_2=0.5$. The marked point is 1.5 from the mean along $x_1$, one standard deviation, and 1 along $x_2$, two standard deviations: $\Delta^2=1^2+2^2=5$.</alertblock>
+    <alertblock pause title="Each coordinate is measured in its own standard deviations" class="small">$\sigma_1=1.5$, $\sigma_2=0.5$: the marked point is $1\,\sigma_1$ and $2\,\sigma_2$ from the mean, so $\Delta^2=1^2+2^2=5$.</alertblock>
   </column>
   <fig name="diag"></fig>
+  <narration>
+    <say>Let's start with the simplest covariance matrix, a diagonal one. A diagonal K means the two coordinates are uncorrelated, and the numbers on its diagonal are their variances. Its inverse is just as simple: it is diagonal too, holding the reciprocals of the variances. In the picture on the right, the cloud is stretched along x one and squeezed along x two, because sigma one is larger than sigma two.</say>
+    <say>Now put this inverse into the definition. Because K inverse is diagonal, the product treats each coordinate separately, and Delta squared becomes a sum of two terms, one per coordinate. Each term is that coordinate's distance from the mean, measured in its own standard deviations and then squared. So for a diagonal K, the Mahalanobis distance is the one-dimensional distance in standard deviations from the first slide, applied to each coordinate and added up.</say>
+    <say>Here is a concrete case. The picture uses sigma one equal to one and a half and sigma two equal to one half, and the ticks on the axes mark one and two standard deviations in each direction. The marked point is one and a half from the mean along x one, which is only one standard deviation, and just one unit along x two, which is already two standard deviations. So Delta squared is one squared plus two squared, which is five. The smaller step, along x two, counts for more, because the data vary much less in that direction. That is the idea behind the Mahalanobis distance: every direction is measured against its own spread.</say>
+  </narration>
 </section>
 
 <section>
@@ -296,12 +304,16 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <column>
     <p>Allowing off-diagonal entries in $\mK$ rotates the axes as well.</p>
     <div pause="th=1">
-      <p>$\mK$ then defines a new set of axes, its principal directions $\bu_1,\bu_2$ (the eigenvectors of $\mK$), with variances $\lambda_1,\lambda_2$ along them (its eigenvalues).</p>
-      <p>The distance is computed in these axes: with $y_1,y_2$ the coordinates of $\bx-\bmu$ along them, each measured in its own standard deviations,</p>
+      <p>$\mK$ then defines its own axes, along its eigenvectors $\bu_1,\bu_2$, with variances $\lambda_1,\lambda_2$ along them (its eigenvalues). With $y_1,y_2$ the coordinates of $\bx-\bmu$ along them,</p>
       \[\Delta^2=\frac{y_1^2}{\lambda_1}+\frac{y_2^2}{\lambda_2}.\]
     </div>
     <alertblock pause title="$\mK$ defines the axes used to compute the distance" class="small">A diagonal $\mK$ keeps the coordinate axes, and off-diagonal entries rotate them.</alertblock>
   </column>
+  <narration>
+    <say>So far the covariance matrix was diagonal, and the distance simply measured each coordinate against its own standard deviation. What happens when K also has off-diagonal entries, so that the coordinates are correlated? The short answer is that the axes rotate. On the right is a diagonal case, with variances one and a half and one half along the two coordinate axes. Watch what happens on the next step.</say>
+    <say>Turning the picture by forty-five degrees gives our running model, with correlation one half. The covariance matrix now defines its own set of axes, shown as the dashed lines: the long and short axes of the ellipses. They point along the eigenvectors of K, and the variances along them are its eigenvalues, lambda one and lambda two. The distance is computed in these new axes, exactly as in the diagonal case: take the point's coordinates along these axes, measure each against its own standard deviation, square, and add. For the marked point this gives two, before and after the rotation.</say>
+    <say>So the covariance matrix controls the geometry of the distance in two ways. Its eigenvalues set how much each direction is stretched, and its eigenvectors set which way the axes point. A diagonal K keeps the coordinate axes, and off-diagonal entries rotate them.</say>
+  </narration>
 </section>
 
 <section>
@@ -317,10 +329,15 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   </column>
   <fig name="dprof"></fig>
   <drawer>
-    <p class="dk1">Why $|\mK|^{1/2}$ takes the place of $\sigma$: rotating to the principal coordinates, $\by=\mU^T(\bx-\bmu)$ with $\mU=(\bu_1,\dots,\bu_d)$ orthonormal, changes no volume and gives $\Delta^2=\sum_i y_i^2/\lambda_i$. The determinant is the product of the eigenvalues, $|\mK|=\prod_i\lambda_i$, so the density is a product of one-dimensional Gaussian densities with variances $\lambda_i$:</p>
+    <p class="dk1">Why $|\mK|^{1/2}$ takes the place of $\sigma$: rotating to coordinates along the axes $\mK$ defines, $\by=\mU^T(\bx-\bmu)$ with $\mU=(\bu_1,\dots,\bu_d)$ its orthonormal eigenvectors, changes no volume and gives $\Delta^2=\sum_i y_i^2/\lambda_i$. The determinant is the product of the eigenvalues, $|\mK|=\prod_i\lambda_i$, so the density is a product of one-dimensional Gaussian densities with variances $\lambda_i$:</p>
     \[\htmlClass{dk1}{\frac{1}{(2\pi)^{d/2}|\mK|^{1/2}}\,e^{-\Delta^2/2}=\prod_{i=1}^d\frac{1}{\sqrt{2\pi\lambda_i}}\,e^{-y_i^2/2\lambda_i}.}\]
     <p>Running model: $|\mK|=1\cdot1-0.5^2=0.75=1.5\times0.5$.</p>
   </drawer>
+  <narration>
+    <say>Now that we know how to measure distance, we can write down the density of a jointly Gaussian vector. It has exactly the shape we anticipated: it falls off exponentially in the squared Mahalanobis distance. Compared with the one-dimensional density, the distance in standard deviations has become the Mahalanobis distance, and the standard deviation in front has become the square root of the determinant of K. That determinant measures how spread out the cloud is overall, and the formula needs K to be positive definite, so that its inverse exists. The derivation tab explains where the square root of the determinant comes from.</say>
+    <say>Writing the Mahalanobis distance out in terms of K gives the form you will see in most books. It is the same formula.</say>
+    <say>Because the density depends on x only through Delta, all points at the same Mahalanobis distance share the same density: the contours of equal density are the ellipses we drew earlier. The plot on the right shows the density of the running model as a function of Delta. It falls quickly: at Delta equal to two it is already down to about fourteen percent of its peak. So within one Gaussian, a larger Mahalanobis distance means a lower density.</say>
+  </narration>
 </section>
 
 <section>
@@ -340,6 +357,12 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <p class="dk2">From the density with $d=2$ and $|\mK|^{1/2}=\sqrt{0.75}$:</p>
     \[\htmlClass{dk2}{\begin{aligned}p_{\bX}(A)&=\frac{e^{-(16/3)/2}}{2\pi\sqrt{0.75}}\approx0.0128\\ p_{\bX}(B)&=\frac{e^{-16/2}}{2\pi\sqrt{0.75}}\approx6.2\times10^{-5}\\ \frac{p_{\bX}(A)}{p_{\bX}(B)}&=e^{(16-16/3)/2}=e^{16/3}\approx207\end{aligned}}\]
   </drawer>
+  <narration>
+    <say>Let's put all of this to work on a concrete example, and see why Euclidean distance can be misleading. Take the running model, with mean zero and correlation one half, and two points: A at two, two, and B at minus two, two. Both are the same Euclidean distance from the mean, the square root of eight, so they sit on the same dashed circle on the right. Are they equally likely?</say>
+    <say>To find out, compute their Mahalanobis distances. Inverting K and plugging it into the definition gives the expression on the slide. For A, Delta squared comes to sixteen thirds, a little over five. For B, the cross term changes sign, and Delta squared is sixteen, three times as large. So B is much farther out. A lies along the long axis of the cloud, and B lies across it, where the data are tightly packed.</say>
+    <say>Plugging these distances into the density, A's density is about zero point zero one three, and B's is far smaller.</say>
+    <say>B is about two hundred times less likely. Two points at the same Euclidean distance from the mean can have very different densities. Euclidean distance does not tell you how likely a point is, and the Mahalanobis distance does.</say>
+  </narration>
 </section>
 
 <section>
@@ -372,6 +395,11 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <p class="dk2">$1+a_1a_2$ is largest at $a_1=a_2=1/\sqrt2$: the bell is widest along $(1,1)^T$.</p>
   </drawer>
   <notes>Vectors in (x1, x2) order. a=(1,0) projects onto x1: the marginal of X1. A vector generated by an affine transformation of independent standard normals is jointly Gaussian.</notes>
+  <narration>
+    <say>A second important property of jointly Gaussian vectors concerns linear combinations. Take any weighted sum of the coordinates, with a fixed vector of weights a. For a jointly Gaussian vector, this is always a Gaussian random variable. Its mean and variance follow directly from mu and K, as on the slide, so we know its distribution completely. On the right, the dashed line is the direction of a, the cloud is projected onto it, and the histogram shows the projected values with the Gaussian bell on top. With a along the first axis, the weighted sum is just the first coordinate, with variance one. Before the next step, predict: in which direction will the bell be widest?</say>
+    <say>Turning a to point along the diagonal, the variance grows to one and a half. This is the direction in which the cloud is most stretched.</say>
+    <say>Across the diagonal, the variance shrinks to one half, the narrowest bell. These two directions are the axes K defines, the long and short axes of the ellipses, and the two variances are the eigenvalues of K. You can turn a yourself with the slider below the plot.</say>
+  </narration>
 </section>
 
 <section>
@@ -380,10 +408,15 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <p>For the running model,</p>
     \[X_1+X_2\sim\cN(0,\underbrace{1+1+2(0.5)}_{3}).\]
     <p pause="sc=1.41421356">This is $\ba^T\bX$ with $\ba=(1,1)^T$, of length $\sqrt2$: the variance is $2\times1.5=3$.</p>
-    <p pause class="small">The arrow is $\ba$, and the ticks on the dashed line mark $\ba^T\bx$. A longer $\ba$ packs the ticks closer, so the same cloud projects to a wider spread.</p>
+    <p pause class="small">The arrow is $\ba/\|\ba\|$, the direction of $\ba$, and the ticks mark $\ba^T\bx$ in the units of the axis on the right.</p>
   </column>
   <fig name="proj" init="al=45 sc=1 ax=1"></fig>
   <knob param="sc" min="0.5" max="2" step="0.01">length of $\ba$</knob>
+  <narration>
+    <say>Linear combinations answer a common question: what is the distribution of a sum? For the running model, X one plus X two is Gaussian with mean zero, and its variance is one plus one plus twice the covariance, which is three. The covariance term matters: if the coordinates were uncorrelated, the variance would be only two.</say>
+    <say>In the language of the previous slide, this is the weighted sum with both weights equal to one. That vector points along the diagonal, where the variance per unit length is one and a half, but it is longer than a unit vector, and variance grows with the square of the length. So the variance is two times one and a half, which is three again.</say>
+    <say>The picture shows why. The arrow is a divided by its length, the unit vector in the direction of a, and the tick marks on the dashed line show the values of the weighted sum, in the same units as the axis on the right. Making a longer spreads the cloud out along this fixed ruler, just as the histogram on the right widens. Try the slider under the plot to change the length of a.</say>
+  </narration>
 </section>
 
 <section>
@@ -393,6 +426,10 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <p>All three models have $X_1\sim\cN(0,1)$ and $X_2\sim\cN(0,1)$, with $\mK=\begin{pmatrix}1&\rho\\\rho&1\end{pmatrix}$.</p>
   <p pause="rev=1">The covariance determines the tilt. The marginal variances stay at 1.</p>
   <notes>Vote before revealing.</notes>
+  <narration>
+    <say>Let's look more closely at what the covariance does to the shape of a Gaussian cloud. Here are three bivariate Gaussians with the same marginals: each coordinate is standard normal. They differ only in the correlation, rho. Match each cloud to rho equal to minus one half, zero, or one half.</say>
+    <say>A positive correlation tilts the cloud up, along the diagonal. A negative one tilts it down, and zero correlation gives a round cloud. The marginal variances stay at one in all three: the covariance changes only the tilt.</say>
+  </narration>
 </section>
 
 <section>
@@ -411,6 +448,12 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     </table>
     <alertblock pause title="Correlation tilts the cloud and leaves the marginals fixed">Each marginal alone cannot tell these models apart. The relationship lives in the joint distribution, through the off-diagonal of $\mK$. Gaussian marginals alone do not make a vector jointly Gaussian.</alertblock>
   </column>
+  <narration>
+    <say>Now look at the marginals directly. Each coordinate of a jointly Gaussian vector is itself Gaussian, since a single coordinate is itself a linear combination, with weight one on that coordinate and zero on the others. The curves along the top and the right of the plot are the two marginal densities. Here the correlation is minus one half, and the cloud tilts down.</say>
+    <say>Set the correlation to zero. The cloud becomes round, but the two marginals do not change at all.</say>
+    <say>At one half, the cloud tilts up, and the marginals are still exactly the same, each a standard normal.</say>
+    <say>So the marginals alone cannot tell these three models apart. The relationship between the coordinates lives in the joint distribution, through the off-diagonal entry of K. A related warning: having Gaussian marginals does not make a vector jointly Gaussian. That requires every linear combination to be Gaussian.</say>
+  </narration>
 </section>
 
 <section>
@@ -435,6 +478,9 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     \[\htmlClass{dk1}{\cov(X,Y)=\E[XY]-\E[X]\E[Y]=\E[X^3]-\E[X]\E[X^2]=0.}\]
   </drawer>
   <notes>Ask students to explain in terms of conditional distributions.</notes>
+  <narration>
+    <say>Next, a question that trips up many people: how are zero covariance and independence related? On the left is a jointly Gaussian vector with correlation zero, so its covariance matrix is the identity. On the right is a very different pair: X is uniform between minus one and one, and Y equals X squared. The covariance of X and Y is also zero, because X is symmetric about zero. Both pairs are uncorrelated. In which picture does observing one coordinate help you predict the other?</say>
+  </narration>
 </section>
 
 <section>
@@ -461,6 +507,11 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <p class="dk1">The joint density is the product of the marginals, so $X_1$ and $X_2$ are independent. Here $\mK=\mI$: $\sigma_1=\sigma_2=1$.</p>
   </drawer>
   <notes>Independence implies zero covariance when moments exist; the converse requires additional assumptions such as joint Gaussianity.</notes>
+  <narration>
+    <say>On the left, fix the first coordinate and look at the distribution of the second. It is a standard normal, and it stays the same wherever you fix x one. Knowing one coordinate tells you nothing about the other: for a jointly Gaussian vector, a diagonal covariance matrix means independent components. On the right, knowing X tells you Y exactly, because Y is X squared.</say>
+    <say>Move the observed value, and the picture on the left does not change, while on the right Y jumps to the square of the new X.</say>
+    <say>So zero covariance does not imply independence in general. Covariance only measures linear relationships, and a curved relationship like Y equals X squared escapes it. Independence always implies zero covariance, and for jointly Gaussian random vectors the converse holds as well, because the density factors into the marginals when K is diagonal. That completes our look at the Gaussian random vector. In the next part, we use it to predict unobserved coordinates from observed ones.</say>
+  </narration>
 </section>
 
 <!-- Map: from part 2 to part 3 -->

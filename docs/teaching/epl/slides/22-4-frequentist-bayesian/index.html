@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Frequentist and Bayesian, Side by Side</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<link rel="stylesheet" href="../shared/deck.css">
+<style>
+/* Deck-local layout */
+.frametitle.sm { font-size: 33px; }
+.stn { color: var(--struct); }
+.fbody.vc { display: flex; flex-direction: column; justify-content: center; }
+.fbody.vc > .row { height: auto; }
+.fbody.vc > * { flex: none; }
+.big { font-size: 30px; }
+.big table.tab { font-size: 27px; }
+.altcard .al .katex { text-transform: none; }
+ul.tight { margin: 8px 0 0; padding-left: 26px; font-size: 25px; }
+ul.tight li { margin: 0 0 7px; }
+.roadmap { display: flex; flex-direction: column; align-items: center; gap: 0; margin-top: 10px; }
+.softbox { width: 540px; box-sizing: border-box; border: 2px solid; border-radius: 9px; padding: 7px 12px;
+  text-align: center; font-size: 23px; line-height: 1.25; box-shadow: 1px 2px 4px rgba(0,0,0,.22); }
+.sb-prior { border-color: rgba(35,84,168,.7); background: rgba(35,84,168,.1); }
+.sb-mix { border-color: rgba(97,97,97,.7); background: linear-gradient(90deg, rgba(97,97,97,.12), rgba(179,0,0,.12)); }
+.sb-like { border-color: rgba(0,128,0,.7); background: rgba(0,128,0,.1); }
+.down { width: 2px; height: 16px; background: #888; position: relative; margin: 2px 0 10px; }
+.down::after { content: ''; position: absolute; left: -6px; bottom: -9px; border: 7px solid transparent; border-top: 10px solid #888; border-bottom: 0; }
+.band { position: absolute; left: 0; top: 478px; width: 1280px; height: 242px; }
+.band img { position: absolute; left: 0; top: 0; width: 700px; height: 242px; object-fit: cover; object-position: 50% 38%; }
+.band .illus-cap { left: 12px; bottom: 10px; }
+.band .bandtext { position: absolute; left: 730px; right: 50px; top: 40px; }
+.figcap { text-align: center; font-size: 23px; margin: 0 0 4px; }
+.solution { margin-top: 4px; }
+table.tab { border-collapse: collapse; font-size: 24px; margin: 0 auto; }
+table.tab th, table.tab td { padding: 7px 18px; text-align: left; }
+table.tab thead th { border-top: 2px solid #222; border-bottom: 1px solid #222; font-weight: normal; }
+table.tab tbody tr:last-child td { border-bottom: 2px solid #222; }
+table.side th.fq { background: var(--mle); color: #fff; font-weight: bold; }
+table.side th.by { background: var(--post); color: #fff; font-weight: bold; }
+table.side tbody tr:nth-child(odd) td { background: #e8e8e8; }
+table.side td, table.side th { padding: 9px 20px; }
+.badge { display: inline-block; color: #fff; font-weight: bold; font-size: 19px; border-radius: 6px; padding: 2px 9px; }
+.badge.t { background: #1A7A1A; } .badge.f { background: #BF0000; }
+table.ans td { padding: 12px 16px; vertical-align: middle; }
+table.ans td:nth-child(2) { text-align: center; }
+.tps p { margin: 0 0 22px; }
+.cards { display: flex; gap: 40px; margin: 10px 0 18px; }
+.cards .altcard { flex: 1 1 0; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1. Title -->
+<section class="frame">
+  <svg class="bells" width="1280" height="720"></svg>
+  <div class="titlebox">
+    <div class="t">Frequentist and Bayesian, Side by Side</div>
+    <div class="st">Part 2: How much can one sample tell you about the world?</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Probabilistic Machine Learning</div>
+    <div class="i">University of Virginia<br>Farzad Farnoud</div>
+    <div class="d">September 24, 2026</div>
+  </div>
+</section>
+
+<!-- 2. Outline -->
+<section class="frame">
+  <div class="frametitle">Outline</div>
+  <div class="fbody"><div class="row center">
+    <div class="col" style="padding-left:30px">
+      <ol class="toc">
+        <li><a href="#/sec-gauss">The mean of a Gaussian</a></li>
+        <li><a href="#/sec-side">Frequentist and Bayesian, side by side</a></li>
+        <li><a href="#/sec-conj">Conjugate priors and the exponential family</a></li>
+      </ol>
+    </div>
+    <div class="fig" data-fig="outline"></div>
+  </div></div>
+</section>
+
+<!-- ============ 1. The mean of a Gaussian ============ -->
+
+<!-- 3 -->
+<section class="frame" id="sec-gauss">
+  <div class="frametitle">Last time, and today</div>
+  <div class="fbody" style="bottom:auto;height:380px"><div class="row">
+    <div class="col" style="flex:0 0 570px">
+      <span class="structure">Last time</span>
+      <ul class="tight">
+        <li>Posterior $\propto$ prior $\times$ likelihood; recognize the family.</li>
+        <li>Beta for Bernoulli counts, Gamma for Poisson counts: the observed counts add to the prior's parameters.</li>
+        <li>Point estimates follow from the loss: mean, median, mode.</li>
+        <li>The predictive distribution averages the model over the posterior.</li>
+      </ul>
+    </div>
+    <div class="col">
+      <span class="structure">Today</span>
+      <div class="roadmap">
+        <div class="softbox sb-prior">A parameter on the whole real line:<br>the mean of a Gaussian (Sec. 3.4)</div>
+        <div class="down"></div>
+        <div class="softbox sb-mix">Frequentist and Bayesian estimators,<br>judged on that one problem</div>
+        <div class="down"></div>
+        <div class="softbox sb-like">The pattern behind every example:<br>conjugate priors, exponential family (3.5, 3.6)</div>
+      </div>
+    </div>
+  </div></div>
+  <div class="band">
+    <img src="img/commute-route.png" alt="A car leaving a house on a winding road that passes a traffic light on its way to office buildings"
+         onerror="this.outerHTML='&lt;div class=&quot;ph&quot;&gt;Missing image: img/commute-route.png&lt;/div&gt;'">
+    <div class="caption illus-cap">AI-generated illustration</div>
+    <div class="bandtext">Running example: daily travel times $y_1,\dotsc,y_n$ on one route, with $Y_i\mid\Theta=\theta\sim\cN(\theta,\sigma^2)$ and $\sigma^2$ known.</div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="frame">
+  <div class="frametitle">A flat prior on the whole line</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <p>Travel times $y_1^n$, independent given $\theta$:</p>
+      \[\clk{p(y_i\mid\theta)=\frac{1}{\sqrt{2\pi\sigma^2}}\,e^{-(y_i-\theta)^2/(2\sigma^2)}}.\]
+      <p>With no information about $\theta$, take $\cpr{p(\theta)\propto1}$ on $\bbR$.</p>
+      <p>Since $\int_{-\infty}^{\infty}1\,d\theta=\infty$, this is not a distribution: an <b>improper prior</b>. It is acceptable when the posterior it produces is proper. An improper prior need not be uniform.</p>
+      <p><span class="alert">Predict:</span> what shape does the posterior have, and where is its centre?</p>
+      <p class="fragment" data-set='{"p":1}'></p>
+    </div>
+    <div>
+      <p class="figcap">$n=4$, $\bar y=12$, $\sigma^2=4$</p>
+      <div class="fig" data-fig="flat" data-init='{"p":0}'></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- 5 -->
+<section class="frame">
+  <div class="frametitle">The posterior is the likelihood, renormalized in $\theta$</div>
+  <div class="fbody vc big">
+    \[\begin{aligned}
+    \cpr{\text{Prior:}}\quad &\cpr{p(\theta)\propto1},\\
+    \clk{\text{Likelihood:}}\quad &\clk{p(y_1^n\mid\theta)\propto\exp\left(-\frac{\sum_{i=1}^n(y_i-\theta)^2}{2\sigma^2}\right)},\\
+    \cpo{\text{Posterior:}}\quad &\cpo{p(\theta\mid y_1^n)\propto\exp\left(-\frac{\sum_{i=1}^n(\theta^2-2y_i\theta+y_i^2)}{2\sigma^2}\right)}\\
+    &\cpo{\phantom{p(\theta\mid y_1^n)}\propto\exp\left(-\frac{\theta^2-2\bar y\theta}{2\sigma^2/n}\right)\propto\exp\left(-\frac{(\theta-\bar y)^2}{2\sigma^2/n}\right)}.
+    \end{aligned}\]
+    <div class="fragment">
+      \[\boxed{\cpo{\Theta\mid y_1^n\sim\cN(\bar y,\sigma^2/n)}}\]
+      <div class="block alertblock"><div class="bt">The posterior mean is the MLE</div><div class="bb">
+        Completing the square turns the likelihood into a Gaussian in $\theta$ with mean $\bar y=\hat\theta_{\mle}$ and variance $\sigma^2/n$.
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="frame">
+  <div class="frametitle">$\sigma^2/n$: the same number, two readings</div>
+  <div class="fbody">
+    <div class="row" style="height:auto">
+      <div class="col">
+        <p>Four days of travel times with $\bar y=12$ and $\sigma^2=4$:</p>
+        \[\cpo{\Theta\mid y_1^4\sim\cN(12,\,1)}.\]
+        <p><span class="stn">Chapter 2:</span> $\cml{\bar Y\sim\cN(\theta^*,\sigma^2/n)}$, the estimator over repeated samples of $n$ days.</p>
+        <p><span class="stn">Today:</span> $\cpo{\Theta\mid y_1^n\sim\cN(\bar y,\sigma^2/n)}$, the parameter given this one sample.</p>
+        <p class="fragment" data-set='{"k":8}'></p>
+        <p class="fragment" data-set='{"b":1}'></p>
+      </div>
+      <div class="fig" data-fig="tworead" data-init='{"k":0,"b":0}' style="margin-top:-8px"></div>
+    </div>
+    <div class="block alertblock" style="margin-top:-18px;width:640px"><div class="bt">Same width, different object</div><div class="bb">
+      Frequentist: the spread of the estimator $\bar Y$ over samples we could have drawn. Bayesian: the spread of $\Theta$ given the sample we have.
+    </div></div>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="frame">
+  <div class="frametitle">Tomorrow's travel time has mean $\bar y$</div>
+  <div class="fbody big"><div class="row">
+    <div class="col">
+      <p>By iterated expectations, with $Y_{n+1}\independent Y_1^n\mid\Theta$,</p>
+      \[\E[Y_{n+1}\mid y_1^n]=\E\big[\E[Y_{n+1}\mid\Theta]\,\big|\,y_1^n\big]=\E[\Theta\mid y_1^n]=\bar y.\]
+    </div>
+    <div class="fig" data-fig="graph" data-init='{}'></div>
+  </div></div>
+</section>
+
+<!-- 8 -->
+<section class="frame">
+  <div class="frametitle">The spread of tomorrow's travel time</div>
+  <div class="fbody">
+    <div class="row" style="height:auto">
+      <div class="col">
+        <p>The mean of tomorrow's travel time is $\E[Y_{n+1}\mid y_1^n]=\bar y$.</p>
+        <p><span class="alert">Predict:</span> is tomorrow's travel time more or less spread out than $\Theta$ is?</p>
+        <div class="fragment" data-set='{"p":1}' data-fragment-index="1">
+          \[\begin{aligned}
+          \cpd{\var(Y_{n+1}\mid y_1^n)}&=\cml{\sigma^2}+\cpo{\frac{\sigma^2}{n}},\\
+          \cpd{Y_{n+1}\mid y_1^n}&\cpd{\sim\cN\!\left(\bar y,\,\sigma^2+\frac{\sigma^2}{n}\right)}.
+          \end{aligned}\]
+        </div>
+      </div>
+      <div class="fig" data-fig="pred" data-init='{"p":0}'></div>
+    </div>
+    <div class="block alertblock fragment" data-fragment-index="1" style="margin-top:6px"><div class="bt">Two sources of uncertainty, added</div><div class="bb">
+      $\cml{\sigma^2}$ is the day-to-day randomness of $Y$ and never shrinks; $\cpo{\sigma^2/n}$ is the uncertainty about the mean and vanishes as $n$ grows.
+    </div></div>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="frame">
+  <div class="frametitle">Why the predictive variance is $\sigma^2+\sigma^2/n$</div>
+  <div class="fbody vc"><div class="row">
+    <div class="col">
+      <p>Condition on $\Theta$ first, then average over the posterior:</p>
+      \[\begin{aligned}
+      \cpd{\var(Y_{n+1}\mid y_1^n)}&=\E\big[(Y_{n+1}-\bar y)^2\,\big|\,y_1^n\big]\\
+      &=\E\Big[\E\big[(Y_{n+1}-\bar y)^2\,\big|\,\Theta,y_1^n\big]\,\Big|\,y_1^n\Big]\\
+      &=\E\big[\sigma^2+(\Theta-\bar y)^2\,\big|\,y_1^n\big]\\
+      &=\cml{\sigma^2}+\cpo{\var(\Theta\mid y_1^n)}=\cml{\sigma^2}+\cpo{\sigma^2/n}.
+      \end{aligned}\]
+      <p>The third line uses $\E[(Y_{n+1}-\bar y)^2\mid\Theta=\theta]=\sigma^2+(\theta-\bar y)^2$, the variance plus the squared offset of the mean. The predictive distribution is Gaussian, so its mean and variance determine it.</p>
+    </div>
+    <div class="fig" data-fig="graph" data-init='{"bar":1}'></div>
+  </div></div>
+</section>
+
+<!-- 10 -->
+<section class="frame">
+  <div class="frametitle">A proper Gaussian prior</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <p>Prior $\Theta\sim\cN(\theta_0,\tau_0^2)$, with mean $\theta_0$ and variance $\tau_0^2$:</p>
+      \[\begin{aligned}
+      \cpr{\text{Prior:}}\quad &\cpr{p(\theta)\propto\exp\left(-\frac{(\theta-\theta_0)^2}{2\tau_0^2}\right)},\\[2pt]
+      \clk{\text{Likelihood:}}\quad &\clk{p(y_1^n\mid\theta)\propto\exp\left(-\frac{\sum_i(y_i-\theta)^2}{2\sigma^2}\right)}.
+      \end{aligned}\]
+      <p style="margin-top:18px"><span class="alert">Predict:</span> what family is the posterior in? Is it narrower or wider than the prior?</p>
+    </div>
+    <div>
+      <p class="figcap">prior $\cN(10,1)$; $n=4$, $\bar y=12$, $\sigma^2=4$</p>
+      <div class="fig" data-fig="prop"></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- 11 -->
+<section class="frame">
+  <div class="frametitle">The posterior exponent is a quadratic in $\theta$</div>
+  <div class="fbody vc big">
+    <p>Prior $\Theta\sim\cN(\theta_0,\tau_0^2)$ and travel times $Y_i\mid\Theta=\theta\sim\cN(\theta,\sigma^2)$:</p>
+    \[\begin{aligned}
+    \cpr{\text{Prior:}}\quad &\cpr{p(\theta)\propto\exp\left(-\frac{(\theta-\theta_0)^2}{2\tau_0^2}\right)},\\[4pt]
+    \clk{\text{Likelihood:}}\quad &\clk{p(y_1^n\mid\theta)\propto\exp\left(-\frac{\sum_i(y_i-\theta)^2}{2\sigma^2}\right)},\\[4pt]
+    \cpo{\text{Posterior:}}\quad &\cpo{p(\theta\mid y_1^n)}\propto\clk{\exp\left(-\frac{\sum_i(y_i-\theta)^2}{2\sigma^2}\right)}\times\cpr{\exp\left(-\frac{(\theta-\theta_0)^2}{2\tau_0^2}\right)}.
+    \end{aligned}\]
+    <p style="margin-top:14px">The exponent is a quadratic in $\theta$.</p>
+  </div>
+</section>
+
+<!-- 12 -->
+<section class="frame">
+  <div class="frametitle">Reading a Gaussian off its exponent</div>
+  <div class="fbody vc"><div class="row">
+    <div class="col">
+      <p><span class="structure">Claim.</span> If $p(x)\propto e^{-f(x)}$ with $f(x)=ax^2-bx+c$ and $a>0$, then $X\sim\cN\!\left(\dfrac{b}{2a},\dfrac{1}{2a}\right)$.</p>
+      <p><span class="structure">Proof.</span></p>
+      \[ax^2-bx+c=\frac{\left(x-\frac{b}{2a}\right)^2}{2\cdot\frac{1}{2a}}+C,\qquad C\text{ free of }x.\]
+      <p class="fragment" data-set='{"g":1}'></p>
+    </div>
+    <div>
+      <div class="fig" data-fig="parab" data-init='{"a":1,"g":0}'></div>
+      <div class="knobs" style="margin-left:70px"><label>$a$ <input type="range" data-param="a" min="0.3" max="3" step="0.05"><output></output></label></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- 13 -->
+<section class="frame">
+  <div class="frametitle">Reading a Gaussian off its exponent</div>
+  <div class="fbody vc big">
+    <p><span class="structure">Applied to the posterior.</span> Expanding the two squares in $\theta$,</p>
+    \[a=\clk{\frac{n}{2\sigma^2}}+\cpr{\frac{1}{2\tau_0^2}},\qquad b=\clk{\frac{n\bar y}{\sigma^2}}+\cpr{\frac{\theta_0}{\tau_0^2}},\]
+    \[\boxed{\cpo{\Theta\mid y_1^n}\sim\cN\!\left(\frac{\clk{\frac{n\bar y}{\sigma^2}}+\cpr{\frac{\theta_0}{\tau_0^2}}}{\clk{\frac{n}{\sigma^2}}+\cpr{\frac{1}{\tau_0^2}}},\;\frac{1}{\clk{\frac{n}{\sigma^2}}+\cpr{\frac{1}{\tau_0^2}}}\right)}\]
+    <div class="block alertblock" style="margin-top:14px"><div class="bt">No integral needed</div><div class="bb">
+      The coefficient of $\theta^2$ fixes the variance; the coefficient of $\theta$ fixes the mean. As $\tau_0\to\infty$ the result tends to $\cN(\bar y,\sigma^2/n)$, the flat-prior posterior.
+    </div></div>
+  </div>
+</section>
+
+<!-- 14 -->
+<section class="frame">
+  <div class="frametitle">Precisions add, and the mean is precision-weighted</div>
+  <div class="fbody vc big">
+    <p>Write $\Theta\mid y_1^n\sim\cN(\mu_1,\tau_1^2)$. With precision the reciprocal of variance,</p>
+    \[\cpo{\frac{1}{\tau_1^2}}=\cpr{\frac{1}{\tau_0^2}}+\clk{\frac{n}{\sigma^2}},\qquad\cpo{\mu_1}=\frac{\cpr{\frac{1}{\tau_0^2}\,\theta_0}+\clk{\frac{n}{\sigma^2}\,\bar y}}{\cpr{\frac{1}{\tau_0^2}}+\clk{\frac{n}{\sigma^2}}}.\]
+    <p style="margin-top:14px">The mean is a weighted average of the prior mean and $\bar y$, with weights the prior precision $\cpr{1/\tau_0^2}$ and the data precision $\clk{n/\sigma^2}$: the same shape as the Beta mean, whose weights were $\alpha+\beta$ and $n$.</p>
+  </div>
+</section>
+
+<!-- 15 -->
+<section class="frame">
+  <div class="frametitle">The posterior mean is the balance point of the precisions</div>
+  <div class="fbody">
+    \[\cpo{\mu_1}=\frac{\cpr{\frac{1}{\tau_0^2}\,\theta_0}+\clk{\frac{n}{\sigma^2}\,\bar y}}{\cpr{\frac{1}{\tau_0^2}}+\clk{\frac{n}{\sigma^2}}}\]
+    <p><span class="alert">Predict:</span> travel times with $\sigma^2=4$, prior $\theta_0=10$, $\tau_0^2=1$, and $n=4$ days with $\bar y=12$. Where does $\mu_1$ land?</p>
+    <div class="fig" data-fig="seesaw" data-init='{"f":10,"s":0}' style="margin:0 auto"></div>
+    <p class="fragment" data-set='{"f":11,"s":1}' style="margin-top:-6px">Data precision $4/4=1$, prior precision $1$, posterior precision $2$: $\Theta\mid y_1^4\sim\cN(11,\,1/2)$.</p>
+  </div>
+</section>
+
+<!-- 16 -->
+<section class="frame">
+  <div class="frametitle sm">The posterior is narrower than both the prior and the likelihood</div>
+  <div class="fbody vc">
+    <div class="fig" data-fig="three" style="margin:0 auto"></div>
+    <div class="block alertblock" style="margin-top:10px"><div class="bt">Precisions add</div><div class="bb">
+      Two sources of information about $\theta$ combine into one Gaussian whose precision is the sum of theirs and whose mean sits between them, closer to the more precise source.
+    </div></div>
+  </div>
+</section>
+
+<!-- 17 -->
+<section class="frame">
+  <div class="frametitle">Your turn: sixteen days</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <p>Same prior $\Theta\sim\cN(10,1)$ and $\sigma^2=4$, same $\bar y=12$, but now $n=16$ days.</p>
+      <p><span class="alert">Predict:</span> sketch the new posterior next to the four-day one before computing it.</p>
+      <ol class="parts">
+        <li>(a) Find the posterior mean and variance.</li>
+        <li>(b) For which $n$ do the prior and the data get equal weight?</li>
+        <li>(c) What happens to $\mu_1$ and $\tau_1^2$ as $n\to\infty$?</li>
+      </ol>
+    </div>
+    <div class="fig" data-fig="sixteen" data-init='{"n":4,"s":0}'></div>
+  </div></div>
+</section>
+
+<!-- 18 -->
+<section class="frame">
+  <div class="frametitle">Your turn: sixteen days (a)</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <ol class="parts"><li>(a) Find the posterior mean and variance.</li></ol>
+      <div class="fragment solution" data-set='{"n":16,"s":1}'>
+        <span class="structure">Solution</span>
+        \[\begin{aligned}
+        \cpr{\text{Prior precision:}}\quad &\cpr{1/\tau_0^2=1},\\
+        \clk{\text{Data precision:}}\quad &\clk{n/\sigma^2=16/4=4},\\
+        \cpo{\text{Posterior:}}\quad &\cpo{1/\tau_1^2=1+4=5,\quad \tau_1^2=1/5},\\
+        \cpo{\text{Posterior mean:}}\quad &\cpo{\mu_1}=\frac{\cpr{1\cdot10}+\clk{4\cdot12}}{5}=\cpo{11.6},\\
+        &\cpo{\Theta\mid y_1^{16}\sim\cN(11.6,\,0.2)}.
+        \end{aligned}\]
+      </div>
+    </div>
+    <div class="fig" data-fig="sixteen" data-init='{"n":4,"s":0}'></div>
+  </div></div>
+</section>
+
+<!-- 19 -->
+<section class="frame">
+  <div class="frametitle">Your turn: sixteen days (a), the data's weight</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <p>Prior precision $\cpr{1}$, data precision $\clk{4}$: $\cpo{\Theta\mid y_1^{16}\sim\cN(11.6,\,0.2)}$.</p>
+      <div class="fig" data-fig="seesaw16" data-init='{"n":16}' style="margin:-20px 0 14px"></div>
+      <p>Four times the data: the data's weight rises from $1/2$ to $4/5$, and the variance falls from $1/2$ to $1/5$.</p>
+    </div>
+    <div>
+      <div class="fig" data-fig="sixteen" data-init='{"n":16,"s":1}'></div>
+      <div class="knobs" data-for="sixteen" data-also="seesaw16" style="margin-left:80px"><label>$n$ <input type="range" data-param="n" data-digits="0" min="1" max="40" step="1"><output></output></label></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- 20 -->
+<section class="frame">
+  <div class="frametitle">Your turn: sixteen days (b), (c)</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <ol class="parts">
+        <li>(b) For which $n$ do the prior and the data get equal weight?</li>
+        <li>(c) What happens to $\mu_1$ and $\tau_1^2$ as $n\to\infty$?</li>
+      </ol>
+      <div class="fragment solution" data-set='{"N":60}'>
+        <span class="structure">Solution</span>
+        \[\begin{aligned}
+        \text{(b)}\quad &\clk{\frac{n}{\sigma^2}}=\cpr{\frac{1}{\tau_0^2}}\;\Longrightarrow\; n=\frac{\sigma^2}{\tau_0^2}=4,\\[6pt]
+        \text{(c)}\quad &\cpo{\mu_1}=\frac{\cpr{\theta_0/\tau_0^2}+\clk{n\bar y/\sigma^2}}{\cpr{1/\tau_0^2}+\clk{n/\sigma^2}}\to\bar y,\\[4pt]
+        &\cpo{\tau_1^2}=\frac{1}{\cpr{1/\tau_0^2}+\clk{n/\sigma^2}}\to0.
+        \end{aligned}\]
+        <p class="small">The prior's precision stays fixed while the data's grows with $n$, so the prior's share of the weight goes to zero.</p>
+      </div>
+    </div>
+    <div class="fig" data-fig="mun" data-init='{"N":0}'></div>
+  </div></div>
+</section>
+
+<!-- ============ 2. Frequentist and Bayesian, side by side ============ -->
+
+<!-- 21 -->
+<section class="frame" id="sec-side">
+  <div class="frametitle sm">Two estimators of the same mean: the Bayesian one shrinks $\bar y$</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <p>Take the prior $\Theta\sim\cN(0,\tau_0^2)$. The posterior mean (also its mode and median) and the MLE:</p>
+      \[\cpo{\hat\theta_B}=\bar y\left(\frac{\tau_0^2}{\tau_0^2+\sigma^2/n}\right),\qquad\cml{\hat\theta_{\mle}}=\bar y.\]
+      <p>$\cpo{\hat\theta_B}$ is $\bar y$ shrunk toward the prior mean $0$ by a factor in $(0,1)$: with $\tau_0^2=1$ and $\sigma^2=4$, $1/2$ at $n=4$ and $4/5$ at $n=16$.</p>
+    </div>
+    <div>
+      <div class="fig" data-fig="shrink" data-init='{"t":1,"e":1}'></div>
+      <div class="knobs" style="margin-left:80px"><label>$\tau_0^2$ <input type="range" data-param="t" min="0.05" max="10" step="0.05"><output></output></label></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- 22 -->
+<section class="frame">
+  <div class="frametitle sm">Frequentist view: judging both estimators over repeated samples</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <p>With the prior $\Theta\sim\cN(0,\tau_0^2)$,</p>
+      \[\cpo{\hat\theta_B}=\bar y\left(\frac{\tau_0^2}{\tau_0^2+\sigma^2/n}\right),\qquad\cml{\hat\theta_{\mle}}=\bar y.\]
+      <p>To compare them, judge both in the frequentist framework: a true value $\theta^*$, and each estimator a function of the random data $Y_1^n$.</p>
+      <p><span class="alert">Predict:</span> which of the two is unbiased? Which has the smaller variance?</p>
+      <p class="fragment" data-set='{"m":1}' data-fragment-index="2"></p>
+    </div>
+    <div class="fragment" data-fragment-index="1">
+      <div class="fig" data-fig="strip" data-init='{"m":0}'></div>
+    </div>
+  </div></div>
+</section>
+
+<!-- 23 -->
+<section class="frame">
+  <div class="frametitle">Frequentist view: bias, variance, and MSE of both</div>
+  <div class="fbody vc">
+    <p>The MLE is unbiased with $\mse(\cml{\hat\theta_{\mle}})=\var(\bar Y)=\sigma^2/n$, and by the Cramér–Rao bound no unbiased estimator does better.</p>
+    \[\begin{aligned}
+    \text{Bias:}\quad &\bias(\cpo{\hat\theta_B})=\E[\cpo{\hat\theta_B}]-\theta^*=-\theta^*\left(\frac{\sigma^2/n}{\tau_0^2+\sigma^2/n}\right),\\[4pt]
+    \text{Variance:}\quad &\var(\cpo{\hat\theta_B})=\frac{\sigma^2}{n}\left(\frac{\tau_0^2}{\tau_0^2+\sigma^2/n}\right)^2,\\[4pt]
+    \text{MSE:}\quad &\mse(\cpo{\hat\theta_B})=\bias(\cpo{\hat\theta_B})^2+\var(\cpo{\hat\theta_B}).
+    \end{aligned}\]
+    <p>As $\tau_0^2$ grows, the bias term falls and the variance term rises.</p>
+    <div class="block alertblock"><div class="bt">A strong prior trades variance for bias</div><div class="bb">
+      A small $\tau_0^2$ is a confident prior: the estimate is biased toward $0$ but responds less to the data, so its variance is smaller.
+    </div></div>
+  </div>
+</section>
+
+<!-- 24 -->
+<section class="frame">
+  <div class="frametitle sm">Frequentist view: a prior near $\theta^*$ wins; a confident one far off loses</div>
+  <div class="fbody">
+    <p>Take $\sigma^2/n=1$. <span class="alert">Predict:</span> as $\tau_0^2$ runs from $0$ (the prior alone) to $\infty$ (the MLE), how do $\bias^2$ and $\var$ move? Is there a $\tau_0^2$ whose MSE falls below $\sigma^2/n=1$?</p>
+    <div class="fragment" data-fragment-index="1">
+      <div class="row" style="height:auto;justify-content:space-between">
+        <div>
+          <div class="fig" data-fig="mse" data-init='{"th":1,"a":0}'></div>
+          <p class="small fragment" data-fragment-index="2" style="text-align:center;margin-top:2px">below the MLE for every $\tau_0^2>0$;<br>minimum $0.5$ at $\tau_0^2=1$.</p>
+        </div>
+        <div>
+          <div class="fig" data-fig="mse" data-init='{"th":2,"a":0}'></div>
+          <p class="small fragment" data-fragment-index="2" style="text-align:center;margin-top:2px">above the MLE for $\tau_0^2&lt;1.5$, below it beyond;<br>minimum $0.8$ at $\tau_0^2=4$.</p>
+        </div>
+      </div>
+    </div>
+    <p class="fragment" data-set='{"a":1}' data-fragment-index="2"></p>
+  </div>
+</section>
+
+<!-- 25 -->
+<section class="frame">
+  <div class="frametitle sm">Frequentist view: $\tau_0^2=(\theta^*)^2$ beats the MLE, but needs $\theta^*$</div>
+  <div class="fbody">
+    <div class="row" style="height:auto">
+      <div class="col">
+        <p>For $\sigma^2/n=1$, both minima sit at $\tau_0^2=(\theta^*)^2$. In general, $\tau_0^2=(\theta^*)^2$ gives</p>
+        \[\begin{aligned}
+        \mse(\cpo{\hat\theta_B})&=\frac{(\theta^*)^2\,\sigma^2/n}{(\theta^*)^2+\sigma^2/n}\\
+        &&lt;\frac{\sigma^2}{n}=\mse(\cml{\hat\theta_{\mle}}).
+        \end{aligned}\]
+      </div>
+      <div>
+        <div class="fig" data-fig="mse2" data-init='{"th":1}'></div>
+        <div class="knobs fragment" data-fragment-index="1" data-set='{"th":2}' style="margin-left:80px"><label>$\theta^*$ <input type="range" data-param="th" min="0.5" max="2.4" step="0.05"><output></output></label></div>
+      </div>
+    </div>
+    <div class="block alertblock" style="margin-top:10px"><div class="bt">The right prior needs $\theta^*$, which nobody has</div><div class="bb">
+      A biased estimator can still have the smaller MSE. A prior built from experience or related data moves the estimate the right way without knowing $\theta^*$.
+    </div></div>
+  </div>
+</section>
+
+<!-- 26 -->
+<section class="frame">
+  <div class="frametitle">Side by side</div>
+  <div class="fbody vc big">
+    <table class="tab side" style="margin-top:10px">
+      <thead><tr><th></th><th class="fq">Frequentist</th><th class="by">Bayesian</th></tr></thead>
+      <tbody>
+        <tr><td>Parameter</td><td>fixed $\theta^*$</td><td>random $\Theta$</td></tr>
+        <tr><td>What is random</td><td>the data, over samples</td><td>$\Theta$, given the data</td></tr>
+        <tr><td>Output</td><td>a point $\hat\theta(\bx)$</td><td>a posterior $p(\theta\mid\bx)$</td></tr>
+        <tr><td>Prior</td><td>none</td><td>required</td></tr>
+        <tr><td>Accuracy</td><td>bias, variance, MSE; Cramér–Rao floor</td><td>posterior variance</td></tr>
+      </tbody>
+    </table>
+    <div class="block alertblock fragment" style="margin-top:28px"><div class="bt">Where they meet</div><div class="bb">
+      With a flat prior, MAP equals MLE. The posterior mean is the MLE shrunk toward the prior mean. As $n\to\infty$ both converge to $\theta^*$ and the prior fades.
+    </div></div>
+  </div>
+</section>
+
+<!-- 27 -->
+<section class="frame">
+  <div class="frametitle">Think, pair, share</div>
+  <div class="fbody big tps">
+    <p style="margin-bottom:34px">True or false? Decide with a neighbour before the answers appear.</p>
+    <p>(a) $\hat\theta_B$ is biased, so it is worse than $\hat\theta_{\mle}$.</p>
+    <p>(b) Letting $\tau_0\to\infty$ turns $\hat\theta_B$ into $\hat\theta_{\mle}$.</p>
+    <p>(c) The posterior variance $1/(n/\sigma^2+1/\tau_0^2)$ is smaller than $\sigma^2/n$.</p>
+    <p>(d) For $\theta^*=0$ the Bayesian estimator is unbiased.</p>
+    <p>(e) A frequentist can say “the probability that $\theta^*$ lies in $[10.5,11.5]$ is $0.9$.”</p>
+  </div>
+</section>
+
+<!-- 28 -->
+<section class="frame">
+  <div class="frametitle">Think, pair, share: answers</div>
+  <div class="fbody big">
+    <table class="tab ans" style="margin:0 auto">
+      <thead><tr><th>Statement</th><th style="text-align:center">Answer</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>(a) biased, so worse</td><td><span class="badge f fragment" data-fragment-index="1">False</span></td><td><span class="fragment" data-fragment-index="1">MSE decides; an unbiased estimator can be inferior</span></td></tr>
+        <tr><td>(b) $\tau_0\to\infty$ gives the MLE</td><td><span class="badge t fragment" data-fragment-index="2">True</span></td><td><span class="fragment" data-fragment-index="2">the shrinkage factor goes to $1$</span></td></tr>
+        <tr><td>(c) posterior variance below $\sigma^2/n$</td><td><span class="badge t fragment" data-fragment-index="3">True</span></td><td><span class="fragment" data-fragment-index="3">precisions add; the extra certainty comes from the prior</span></td></tr>
+        <tr><td>(d) unbiased when $\theta^*=0$</td><td><span class="badge t fragment" data-fragment-index="4">True</span></td><td><span class="fragment" data-fragment-index="4">the bias is proportional to $\theta^*$</span></td></tr>
+        <tr><td>(e) “$\pr(\theta^*\in[10.5,11.5])=0.9$”</td><td><span class="badge f fragment" data-fragment-index="5">False</span></td><td><span class="fragment" data-fragment-index="5">$\theta^*$ is fixed; the statement is about the procedure</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 3. Conjugate priors and the exponential family ============ -->
+
+<!-- 29 -->
+<section class="frame" id="sec-conj">
+  <div class="frametitle">Conjugate priors: the pattern behind every example</div>
+  <div class="fbody vc">
+    <p>Given a likelihood, a <b>conjugate prior</b> is a family of distributions such that the posterior is in the same family.</p>
+    <table class="tab small" style="margin:6px auto 14px">
+      <thead><tr><th>Likelihood</th><th>Data summary</th><th class="c-prior">Prior</th><th class="c-post">Posterior</th></tr></thead>
+      <tbody>
+        <tr><td>$\ber(\theta)$</td><td>$y=\sum_iy_i$</td><td class="c-prior">$\bet(\alpha,\beta)$</td><td class="c-post">$\bet(\alpha+y,\beta+n-y)$</td></tr>
+        <tr><td>$\poi(\lambda)$</td><td>$S=\sum_iy_i$</td><td class="c-prior">$\gam(\alpha,\beta)$</td><td class="c-post">$\gam(\alpha+S,\beta+n)$</td></tr>
+        <tr><td>$\expo(\theta)$</td><td>$y=\sum_iy_i$</td><td class="c-prior">$\gam(\alpha,\beta)$</td><td class="c-post">$\gam(\alpha+n,\beta+y)$</td></tr>
+        <tr><td>$\cN(\theta,\sigma^2)$, $\sigma^2$ known</td><td>$\bar y$</td><td class="c-prior">$\cN(\theta_0,\tau_0^2)$</td><td class="c-post">$\cN(\mu_1,\tau_1^2)$</td></tr>
+      </tbody>
+    </table>
+    <p>Conjugate for one observation implies conjugate for $n$ iid observations: update $n$ times, one observation at a time.</p>
+    <div class="block alertblock"><div class="bt">No integral</div><div class="bb">
+      The posterior's normalizing constant is the family's own, so conjugacy determines the posterior completely.
+    </div></div>
+  </div>
+</section>
+
+<!-- 30 -->
+<section class="frame">
+  <div class="frametitle">Exponential waits: a Gamma prior gives a Gamma posterior</div>
+  <div class="fbody big">
+    <p>Waiting times between incidents, $Y_i\mid\theta\sim\expo(\theta)$, rate $\theta$ per day; $y=\sum_{i=1}^ny_i$ is the total wait.</p>
+    <div class="fig" data-fig="expfly" data-init='{"f":0}'>
+    \[\begin{aligned}
+    \cpr{\text{Prior:}}\quad &\cpr{p(\theta)\propto\theta^{\htmlClass{sa}{\alpha}\htmlClass{s1}{-1}}e^{-\htmlClass{sb}{\beta}\theta}},\\
+    \clk{\text{Likelihood:}}\quad &\clk{p(y_1^n\mid\theta)=\prod_{i=1}^n\theta e^{-\theta y_i}=\theta^{\htmlClass{sn}{n}}e^{-\theta\htmlClass{sy}{y}}},\\
+    \cpo{\text{Posterior:}}\quad &\cpo{p(\theta\mid y_1^n)\propto\htmlClass{gaB}{\theta}^{\htmlClass{da}{\cpr{\alpha}}\htmlClass{gaP}{+}\htmlClass{dn}{\clk{n}}\htmlClass{d1}{\cpr{-1}}}\htmlClass{gbB}{e}^{\htmlClass{gbB}{-(}\htmlClass{db}{\cpr{\beta}}\htmlClass{gbP}{+}\htmlClass{dy}{\clk{y}}\htmlClass{gbB}{)\theta}}}\htmlClass{gbB}{.}
+    \end{aligned}\]
+    </div>
+    <span class="fragment" data-set='{"f":2}' data-fragment-index="1"></span>
+    <div class="fragment" data-fragment-index="2">
+      \[\boxed{\cpo{\Theta\mid y_1^n\sim\gam(\cpr{\alpha}+\clk{n},\cpr{\beta}+\clk{y})}}\]
+      <div class="block alertblock"><div class="bt">The count updates the shape; the total updates the rate</div><div class="bb">
+        $\clk{n}$ adds to $\cpr{\alpha}$ and $\clk{y}$ adds to $\cpr{\beta}$.
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 31 -->
+<section class="frame">
+  <div class="frametitle">Exponential waits, an example</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <p>The incident rate $\theta$ has prior $\cpr{\gam(2,2)}$, with mean $1$ per day. Then $\clk{n=5}$ waits are observed, totalling $\clk{y=10}$ days:</p>
+      \[\begin{aligned}
+      \cpr{\text{Prior:}}\quad &\cpr{p(\theta)\propto\theta^{2-1}e^{-2\theta}},\\
+      \clk{\text{Likelihood:}}\quad &\clk{p(y_1^5\mid\theta)=\theta^{5}e^{-10\theta}},\\
+      \cpo{\text{Posterior:}}\quad &\cpo{p(\theta\mid y_1^5)\propto\theta^{\cpr{2}+\clk{5}\cpr{-1}}e^{-(\cpr{2}+\clk{10})\theta}}.
+      \end{aligned}\]
+      \[\boxed{\cpo{\Theta\mid y_1^5\sim\gam(7,12)}}\]
+      <p>The posterior mean $7/12=0.58$ per day lies between the prior mean $1$ and the MLE $n/y=0.5$.</p>
+    </div>
+    <div class="fig" data-fig="gam"></div>
+  </div></div>
+</section>
+
+<!-- 32 -->
+<section class="frame">
+  <div class="frametitle">The exponential family</div>
+  <div class="fbody big">
+    <p>A likelihood $p(y\mid\theta)$ is in the <b>exponential family</b> if</p>
+    \[p(y\mid\theta)=\exp\left(\clk{a(y)}^Tb(\theta)+\clk{f(y)}+g(\theta)\right),\]
+    <p>where $\clk{a},b,y,\theta$ may be vectors and $\clk{f},g$ are scalar; $b(\theta)$ is the <b>natural parameter</b>. Gaussian, Beta, Gamma and Binomial are members.</p>
+    <p style="margin-top:26px"><span class="alert">Your turn:</span> write the Bernoulli pmf $\theta^y(1-\theta)^{1-y}$ in this form. What are $\clk{a}$, $b$, $\clk{f}$, $g$?</p>
+  </div>
+</section>
+
+<!-- 33 -->
+<section class="frame">
+  <div class="frametitle">Your turn: the Bernoulli pmf in exponential-family form</div>
+  <div class="fbody big">
+    <p>Write the Bernoulli pmf $\theta^y(1-\theta)^{1-y}$ as</p>
+    \[p(y\mid\theta)=\exp\left(\clk{a(y)}^Tb(\theta)+\clk{f(y)}+g(\theta)\right).\]
+    <p>What are $\clk{a}$, $b$, $\clk{f}$, $g$?</p>
+    <div class="fragment solution" style="margin-top:22px">
+      <span class="structure">Solution</span>
+      \[\theta^y(1-\theta)^{1-y}=\exp\big(y\ln\theta+(1-y)\ln(1-\theta)\big)=\exp\left(\clk{y}\ln\frac{\theta}{1-\theta}+\ln(1-\theta)\right),\]
+      <p>so $\clk{a(y)=y}$, $b(\theta)=\ln\dfrac{\theta}{1-\theta}$ (the log odds), $\clk{f(y)=0}$, $g(\theta)=\ln(1-\theta)$.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 34 -->
+<section class="frame">
+  <div class="frametitle">Sufficient statistics</div>
+  <div class="fbody vc">
+    <div class="row" style="height:auto">
+      <div class="col">
+        <p>For $n$ iid observations,</p>
+        \[\begin{aligned}
+        p(y_1^n\mid\theta)&\propto\exp\left(\sum_{i=1}^n\clk{a(y_i)}^Tb(\theta)+\clk{n}\,g(\theta)\right)\\
+        &=\exp\left(\clk{t(y_1^n)}^Tb(\theta)+\clk{n}\,g(\theta)\right),
+        \end{aligned}\]
+        <p>with $\clk{t(y_1^n)=\sum_{i=1}^na(y_i)}$, the <b>sufficient statistic</b>. The MLE and the posterior depend on the data only through $\clk{t}$, whose size does not grow with $n$.</p>
+        <p class="fragment" data-set='{"f":1}'></p>
+        <div class="block alertblock" style="margin-top:6px"><div class="bt">All the information about $\theta$ sits in $t(y_1^n)$</div><div class="bb">
+          The rest of the data is irrelevant for estimating $\theta$.
+        </div></div>
+      </div>
+      <div class="fig" data-fig="funnel" data-init='{"f":0}' style="margin-top:-14px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 35 -->
+<section class="frame">
+  <div class="frametitle">Sufficient statistics of the Bernoulli and the Gaussian mean</div>
+  <div class="fbody vc big">
+    <p>The sufficient statistic of $n$ iid observations is $\clk{t(y_1^n)=\sum_{i=1}^na(y_i)}$.</p>
+    <div class="cards" style="margin-top:34px">
+      <div class="altcard"><div class="al">Bernoulli</div>
+        $\clk{t=\sum_iy_i}$, the number of successes.
+      </div>
+      <div class="altcard"><div class="al">Gaussian mean, $\sigma^2$ known</div>
+        $\clk{a(y)=y}$, $b(\theta)=\theta/\sigma^2$, so $\clk{t=\sum_iy_i}$ and the posterior uses only $\bar y$.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 36 -->
+<section class="frame">
+  <div class="frametitle">The conjugate prior of an exponential family</div>
+  <div class="fbody vc big">
+    <p>Match the prior to the shape of the likelihood, with two parameters $\cpr{\nu}$ and $\cpr{m}$ in the places of $\clk{t(y_1^n)}$ and $\clk{n}$:</p>
+    \[\begin{aligned}
+    \clk{\text{Likelihood:}}\quad &\clk{p(y_1^n\mid\theta)}\propto\exp\left(\clk{t(y_1^n)}^Tb(\theta)+\clk{n}\,g(\theta)\right),\\
+    \cpr{\text{Prior:}}\quad &\cpr{p(\theta)}\propto\exp\left(\cpr{\nu}^Tb(\theta)+\cpr{m}\,g(\theta)\right),\\
+    \cpo{\text{Posterior:}}\quad &\cpo{p(\theta\mid y_1^n)}\propto\exp\left((\cpr{\nu}+\clk{t(y_1^n)})^Tb(\theta)+(\cpr{m}+\clk{n})\,g(\theta)\right).
+    \end{aligned}\]
+    <div class="block alertblock fragment" style="margin-top:14px"><div class="bt">One recipe for every exponential family</div><div class="bb">
+      The posterior adds the data's statistic $\clk{t(y_1^n)}$ to $\cpr{\nu}$ and the sample size $\clk{n}$ to $\cpr{m}$.
+    </div></div>
+  </div>
+</section>
+
+<!-- 37 -->
+<section class="frame">
+  <div class="frametitle">For the Bernoulli, the conjugate prior is a Beta</div>
+  <div class="fbody vc big">
+    <p>Bernoulli: $b(\theta)=\ln\dfrac{\theta}{1-\theta}$, $g(\theta)=\ln(1-\theta)$, and $y=\sum_iy_i$.</p>
+    \[\begin{aligned}
+    \cpr{\text{Prior:}}\quad &\cpr{p(\theta)}\propto\exp\left(\cpr{\nu}\,b(\theta)+\cpr{m}\,g(\theta)\right)=\theta^{\cpr{\nu}}(1-\theta)^{\cpr{m}-\cpr{\nu}}\;\;\text{is }\cpr{\bet(\cpr{\nu}+1,\cpr{m}-\cpr{\nu}+1)},\\[6pt]
+    \cpo{\text{Posterior:}}\quad &\cpo{\Theta\mid y_1^n}\sim\cpo{\bet(\cpr{\nu}+\clk{y}+1,\;\cpr{m}+\clk{n}-\cpr{\nu}-\clk{y}+1)}.
+    \end{aligned}\]
+    <p style="margin-top:14px">The exponents of last time's $\bet(\alpha,\beta)$ are $\cpr{\nu}=\alpha-1$ and $\cpr{m}-\cpr{\nu}=\beta-1$: the prior looks like $\cpr{m}$ earlier observations with statistic $\cpr{\nu}$.</p>
+  </div>
+</section>
+
+<!-- 38 -->
+<section class="frame">
+  <div class="frametitle">Summary</div>
+  <div class="fbody big" style="top:104px">
+    <div class="sumrow"><svg class="icon" data-icon="gauss" width="110" height="64"></svg>
+      <div>Gaussian mean, $\sigma^2$ known: a flat prior gives $\cN(\bar y,\sigma^2/n)$; a Gaussian prior gives a precision-weighted mean with precisions added; the predictive variance $\sigma^2+\sigma^2/n$ is noise plus estimation uncertainty.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="mse" width="110" height="64"></svg>
+      <div>Judged on one problem, the Bayesian estimator trades bias for variance and, with a prior near the truth, has a smaller MSE than the MLE.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="meet" width="110" height="64"></svg>
+      <div>The two frameworks agree with a flat prior and as $n\to\infty$.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="funnel" width="110" height="64"></svg>
+      <div>Conjugate priors and the exponential family: sufficient statistics, prior parameters that act like earlier observations, and a posterior obtained by addition. Self-study: Sections 3.5 and 3.6 of the notes.</div></div>
+    <p style="text-align:center;margin-top:18px"><span class="alert">Next:</span> random vectors and the multivariate Gaussian, Chapter 4.</p>
+  </div>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="figs.js"></script>
+<script>startDeck();</script>
+</body>
+</html>

@@ -170,24 +170,28 @@ const PP = frame2d(30, 20, 370, 3.2), PD = box2d(470, 110, 250, 250, -4.5, 4.5, 
 FIGS.proj = {
   duration: 1300, size: [760, 440],
   draw(g, p) {
-    const P = g.plot(PP), B = g.plot(PD), R = PP.R, pts = corrPts(0.5);
     const al = p.al * Math.PI / 180, sc = p.sc ?? 1, ch = Math.cos(al), cv = Math.sin(al);
-    P.axes();
+    // The dashed line is a fixed ruler for a^T x, in the units of the density panel.  To keep
+    // it fixed, the plane zooms in as |a| grows (range R0/|a|): the cloud spreads along the
+    // ruler as the histogram widens.  The arrow keeps its size and shows the direction of a.
+    const R = PP.R / sc, P = g.plot(frame2d(PP.x0, PP.y0, PP.S, R)), B = g.plot(PD), pts = corrPts(0.5);
+    const tk = R > 2.5 ? 2 : R > 1.2 ? 1 : 0.5;
+    P.axes({ grid: Math.floor(R), ticks: [tk, 2 * tk].filter(v => v < R - 0.3).flatMap(v => [-v, v]) });
     P.cloud(pts, { fo: 0.2 });
     P.ellipse(0.5, { so: 0.7 });
-    P.ellipse(0.5, { r: 2, so: 0.7 });
+    P.ellipse(0.5, { r: 2, so: 0.7, opacity: R > 2.1 ? 1 : 0 });   // hidden once it no longer fits the zoomed plot
     P.line([-R * ch, -R * cv], [R * ch, R * cv], { dash: '7 5' });
-    const t0 = 2 * ch, foot = [t0 * ch, t0 * cv];   // the point (x1, x2) = (2, 0) and its foot on the line
-    P.line([2, 0], foot, { color: 'brown', w: 2, dash: '4 4' });
-    P.dot([2, 0], { r: 5, color: 'brown', outline: false });
-    P.dot(foot, { r: 5, color: 'brown', outline: false });
-    P.vec([0, 0], [sc * ch, sc * cv], { color: 'teal', w: 4 });   // the vector a, at its length
-    // ticks of a^T x along the dashed line (shown when p.ax): a^T x = v sits at distance v / |a|
-    const nh = -cv * 0.1, nv = ch * 0.1;
-    [-4, -2, 2, 4].forEach((v, k) => {
-      const t = v / sc, on = (p.ax ?? 0) * (Math.abs(t) < R - 0.2 ? 1 : 0);
-      P.line([t * ch - nh, t * cv - nv], [t * ch + nh, t * cv + nv], { w: 2, opacity: on });
-      P.label('tl' + k, minus(v), [t * ch + 2.6 * nh, t * cv + 2.6 * nv], 'c', { opacity: on });
+    const t0 = 2 * ch, foot = [t0 * ch, t0 * cv], shown = 2 < R - 0.1 ? 1 : 0;   // the point (x1, x2) = (2, 0) and its foot on the line
+    P.line([2, 0], foot, { color: 'brown', w: 2, dash: '4 4', opacity: shown });
+    P.dot([2, 0], { r: 5, color: 'brown', outline: false, opacity: shown });
+    P.dot(foot, { r: 5, color: 'brown', outline: false, opacity: shown });
+    P.vec([0, 0], [ch / sc, cv / sc], { color: 'teal', w: 4 });   // the direction of a, a constant size on screen
+    // the ruler (shown when p.ax): a^T x = v sits at distance v/|a|, a fixed place on screen
+    const nh = -cv * 0.1 / sc, nv = ch * 0.1 / sc;
+    [-3, -2, -1, 1, 2, 3].forEach((v, k) => {
+      const tt = v / sc, on = p.ax ?? 0;
+      P.line([tt * ch - nh, tt * cv - nv], [tt * ch + nh, tt * cv + nv], { w: 2, opacity: on });
+      P.label('tl' + k, minus(v), [tt * ch + 2.6 * nh, tt * cv + 2.6 * nv], 'c', { opacity: on });
     });
     // density panel for a^T x
     g.group({}, () => {
@@ -203,7 +207,7 @@ FIGS.proj = {
     cnt.forEach((c, i) => { const d = Math.min(c / (pts.length * 0.5), 0.62);
       g.el('rect', { x: B.X(-4.5 + 0.5 * i) + 1, width: B.X(0.5) - B.X(0) - 2, y: B.Y(d), height: B.Y(0) - B.Y(d), fill: C.prior, 'fill-opacity': 0.18 }); });
     B.curve(t => Math.min(phi(t, 0, v), 0.62), { n: 180, color: 'prior', w: 3 });
-    P.label('a', '$\\ba$', [sc * ch / 2, sc * cv / 2], 'c', { dx: 20 * cv, dy: 20 * ch, color: 'teal' });   // beside the arrow's middle, on the side away from the ticks
+    P.label('a', p.ax ? '$\\ba/\\|\\ba\\|$' : '$\\ba$', [ch / (2 * sc), cv / (2 * sc)], 'c', { dx: (p.ax ? 34 : 20) * cv, dy: (p.ax ? 34 : 20) * ch, color: 'teal' });   // beside the arrow's middle, on the side away from the ticks
     B.label('px', '$\\ba^T\\bx$', [0, 0], 't', { dy: 40, color: '#444' });
     B.label('py', '<span class="cap">density; bars: the 400 dots</span>', [-4.5, 0.62], 'l', { dy: -60, color: '#555' });
     B.label('av', `$\\ba=(${fmt(a1)},\\,${fmt(a2)})^T$`, [-4.5, 0.62], 'l', { dy: -30, color: 'teal' });

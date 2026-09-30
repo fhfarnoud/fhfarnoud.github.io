@@ -155,12 +155,37 @@ section.frame .fbody { transition: transform .45s cubic-bezier(.2, .7, .2, 1); t
 .drawer-open .fbody .dk1 { box-shadow: 0 0 0 6px var(--dk1); background: color-mix(in srgb, var(--dk1) 12%, transparent); }
 .drawer-open .fbody .dk2 { box-shadow: 0 0 0 6px var(--dk2); background: color-mix(in srgb, var(--dk2) 12%, transparent); }
 .drawer-open .fbody .dk3 { box-shadow: 0 0 0 6px var(--dk3); background: color-mix(in srgb, var(--dk3) 12%, transparent); }
-.drawer-tab { position: absolute; right: 40px; bottom: 8px; z-index: 25; font-size: 17px; color: var(--struct);
-  background: var(--blockbody); border-radius: 6px; padding: 3px 12px; cursor: pointer; user-select: none; }
-.drawer-tab:hover { background: #d9d4e6; }
-.deck-print .drawer-tab { display: none; }
 .reveal aside.narration { display: none; }
-.narr-tab { position: absolute; right: 180px; bottom: 8px; z-index: 25; font-size: 17px; color: var(--struct);
-  background: #e7e4ee; border-radius: 6px; padding: 3px 10px; cursor: pointer; user-select: none; }
-.narr-tab:hover { background: #d9d4e6; }
-.deck-print .narr-tab { display: none; }
+.narr-transcript { position: fixed; right: 16px; bottom: 66px; z-index: 49; width: min(560px, 46vw); max-height: 44vh;
+  display: none; flex-direction: column; background: rgba(255,255,255,.97); border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.25); font: 17px/1.45 "Helvetica Neue", Arial, sans-serif; color: #222; }
+.narr-transcript.on { display: flex; }
+.narr-transcript .nt-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px;
+  font-weight: bold; color: var(--struct); border-bottom: 1px solid #e3e0ea; }
+.narr-transcript .nt-close { border: 0; background: none; color: var(--struct); font-size: 15px; cursor: pointer; }
+.narr-transcript .nt-body { overflow-y: auto; padding: 6px 12px 10px; }
+.narr-transcript p { margin: 6px 0; padding: 4px 8px; border-left: 3px solid transparent; border-radius: 4px; cursor: pointer; }
+.narr-transcript p:hover { background: #f4f2f8; }
+.narr-transcript p.cur { background: #ece8f6; border-left-color: var(--struct); }
+.narr-transcript .nt-none { color: #777; cursor: default; }
+
+/* toolbar: navigation, narration, transcript and derivation, at the bottom of the screen */
+.deck-toolbar { position: fixed; left: 50%; bottom: 12px; transform: translate(-50%, 8px); z-index: 50; display: flex;
+  align-items: center; gap: 6px; padding: 6px 8px; border-radius: 12px; background: rgba(255,255,255,.95); white-space: nowrap;
+  box-shadow: 0 2px 12px rgba(0,0,0,.22); font: 15px/1 "Helvetica Neue", Arial, sans-serif; color: var(--struct);
+  opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; }
+.deck-toolbar.shown { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+.deck-toolbar .tb-group { display: flex; align-items: center; gap: 6px; padding: 0 6px; }
+.deck-toolbar .tb-group + .tb-group { border-left: 1px solid #e0dce8; }
+.deck-toolbar button, .deck-toolbar a { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 0;
+  background: var(--blockbody); color: var(--struct); border-radius: 7px; height: 32px; min-width: 34px; padding: 0 10px;
+  font: inherit; cursor: pointer; text-decoration: none; }
+.deck-toolbar .tb-prev, .deck-toolbar .tb-next, .deck-toolbar .tb-play { padding: 0; width: 34px; }
+.deck-toolbar svg { flex: none; }
+.deck-toolbar button:hover:not(:disabled), .deck-toolbar a:hover { background: #d9d4e6; }
+.deck-toolbar button.active { background: var(--struct); color: #fff; }
+.deck-toolbar button:disabled { opacity: .4; cursor: default; }
+.deck-toolbar .tb-seek { width: 200px; accent-color: var(--struct); }
+.deck-toolbar .tb-time { min-width: 80px; font-variant-numeric: tabular-nums; color: #444; font-size: 14px; }
+.deck-toolbar select { font: inherit; color: inherit; border: 1px solid #ccc8d8; border-radius: 6px; padding: 3px 4px; background: #fff; }
+.deck-toolbar .tb-narr.off .tb-seek, .deck-toolbar .tb-narr.off .tb-time, .deck-toolbar .tb-narr.off select { opacity: .4; }

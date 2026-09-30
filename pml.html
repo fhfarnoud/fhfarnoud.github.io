@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-7QF7HZ9LEN"></script>
@@ -14,354 +13,296 @@
     gtag("config", "G-7QF7HZ9LEN");
   </script>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Probabilistic Machine Learning</title>
-  <link rel="stylesheet" type="text/css" href="cssjs/home.css" />
-  <script type="text/javascript" src="cssjs/page.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fff;
+      --text: #201e1d;
+      --muted: #4b5563;
+      --faint: #6b7280;
+      --line: #dfe3ea;
+      --panel: #eef1f6;
+      --acc: #e57200;
+      --link: #0000ee;
+      --nav: #232d4b;
+      --nav-active: #e57200;
+      --nav-hover: #ff8d1a;
+      --fh: "Newsreader", Georgia, serif;
+      --fb: "Figtree", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin: 8px; background: #fff; color: var(--text); font-family: var(--fh); font-size: 18px; line-height: 1.6; }
+    a { color: var(--link); text-underline-offset: 2px; text-decoration-color: rgba(0, 0, 238, .35); }
+    a:hover { text-decoration-color: currentColor; }
+    /* the page's labels and small print stay sans-serif */
+    .kicker, .meta, dt, .fmt, h3.part, .toolbar button, .note { font-family: var(--fb); }
+    /* the site's column (cssjs/home.css): 1000px wide, 250px from the left edge */
+    .main, .topnav { box-sizing: content-box; margin-left: 250px; max-width: 1000px; padding: 0 10px; }
+    .main { background: var(--bg); }
+    main.main { padding-bottom: 56px; }
+
+    /* site navigation, same links and colours as the rest of the site */
+    .topnav { overflow: hidden; background: var(--nav); font-family: "Times New Roman", Times, serif; font-size: 19px; line-height: normal; }
+    .topnav a { float: right; color: #f2f2f2; text-align: center; padding: 14px 16px; text-decoration: none; }
+    .topnav a:hover { background: var(--nav-hover); color: #000; }
+    .topnav a.active { background: var(--nav-active); color: #fff; }
+    @media (max-width: 1300px) { .main, .topnav { margin-left: 10px; } }
+
+    h1, h2 { font-family: var(--fh); font-weight: 600; line-height: 1.15; margin: 0; }
+    h1 { font-size: 40px; margin: 6px 0 12px; }
+    h2 { font-size: 28px; margin: 44px 0 10px; }
+    h3 { font-size: 18px; margin: 24px 0 6px; }
+    p { margin: 0 0 12px; }
+    header { padding: 40px 0 4px; }
+    .kicker { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: .04em; color: var(--muted); }
+    .note { background: #fff3cd; border: 1px solid #e0c96c; padding: 8px 12px; border-radius: 6px; font-size: 16px; }
+    .book { padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: #fff; margin: 16px 0 8px; }
+    .book b { font-weight: 600; }
+
+    /* chapter list */
+    .toolbar { display: flex; justify-content: flex-end; margin: 4px 0 -6px; }
+    .toolbar button { font: inherit; font-size: 14px; color: var(--link); background: none; border: 0; padding: 4px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; text-decoration-color: rgba(0, 0, 238, .35); }
+    h3.part { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--nav); margin: 26px 0 4px; }
+    #chapters details { border-top: 1px solid var(--line); }
+    #chapters h3.part + details { border-top: 0; }
+    summary { list-style: none; display: grid; grid-template-columns: 48px 1fr auto 14px; gap: 12px; align-items: baseline; padding: 9px 2px; cursor: pointer; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--faint); border-bottom: 1.5px solid var(--faint); transform: rotate(-45deg); align-self: center; transition: transform .15s ease; }
+    details[open] > summary::after { transform: rotate(45deg); }
+    summary:hover .t { color: var(--link); }
+    summary:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; border-radius: 4px; }
+    .n { color: var(--faint); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .t { font-weight: 500; }
+    .meta { font-size: 13px; color: var(--faint); white-space: nowrap; }
+    dl { display: grid; grid-template-columns: 64px 1fr; gap: 8px 14px; margin: 0 0 12px 60px; padding: 12px 16px; background: var(--panel); border-radius: 8px; }
+    dt { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+    dd { margin: 0; }
+    .desc { display: block; font-size: 14px; color: var(--muted); }
+    dd .item + .item { margin-top: 8px; }
+    #chapters .gap { height: 20px; }
+    dd { font-size: 15px; line-height: 1.45; }
+    .planned { display: grid; grid-template-columns: 48px 1fr auto 14px; gap: 12px; align-items: baseline; padding: 9px 2px; border-top: 1px solid var(--line); color: var(--faint); }
+    #chapters h3.part + .planned { border-top: 0; }
+    .planned .meta { font-style: italic; }
+    .fmt { font-size: 11px; font-weight: 600; color: var(--faint); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 4px; vertical-align: 1px; }
+
+    ul, ol { padding-left: 1.3em; }
+    li { margin: 0 0 6px; }
+    footer.main { padding: 20px 10px 40px; border-top: 1px solid var(--line); color: var(--faint); font-size: 14px; text-align: center; }
+
+    @media (max-width: 600px) {
+      .topnav { font-size: 16px; }
+      .topnav a { padding: 12px 10px; }
+      h1 { font-size: 32px; }
+      summary { grid-template-columns: 44px 1fr 14px; row-gap: 0; }
+      .meta { grid-column: 2; grid-row: 2; }
+      summary::after { grid-column: 3; grid-row: 1; }
+      dl { margin-left: 0; grid-template-columns: 1fr; gap: 2px; }
+      dt { padding-top: 6px; }
+      .planned { grid-template-columns: 44px 1fr 14px; row-gap: 0; }
+      .planned .meta { grid-column: 2; grid-row: 2; }
+    }
+
+  </style>
 </head>
 
 <body>
-  <!-- Every time this navigation bar changes, it must also be changed in course_moi.html for the MoI course -->
-  <div class="topnav">
+  <nav class="topnav">
     <a style="float: left" href="index.html"><strong>Farzad Farnoud</strong></a>
-    <a id="teaching" href="teaching.html">Teaching</a>
-    <a id="pubs" href="publications.html">Publications</a>
-    <a id="home" href="index.html">Home</a>
+    <a class="active" href="teaching.html">Teaching</a>
+    <a href="publications.html">Publications</a>
+    <a href="index.html">Home</a>
+  </nav>
 
-    <script>
-      document.getElementById("home").className = "";
-    </script>
+  <main class="main">
+    <header>
+      <p class="kicker">ECE 6501/4502, CS 6501 · University of Virginia · Fall 2026</p>
+      <h1>Probabilistic Machine Learning</h1>
+      <p>Welcome! In this course, we’ll study estimation and machine learning from
+      a probabilistic point of view.</p>
+      <p class="note"><strong>Note:</strong> If you are enrolled in this course, please see
+      the detailed syllabus on Canvas.</p>
+    </header>
 
-    <script>
-      document.getElementById("pubs").className = "";
-    </script>
+    <section id="chapters">
+      <h2>Course notes</h2>
+      <p>Links to the complete notes and individual chapters are listed below and are updated as needed, with the chapter notes being possibly more up-to-date. To ensure you always access the latest versions, please view them via the links below rather than downloading local copies.</p>
+      <p class="book"><b>Complete notes:</b> <a href="docs/teaching/epl/Estimation-and-Probabilistic-Learning.pdf">Estimation and Probabilistic Learning</a> <span class="fmt">PDF</span></p>
+      <div class="toolbar"><button type="button" id="toggle-all">Expand all</button></div>
+<h3 class="part">Estimation</h3>
+<details id="ch0">
+  <summary><span class="n">0</span><span class="t">Review of Probability</span><span class="meta">HTML · PDF</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/00-Review-of-Probability.html">Read online</a> · <a href="docs/teaching/epl/00-Review-of-Probability.pdf">PDF</a></dd></dl>
+</details>
+<details id="ch1">
+  <summary><span class="n">1</span><span class="t">Probability in Reasoning, Inference, and Learning</span><span class="meta">HTML · PDF · slides</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/01-Probability-Inference-and-Learning.html">Read online</a> · <a href="docs/teaching/epl/01-Probability-Inference-and-Learning.pdf">PDF</a></dd><dt>Slides</dt><dd><div class="item"><a href="docs/teaching/epl/slides/01-1-ProbabilityLanguage-Slides.pdf">Probability as the language of uncertainty</a> <span class="fmt">PDF</span></div><div class="item"><a href="docs/teaching/epl/slides/01-2-InferenceML-Slides.pdf">Inference and machine learning</a> <span class="fmt">PDF</span></div><div class="item"><a href="docs/teaching/epl/slides/01-3-LanguageModeling-Slides.pdf">From coin flips to language models</a> <span class="fmt">PDF</span></div><div class="item"><a href="docs/teaching/epl/slides/01-4-InformationTheory-Slides.pdf">Information theory</a> <span class="fmt">PDF</span></div></dd></dl>
+</details>
+<details id="ch2">
+  <summary><span class="n">2</span><span class="t">Frequentist Parameter Estimation</span><span class="meta">HTML · PDF · slides · 1 demo</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/02-Frequentist-Parameter-Estimation.html">Read online</a> · <a href="docs/teaching/epl/02-Frequentist-Parameter-Estimation.pdf">PDF</a></dd><dt>Slides</dt><dd><div class="item"><a href="docs/teaching/epl/slides/05-2-MaximumLikelihood-Slides.pdf">Maximum likelihood</a> <span class="fmt">PDF</span></div></dd><dt>Demos</dt><dd><div class="item"><a href="docs/teaching/epl/Two-Infrared-Sensors.html">Two infrared sensors</a><span class="desc">Fisher information with two infrared sensors</span></div></dd></dl>
+</details>
+<details id="ch3">
+  <summary><span class="n">3</span><span class="t">Bayesian Parameter Estimation</span><span class="meta">HTML · PDF · slides · 2 demos</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/03-Bayesian-Parameter-Estimation.html">Read online</a> · <a href="docs/teaching/epl/03-Bayesian-Parameter-Estimation.pdf">PDF</a></dd><dt>Slides</dt><dd><div class="item"><a href="docs/teaching/epl/slides/22-1-prior-to-posterior/">Priors and posteriors</a> <span class="fmt">HTML</span></div><div class="item"><a href="docs/teaching/epl/slides/22-4-frequentist-bayesian/">Frequentist and Bayesian, side by side</a> <span class="fmt">HTML</span></div></dd><dt>Demos</dt><dd><div class="item"><a href="docs/teaching/epl/Bayesian-Updating.html">Bayesian updating</a><span class="desc">Bayesian updating, one observation at a time</span></div><div class="item"><a href="docs/teaching/epl/Star-Ratings.html">Star ratings</a><span class="desc">How sure can you be that a product is good from its star ratings?</span></div></dd></dl>
+</details>
+<h3 class="part">Regression, classification, and missing data</h3>
+<details id="ch4">
+  <summary><span class="n">4</span><span class="t">Multivariate Random Variables</span><span class="meta">PDF · slides · 1 demo</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/04-Multivariate-Random-Variables.pdf">PDF</a></dd><dt>Slides</dt><dd><div class="item"><a href="docs/teaching/epl/slides/30-1-multivariate/">Multivariate random variables</a> <span class="fmt">HTML</span></div></dd><dt>Demos</dt><dd><div class="item"><a href="docs/teaching/epl/Gaussian-Explorer.html">Explore a Gaussian</a><span class="desc">Shape and distance, observing and predicting, and combining evidence</span></div></dd></dl>
+</details>
+<details id="ch5">
+  <summary><span class="n">5</span><span class="t">Linear Regression</span><span class="meta">PDF</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/05-Linear-Regression.pdf">PDF</a></dd></dl>
+</details>
+<details id="ch6">
+  <summary><span class="n">6</span><span class="t">Linear Classification</span><span class="meta">PDF</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/06-Linear-Classification.pdf">PDF</a></dd></dl>
+</details>
+<details id="ch7">
+  <summary><span class="n">7</span><span class="t">Expectation-Maximization</span><span class="meta">PDF</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/07-Expectation-Maximization.pdf">PDF</a></dd></dl>
+</details>
+<h3 class="part">Graphical models</h3>
+<details id="ch8">
+  <summary><span class="n">8</span><span class="t">Basics of Graphical Models and Independence</span><span class="meta">PDF</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/08-Basics-of-Graphical-Models.pdf">Basics</a> · <a href="docs/teaching/epl/09-Independence-in-Graphical-Models.pdf">Independence</a> <span class="fmt">PDF</span></dd></dl>
+</details>
+<details id="ch9">
+  <summary><span class="n">9</span><span class="t">Parameter Estimation in Graphical Models</span><span class="meta">PDF</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/10-Parameter-Estimation-in-Graphical-Models.pdf">PDF</a></dd></dl>
+</details>
+<details id="ch10">
+  <summary><span class="n">10</span><span class="t">Inference in Graphical Models and Hidden Markov Models</span><span class="meta">PDF</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/11-Inference-in-Graphical-Models.pdf">Graphical models</a> · <a href="docs/teaching/epl/12-Inference-in-Hidden-Markov-Models.pdf">Hidden Markov models</a> <span class="fmt">PDF</span></dd></dl>
+</details>
+<details id="ch11">
+  <summary><span class="n">11</span><span class="t">Factor Graphs and Sum/Max-product Algorithms</span><span class="meta">PDF</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/13-Factor-Graphs-and-Sum-Max-product-Algorithms.pdf">PDF</a></dd></dl>
+</details>
+<h3 class="part">Computational methods</h3>
+<details id="ch12">
+  <summary><span class="n">12</span><span class="t">Markov Chains</span><span class="meta">PDF</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/14-Markov-Chains.pdf">PDF</a></dd></dl>
+</details>
+<details id="ch13">
+  <summary><span class="n">13</span><span class="t">Sampling Methods</span><span class="meta">PDF</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/15-Sampling-Methods.pdf">PDF</a></dd></dl>
+</details>
+<details id="ch14">
+  <summary><span class="n">14</span><span class="t">Variational Inference</span><span class="meta">PDF</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/16-Variational-Inference.pdf">PDF</a></dd></dl>
+</details>
+<h3 class="part">Generative AI</h3>
+<div class="planned"><span class="n"></span><span class="t">Language Models</span><span class="meta">in preparation</span></div>
+<div class="planned"><span class="n"></span><span class="t">Transformers and Attention</span><span class="meta">in preparation</span></div>
+<div class="planned"><span class="n"></span><span class="t">Variational Autoencoders</span><span class="meta">in preparation</span></div>
+<div class="planned"><span class="n"></span><span class="t">Diffusion Models</span><span class="meta">in preparation</span></div>
+<div class="gap"></div>
+<details id="ch15">
+  <summary><span class="n">15</span><span class="t">Appendix</span><span class="meta">PDF</span></summary>
+  <dl><dt>Notes</dt><dd><a href="docs/teaching/epl/17-Appendix.pdf">PDF</a></dd></dl>
+</details>
+    </section>
 
-    <script>
-      document.getElementById("teaching").className = "active";
-    </script>
-  </div>
+    <section id="about">
+      <h2>Why a probabilistic view?</h2>
+      <p>Information and uncertainty, which underlie both statistical estimation
+      and machine learning, can be represented via probability in a robust and
+      versatile way. Unknown quantities can be cast as random variables and
+      their relationships to each other and to known information as joint
+      distributions. This provides a unifying framework for setting up
+      estimation and machine learning problems, where we can state our
+      assumptions clearly, design methods, and evaluate performance.</p>
 
-  <div class="main">
-    <!--<table width="1000px">
-      <tr>
-        <td width="35%">
-          <img style="width: 350px" src="img/teaching/bias-variance-1.png" />
-        </td>
-        <td width="35%">
-          <img style="width: 350px" src="img/teaching/Q-LDAQDA.png" />
-        </td>
-        <td>
-          <table width="40%">
-            <tr>
-              <td>
-                <img style="width: 150px" src="img/teaching/EM16.png" />
-              </td>
-              <td>
-                <img style="width: 150px" src="img/teaching/EM21.png" />
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <img style="width: 150px" src="img/teaching/EM41.png" />
-              </td>
-              <td>
-                <img style="width: 150px" src="img/teaching/EM51.png" />
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  -->
+      <h2>What topics will we study?</h2>
+      <p>We will start with estimation, which can be defined as the problem of
+      learning about the world from data (e.g., finding the chance of getting a
+      disease given one’s genetic make-up) or drawing conclusions about
+      relationships (e.g., what are the best predictors of academic success?).
+      We will then learn about machine learning problems such as regression and
+      classification, where the goal is to predict an unknown quantity, e.g.,
+      the price of a house, based on some relevant information. We will also
+      learn how to deal with situations when part of the data is missing.
+      Finally, we will discuss computational methods, which help tackle
+      difficult problems via approximation.</p>
+    </section>
 
-    <p style="background: #fff3cd; border: 1px solid #e0c96c; padding: 8px 12px; border-radius: 4px">
-      <strong>Note:</strong> If you are enrolled in this course, please see
-      the detailed syllabus on Canvas.
-    </p>
+    <section id="prerequisites">
+      <h2>Pre-requisites</h2>
+      <ul>
+        <li>
+          <p>Fluency in <strong>basic probability</strong> (e.g., APMA 3100) is
+          needed for the course. You should be comfortable with 70-80% of
+          <a href="docs/teaching/epl/00-Review-of-Probability.html">Chapter 0</a>. In the second week of class, you will be asked to pass a test of basic probability with at least 70%. You will have the chance to retake the test if you score below 70%.</p>
+          <ul>
+            <li><a href="docs/teaching/esl/slgm17/ProbabilityReviewTest.pdf">Example Probability Review Test</a></li>
+          </ul>
+          <p>You can also refer to these pages I developed for a different
+          course to review probability, although these don’t cover everything
+          we’ll need:</p>
+          <ul>
+            <li><a href="moi/probability_basics.html">Basics</a></li>
+            <li><a href="moi/distributions.html">Random variables, distributions, and independence</a></li>
+            <li><a href="moi/expectation.html">Expectation and variance</a></li>
+            <li><a href="moi/conditional.html">Conditional probability</a></li>
+            <li>And here are some other resources:
+              <ul>
+                <li>An online textbook for probability theory: <a href="https://www.probabilitycourse.com">https://www.probabilitycourse.com</a></li>
+                <li><a href="https://hajek.ece.illinois.edu/Papers/randomprocJuly14.pdf">Random Processes for Engineers</a> by Bruce Hajek</li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li>Familiarity with <strong>linear algebra</strong>.</li>
+        <li>The programming exercises are based on <strong>Python</strong>.</li>
+      </ul>
+    </section>
 
-    <h2 id="ece-65014502-cs-6501-probabilistic-machine-learning-fall-2026">
-      ECE 6501/4502, CS 6501: Probabilistic Machine Learning (Fall 2026)
-    </h2>
+    <section id="textbooks">
+      <h2>Textbooks and other resources</h2>
+      <p>The main resources are lectures and the pdf notes posted on this page. But you
+      may find the following useful:</p>
+      <ol>
+        <li><a href="https://probml.github.io/pml-book/book1.html">Probabilistic Machine Learning: An introduction</a> by Kevin P. Murphy, 2022.</li>
+        <li><a href="https://www.deeplearningbook.org/">Deep Learning</a> by Ian Goodfellow et al, 2015.</li>
+        <li><a href="https://www.inference.org.uk/itprnn/book.pdf">Information Theory, Inference, and Learning Algorithms</a> by David MacKay, 2003.</li>
+        <li>Pattern Recognition and Machine Learning by Christopher M. Bishop, 2006.</li>
+        <li>Probabilistic Graphical Models: Principles and Techniques by Daphne Koller and Nir Friedman, 2009.</li>
+      </ol>
+    </section>
 
-    Welcome! In this course, we’ll study estimation and machine learning from
-    a probabilistic point of view.
+    <section id="previous-offerings">
+      <h2>Previous offerings</h2>
+      <ul>
+        <li><a href="pml-F25.html">Fall 2025</a></li>
+      </ul>
+    </section>
+  </main>
 
-    <h3>Why a probabilistic view?</h3>
-    Information and uncertainty, which underlie both statistical estimation
-    and machine learning, can be represented via probability in a robust and
-    versatile way. Unknown quantities can be cast as random variables and
-    their relationships to each other and to known information as joint
-    distributions. This provides a unifying framework for setting up
-    estimation and machine learning problems, where we can state our
-    assumptions clearly, design methods, and evaluate performance.
+  <footer class="main">© Farzad Farnoud, 2026</footer>
 
-    <h3>What topics will we study?</h3>
-    We will start with estimation, which can be defined as the problem of
-    learning about the world from data (e.g., finding the chance of getting a
-    disease given one’s genetic make-up) or drawing conclusions about
-    relationships (e.g., what are the best predictors of academic success?).
-    We will then learn about machine learning problems such as regression and
-    classification, where the goal is to predict an unknown quantity, e.g.,
-    the price of a house, based on some relevant information. We will also
-    learn how to deal with situations when part of the data is missing.
-    Finally, we will discuss computational methods, which help tackle
-    difficult problems via approximation.
-
-    <h3 id="pre-requisites">Pre-requisites:</h3>
-    <ul>
-      <li>
-        <p>Fluency in <strong>basic probability</strong> (e.g., APMA 3100) is
-        needed for the course. You should be comfortable with 70-80% of
-        <a href="docs/teaching/epl/00-Review-of-Probability.html" target="_blank">Chapter 0</a>. In the second week of class, you will be asked to pass a test of basic probability with at least 70%. You will have the chance to retake the test if you score below 70%.</p>
-        <ul>
-          <li>
-            <a href="docs/teaching/esl/slgm17/ProbabilityReviewTest.pdf" target="_blank">Example Probability Review Test</a>
-          </li>
-        </ul>
-        <p>You can also refer to
-        these pages I developed for a different
-        course to review probability, although these don’t cover everything
-        we’ll need:
-        <ul>
-          <li>
-            <a href="./moi/probability_basics.html" target="_blank">Basics</a>
-          </li>
-          <li>
-            <a href="./moi/distributions.html" target="_blank">Random variables, distributions, and independence</a>
-          </li>
-          <li>
-            <a href="./moi/expectation.html" target="_blank">Expectation and variance</a>
-          </li>
-          <li>
-            <a href="./moi/conditional.html" target="_blank">Conditional probability</a>
-          </li>
-          <li>
-            And here are some other resources:
-            <ul>
-              <li>
-                An online textbook for probability theory:
-                <a href="https://www.probabilitycourse.com" target="_blank">https://www.probabilitycourse.com</a>
-              </li>
-              <li>
-                <a href="https://hajek.ece.illinois.edu/Papers/randomprocJuly14.pdf" target="_blank">Random Processes
-                  for Engineers</a>
-                by Bruce Hajek
-              </li>
-            </ul>
-          </li>
-        </ul>
-      </li>
-      <li>Familiarity with <strong>linear algebra</strong>.</li>
-      <li>The programming exercises are based on <strong>Python</strong>.</li>
-    </ul>
-
-    <h3>Course Notes:</h3>
-
-    <p>
-      Links to the complete notes and individual chapters are listed below and are updated as needed, with the chapter notes being possibly more up-to-date. To ensure you always access the latest versions, please view them via the links below rather than downloading local copies.
-    </p>
-
-    <li>
-      <a href="docs/teaching/epl/Estimation-and-Probabilistic-Learning.pdf" target="_blank">Estimation and Probabilistic Learning</a>
-    </li>
-
-    <ol start="0">
-      <li>
-        <a href="docs/teaching/epl/00-Review-of-Probability.html" target="_blank">Review of Probability</a>
-        (<a href="docs/teaching/epl/00-Review-of-Probability.pdf" target="_blank">pdf</a>)
-      </li>
-      <li>
-        <a href="docs/teaching/epl/01-Probability-Inference-and-Learning.html" target="_blank">Probability, Inference,
-          and Learning</a>
-        (<a href="docs/teaching/epl/01-Probability-Inference-and-Learning.pdf" target="_blank">pdf</a>)
-      </li>
-      <li>
-        <a href="docs/teaching/epl/02-Frequentist-Parameter-Estimation.html" target="_blank">Frequentist Parameter
-          Estimation</a>
-        (<a href="docs/teaching/epl/02-Frequentist-Parameter-Estimation.pdf" target="_blank">pdf</a>)
-        <ul>
-          <li>
-            <a href="docs/teaching/epl/Two-Infrared-Sensors.html" target="_blank">Interactive demo: Fisher information
-              with two infrared sensors</a>
-          </li>
-        </ul>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/03-Bayesian-Parameter-Estimation.html" target="_blank">Bayesian Parameter
-          Estimation</a>
-        (<a href="docs/teaching/epl/03-Bayesian-Parameter-Estimation.pdf" target="_blank">pdf</a>)
-        <ul>
-          <li>
-            <a href="docs/teaching/epl/Bayesian-Updating.html" target="_blank">Interactive demo: Bayesian updating,
-              one observation at a time</a>
-          </li>
-          <li>
-            <a href="docs/teaching/epl/Star-Ratings.html" target="_blank">Interactive demo: how sure can you be that a
-              product is good from its star ratings?</a>
-          </li>
-        </ul>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/04-Multivariate-Random-Variables.pdf" target="_blank">Multivariate random
-          variables</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/05-Linear-Regression.pdf" target="_blank">Linear Regression</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/06-Linear-Classification.pdf" target="_blank">Linear Classification</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/07-Expectation-Maximization.pdf" target="_blank">Expectation-Maximization</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/08-Basics-of-Graphical-Models.pdf" target="_blank">Basics of Graphical Models</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/09-Independence-in-Graphical-Models.pdf" target="_blank">Independence in Graphical
-          Models</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/10-Parameter-Estimation-in-Graphical-Models.pdf" target="_blank">Parameter Estimation
-          in Graphical Models</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/11-Inference-in-Graphical-Models.pdf" target="_blank">Inference in Graphical
-          Models</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/12-Inference-in-Hidden-Markov-Models.pdf" target="_blank">Inference in Hidden Markov
-          Models</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/13-Factor-Graphs-and-Sum-Max-product-Algorithms.pdf" target="_blank">Factor Graphs
-          and Sum/Max-product Algorithms</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/14-Markov-Chains.pdf" target="_blank">Markov Chains</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/15-Sampling-Methods.pdf" target="_blank">Sampling Methods</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/16-Variational-Inference.pdf" target="_blank">Variational Inference</a>
-      </li>
-      <li>
-        <a href="docs/teaching/epl/17-Appendix.pdf" target="_blank">Appendix
-        </a>
-      </li>
-    </ol>
-
-        <h4 id="textbooks">Textbooks and other resources:</h4>
-
-    <p>
-      The main resources are lectures and the pdf notes posted on this page. But you
-      may find the following useful:
-    </p>
-
-    <ol>
-      <li>
-        <a href="https://probml.github.io/pml-book/book1.html" target="_blank">Probabilistic Machine Learning: An
-          introduction</a>
-        by Kevin P. Murphy, 2022.
-      </li>
-      <li>
-        <a href="https://www.deeplearningbook.org/" target="_blank">Deep Learning</a>
-        by Ian Goodfellow et al, 2015.
-      </li>
-      <li>
-        <a href="https://www.inference.org.uk/itprnn/book.pdf" target="_blank">Information Theory, Inference, and
-          Learning Algorithms</a>
-        by David MacKay, 2003.
-      </li>
-      <li>
-        Pattern Recognition and Machine Learning by Christopher M. Bishop,
-        2006.
-      </li>
-      <li>
-        Probabilistic Graphical Models: Principles and Techniques by Daphne
-        Koller and Nir Friedman, 2009.
-      </li>
-    </ol>
-
-<hr>
-
-    <h3 id="previous-offerings">Previous offerings:</h3>
-    <ul>
-      <li><a href="pml-F25.html">Fall 2025</a></li>
-    </ul>
-
-<!--
-    <h3 id="the-information-below-is-from-a-previous-offering-and-will-be-updated">
-      Other material from previous offerings:
-    </h3>
-    <ul>
-      <li>
-        <a href="docs/teaching/esl/slgm17/ProbabilityReviewTest.pdf" target="_blank">Probability Review Test</a>
-      </li>
-      <li>
-        <a href="https://nbviewer.jupyter.org/url/www.ece.virginia.edu/~ffh8x/docs/teaching/esl/slgm17/Lab1.5.ipynb"
-          target="_blank">Lab 0: Probability and Python</a> <a href="http://ipython.org/notebook.html"
-          target="_blank">(IPython Notebook)</a>
-      </li>
-      <li>
-        <a href="docs/teaching/esl/slgm17/HW1.pdf" target="_blank">Assignment 1</a>
-      </li>
-      <li>
-        <a href="https://nbviewer.jupyter.org/url/www.ece.virginia.edu/~ffh8x/docs/teaching/esl/slgm17/Lab1.ipynb"
-          target="_blank">Lab 1: Graphical Models</a>
-      </li>
-      <li>
-        <a href="docs/teaching/esl/slgm17/HW2.pdf" target="_blank">Assignment 2</a>
-      </li>
-      <li>
-        <a href="https://nbviewer.jupyter.org/url/www.ece.virginia.edu/~ffh8x/docs/teaching/esl/slgm17/Lab2.ipynb"
-          target="_blank">Lab 2: Frequentist and Bayesian Estimation</a>
-      </li>
-      <li>
-        <a href="docs/teaching/esl/slgm17/HW3.pdf" target="_blank">Assignment 3</a>
-      </li>
-      <li>
-        <a href="https://nbviewer.jupyter.org/url/www.ece.virginia.edu/~ffh8x/docs/teaching/esl/slgm17/Lab3.ipynb"
-          target="_blank">Lab 3: Regression and SGD</a>, <a href="docs/teaching/esl/slgm17/BoxOffice2017.csv"
-          target="_blank">data: BoxOffice2017.csv</a>
-      </li>
-      <li>
-        <a href="docs/teaching/esl/slgm17/Lab3.5.ipynb" target="_blank">Miniproject</a>
-      </li>
-      <li>
-        <a href="https://nbviewer.jupyter.org/url/www.ece.virginia.edu/~ffh8x/docs/teaching/esl/slgm17/Lab4.ipynb"
-          target="_blank">Lab 4: Classification</a>
-      </li>
-      <li>
-        <a href="https://nbviewer.jupyter.org/url/www.ece.virginia.edu/~ffh8x/docs/teaching/esl/slgm17/Lab5.ipynb"
-          target="_blank">Lab 5: EM</a>
-      </li>
-      <li>
-        <a href="docs/teaching/esl/slgm17/HW4.pdf" target="_blank">Assignment 4</a>
-      </li>
-      <li>
-        <a href="https://nbviewer.jupyter.org/url/www.ece.virginia.edu/~ffh8x/docs/teaching/esl/slgm17/Lab6.ipynb"
-          target="_blank">Lab 6: HMM</a>
-      </li>
-      <li>
-        <a href="docs/teaching/esl/slgm17/HW5.pdf" target="_blank">Assignment 5</a>
-      </li>
-      <li>
-        <a href="https://nbviewer.jupyter.org/url/www.ece.virginia.edu/~ffh8x/docs/teaching/esl/slgm17/Lab7.ipynb"
-          target="_blank">Lab 7: MCMC</a>
-      </li>
-    </ul>
-  -->
-
-    <footer>
-      <br /><br />
-      <center>
-        <hr />
-        &copy; Farzad Farnoud, 2026
-      </center>
-    </footer>
-  </div>
-
+  <script>
+    // Expand/collapse every chapter; a link ending in #ch3 opens chapter 3.
+    const chapters = document.querySelectorAll("#chapters details");
+    const toggle = document.getElementById("toggle-all");
+    toggle.addEventListener("click", () => {
+      const open = toggle.textContent === "Expand all";
+      chapters.forEach((d) => (d.open = open));
+      toggle.textContent = open ? "Collapse all" : "Expand all";
+    });
+    function openFromHash() {
+      const el = location.hash && document.getElementById(location.hash.slice(1));
+      if (el && el.tagName === "DETAILS") { el.open = true; el.scrollIntoView(); }
+    }
+    window.addEventListener("hashchange", openFromHash);
+    openFromHash();
+  </script>
   <!-- Default Statcounter code -->
   <script type="text/javascript">
     var sc_project = 12471818;
@@ -377,5 +318,4 @@
     </div>
   </noscript>
 </body>
-
 </html>

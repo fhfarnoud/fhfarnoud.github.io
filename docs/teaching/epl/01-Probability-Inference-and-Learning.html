@@ -242,7 +242,7 @@ div.lt-boxlower { margin-top: .6em; padding-top: .45em;
   try{p=JSON.parse(localStorage.getItem('ltreader:prefs')||
                    localStorage.getItem('ltnotes:prefs'))||{};}catch(e){}
   var r=document.documentElement;
-  r.setAttribute('data-theme',p.theme||'organic');
+  r.setAttribute('data-theme',p.theme||'latex');
   r.setAttribute('data-dark',p.dark?'1':'0');
   /* same reason: a stored rail width applied after the first paint would show
      the default rail and then jump. style.js re-clamps it once it can measure
@@ -1308,7 +1308,7 @@ html[data-dark="1"][data-theme="latex"]{--a700:#b5abfc;--a800:#d2cefd;--acc:#b5a
        the stored choice there and this only presses the matching chip. */
     if(p.theme) root.setAttribute('data-theme',p.theme);
     if(p.dark!=null) root.setAttribute('data-dark',p.dark?'1':'0');
-    if(!root.getAttribute('data-theme')) root.setAttribute('data-theme','organic');
+    if(!root.getAttribute('data-theme')) root.setAttribute('data-theme','latex');
     syncTheme();syncBoxes();
     syncChips();spy();ltHashOpen();}
   window.addEventListener('hashchange',ltHashOpen);

@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Priors and Posteriors</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<link rel="stylesheet" href="../shared/deck.css">
+<style>
+/* Deck-local layout */
+ol.toc li.dim { opacity: .35; }
+.lft .katex-display, .lft .katex-display > .katex { text-align: left; }
+table.bk { border-collapse: collapse; margin: 6px auto 12px; }
+table.bk th, table.bk td { padding: 4px 16px; text-align: left; }
+table.bk thead th { border-top: 2px solid #222; border-bottom: 1px solid #222; font-weight: normal; }
+table.bk tbody tr:last-child td { border-bottom: 2px solid #222; }
+table.bk.c th, table.bk.c td { text-align: center; }
+table.bk.tall td { padding: 16px 16px; }
+table.bk .cmid th { border-bottom: none; }
+table.bk .cmid + tr th { border-top: none; }
+table.plain td { padding: 5px 18px 5px 0; }
+.cards { display: flex; gap: 30px; margin: 0 0 16px; }
+.cards .altcard { flex: 1 1 0; }
+.c-mode { color: #C71585; } .c-med { color: #CC8800; } .c-mean { color: #8C4614; }
+.ctr { text-align: center; }
+ol.enum { margin: 0; padding-left: 34px; }
+ol.enum li { margin: 0 0 4px; }
+.xs { font-size: 20px; }
+.topbar { border-top: 5px solid; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- Title -->
+<section class="frame">
+  <svg class="bells" width="1280" height="720"></svg>
+  <div class="titlebox">
+    <div class="t">Bayesian Estimation: Priors, Posteriors, MAP</div>
+    <div class="st">Part 2: How much can one sample tell you about the world?</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Probabilistic Machine Learning</div>
+    <div class="i">University of Virginia<br>Farzad Farnoud</div>
+    <div class="d">September 17, 2026</div>
+  </div>
+</section>
+
+<!-- ============ 1. From prior to posterior ============ -->
+
+<section class="frame" id="sec-post">
+  <div class="frametitle">Outline</div>
+  <div class="fbody"><div class="row center">
+    <div class="col" style="padding-left:30px">
+      <ol class="toc">
+        <li><a href="#/sec-post">From prior to posterior</a></li>
+        <li class="dim"><a href="#/sec-est">Point estimates</a></li>
+        <li class="dim"><a href="#/sec-pred">Predicting the next observation</a></li>
+      </ol>
+    </div>
+    <div class="fig" data-fig="core"></div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Has the sun gone supernova?</div>
+  <div class="fbody"><div class="row">
+    <div style="flex:0 0 720px">
+      <img src="img/supernova-explosion.png" alt="A hypothetical supernova of the sun seen from space, with the Earth at the right" style="width:720px;display:block;border-radius:4px">
+      <p class="caption">Hypothetical scenario. AI-generated illustration, not to scale.</p>
+    </div>
+    <div class="col" style="padding-top:40px">
+      <p>It is night. We cannot see the sun.</p>
+      <p>A sensor measuring radiation reports readings consistent with a supernova, but the sensor is noisy and can have elevated readings even in the absence of a supernova.</p>
+      <p style="margin-top:34px" class="structure">What should we conclude?</p>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Last time: the frequentist view</div>
+  <div class="fbody">
+    <div class="block"><div class="bt">Has the sun gone supernova?</div><div class="bb">
+      To a frequentist, the sun has either gone supernova or it has not. That is a fact about the universe; no probability attaches to it.
+      What is random is the measurement. Our trust in the measurement comes from how reliable they are in general, not from the particular reading we have.
+    </div></div>
+    <div class="block"><div class="bt">Chapter 2 in these terms</div><div class="bb">
+      $\theta^*$ is fixed and unknown. An estimator $\hat\theta(\bX)$ is a rule from data to a value, and its bias, variance, and mean squared error are averages over the data it could have seen.
+    </div></div>
+    <p class="small">The setup is <a href="https://xkcd.com/1132/">xkcd 1132</a>.</p>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Today: the Bayesian view</div>
+  <div class="fbody">
+    <div class="block"><div class="bt">Has the sun gone supernova?</div><div class="bb">
+      A Bayesian does not know which universe she lives in: one in which the sun has gone supernova, or one in which it has not. She assigns each a probability before looking (supernovae are rare, so the first gets very little), and the sensor readings update those probabilities. Her conclusion is a probability for each universe, given the readings she actually has.
+    </div></div>
+    <div class="block"><div class="bt">This chapter in these terms</div><div class="bb">
+      $\Theta$ is a random variable. A prior $\cpr{p(\theta)}$ says what we believe before the data. Bayes' rule turns the prior and the data into a posterior $\cpo{p(\theta|\bx)}$. Every question about $\theta$ becomes a computation with the posterior.
+    </div></div>
+    <p>The same readings, two questions: how reliable are my measurements (estimates), and how probable is each universe given what I saw.</p>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">The ingredients</div>
+  <div class="fbody">
+    <div class="block"><div class="bt">Components</div><div class="bb">
+      Data $\bx$: a realization of $\bX$, whose distribution depends on the parameter $\Theta$. $\Theta$ is unknown, and therefore a random variable. Together they have a joint distribution $p_{\bX,\Theta}$, with marginals $p_{\bX}$ and $p_\Theta$.
+    </div></div>
+    <div class="block"><div class="bt">Three steps</div><div class="bb">
+      <ol class="enum">
+        <li class="c-prior">The prior $p_\Theta(\theta)$.</li>
+        <li class="c-like">The data $\bx$ and the likelihood $p_{\bX|\Theta}(\bx|\theta)$.</li>
+        <li><span class="c-post">The posterior</span>
+          \[\cpo{p_{\Theta|\bX}(\theta|\bx)}=\frac{\cpr{p_\Theta(\theta)}\,\clk{p_{\bX|\Theta}(\bx|\theta)}}{p_{\bX}(\bx)},\qquad\text{written } \cpo{p(\theta|\bx)}=\frac{\cpr{p(\theta)}\clk{p(\bx|\theta)}}{p(\bx)}\]
+          once the argument makes the distribution clear.</li>
+      </ol>
+    </div></div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Working up to a constant</div>
+  <div class="fbody">
+    <div class="block"><div class="bt">Drop constants, then normalize</div><div class="bb">
+      Drop every factor that is constant in $\theta$ first:
+      \[\cpo{p(\theta|\bx)}\propto \cpr{p(\theta)}\clk{p(\bx|\theta)},\]
+      dropping constants from both $\cpr{p(\theta)}$ and $\clk{p(\bx|\theta)}$ too. Then normalize the right side.
+    </div></div>
+    <div class="block"><div class="bt">How to normalize?</div><div class="bb">
+      <ol class="enum">
+        <li>Recognize the distribution (today's route).</li>
+        <li>Integrate numerically.</li>
+        <li>Approximate: Markov chain Monte Carlo and variational inference, later in the course.</li>
+      </ol>
+      When only $\argmax_\theta \cpo{p(\theta|\bx)}$ is wanted, no normalization at all.
+    </div></div>
+    <div class="block alertblock"><div class="bt">$\propto$ is the working tool</div><div class="bb">
+      Everything constant in $\theta$ goes, and the constant comes back at the end, if it is needed at all.
+    </div></div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">The traffic road: the prior</div>
+  <div class="fbody">
+    <p>A road has light traffic on a day with probability $\theta$. Over 10 days, 6 had light traffic. Three steps lead to the posterior.</p>
+    <div class="row" style="height:auto">
+      <div class="col">
+        <div class="block"><div class="bt">Step 1: the prior</div><div class="bb">
+          Before the data, nothing is known about $\Theta$, so every value in $[0,1]$ is equally plausible:
+          \[\cpr{\Theta\sim\uni(0,1),\qquad p(\theta)=1\ \text{on }[0,1]}.\]
+        </div></div>
+      </div>
+      <div class="fig" data-fig="road1"></div>
+    </div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">The traffic road: the likelihood</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <div class="block"><div class="bt">Step 2: the data and the likelihood</div><div class="bb">
+        The data is $\bx=(6,4)$: 6 light and 4 heavy days. Given $\theta$, the count of light days is $\bin(10,\theta)$, so
+        \[\clk{p(\bx|\theta)=\binom{10}{6}\theta^{6}(1-\theta)^{4}}.\]
+        Read as a function of $\theta$, this is the likelihood. It peaks at $\theta=6/10=0.6$, the MLE (last week's method); the binomial coefficient does not depend on $\theta$.
+      </div></div>
+    </div>
+    <div class="fig" data-fig="road2"></div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">The traffic road: the posterior</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <div class="block"><div class="bt">Step 3: the posterior</div><div class="bb small">
+        \[\begin{aligned}\cpo{p(\theta|\bx)}&=\frac{\cpr{p(\theta)}\,\clk{p(\bx|\theta)}}{p(\bx)}=\frac{\textcolor{gray}{1}\cdot\textcolor{gray}{\tbinom{10}{6}}\,\clk{\theta^{6}(1-\theta)^{4}}}{\textcolor{gray}{p(\bx)}}\\&\propto\cpo{\theta^{6}(1-\theta)^{4}}.\end{aligned}\]
+        The grayed factors do not depend on $\theta$ and are dropped. As a function of $\theta$, what is left is a Beta density up to its constant: $\cpo{\Theta|\bx\sim\bet(7,5)}$.
+      </div></div>
+      <p class="fragment" data-set='{"u":1}'>The mode is 0.6, the MLE; the mean is $7/12=0.583$; the standard deviation is 0.137.</p>
+    </div>
+    <div class="fig" data-fig="road3" data-init='{"u":0}'></div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Your turn: one toss, then three</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <p>Let $X_i=1$ denote a head and $X_i=0$ a tail, with $X_i\mid\Theta=\theta\sim\ber(\theta)$. The prior on $\Theta$ is uniform.</p>
+      <p><span class="alert">Predict:</span> sketch the posterior after a single head, before computing it.</p>
+      <ol class="parts">
+        <li>(a) Observe $X_1=1$. Find $p(\theta\mid X_1=1)$.</li>
+        <li>(b) Observe $\bx=(1,1,0)$. Find the posterior and $\pr(\Theta>1/2\mid\bX=\bx)$.</li>
+      </ol>
+    </div>
+    <div class="fig" data-fig="toss" data-init='{"s":0,"cur":0,"gh":0,"tail":0}'></div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Your turn: one toss, then three (a)</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <ol class="parts"><li>(a) Observe $X_1=1$. Find $p(\theta\mid X_1=1)$.</li></ol>
+      <div class="fragment" data-set='{"s":1,"cur":1}'>
+        <span class="structure">Solution</span>
+        \[\begin{aligned}
+        \cpr{\text{Prior:}}\quad &\cpr{p(\theta)=1,\qquad\Theta\sim\bet(1,1)},\\
+        \clk{\text{Likelihood:}}\quad &\clk{p(X_1=1\mid\theta)=\theta},\\
+        \cpo{\text{Posterior:}}\quad &\cpo{p(\theta\mid X_1=1)\propto\theta=\theta^1(1-\theta)^0},\\
+        &\cpo{\Theta\mid X_1=1\sim\bet(2,1)},\\
+        &\cpo{p(\theta\mid X_1=1)=2\theta}.
+        \end{aligned}\]
+      </div>
+    </div>
+    <div class="fig" data-fig="toss" data-init='{"s":0,"cur":0,"gh":0,"tail":0}'></div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Your turn: one toss, then three (b)</div>
+  <div class="fbody"><div class="row">
+    <div class="col lft">
+      <ol class="parts"><li>(b) Observe $\bx=(1,1,0)$. Find the posterior and $\pr(\Theta>1/2\mid\bX=\bx)$.</li></ol>
+      <div class="fragment small" data-fragment-index="3">
+        <span class="structure">Solution</span>
+        \[\begin{aligned}
+        \cpr{\text{Prior:}}\quad &\cpr{p(\theta)=1,\qquad 0\leq\theta\leq1},\\
+        \clk{\text{Likelihood:}}\quad &\clk{p(\bx\mid\theta)\propto\theta^2(1-\theta)},\\
+        \cpo{\text{Posterior:}}\quad &\cpo{p(\theta\mid\bx)\propto\theta^2(1-\theta)}\\
+        &=\cpo{\theta^{3-1}(1-\theta)^{2-1}},\\
+        &\cpo{\Theta\mid\bx\sim\bet(3,2)},
+        \end{aligned}\]
+      </div>
+      <div class="fragment small" data-fragment-index="4" data-set='{"tail":1}'>
+        \[\begin{aligned}
+        \hphantom{\text{Likelihood:}}\llap{\text{Density:}}\quad &p(\theta\mid\bx)=12\theta^2(1-\theta),\\
+        \text{Tail:}\quad &\pr(\Theta>\tfrac12\mid\bx)=1-F_{\bet(3,2)}(\tfrac12),\\
+        &\pr(\Theta>\tfrac12\mid\bx)=\tfrac{11}{16}=0.6875.
+        \end{aligned}\]
+      </div>
+    </div>
+    <div style="flex:none">
+      <div class="fig" data-fig="toss" data-init='{"s":1,"cur":0,"gh":1,"tail":0}'></div>
+      <p class="small" style="width:480px;margin-top:4px"><span class="fragment" data-fragment-index="1" data-set='{"s":2,"cur":1}'>A head multiplies the curve by $\theta$ and tilts it right;</span>
+        <span class="fragment" data-fragment-index="2" data-set='{"s":3}'>a tail by $1-\theta$ and tilts it left.</span></p>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">A Beta prior with Bernoulli data</div>
+  <div class="fbody small">
+    <p>Let $n=h+t$, where $h$ is the number of heads and $t$ the number of tails.</p>
+    <table class="bk tall" style="width:100%;margin-top:20px">
+      <thead><tr><th></th><th>Proportional form</th><th>Named distribution</th></tr></thead>
+      <tbody>
+        <tr><td class="c-prior">Prior</td><td>$\cpr{p(\theta)\propto\theta^{\alpha-1}(1-\theta)^{\beta-1}}$</td><td>$\cpr{\Theta\sim\bet(\alpha,\beta)}$</td></tr>
+        <tr><td class="c-like">Likelihood for data $(h,t)$</td><td>$\clk{p(\bx\mid\theta)\propto\theta^h(1-\theta)^t}$</td><td>$\clk{X\mid\Theta\sim\bin(n,\theta)}$</td></tr>
+        <tr><td class="c-post">Posterior</td><td>$\cpo{p(\theta\mid\bx)\propto\theta^{\cpr{\alpha}+\clk{h}-1}(1-\theta)^{\cpr{\beta}+\clk{t}-1}}$</td><td>$\cpo{\Theta\mid\bx\sim\bet(\cpr{\alpha}+\clk{h},\cpr{\beta}+\clk{t})}$</td></tr>
+      </tbody>
+    </table>
+    <p class="ctr" style="margin-top:26px">The observed counts add to the two Beta parameters.</p>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Observed percentages can be misleading</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <p>A fraction $\theta$ of viewers like a video; the prior is uniform. Call the video high quality if $\theta>0.8$.</p>
+      <p><span class="alert">Before the data:</span> what is the prior probability that the video is high quality?</p>
+      <div class="fragment" data-set='{"v":1}'>
+        <p style="margin:0">After observing $\bx$, use</p>
+        \[\pr(\Theta>0.8\mid\bx)=\int_{0.8}^1\cpo{p(\theta|\bx)}\,d\theta.\]
+        <p style="margin:0 0 6px"><span class="alert">Predict:</span> which result makes you most confident that the video is high quality?</p>
+        <ol class="parts" style="margin:0">
+          <li>(a) 1 like, 0 dislikes: $100\%$ liked it.</li>
+          <li>(b) 9 likes, 1 dislike: $90\%$ liked it.</li>
+          <li>(c) 85 likes, 15 dislikes: $85\%$ liked it.</li>
+        </ol>
+      </div>
+    </div>
+    <div class="fig" data-fig="obs" data-init='{"v":0}'></div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">The posterior ranking reverses the observed percentages</div>
+  <div class="fbody small">
+    <p>Under the uniform prior, $\pr(\Theta>0.8)=1-0.8=0.20$.</p>
+    <table class="bk c" style="margin-top:0">
+      <thead><tr><th>Data $(h,t)$</th><th>Observed rate $h/n$</th><th class="c-post">Posterior</th><th>$\pr(\Theta>0.8\mid\bx)$</th></tr></thead>
+      <tbody>
+        <tr class="fragment" data-set='{"u1":1}'><td>$(1,0)$</td><td>$1.00$</td><td>$\cpo{\bet(2,1)}$</td><td>$0.36$</td></tr>
+        <tr class="fragment" data-set='{"u2":1}'><td>$(9,1)$</td><td>$0.90$</td><td>$\cpo{\bet(10,2)}$</td><td>$0.68$</td></tr>
+        <tr class="fragment" data-set='{"u3":1}'><td>$(85,15)$</td><td>$0.85$</td><td>$\cpo{\bet(86,16)}$</td><td>$0.88$</td></tr>
+      </tbody>
+    </table>
+    <div class="fig" data-fig="rank" data-init='{"u1":0,"u2":0,"u3":0}'></div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Data reduces sensitivity to fixed Beta priors</div>
+  <div class="fbody">
+    <div class="row" style="height:auto">
+      <div class="col">
+        <p><span class="alert">Predict:</span> after 100 viewers (80 likes, 20 dislikes), how far apart are the two means? After 1000?</p>
+        <table class="bk c small fragment" data-fragment-index="1">
+          <thead><tr><th>viewers</th><th>flat prior</th><th>skeptic $\bet(2,8)$</th><th>gap</th></tr></thead>
+          <tbody>
+            <tr class="fragment" data-fragment-index="1" data-set='{"lg":0.69897}'><td>5</td><td>0.71</td><td>0.40</td><td>0.31</td></tr>
+            <tr class="fragment" data-fragment-index="2" data-set='{"lg":1.30103}'><td>20 (16 likes)</td><td>0.77</td><td>0.60</td><td>0.17</td></tr>
+            <tr class="fragment" data-fragment-index="3" data-set='{"lg":2}'><td>100 (80 likes)</td><td>0.79</td><td>0.75</td><td>0.05</td></tr>
+            <tr class="fragment" data-fragment-index="4" data-set='{"lg":3}'><td>1000 (800 likes)</td><td>0.80</td><td>0.79</td><td>0.01</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="fig" data-fig="sens" data-init='{"lg":2}'></div>
+        <div class="knobs" data-for="sens"><label>viewers $n$ (log scale) <input type="range" data-param="lg" min="0.69897" max="3" step="0.001"></label></div>
+      </div>
+    </div>
+    <div class="block alertblock" style="position:absolute;left:0;right:0;bottom:0;margin:0"><div class="bt">The two posterior means converge in this model</div><div class="bb">
+      For fixed Beta priors with positive density near the data-generating value, the likelihood increasingly dominates as $n$ grows.
+    </div></div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Two equivalent ways to update</div>
+  <div class="fbody small">
+    <p style="margin-bottom:8px">Let $\bx$ be the data already observed and $\bx'$ the new data. Assume $\bX'\independent\bX\mid\Theta$, so $\clk{p(\bx'\mid\theta,\bx)}=\clk{p(\bx'\mid\theta)}$.</p>
+    <div class="row" style="height:auto">
+      <div class="col">
+        <div class="block" style="margin-bottom:6px"><div class="bt">Use posterior as new prior</div><div class="bb">
+          Update with the first batch:
+          \[\cpo{p(\theta\mid\bx)}\propto \cpr{p(\theta)}\clk{p(\bx\mid\theta)}.\]
+          Use the posterior as the prior for the second batch:
+          \[\cpo{p(\theta\mid\bx,\bx')}\propto \cpo{p(\theta\mid\bx)}\clk{p(\bx'\mid\theta)}.\]
+        </div></div>
+        <div class="fig" data-fig="seqL" data-init='{"s":0}'></div>
+      </div>
+      <div class="col">
+        <div class="block" style="margin-bottom:6px"><div class="bt">Pool the data with the original prior</div><div class="bb">
+          Combine the two batches, then update once:
+          \[\cpo{p(\theta\mid\bx,\bx')}\propto \cpr{p(\theta)}\clk{p(\bx,\bx'\mid\theta)}.\]
+          Use conditional independence to factor the likelihood:
+          \[\clk{p(\bx,\bx'\mid\theta)}=\clk{p(\bx\mid\theta)}\clk{p(\bx'\mid\theta)}.\]
+        </div></div>
+        <div class="fig" data-fig="seqR" data-init='{"s":0}'></div>
+      </div>
+    </div>
+    <span class="fragment" data-set='{"s":1}' data-for="seqL"></span>
+    <span class="fragment" data-set='{"s":2}' data-for="seqL"></span>
+    <span class="fragment" data-set='{"s":1}' data-for="seqR"></span>
+    <svg class="icon" data-icon="seqarrows" width="1200" height="30" style="display:block"></svg>
+    <div class="block alertblock" style="width:760px;margin:0 auto"><div class="bt ctr">Both routes give the same posterior</div><div class="bb ctr">
+      $\cpo{p(\theta\mid\bx,\bx')}\propto \cpr{p(\theta)}\clk{p(\bx\mid\theta)}\clk{p(\bx'\mid\theta)}.$
+    </div></div>
+    <p class="caption xs ctr" style="margin-top:4px">Road: $\bx$ is the first 10 days (6 light), $\bx'$ the next 40 days (23 light).</p>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Shapes in the Beta family</div>
+  <div class="fbody small"><div class="row">
+    <div class="col">
+      \[p(\theta)\propto\theta^{\alpha-1}(1-\theta)^{\beta-1}.\]
+      <p style="margin:0">For $\alpha,\beta\geq1$, interpret the prior relative to the uniform $\bet(1,1)$ prior:</p>
+      \[\underbrace{\alpha-1}_{\text{prior successes}},\qquad\underbrace{\beta-1}_{\text{prior failures}}.\]
+      <p class="ctr" style="margin:0 0 6px"><span class="structure" style="font-weight:normal">Total prior pseudocount:</span> $\alpha+\beta-2$.</p>
+      <p class="xs" style="margin:0 0 10px">A parameter below $1$ has no pseudocount interpretation and can place substantial mass near a boundary.</p>
+      <p style="margin:0 0 4px"><span class="alert">Question:</span> which curve fits each setting?</p>
+      <ol class="parts" style="margin:0 0 8px">
+        <li>(a) Little is known about traffic.</li>
+        <li>(b) An allele causes a disease.</li>
+      </ol>
+      <p class="xs">For more on choosing priors, read about <em>Jeffreys priors</em>.</p>
+    </div>
+    <div>
+      <div class="fig" data-fig="shapes" data-init='{"a":0,"b":0}'></div>
+      <div class="knobs" data-for="shapes">
+        <label>$\alpha$ <input type="range" data-param="a" data-digits="1" min="0.3" max="10" step="0.1"><output></output></label>
+        <label>$\beta$ <input type="range" data-param="b" data-digits="1" min="0.3" max="10" step="0.1"><output></output></label>
+      </div>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">A Poisson model for event counts</div>
+  <div class="fbody"><div class="row center">
+    <div class="col">
+      <p style="margin:0">Let $Y_i$ be the number of events in observation window $i$.</p>
+      \[\clk{Y_i\mid\Lambda=\lambda\sim\poi(\lambda),\qquad p(y_i\mid\lambda)=e^{-\lambda}\frac{\lambda^{y_i}}{y_i!}}.\]
+      <p style="margin:0">Here, $\lambda$ is the expected count in one window:</p>
+      \[\E[Y_i\mid\lambda]=\lambda,\qquad\var(Y_i\mid\lambda)=\lambda.\]
+      <div class="block"><div class="bt">Why this model can make sense</div><div class="bb">
+        The observations are counts in comparable windows. Events occur independently at a roughly stable rate within each window.
+      </div></div>
+    </div>
+    <div>
+      <div class="fig" data-fig="pois" data-init='{"l":2}'></div>
+      <div class="knobs"><label>$\lambda$ <input type="range" data-param="l" data-digits="1" min="1.6" max="6" step="0.1"><output></output></label></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">The same recipe for counts: Poisson data, Gamma prior</div>
+  <div class="fbody small">
+    <p>For $n$ independent windows, let $S=\sum_{i=1}^n y_i$. The Gamma distribution uses the shape–rate parameterization.</p>
+    <table class="bk tall" style="width:100%;margin-top:20px">
+      <thead><tr><th></th><th>Proportional form</th><th>Named distribution</th></tr></thead>
+      <tbody>
+        <tr><td class="c-prior">Prior</td><td>$\cpr{p(\lambda)\propto\lambda^{\alpha-1}e^{-\beta\lambda}}$</td><td>$\cpr{\Lambda\sim\gam(\alpha,\beta)}$</td></tr>
+        <tr><td class="c-like">Likelihood for data $y_1^n$</td><td>$\clk{p(y_1^n\mid\lambda)\propto\lambda^S e^{-n\lambda}}$</td><td>$\clk{Y_i\mid\Lambda\sim\poi(\lambda)}$</td></tr>
+        <tr><td class="c-post">Posterior</td><td>$\cpo{p(\lambda\mid y_1^n)\propto\lambda^{\alpha+S-1}e^{-(\beta+n)\lambda}}$</td><td>$\cpo{\Lambda\mid y_1^n\sim\gam(\alpha+S,\beta+n)}$</td></tr>
+      </tbody>
+    </table>
+    <p class="ctr" style="margin-top:26px">$\clk{S}$ adds to the Gamma shape, and $\clk{n}$ adds to the Gamma rate.</p>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">A convenient flat prior for a rate</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <table class="plain small">
+        <tr><td class="c-like">Data</td><td>$\clk{n=10}$, $\clk{S=20}$</td></tr>
+        <tr><td class="c-prior">Reference prior</td><td>$\cpr{p(\lambda)\propto1}$, $\lambda>0$</td></tr>
+        <tr><td class="c-post">Posterior</td><td>$\cpo{\Lambda\mid y_1^{10}\sim\gam(21,10)}$</td></tr>
+        <tr><td class="c-post">Posterior mean</td><td>$\cpo{\E[\Lambda\mid y_1^{10}]=2.1}$</td></tr>
+      </table>
+      <div class="block alertblock" style="margin-top:18px"><div class="bt">Improper prior, proper posterior</div><div class="bb">
+        $\int_0^\infty1\,d\lambda=\infty$, but the posterior density integrates to one.
+      </div></div>
+      <p class="ctr">“Flat” depends on the parameterization.</p>
+    </div>
+    <div class="fig" data-fig="gam21"></div>
+  </div></div>
+</section>
+
+<!-- ============ 2. Point estimates ============ -->
+
+<section class="frame" id="sec-est">
+  <div class="frametitle">Outline</div>
+  <div class="fbody"><div class="row center">
+    <div class="col" style="padding-left:30px">
+      <ol class="toc">
+        <li class="dim"><a href="#/sec-post">From prior to posterior</a></li>
+        <li><a href="#/sec-est">Point estimates</a></li>
+        <li class="dim"><a href="#/sec-pred">Predicting the next observation</a></li>
+      </ol>
+    </div>
+    <div class="fig" data-fig="core"></div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Bayesian view: point estimates depend on the loss</div>
+  <div class="fbody"><div class="row">
+    <div class="col small">
+      <p style="margin:0 0 6px">Sometimes we need a single number to summarize the posterior distribution.</p>
+      <p style="margin:0">The choice depends on the loss function.</p>
+      <table class="bk">
+        <thead><tr><th>Posterior loss</th><th>Best estimate</th></tr></thead>
+        <tbody>
+          <tr class="fragment" data-fragment-index="1" data-set='{"m1":1}'><td>$\E[(\Theta-\hat\theta)^2\mid\bx]$</td><td class="c-mean">posterior mean $\E[\Theta|\bx]$</td></tr>
+          <tr class="fragment" data-fragment-index="2" data-set='{"m2":1}'><td>$\E[|\Theta-\hat\theta|\mid\bx]$</td><td class="c-med">posterior median</td></tr>
+          <tr class="fragment" data-fragment-index="3" data-set='{"m3":1}'><td>discrete $0$–$1$ loss</td><td class="c-mode">posterior mode</td></tr>
+        </tbody>
+      </table>
+      <p style="margin:0">For continuous $\Theta$, MAP maximizes the posterior density:</p>
+      \[\hat\theta_{\mathrm{MAP}}=\arg\max_\theta \cpo{p(\theta\mid\bx)},\qquad\hat\theta_{\mathrm{mean}}=\E[\Theta\mid\bx].\]
+    </div>
+    <div>
+      <div class="fig" data-fig="est" data-init='{"m1":0,"m2":0,"m3":0}'></div>
+      <p class="small ctr fragment" data-fragment-index="3"><span class="c-mode">mode 0.020</span> &lt; <span class="c-med">median 0.026</span> &lt; <span class="c-mean">mean 0.029</span></p>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Bayesian view: the posterior mean minimizes the squared error</div>
+  <div class="fbody">
+    <div class="row" style="height:auto">
+      <div class="col">
+        <p style="margin:0">With $\bar\theta=\E[\Theta|\bx]$,</p>
+        \[\E[(\hat\theta-\Theta)^2|\bx]=\var(\Theta\mid\bx)+(\hat\theta-\bar\theta)^2.\]
+        <p>The cross term is zero because $\E[\Theta-\bar\theta\mid\bx]=0$.</p>
+        <span class="fragment" data-fragment-index="1" data-set='{"th":0.85}'></span>
+        <p class="fragment" data-fragment-index="2" data-set='{"th":0.5833,"fin":1}' style="margin-top:24px">The loss is minimized at $\hat\theta=\bar\theta$.</p>
+      </div>
+      <div>
+        <div class="fig" data-fig="sqerr" data-init='{"th":0.3,"fin":0}'></div>
+        <div class="knobs"><label>$\hat\theta$ <input type="range" data-param="th" data-digits="2" min="0.2" max="1" step="0.01"><output></output></label></div>
+      </div>
+    </div>
+    <div class="block alertblock fragment" data-fragment-index="2" style="position:absolute;left:0;right:0;bottom:0;margin:0"><div class="bt">The floor is the posterior variance</div><div class="bb">
+      Minimum posterior MSE $=\var(\Theta\mid\bx)$.
+    </div></div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Mean, median, and mode for a Beta posterior</div>
+  <div class="fbody">
+    <p>Let $\cpo{\Theta\mid\bx\sim\bet(a,b)}$, where $a=\cpr{\alpha}+\clk{h}$ and $b=\cpr{\beta}+\clk{t}$.</p>
+    <div class="cards" style="margin-top:24px">
+      <div class="altcard topbar" style="border-color:#8C4614"><div class="al">Mean</div>\[\Large\dfrac{a}{a+b}\]<p class="ctr" style="visibility:hidden;margin:0">(approx.)</p></div>
+      <div class="altcard topbar" style="border-color:#CC8800"><div class="al">Median</div>\[\Large\dfrac{a-1/3}{a+b-2/3}\]<p class="ctr" style="margin:0">(approx.)</p></div>
+      <div class="altcard topbar" style="border-color:#C71585"><div class="al">Mode</div>\[\Large\dfrac{a-1}{a+b-2}\]<p class="ctr" style="visibility:hidden;margin:0">(approx.)</p></div>
+    </div>
+    <p class="ctr small" style="margin-top:22px">The median approximation and the mode formula assume $a,b>1$.</p>
+    <div class="block alertblock" style="margin-top:24px"><div class="bt">Uniform prior</div><div class="bb">
+      $\hat\theta_{\mathrm{MAP}}=\hat\theta_{\mathrm{MLE}}=h/n$.
+    </div></div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Between the prior and the data</div>
+  <div class="fbody small">
+    <p style="margin:0">The posterior mean is a weighted average of the MLE and the prior mean:</p>
+    \[\cpo{\frac{h+\alpha}{n+\alpha+\beta}}=\clk{\frac{n}{n+\alpha+\beta}\cdot\frac{h}{n}}+\cpr{\frac{\alpha+\beta}{n+\alpha+\beta}\cdot\frac{\alpha}{\alpha+\beta}}.\]
+    <div class="fig" data-fig="seesaw" data-init='{"n":10,"f":0,"fb":0}' style="margin:0 auto"></div>
+    <span class="fragment" data-set='{"f":1}'></span>
+    <span class="fragment" data-set='{"fb":1}'></span>
+    <div class="knobs" style="justify-content:center;margin-top:-6px"><label>$n$ (with $h/n=0.6$) <input type="range" data-param="n" data-digits="0" min="5" max="40" step="5"><output></output></label></div>
+    <div class="block alertblock" style="position:absolute;left:0;right:0;bottom:0;margin:0"><div class="bt">Data weight $n$, prior weight $\alpha+\beta$</div><div class="bb">
+      As $n$ grows, the posterior mean moves toward the MLE.
+    </div></div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Your turn</div>
+  <div class="fbody"><div class="row">
+    <div class="col small">
+      <p style="margin:0 0 6px"><span class="structure" style="font-weight:normal">Given:</span> $n=3$, $h=2$, $t=1$, and $\cpr{\Theta\sim\bet(2,2)}$.</p>
+      <ol class="parts" style="margin:0 0 10px">
+        <li>(a) The posterior?</li>
+        <li>(b) Posterior mean, posterior mode, the MLE, the prior mean?</li>
+        <li>(c) Check the weighted average.</li>
+      </ol>
+      <span class="structure">Solution</span>
+      <p class="fragment" data-fragment-index="1" data-set='{"u":1,"cur":1}' style="margin:6px 0"><b>(a)</b> $\cpo{p(\theta\mid\bx)\propto\theta^3(1-\theta)^2}$, $\cpo{\Theta\mid\bx\sim\bet(4,3)}$.</p>
+      <p class="fragment" data-fragment-index="2" data-set='{"mk":1}' style="margin:6px 0"><b>(b)</b> <span class="c-mean">mean $=4/7$</span>, <span class="c-mode">MAP $=3/5$</span>, <span class="c-mle">MLE $=2/3$</span>, <span class="c-prior">prior mean $=1/2$</span>.</p>
+      <div class="fragment" data-fragment-index="3"><b>(c)</b> $\dfrac47=\left(\dfrac37\right)\left(\dfrac23\right)+\left(\dfrac47\right)\left(\dfrac12\right)$.</div>
+    </div>
+    <div>
+      <div class="fig" data-fig="yt" data-init='{"u":0,"cur":0,"mk":0}'></div>
+      <p class="xs ctr fragment" data-fragment-index="2" style="margin:0"><span class="c-prior">prior .500</span>&nbsp;&nbsp; <span class="c-mean">mean .571</span>&nbsp;&nbsp; <span class="c-mode">MAP .600</span>&nbsp;&nbsp; <span class="c-mle">MLE .667</span></p>
+    </div>
+  </div></div>
+</section>
+
+<!-- ============ 3. Predicting the next observation ============ -->
+
+<section class="frame" id="sec-pred">
+  <div class="frametitle">Outline</div>
+  <div class="fbody"><div class="row center">
+    <div class="col" style="padding-left:30px">
+      <ol class="toc">
+        <li class="dim"><a href="#/sec-post">From prior to posterior</a></li>
+        <li class="dim"><a href="#/sec-est">Point estimates</a></li>
+        <li><a href="#/sec-pred">Predicting the next observation</a></li>
+      </ol>
+    </div>
+    <div class="fig" data-fig="core"></div>
+  </div></div>
+</section>
+
+<section class="frame lay-panel">
+  <div class="illus">
+    <img src="img/fire-department.png" alt="A firefighter writing in a logbook beside a fire engine in an open station bay"
+         onerror="this.parentNode.innerHTML='&lt;div class=&quot;ph&quot;&gt;Missing image: '+this.getAttribute('src')+'&lt;/div&gt;'">
+  </div>
+  <div class="caption illus-cap">AI-generated illustration</div>
+  <div class="frametitle">A question about tomorrow, not about $\lambda$</div>
+  <div class="illus-text" style="left:680px;width:560px;top:100px">
+    <p>A fire department has recorded $20$ incidents in $10$ days. With the flat prior, $\cpo{\Lambda\mid y_1^{10}\sim\gam(21,10)}$.</p>
+    <p><span class="alert">Question:</span> what is $\pr(Y_{11}>5\mid y_1^{10})$, the probability of more than $5$ incidents tomorrow?</p>
+    <div class="fig" data-fig="q1"></div>
+    <p>The posterior describes $\Lambda$, not tomorrow's count.</p>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">The answer depends on $\lambda$</div>
+  <div class="fbody">
+    <div class="row" style="height:auto">
+      <div class="col">
+        <p style="margin:0">For a given rate,</p>
+        \[\clk{\pr(Y_{11}>5\mid\Lambda=\lambda)=1-\sum_{k=0}^{5}e^{-\lambda}\frac{\lambda^k}{k!}},\]
+        <p>which is $0.004$ at $\lambda=1.5$ and $0.084$ at $\lambda=3$, both plausible rates.</p>
+        <span class="fragment" data-set='{"on":1}'></span>
+        <span class="fragment" data-set='{"lam":3,"v1":1}'></span>
+      </div>
+      <div>
+        <div class="fig" data-fig="dep" data-init='{"lam":1.5,"on":0,"v1":0}'></div>
+        <div class="knobs"><label>$\lambda$ <input type="range" data-param="lam" data-digits="2" min="0.6" max="4.2" step="0.01"><output></output></label></div>
+      </div>
+    </div>
+    <p style="position:absolute;left:0;bottom:0;margin:0">So how do we find the probability of more than $5$ incidents tomorrow, given the data?</p>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Two ways to answer: plug in, or average</div>
+  <div class="fbody"><div class="row">
+    <div class="col">
+      <div class="altcard" style="min-height:130px"><div class="al">Plug in the posterior mean</div>
+        Treat the posterior mean of $\Lambda$ as the true rate, and compute the Poisson probability of more than $5$ incidents at that rate.</div>
+      <div class="fig" data-fig="plug" style="margin:16px auto 0"></div>
+    </div>
+    <div class="col">
+      <div class="altcard" style="min-height:130px"><div class="al">Average over the posterior</div>
+        Compute the probability at every rate $\lambda$, and average these probabilities, weighting each rate by its posterior density.</div>
+      <div class="fig" data-fig="dag" data-n="10" style="margin:50px auto 0"></div>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">The plug-in treats $\lambda$ as known</div>
+  <div class="fbody">
+    <div class="row" style="height:auto">
+      <div class="col">
+        <p style="margin:0">Plug in the posterior mean, $\cpo{\E[\Lambda\mid y_1^{10}]=21/10=2.1}$:</p>
+        \[\cml{Y_{11}\sim\poi(2.1)},\qquad\cml{\pr(Y_{11}>5)=0.020}.\]
+        <p>The posterior still spreads over rates from about $1.3$ to $3.1$ ($95\%$ of its mass). At $\lambda=3$ the same probability is $0.084$, four times larger.</p>
+      </div>
+      <div class="fig" data-fig="pmf" data-init='{"u":0}'></div>
+    </div>
+    <div class="block alertblock" style="position:absolute;left:0;right:0;bottom:0;margin:0"><div class="bt">A plug-in prediction discards the uncertainty about $\lambda$</div><div class="bb">
+      It uses one value of $\lambda$ and ignores the rest of the posterior.
+    </div></div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">The posterior predictive distribution</div>
+  <div class="fbody small"><div class="row">
+    <div class="col" style="flex:0 0 700px">
+      <p style="margin:0">Two distributions are already available:</p>
+      \[\underbrace{\cpo{p(\lambda\mid y_1^n)}}_{\text{posterior}}\qquad\underbrace{\clk{p(y_{n+1}\mid\lambda)}}_{\text{sampling model}}.\]
+      <p style="margin:0">Average the sampling model over the posterior:</p>
+      \[\begin{aligned}\cpd{p(y_{n+1}\mid y_1^n)}&=\int p(y_{n+1},\lambda\mid y_1^n)\,d\lambda\\&=\int p(y_{n+1}\mid\lambda,y_1^n)\,\cpo{p(\lambda\mid y_1^n)}\,d\lambda\\&=\int \clk{p(y_{n+1}\mid\lambda)}\,\cpo{p(\lambda\mid y_1^n)}\,d\lambda.\end{aligned}\]
+    </div>
+    <div class="col">
+      <div class="fig" data-fig="dag" style="margin:0 auto 18px"></div>
+      <p>Once $\Lambda$ is known, the past does not change the distribution of the next observation.</p>
+      <p>The last step uses $Y_{n+1}\independent Y_1^n\mid\Lambda$.</p>
+    </div>
+  </div></div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">The posterior predictive keeps every plausible $\lambda$</div>
+  <div class="fbody">
+    <div class="row" style="height:auto">
+      <div class="col">
+        <p style="margin:0">Average the Poisson over the posterior $\cpo{\gam(21,10)}$:</p>
+        \[\cpd{p(y\mid y_1^{10})}=\int\clk{\poi(y;\lambda)}\,\cpo{\gam(\lambda;21,10)}\,d\lambda.\]
+        <div class="fragment" data-set='{"u":1}'>
+          <p style="margin:0">For the fire department,</p>
+          \[\cpd{\pr(Y_{11}>5\mid y_1^{10})}=\textstyle\sum_{y>5}\cpd{p(y\mid y_1^{10})}=\cpd{0.026},\]
+          <p>against $\cml{0.020}$ from the plug-in.</p>
+        </div>
+      </div>
+      <div class="fig" data-fig="pmf" data-init='{"u":0}'></div>
+    </div>
+    <div class="block alertblock" style="position:absolute;left:0;right:0;bottom:0;margin:0"><div class="bt">The posterior predictive keeps the uncertainty about $\lambda$</div><div class="bb">
+      It averages over every plausible rate, each weighted by its posterior density.
+    </div></div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Tomorrow's count after one day</div>
+  <div class="fbody">
+    <p>Go back to the department's first day: two incidents. With the flat prior, $\cpo{\Lambda\mid y_1\sim\gam(3,1)}$, with posterior mean $3$.</p>
+    <div class="cards" style="margin-top:36px">
+      <div class="altcard"><div class="al">Plug-in predictive</div>
+        Use the posterior mean as the rate:
+        \[\cml{p(y_2\mid\lambda=3)},\quad\text{the }\cml{\poi(3)}\text{ pmf}.\]</div>
+      <div class="altcard"><div class="al">Posterior predictive</div>
+        Average the Poisson over the posterior:
+        \[\cpd{p(y_2\mid y_1)}=\int\clk{\poi(y_2;\lambda)}\,\cpo{\gam(\lambda;3,1)}\,d\lambda.\]</div>
+    </div>
+    <p style="margin-top:36px"><span class="alert">Predict:</span> How does $p(y_2\mid y_1)$ compare to $p(y_2\mid\lambda=3)$?</p>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">One day of data doubles the spread of the prediction</div>
+  <div class="fbody">
+    <div class="fig" data-fig="bands" data-init='{"k":0}'></div>
+    <span class="fragment" data-set='{"k":1}'></span>
+    <span class="fragment" data-set='{"k":2}'></span>
+    <span class="fragment" data-set='{"k":3}'></span>
+    <span class="fragment" data-set='{"k":4}'></span>
+    <span class="fragment" data-set='{"k":5}'></span>
+    <p class="small" style="margin-top:14px">The plug-in assumes the single rate $\lambda=3$. The posterior predictive includes every plausible rate: each band of rates contributes Poisson counts with its own $\lambda$, weighted by its posterior probability. Variance of tomorrow's count: $\cpd{6}$ for the posterior predictive, $\cml{3}$ for the plug-in.</p>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">The predictive reflects how much data there is; the plug-in does not</div>
+  <div class="fbody small">
+    <div class="fig" data-fig="days" data-init='{"d":1}'></div>
+    <div class="knobs" style="justify-content:flex-end;margin-top:0"><label>days of data <input type="range" data-param="d" data-digits="0" min="1" max="30" step="1"><output></output></label></div>
+    <table class="bk c" style="margin-top:0">
+      <thead>
+        <tr class="cmid"><th></th><th colspan="2" class="c-mle" style="border-bottom:1px solid #222">plug-in</th><th colspan="2" class="c-pred" style="border-bottom:1px solid #222">predictive</th></tr>
+        <tr><th style="text-align:left">data</th><th>variance</th><th>$\pr(Y>5)$</th><th>variance</th><th>$\pr(Y>5)$</th></tr>
+      </thead>
+      <tbody>
+        <tr><td style="text-align:left">one day, $2$ incidents</td><td>$3$</td><td>$0.084$</td><td>$6$</td><td>$0.145$</td></tr>
+        <tr class="fragment" data-fragment-index="1" data-set='{"d":10}'><td style="text-align:left">ten days, $20$ incidents</td><td>$2.1$</td><td>$0.020$</td><td>$2.31$</td><td>$0.026$</td></tr>
+      </tbody>
+    </table>
+    <p class="fragment" data-fragment-index="1">The plug-in is as confident after one day as after ten. The predictive is wide when the data are few and approaches the plug-in as they accumulate.</p>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Poisson: the expected count tomorrow</div>
+  <div class="fbody small">
+    <p style="margin:0">For counts $\clk{Y_i\mid\Lambda\sim\poi(\Lambda)}$ and posterior $\cpo{\Lambda\mid y_1^n\sim\gam(\alpha+n\bar y,\,\beta+n)}$, the expected count tomorrow follows from iterated expectations:</p>
+    \[\begin{aligned}
+    \cpd{\E[Y_{n+1}\mid y_1^n]}
+    &= \cpo{\E_{\Lambda\mid y_1^n}}\!\left[ \E(Y_{n+1}\mid\Lambda, y_1^n) \right] && \text{(law of iterated expectations)} \\[2pt]
+    &= \cpo{\E_{\Lambda\mid y_1^n}}\!\left[ \clk{\E(Y_{n+1}\mid\Lambda)} \right] && \text{($Y_{n+1}\independent Y_1^n\mid\Lambda$)} \\[2pt]
+    &= \cpo{\E_{\Lambda\mid y_1^n}[\Lambda]} && \text{($Y_{n+1}\mid\Lambda\sim\poi(\Lambda)\implies\E[Y_{n+1}\mid\Lambda]=\Lambda$)} \\[2pt]
+    &= \cpo{\frac{\alpha+n\bar y}{\beta+n}} && \text{(mean of $\gam(\alpha+n\bar y, \beta+n)$)}.
+    \end{aligned}\]
+    <p style="margin:0 0 10px">For the one day with two incidents, $\cpo{\gam(3,1)}$ gives $\cpd{\E[Y_2\mid y_1]=3}$.</p>
+    <div class="block alertblock"><div class="bt">Weighted average of prior mean and sample mean</div><div class="bb">
+      \[\E[Y_{n+1}\mid y_1^n]= \cpr{\frac{\beta}{\beta+n}\left(\frac{\alpha}{\beta}\right)} + \clk{\frac{n}{\beta+n}\,\bar y}\]
+      As $n\to\infty$, the weight on the prior fades and the prediction approaches $\bar y$.
+    </div></div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Two sources of uncertainty in the next count</div>
+  <div class="fbody small">
+    <p style="margin:0">With $m=\E[\Lambda\mid y_1^n]$, condition on $\Lambda$ as for the mean:</p>
+    \[\begin{aligned}
+    \cpd{\var(Y_{n+1}\mid y_1^n)}
+    &= \E_{\Lambda\mid y_1^n}\!\left[\E\big((Y_{n+1}-m)^2\mid\Lambda\big)\right] && \text{($Y_{n+1}\independent Y_1^n\mid\Lambda$)} \\[2pt]
+    &= \E_{\Lambda\mid y_1^n}\!\left[\Lambda+(\Lambda-m)^2\right] && \text{($\var(Y_{n+1}\mid\Lambda)=\Lambda$)} \\[2pt]
+    &= \cml{\E[\Lambda\mid y_1^n]}+\cpo{\var(\Lambda\mid y_1^n)}.
+    \end{aligned}\]
+    <div class="fragment">
+      <div class="row center" style="height:auto">
+        <div class="col">
+          \[\boxed{\cpd{\var(Y_{n+1}\mid y_1^n)}=\underbrace{\cml{\frac{\alpha+n\bar y}{\beta+n}}}_{\cml{\text{Poisson noise}}}+\underbrace{\cpo{\frac{\alpha+n\bar y}{(\beta+n)^2}}}_{\cpo{\text{uncertainty about }\Lambda}}}\]
+        </div>
+        <div class="fig" data-fig="vbars"></div>
+      </div>
+      <div class="block alertblock" style="margin-top:6px"><div class="bt">The prediction is wider than a plug-in Poisson</div><div class="bb">
+        Plugging in $\poi(m)$ keeps only the first term. The second term shrinks as $n$ grows. After ten days, uncertainty about $\Lambda$ adds only $0.21$.
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section class="frame">
+  <div class="frametitle">Summary</div>
+  <div class="fbody">
+    <div class="sumrow"><svg class="icon" data-icon="bayes" width="110" height="64"></svg>
+      <div>Posterior $\propto$ prior $\times$ likelihood.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="conj" width="110" height="64"></svg>
+      <div>Bernoulli counts update a Beta distribution. Poisson counts update a Gamma distribution.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="add" width="110" height="64"></svg>
+      <div>Observed counts add to the prior's parameters.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="loss" width="110" height="64"></svg>
+      <div>The loss function determines the appropriate point estimate.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="pred" width="110" height="64"></svg>
+      <div>Prediction averages the sampling model over the posterior.</div></div>
+    <p class="ctr" style="margin-top:16px"><span class="alert">Next:</span> Gaussian prior and likelihood, with frequentist and Bayesian estimators side by side.</p>
+  </div>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="figs.js"></script>
+<script>startDeck();</script>
+</body>
+</html>
