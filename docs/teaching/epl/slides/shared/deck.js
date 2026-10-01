@@ -688,6 +688,10 @@ function wireDrawers() {
 //   <alert>, <drawer>, <notes>              \alert, the derivation drawer, speaker notes
 //   <narration><say>…</say>…</narration>    spoken narration, one <say> per state (before
 //                                           the first build step, then after each)
+//   <say>… <point to="NAME">phrase</point> …</say>   while the narration plays, a ring around
+//                                           what the phrase refers to: elements of class
+//                                           hl-NAME (math: \htmlClass{hl-NAME}{…}), or the
+//                                           figure label KEY with to="label:KEY"
 //
 // A state is written "k=v k=v" (numbers, true/false, or words) or as JSON.
 // A slide written directly in the layout markup is left as it is.
@@ -873,6 +877,18 @@ function wireToolbar() {
     `<div class="tb-group"><button class="tb-trans" title="Transcript (T)">${ICON.trans}Transcript</button>` +
     '<button class="tb-deriv" title="Derivation (D)">Derivation</button></div>';
   host.appendChild(bar);
+  // centred under the deck's own box, not the window: a viewer pane beside the deck narrows that
+  // box, and the bar follows it, shrinking when it would not fit
+  const deckBox = document.querySelector('.reveal');
+  const placeBar = () => {
+    const r = deckBox.getBoundingClientRect(), w = bar.scrollWidth || 1;
+    bar.style.left = r.left + r.width / 2 + 'px';
+    bar.style.bottom = Math.max(0, window.innerHeight - r.bottom) + 12 + 'px';
+    bar.style.setProperty('--tbs', Math.min(1, (r.width - 16) / w).toFixed(3));
+  };
+  new ResizeObserver(placeBar).observe(deckBox);
+  window.addEventListener('resize', placeBar);
+  requestAnimationFrame(placeBar);
   const q = c => bar.querySelector('.' + c);
   const play = q('tb-play'), seek = q('tb-seek'), time = q('tb-time'), sel = q('tb-speed');
   const transBtn = q('tb-trans'), derivBtn = q('tb-deriv'), narrGroup = q('tb-narr');
@@ -965,6 +981,57 @@ function wireToolbar() {
     if (say.hasAttribute('wait')) { waiting = true; refresh(); wake(); }
     else next(my);
   };
+  // Pointers: a <point to="…"> phrase in the passage rings its targets on the slide from the
+  // moment the voice reaches the phrase until HOLD seconds past its end, or until the next
+  // pointer.  The moment is the phrase's place in the text times the audio's length (the voice
+  // keeps a nearly even pace; with the browser's voice, its sentence and word events).  The
+  // tags leave the spoken text, and so the audio file, unchanged.
+  const HOLD = 1.5;
+  const ring = document.createElement('div');
+  ring.className = 'nar-ring';
+  let pts = [], frac = null, estDur = 10, ringRaf = 0;
+  const pointsOf = say => {
+    const norm = t => t.replace(/\s+/g, ' '), total = norm(say.textContent).trim().length || 1;
+    return [...say.querySelectorAll('point')].map(p => {
+      const r = document.createRange(); r.setStart(say, 0); r.setEndBefore(p);
+      const a = norm(r.toString()).replace(/^ /, '').length;
+      return { to: p.getAttribute('to') || '', a: a / total, b: (a + norm(p.textContent).length) / total };
+    });
+  };
+  const targets = (sec, to) => to.split(/\s+/).filter(Boolean).flatMap(t =>
+    [...sec.querySelectorAll(t.startsWith('label:') ? `.lab[data-k="${t.slice(6)}"]` : '.hl-' + CSS.escape(t))]);
+  const hideRing = () => ring.classList.remove('on');
+  const placeRing = (sec, els) => {
+    let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+    for (const e of els) {
+      const q = e.getBoundingClientRect();
+      if ((!q.width && !q.height) || getComputedStyle(e).visibility === 'hidden') continue;
+      l = Math.min(l, q.left); t = Math.min(t, q.top); r = Math.max(r, q.right); b = Math.max(b, q.bottom);
+    }
+    if (l === Infinity) { hideRing(); return; }
+    const sr = sec.getBoundingClientRect(), k = sr.width / sec.offsetWidth || 1, pad = 7;
+    const fresh = ring.parentNode !== sec || !ring.classList.contains('on');
+    if (ring.parentNode !== sec) sec.appendChild(ring);
+    if (fresh) ring.style.transition = 'none';   // appear in place; glide only between targets
+    Object.assign(ring.style, { left: (l - sr.left) / k - pad + 'px', top: (t - sr.top) / k - pad + 'px',
+      width: (r - l) / k + 2 * pad + 'px', height: (b - t) / k + 2 * pad + 'px' });
+    if (fresh) { void ring.offsetWidth; ring.style.transition = ''; }
+    ring.classList.add('on');
+  };
+  const pointLoop = () => {
+    ringRaf = 0;
+    if (!on) { hideRing(); return; }
+    ringRaf = requestAnimationFrame(pointLoop);
+    let f = frac, d = estDur;
+    if (audio) {
+      f = audio.ended || !(audio.duration > 0) ? null : audio.currentTime / audio.duration;
+      if (audio.duration > 0) d = audio.duration;
+    }
+    const p = f == null ? null : pts.filter(q => q.a <= f + 0.005).pop();
+    if (!p || f > p.b + HOLD / d) { hideRing(); return; }
+    const sec = Reveal.getCurrentSlide();
+    placeRing(sec, targets(sec, p.to));
+  };
   const speak = async () => {
     const my = ++token; hush(); pending = false; waiting = false;   // a paused player stays paused on the new state
     if (!on) return;
@@ -972,6 +1039,8 @@ function wireToolbar() {
     if (!say) { stop(); return; }
     refresh();
     const text = say.textContent.replace(/\s+/g, ' ').trim();
+    pts = pointsOf(say); frac = null; estDur = text.length / 14;
+    if (!ringRaf) ringRaf = requestAnimationFrame(pointLoop);
     const file = crypto.subtle ? files[await sha1(text)] : null;
     if (my !== token) return;
     if (file) {
@@ -993,10 +1062,15 @@ function wireToolbar() {
     if (paused) { pending = true; return; }   // spoken on resume
     // one utterance per sentence: Chrome drops long utterances part-way
     const parts = text.match(/[^.!?]+[.!?]*/g) || [];
+    let off = 0;
     parts.forEach((txt, i) => {
       const u = new SpeechSynthesisUtterance(txt.trim());
       if (voice) u.voice = voice;
       u.rate = 0.97 * speed;
+      const at = off + txt.length - txt.trimStart().length;
+      off += txt.length;
+      u.onstart = () => { if (my === token) frac = at / text.length; };
+      u.onboundary = e => { if (my === token) frac = (at + e.charIndex) / text.length; };
       if (i === parts.length - 1) u.onend = () => done(my, say);
       synth.speak(u);
     });
@@ -1039,11 +1113,20 @@ function wireToolbar() {
     if (audio) audio.playbackRate = speed;
     try { localStorage.setItem('deck-narration-speed', String(speed)); } catch (e) { /* storage blocked */ }
   });
-  // clicks and keys in the bar belong to it, not to reveal
-  bar.addEventListener('keydown', e => e.stopPropagation()); bar.addEventListener('click', e => e.stopPropagation());
+  // clicks in the bar belong to it, not to reveal.  A click leaves focus on the control, which
+  // would then take the keys (arrows step the seek bar or the speed menu, space presses the
+  // button again), so every key but Tab and Enter is handed back to the deck's shortcuts; those
+  // two stay with the control
+  bar.addEventListener('click', e => e.stopPropagation());
+  window.addEventListener('keydown', e => {
+    const el = document.activeElement;
+    if (!el || !bar.contains(el)) return;
+    if (e.key === 'Tab' || e.key === 'Enter') { e.stopPropagation(); return; }
+    e.preventDefault(); el.blur();
+  }, true);
 
   document.addEventListener('keydown', e => {
-    if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+    if (e.metaKey || e.ctrlKey || e.altKey || document.activeElement?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
     if (e.key === 'n' || e.key === 'N') toggleNarration();
     else if (e.key === 't' || e.key === 'T') toggleTranscript();
     else if (e.key === 'Escape' && Reveal.getCurrentSlide()?.classList.contains('trans-open')) toggleTranscript();

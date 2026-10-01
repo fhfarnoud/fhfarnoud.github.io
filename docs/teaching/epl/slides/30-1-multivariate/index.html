@@ -224,7 +224,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <h2>Linear transformations of a random vector</h2>
   <column>
     <block title="Transform every deviation">
-      \[\begin{aligned}\bY&=\mA\bX+\bb\\ \E\bY&=\htmlClass{dk1}{\mA\bmu+\bb}\\ \cov(\bY)&=\htmlClass{dk1}{\mA\,\cov(\bX)\,\mA^T}\end{aligned}\]
+      \[\begin{aligned}\bY&=\mA\bX+\bb\\ \E\bY&=\htmlClass{dk1}{\mA\bmu+\bb}\\ \cov(\bY)&=\htmlClass{hl-acov}{\htmlClass{dk1}{\mA\,\cov(\bX)\,\mA^T}}\end{aligned}\]
       Translation changes the center. The linear map stretches, rotates, or projects the deviations.
     </block>
     <p pause="a=1">Start from $\cov(\bX)=\mI$. Stretch by $\sqrt{1.5}$ along $x_1$ and by $\sqrt{0.5}$ along $x_2$.</p>
@@ -239,7 +239,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   </drawer>
   <notes>Trace one deviation through both maps. More generally Cov(AX+a,BY+b)=A Cov(X,Y) B^T. These identities do not require Gaussian distributions.</notes>
   <narration>
-    <say>Many quantities of interest are linear functions of a random vector: sums, differences, weighted averages. For Y equal to A X plus b, the mean goes through the same map. The covariance picks up A on the left and A transposed on the right, the matrix counterpart of a constant's square multiplying a variance, and the shift drops out because it leaves the deviations unchanged.</say>
+    <say>Many quantities of interest are linear functions of a random vector: sums, differences, weighted averages. For Y equal to A X plus b, the mean goes through the same map. <point to="acov">The covariance picks up A on the left and A transposed on the right</point>, the matrix counterpart of a constant's square multiplying a variance, and the shift drops out because it leaves the deviations unchanged.</say>
     <say>On the right is a round cloud with identity covariance. Stretching by the square root of one and a half along x one and by the square root of one half along x two makes the variances one and a half and one half, and the circles become ellipses along the axes.</say>
     <say>Rotating by forty-five degrees tilts the ellipses along the diagonal. The covariance now has ones on the diagonal and one half off it: our running model is a round cloud that has been stretched and then rotated.</say>
   </narration>
@@ -401,7 +401,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
 <section>
   <h2>The multivariate Gaussian density</h2>
   <column>
-    \[p_{\bX}(\bx)=\frac{1}{(2\pi)^{d/2}\htmlClass{dk1}{|\mK|^{1/2}}}\exp\Big(-\frac12\Delta^2(\bx,\bmu)\Big)\]
+    \[p_{\bX}(\bx)=\frac{1}{(2\pi)^{d/2}\htmlClass{hl-det}{\htmlClass{dk1}{|\mK|^{1/2}}}}\exp\Big(-\frac12\Delta^2(\bx,\bmu)\Big)\]
     <p>This is the one-dimensional density with $z^2$ replaced by $\Delta^2$ and $\sigma$ by <span class="dk1">$|\mK|^{1/2}$</span>, for positive definite $\mK$.</p>
     <div pause>
       <p>Written in terms of $\mK$,</p>
@@ -417,7 +417,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <p>Running model: $|\mK|=1\cdot1-0.5^2=0.75=1.5\times0.5$.</p>
   </drawer>
   <narration>
-    <say>Now that we know how to measure distance, we can write down the density of a jointly Gaussian vector. It has exactly the shape we anticipated: it falls off exponentially in the squared Mahalanobis distance. Compared with the one-dimensional density, the distance in standard deviations has become the Mahalanobis distance, and the standard deviation in front has become the square root of the determinant of K. That determinant measures how spread out the cloud is overall, and the formula needs K to be positive definite, so that its inverse exists. The Derivation button on the toolbar shows where the square root of the determinant comes from.</say>
+    <say>Now that we know how to measure distance, we can write down the density of a jointly Gaussian vector. It has exactly the shape we anticipated: it falls off exponentially in the squared Mahalanobis distance. Compared with the one-dimensional density, the distance in standard deviations has become the Mahalanobis distance, and the standard deviation in front has become <point to="det">the square root of the determinant of K</point>. That determinant measures how spread out the cloud is overall, and the formula needs K to be positive definite, so that its inverse exists. The Derivation button on the toolbar shows where the square root of the determinant comes from.</say>
     <say>Writing the Mahalanobis distance out in terms of K gives the form you will see in most books. It is the same formula.</say>
     <say>Because the density depends on x only through Delta, all points at the same Mahalanobis distance share the same density: the contours of equal density are the ellipses we drew earlier. The plot on the right shows the density of the running model as a function of Delta. It falls quickly: at Delta equal to two it is already down to about fourteen percent of its peak. So within one Gaussian, a larger Mahalanobis distance means a lower density.</say>
   </narration>
@@ -621,9 +621,9 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <p><alert>Question:</alert> What is the conditional distribution of $X_2$ if we know $X_1=x_1$?</p>
     <p>First, let's see this visually and then we will do the derivation.<br>Here $\bmu=\bzero$ and $\mK=\begin{pmatrix}1&0.5\\0.5&1\end{pmatrix}$. Fix $X_1=x_1$ and renormalize the joint density along that slice.</p>
     <table class="vals">
-      <thead><tr><th>$x_1$</th><th>mean</th><th>variance</th></tr></thead>
+      <thead class="hl-tab"><tr><th>$x_1$</th><th>mean</th><th>variance</th></tr></thead>
       <tbody>
-        <tr><td>0</td><td><span class="dk1">0</span></td><td><span class="dk2">0.75</span></td></tr>
+        <tr class="hl-tab"><td>0</td><td><span class="dk1">0</span></td><td><span class="dk2">0.75</span></td></tr>
         <tr pause="x1=1" data-fragment-index="1"><td>1</td><td><span class="dk1">0.5</span></td><td><span class="dk2">0.75</span></td></tr>
         <tr pause="x1=2" data-fragment-index="2"><td>2</td><td><span class="dk1">1</span></td><td><span class="dk2">0.75</span></td></tr>
       </tbody>
@@ -642,7 +642,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   </drawer>
   <notes>Recall students' opening guesses. Contrast conditioning with marginalization: integrate over all x1 to recover the blue marginal. Conditioning at an exact continuous value uses a conditional density, not a positive-probability event.</notes>
   <narration>
-    <say>Conditioning is how an observation sharpens a prediction. Take the running model, with mean zero and covariance K: ones on the diagonal and one half off it. Suppose we observe the first coordinate. What is the distribution of the second one now? First we see the answer in the picture, and on the next slide we derive it. Geometrically, we take the slice of the joint density along the observed value, the green line on the left, and rescale it so it integrates to one. Next to the cloud, the solid blue curve is the marginal of X two, what we believe before observing anything. The dashed green curve is the joint density along the slice at x one equals zero. Its area is p of x one, not one, so we divide it by p of x one, and the result is the red curve, the conditional density: still centred at zero, but narrower than the marginal. The table records its mean, zero, and its variance, zero point seven five.</say>
+    <say>Conditioning is how an observation sharpens a prediction. Take the running model, with mean zero and covariance K: ones on the diagonal and one half off it. Suppose we observe the first coordinate. What is the distribution of the second one now? First we see the answer in the picture, and on the next slide we derive it. Geometrically, we take the slice of the joint density along the observed value, <point to="label:slice">the green line on the left</point>, and rescale it so it integrates to one. Next to the cloud, <point to="label:marg">the solid blue curve</point> is the marginal of X two, what we believe before observing anything. <point to="label:joint">The dashed green curve</point> is the joint density along the slice at x one equals zero. Its area is p of x one, not one, so we divide it by p of x one, and the result is <point to="label:cond">the red curve, the conditional density</point>: still centred at zero, but narrower than the marginal. <point to="tab">The table</point> records its mean, zero, and its variance, zero point seven five.</say>
     <say>Now observe x one equals one. The slice moves to the right, and both the dashed green curve and the red curve move up with it. The green curve is lower than before, because x one equals one is less likely than zero, and the rescaling makes up the difference: the red curve's mean is now one half, and its width has not changed.</say>
     <say>At x one equals two, the joint density along the slice is so small that the dashed green curve almost lies on the axis, yet after rescaling the red curve is centred at one, again with the same width. So in the picture the mean moves by one half for each unit of x one, and the variance stays at zero point seven five, below the marginal's one, whatever value we observe. Observing X one helps because the two coordinates are correlated; with zero correlation, every slice would return the marginal. Use the slider below the plot to try other values of x one. The next slide derives this pattern for any correlation.</say>
   </narration>
@@ -760,10 +760,10 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <notes>Take guesses on the question before revealing. Tall mothers have tall daughters on average, but less tall; those daughters have mothers who are tall, but less tall. No contradiction: each line averages over a different slice of the cloud. Galton (1886, pp. 253&ndash;254) on the reverse direction: &ldquo;The converse of this law is very far from being its numerical opposite.&rdquo; He found a son's most probable mid-parent deviates one third as much as the son, while a son deviates two thirds as much as his mid-parent.</notes>
   <narration>
     <say>The same effect shows up in real measurements, and it is where regression got its name. Take the heights of mothers and their adult daughters, in centimetres. Both average one hundred sixty-three with standard deviation six, and the correlation is one half. These values are illustrative, close to adult height statistics. On the right is a sample from this model.</say>
-    <say>Take a mother of one hundred seventy-five centimetres, two standard deviations above the average. Her daughter's expected height is one hundred sixty-nine, only one standard deviation above it: the daughter is predicted to be half as far from the mean as her mother, and the factor one half is rho. The red line on the right gives this prediction for every mother's height.</say>
+    <say>Take a mother of one hundred seventy-five centimetres, two standard deviations above the average. Her daughter's expected height is one hundred sixty-nine, only one standard deviation above it: the daughter is predicted to be half as far from the mean as her mother, and the factor one half is rho. <point to="label:l1">The red line on the right</point> gives this prediction for every mother's height.</say>
     <say wait>Now reverse the question. A daughter is one hundred sixty-nine centimetres tall. Should we predict that her mother is one hundred seventy-five? Decide before going on.</say>
-    <say>Conditioning the other way gives one hundred sixty-six, only three centimetres above the average. The daughter is one standard deviation above the mean, and her predicted mother is half a standard deviation above it. The orange line on the right gives this prediction for every daughter's height.</say>
-    <say>So a mother of one hundred seventy-five predicts a daughter of one hundred sixty-nine, and that daughter predicts a mother of one hundred sixty-six, not one hundred seventy-five. This is not a contradiction: the first prediction averages over the daughters of all mothers who are one hundred seventy-five, the second over the mothers of all daughters who are one hundred sixty-nine, and each average is pulled toward the mean. That is regression to the mean, in both directions. The dashed SD line, which matches standard deviations one for one, follows neither prediction.</say>
+    <say>Conditioning the other way gives one hundred sixty-six, only three centimetres above the average. The daughter is one standard deviation above the mean, and her predicted mother is half a standard deviation above it. <point to="label:l2">The orange line on the right</point> gives this prediction for every daughter's height.</say>
+    <say>So a mother of one hundred seventy-five predicts a daughter of one hundred sixty-nine, and that daughter predicts a mother of one hundred sixty-six, not one hundred seventy-five. This is not a contradiction: the first prediction averages over the daughters of all mothers who are one hundred seventy-five, the second over the mothers of all daughters who are one hundred sixty-nine, and each average is pulled toward the mean. That is regression to the mean, in both directions. <point to="label:sdl">The dashed SD line</point>, which matches standard deviations one for one, follows neither prediction.</say>
     <say wait>A question to think about: if rho is smaller, will the regression to the mean be more or less pronounced?</say>
   </narration>
 </section>
@@ -812,7 +812,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <block title="Partition a jointly Gaussian vector">
       \[\bX=\begin{pmatrix}\bX_a\\\bX_b\end{pmatrix},\qquad\bmu=\begin{pmatrix}\bmu_a\\\bmu_b\end{pmatrix}\]
       For invertible $\mK_{bb}$, $\bX_a\mid\bX_b=\bx_b\sim\cN(\bmu_{a|b},\mK_{a|b})$ with
-      \[\begin{aligned}\bmu_{a|b}&=\htmlClass{dk1}{\bmu_a+\underbrace{\mK_{ab}\mK_{bb}^{-1}}_{\mathclap{\text{uses the relationship}}}(\bx_b-\bmu_b)}\\ \mK_{a|b}&=\htmlClass{dk2}{\mK_{aa}-\underbrace{\mK_{ab}\mK_{bb}^{-1}\mK_{ba}}_{\mathclap{\text{positive semidefinite: reduces uncertainty}}}}\end{aligned}\]
+      \[\begin{aligned}\bmu_{a|b}&=\htmlClass{dk1}{\bmu_a+\htmlClass{hl-slope}{\underbrace{\mK_{ab}\mK_{bb}^{-1}}_{\mathclap{\text{uses the relationship}}}}(\bx_b-\bmu_b)}\\ \mK_{a|b}&=\htmlClass{dk2}{\mK_{aa}-\htmlClass{hl-red}{\underbrace{\mK_{ab}\mK_{bb}^{-1}\mK_{ba}}_{\mathclap{\text{positive semidefinite: reduces uncertainty}}}}}\end{aligned}\]
     </block>
     <p pause class="small">With one coordinate in each block, this is the running model: <span class="dk3">$\mK_{ab}\mK_{bb}^{-1}=\rho=0.5$ and $\mK_{a|b}=1-\rho^2=0.75$</span>.</p>
     <alertblock pause title="One update for any number of observed coordinates" class="small">The same two formulas hold whatever the sizes of $\bX_a$ and $\bX_b$.</alertblock>
@@ -827,7 +827,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   </drawer>
   <notes>Read the mean from right to left: observed deviation, scale by observed uncertainty, then use cross-covariance. Conditioning alone makes no causal claim.</notes>
   <narration>
-    <say>Everything so far had one observed coordinate and one to predict. Often we observe several and predict several, such as a child's height and weight from both parents' measurements. We split the vector into the part to predict, a, and the part we observe, b, and split the mean and the covariance matrix the same way, as on the left. As long as the observed block's covariance is invertible, the conditional distribution is again Gaussian. Its mean starts at the mean of the predicted part and adds a correction proportional to how far the observation is from its own mean, with the factor K a b times K b b inverse playing the role of the slope. Its covariance starts at K a a and subtracts a term that measures how much the observation reduces our uncertainty.</say>
+    <say>Everything so far had one observed coordinate and one to predict. Often we observe several and predict several, such as a child's height and weight from both parents' measurements. We split the vector into the part to predict, a, and the part we observe, b, and split the mean and the covariance matrix the same way, as on the left. As long as the observed block's covariance is invertible, the conditional distribution is again Gaussian. Its mean starts at the mean of the predicted part and adds a correction proportional to how far the observation is from its own mean, with <point to="slope">the factor K a b times K b b inverse</point> playing the role of the slope. Its covariance starts at K a a and subtracts <point to="red">a term that measures how much the observation reduces our uncertainty</point>.</say>
     <say>With one coordinate in each block, this is our running model, and the formulas give the slope rho and the variance one minus rho squared that we found at the start of this part.</say>
     <say>So one update rule handles any number of observed coordinates. The conditional stays Gaussian, and the amount subtracted from the covariance is positive semidefinite, so observing more coordinates can only reduce our uncertainty. Concretely, take any weighted combination of the predicted coordinates. After conditioning on X b, its variance is the variance before minus a quantity that is never negative, so it goes down or stays the same. It stays the same only when the combination is uncorrelated with the observed coordinates. And since the conditional covariance does not depend on the observed values, this holds whatever we observe.</say>
   </narration>
@@ -873,7 +873,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <column>
     <p>Maximize over $\btheta$:</p>
     \[\ell(\btheta,\mK)=\frac n2\ln|\mK^{-1}|-\frac12\sum_{i}(\bx_i-\btheta)^T\mK^{-1}(\bx_i-\btheta)+c\]
-    <block class="small">For symmetric $\mK^{-1}$: $\frac{\partial}{\partial\btheta}(\bx-\btheta)^T\mK^{-1}(\bx-\btheta)=-2(\bx-\btheta)^T\mK^{-1}$.</block>
+    <block class="small hl-rule">For symmetric $\mK^{-1}$: $\frac{\partial}{\partial\btheta}(\bx-\btheta)^T\mK^{-1}(\bx-\btheta)=-2(\bx-\btheta)^T\mK^{-1}$.</block>
     <div pause>
       \[\begin{aligned}\frac{\partial\ell}{\partial\btheta}&=\sum_{i}(\bx_i-\btheta)^T\mK^{-1}=\bzero^T\\ \xRightarrow{\ \times\mK\ }\quad&\sum_{i}(\bx_i-\btheta)^T=\bzero^T\;\Rightarrow\;\boxed{\hat\btheta_{\mle}=\bar\bx=\frac1n\sum_{i=1}^n\bx_i}\end{aligned}\]
     </div>
@@ -884,7 +884,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <fig name="mle4" init="c=0 e=0"></fig>
   <p class="caption" style="margin-left:50px">Four illustrative samples.</p>
   <narration>
-    <say>Start with the mean. Only the second term depends on theta, so we differentiate it with the rule in the box, the vector version of the derivative of a square.</say>
+    <say>Start with the mean. Only the second term depends on theta, so we differentiate it with <point to="rule">the rule in the box</point>, the vector version of the derivative of a square.</say>
     <say>Setting the derivative to zero says that the residuals, the differences between the data points and theta, add up to zero after each is multiplied by K inverse. K inverse is invertible, so multiplying both sides by K removes it, and the residuals themselves add up to zero. The point from which the residuals cancel is the average, so the maximum likelihood estimate of the mean is x bar.</say>
     <say>K is gone from the answer: whatever the covariance, the estimate of the center is the plain average of the data points. So we can find the mean first and then plug it into the covariance estimate, on the next slide. On the right, the dashed lines are the residuals from x bar to each of the four points, and they cancel.</say>
   </narration>
@@ -895,7 +895,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <column>
     <p>Substitute $\hat\btheta_{\mle}=\bar\bx$ and maximize over the precision matrix $\Lambda=\mK^{-1}$:</p>
     \[\ell(\Lambda)=\frac n2\ln|\Lambda|-\frac12\sum_{i}(\bx_i-\bar\bx)^T\Lambda(\bx_i-\bar\bx)+c\]
-    <block class="small">For symmetric $\Lambda$: <span class="dk1">$\frac{\partial}{\partial\Lambda}\,\bx^T\Lambda\bx=\bx\bx^T$</span> and <span class="dk2">$\frac{\partial}{\partial\Lambda}\ln|\Lambda|=\Lambda^{-1}$</span>.</block>
+    <block class="small hl-rule">For symmetric $\Lambda$: <span class="dk1">$\frac{\partial}{\partial\Lambda}\,\bx^T\Lambda\bx=\bx\bx^T$</span> and <span class="dk2">$\frac{\partial}{\partial\Lambda}\ln|\Lambda|=\Lambda^{-1}$</span>.</block>
     <div pause>
       \[\frac{\partial\ell}{\partial\Lambda}=\frac n2\Lambda^{-1}-\frac12\sum_{i}(\bx_i-\bar\bx)(\bx_i-\bar\bx)^T=\mathsf 0\]
     </div>
@@ -917,7 +917,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   </drawer>
   <notes>Differentiating with respect to the precision matrix keeps both terms simple: the log-determinant gives its inverse and the quadratic form gives the outer product. Treating the entries of Lambda as free gives the same stationary point as imposing symmetry. The next slide computes the four outer products for these samples.</notes>
   <narration>
-    <say>Now the covariance. We plug in x bar for the mean and maximize over the covariance. The algebra is cleaner in terms of K inverse, called the precision matrix, lambda: the matrix version of the precision from Chapter 3. In terms of lambda, the log-likelihood has a log-determinant and a term that is linear in lambda, and the two derivative rules in the box handle them.</say>
+    <say>Now the covariance. We plug in x bar for the mean and maximize over the covariance. The algebra is cleaner in terms of K inverse, called the precision matrix, lambda: the matrix version of the precision from Chapter 3. In terms of lambda, the log-likelihood has a log-determinant and a term that is linear in lambda, and <point to="rule">the two derivative rules in the box</point> handle them.</say>
     <say>Setting the derivative to zero balances the two terms. The log-determinant contributes lambda inverse, which is K itself, and the quadratic term contributes, for each point, its residual times its own transpose.</say>
     <say>Solving gives the maximum likelihood covariance: the average over the points of each residual times its own transpose. In one dimension this is the average squared residual; for vectors the square becomes a column times a row, an outer product, so the estimate averages one matrix per point. The ellipse on the right is the fitted Gaussian at Mahalanobis distance one. The steps behind the two derivative rules are under Derivation in the toolbar.</say>
   </narration>
@@ -991,11 +991,11 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
       Here $\mK$ is known, unlike in the ML estimate; only the mean is learned.
     </block>
     <div class="cards">
-      <div class="altcard"><div class="al">One coordinate (Chapter 3)</div>
+      <div class="altcard hl-one"><div class="al">One coordinate (Chapter 3)</div>
         \[\cpo{\frac{1}{\tau_n^2}}=\cpr{\frac{1}{\tau_0^2}}+\clk{\frac{n}{\sigma^2}},\qquad
           \cpo{\hat\theta_n}=\cpo{\tau_n^2}\Big(\cpr{\frac{\mu_0}{\tau_0^2}}+\clk{\frac{n\bar x}{\sigma^2}}\Big)\]
       </div>
-      <div class="altcard"><div class="al">A vector</div>
+      <div class="altcard hl-vec"><div class="al">A vector</div>
         \[\htmlClass{dk1}{\cpo{\mS_n^{-1}}=\cpr{\mS_0^{-1}}+\clk{n\mK^{-1}}},\qquad
           \htmlClass{dk2}{\cpo{\hat\btheta_n}=\cpo{\mS_n}\big(\cpr{\mS_0^{-1}\bmu_0}+\clk{n\mK^{-1}\bar\bx}\big)}\]
       </div>
@@ -1015,7 +1015,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   </drawer>
   <notes>Observation covariance K describes individual measurements; Sn describes uncertainty about the mean. Both covariance matrices are positive definite here.</notes>
   <narration>
-    <say>Now the Bayesian view. The unknown mean is a random vector, theta, with a Gaussian prior, in blue. Given theta, the observations are independent Gaussians around it with covariance K, in green. Unlike in the maximum likelihood estimate, K is known here, and only the mean is learned. The update works as in Chapter 3, shown on the left for one coordinate. The new precision is the prior's precision plus the data's precision. The data enter through x bar, whose covariance is K over n, so the data's precision is n times K inverse. The new mean combines the prior mean and the data mean, each weighted by its precision. On the right is the same update for a vector, with precision matrices in place of numbers.</say>
+    <say>Now the Bayesian view. The unknown mean is a random vector, theta, with a Gaussian prior, in blue. Given theta, the observations are independent Gaussians around it with covariance K, in green. Unlike in the maximum likelihood estimate, K is known here, and only the mean is learned. The update works as in Chapter 3, shown <point to="one">on the left for one coordinate</point>. The new precision is the prior's precision plus the data's precision. The data enter through x bar, whose covariance is K over n, so the data's precision is n times K inverse. The new mean combines the prior mean and the data mean, each weighted by its precision. <point to="vec">On the right is the same update for a vector</point>, with precision matrices in place of numbers.</say>
     <say>So learning adds precision matrices. Keep the two covariances apart: K is the spread of a single observation, while S n is our remaining uncertainty about the mean, and it shrinks as data arrive. Because these are matrices, the update can trust the data more in some directions than in others, as the next example shows.</say>
   </narration>
 </section>
@@ -1044,7 +1044,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   </drawer>
   <notes>The animation adds the data precision gradually, from none to all of it; the dotted path is the posterior center along the way. Precisions per coordinate: 1 + 1/4 = 5/4 and 1/4 + 1 = 5/4.</notes>
   <narration>
-    <say wait>Here is an example to try before the answer. On the right, the prior's blue ellipse is tall and the data's green ellipse is wide, so each source is precise in a different coordinate. Which source is more precise in each coordinate, and where should the posterior land?</say>
+    <say wait>Here is an example to try before the answer. On the right, <point to="label:pr">the prior's blue ellipse is tall</point> and <point to="label:dm">the data's green ellipse is wide</point>, so each source is precise in a different coordinate. Which source is more precise in each coordinate, and where should the posterior land?</say>
     <say>The posterior trusts each source where it is more precise: it stays near the prior in the first coordinate and moves near the data in the second. The dotted path traces the posterior center as data precision is added. It bends away from the straight dashed line between the two centers because each coordinate weighs the prior and the data differently.</say>
   </narration>
 </section>
