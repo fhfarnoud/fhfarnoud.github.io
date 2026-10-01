@@ -153,10 +153,10 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     </div>
     <div pause>
       \[\mK=\begin{pmatrix}1&0.5\\0.5&1\end{pmatrix},\qquad \rho=\frac{\cov(X_1,X_2)}{\sigma_1\sigma_2}=0.5\]
-      <alertblock title="Covariance records how deviations move together" class="small">It requires finite second moments.</alertblock>
+      <alertblock title="Covariance records how deviations move together" class="small">It is positive when the two deviations tend to have the same sign and negative when they tend to have opposite signs.</alertblock>
     </div>
   </column>
-  <notes>The notes call E[XY^T] a correlation matrix: it is an uncentered second moment, distinct from the normalized correlation coefficient rho here. Cov(X,Y)=E[XY^T]-E[X]E[Y]^T. The 400 dots are a sample; their average product is close to, not equal to, 0.5.</notes>
+  <notes>Covariance requires finite second moments. The notes call E[XY^T] a correlation matrix: it is an uncentered second moment, distinct from the normalized correlation coefficient rho here. Cov(X,Y)=E[XY^T]-E[X]E[Y]^T. The 400 dots are a sample; their average product is close to, not equal to, 0.5.</notes>
   <narration>
     <say>The sign of the covariance tells us whether two coordinates tend to move together or in opposite directions. The covariance is the average product of the two deviations, and here, with the mean at zero, each point contributes x one times x two. The cloud on the left is a sample from our running model.</say>
     <say wait>The product is positive in the upper-right and lower-left quadrants, where the two coordinates have the same sign, and negative in the other two. Which quadrants hold more of the points, and what sign will the average have? Predict before the next step.</say>
@@ -206,10 +206,10 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <column>
     <p>Die counts in 36 rolls: $\var(X_i)=5$ and $\cov(X_i,X_j)=-1$. With $\bone=(1,\ldots,1)^T$,</p>
     \[\mK=6\mI-\bone\bone^T.\]
-    <p pause>Each row of $\mK$ sums to $5-5=0$, so $\mK\bone=\bzero$.</p>
+    <p pause>Each row of $\mK$ sums to $5-5=0$, so $\mK\bone=\bzero$ and $\mK$ is singular: it has no inverse.</p>
     <alertblock pause title="The sum has zero variance">
       \[\var\Big(\sum_{i=1}^6X_i\Big)=0\]
-      The total is always 36. A covariance matrix with a zero-variance direction is singular.
+      The total is always 36.
     </alertblock>
   </column>
   <fig name="dice" init="s=0"></fig>
@@ -407,9 +407,10 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
       <p>Written in terms of $\mK$,</p>
       \[p_{\bX}(\bx)=\frac{1}{(2\pi)^{d/2}|\mK|^{1/2}}\,e^{-\frac12(\bx-\bmu)^T\mK^{-1}(\bx-\bmu)}.\]
     </div>
-    <alertblock pause title="Contours of equal density are Mahalanobis ellipses" class="small">Within one Gaussian, a larger Mahalanobis distance means a lower density. Right: the running model, with $|\mK|=0.75$.</alertblock>
+    <alertblock pause title="Contours of equal density are Mahalanobis ellipses" class="small">The density depends on $\bx$ only through $\Delta$, so points at the same Mahalanobis distance have the same density, and a larger distance means a lower density.</alertblock>
   </column>
   <fig name="dprof"></fig>
+  <p class="caption" style="margin-left:40px">The running model, $|\mK|=0.75$.</p>
   <drawer>
     <p class="dk1">Why $|\mK|^{1/2}$ takes the place of $\sigma$: rotating to coordinates along the axes $\mK$ defines, $\by=\mU^T(\bx-\bmu)$ with $\mU=(\bu_1,\dots,\bu_d)$ its orthonormal eigenvectors, changes no volume and gives $\Delta^2=\sum_i y_i^2/\lambda_i$. The determinant is the product of the eigenvalues, $|\mK|=\prod_i\lambda_i$, so the density is a product of one-dimensional Gaussian densities with variances $\lambda_i$:</p>
     \[\htmlClass{dk1}{\frac{1}{(2\pi)^{d/2}|\mK|^{1/2}}\,e^{-\Delta^2/2}=\prod_{i=1}^d\frac{1}{\sqrt{2\pi\lambda_i}}\,e^{-y_i^2/2\lambda_i}.}\]
@@ -528,7 +529,10 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
         <tr pause="rho=0.5"><td>0.5</td><td>up</td><td>1</td><td>1</td></tr>
       </tbody>
     </table>
-    <alertblock pause title="Correlation tilts the cloud and leaves the marginals fixed">Each marginal alone cannot tell these models apart. The relationship lives in the joint distribution, through the off-diagonal of $\mK$. Gaussian marginals alone do not make a vector jointly Gaussian.</alertblock>
+    <div pause>
+      <alertblock title="Correlation tilts the cloud and leaves the marginals fixed">Each marginal alone cannot tell these models apart. The relationship lives in the joint distribution, through the off-diagonal of $\mK$.</alertblock>
+      <p class="small">Gaussian marginals alone do not make a vector jointly Gaussian.</p>
+    </div>
   </column>
   <narration>
     <say>Now look at the marginals directly. Each coordinate of a jointly Gaussian vector is itself Gaussian, since a single coordinate is itself a linear combination, with weight one on that coordinate and zero on the others. The curves along the top and the right of the plot are the two marginal densities. Here the correlation is minus one half, and the cloud tilts down.</say>
@@ -713,7 +717,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
         <tr pause="x1=2"><td>2</td><td>1</td></tr>
       </tbody>
     </table>
-    <alertblock pause="x1=2.5 fin=1" title="A line with slope $\rho$">
+    <alertblock pause="x1=2.5 fin=1" title="A line with slope $\rho$ and a band of constant width">
       \[\E[X_2\mid X_1=x_1]=\htmlClass{dk1}{\rho x_1}\]
       <span class="dk2">The band of one conditional standard deviation, $\pm\sqrt{1-\rho^2}=\pm0.866$, has the same width at every $x_1$.</span>
     </alertblock>
@@ -778,7 +782,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     </div>
   </div>
   <alertblock pause title="Every least-squares line regresses toward the mean">
-    In SD units the least-squares slope is $\rho$. For mothers and daughters, <span class="dk2">$b=0.5\cdot\tfrac66=0.5$</span> cm per cm: the red line on the previous slide.
+    In SD units the slope is $\rho$, with $|\rho|<1$, so predictions lie closer to the mean. For mothers and daughters, <span class="dk2">$b=0.5\cdot\tfrac66=0.5$</span> cm per cm: the red line on the previous slide.
   </alertblock>
   <drawer>
     <p>Minimize $f(a,b)=\E[(Y-a-bX)^2]$, a convex quadratic in $(a,b)$, by setting both partial derivatives to zero:</p>
@@ -808,10 +812,10 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     <block title="Partition a jointly Gaussian vector">
       \[\bX=\begin{pmatrix}\bX_a\\\bX_b\end{pmatrix},\qquad\bmu=\begin{pmatrix}\bmu_a\\\bmu_b\end{pmatrix}\]
       For invertible $\mK_{bb}$, $\bX_a\mid\bX_b=\bx_b\sim\cN(\bmu_{a|b},\mK_{a|b})$ with
-      \[\begin{aligned}\bmu_{a|b}&=\htmlClass{dk1}{\bmu_a+\underbrace{\mK_{ab}\mK_{bb}^{-1}}_{\text{uses the relationship}}(\bx_b-\bmu_b)}\\ \mK_{a|b}&=\htmlClass{dk2}{\mK_{aa}-\underbrace{\mK_{ab}\mK_{bb}^{-1}\mK_{ba}}_{\text{reduction in uncertainty}}}\end{aligned}\]
+      \[\begin{aligned}\bmu_{a|b}&=\htmlClass{dk1}{\bmu_a+\underbrace{\mK_{ab}\mK_{bb}^{-1}}_{\mathclap{\text{uses the relationship}}}(\bx_b-\bmu_b)}\\ \mK_{a|b}&=\htmlClass{dk2}{\mK_{aa}-\underbrace{\mK_{ab}\mK_{bb}^{-1}\mK_{ba}}_{\mathclap{\text{positive semidefinite: reduces uncertainty}}}}\end{aligned}\]
     </block>
     <p pause class="small">With one coordinate in each block, this is the running model: <span class="dk3">$\mK_{ab}\mK_{bb}^{-1}=\rho=0.5$ and $\mK_{a|b}=1-\rho^2=0.75$</span>.</p>
-    <alertblock pause title="One update for any number of observed coordinates" class="small">The conditional remains Gaussian. The covariance reduction is positive semidefinite.</alertblock>
+    <alertblock pause title="One update for any number of observed coordinates" class="small">The same two formulas hold whatever the sizes of $\bX_a$ and $\bX_b$.</alertblock>
   </column>
   <drawer>
     <p>Set $\mathsf C=\mK_{ab}\mK_{bb}^{-1}$ and $\bY=\bX_a-\mathsf C\bX_b$. By the linear-transformation rules, with $\mK_{ba}=\mK_{ab}^T$,</p>
@@ -996,8 +1000,8 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
           \htmlClass{dk2}{\cpo{\hat\btheta_n}=\cpo{\mS_n}\big(\cpr{\mS_0^{-1}\bmu_0}+\clk{n\mK^{-1}\bar\bx}\big)}\]
       </div>
     </div>
-    <p>The posterior is $\cpo{\cN(\hat\btheta_n,\mS_n)}$. Its precision is the prior precision plus <span class="dk3">the data precision $n\mK^{-1}$ (the data mean has covariance $\mK/n$)</span>, and its mean combines the prior mean and the data mean, each weighted by its precision.</p>
-    <alertblock pause title="Learning adds precision matrices">$\mK$ is the spread of one observation, and $\mS_n$ the uncertainty about the mean. This is Chapter 3's Gaussian update, with a separate uncertainty structure for different directions.</alertblock>
+    <p>The posterior is $\cpo{\cN(\hat\btheta_n,\mS_n)}$. <span class="dk3">The data mean has covariance $\mK/n$, so the data precision is $n\mK^{-1}$.</span></p>
+    <alertblock pause title="Learning adds precision matrices">The posterior precision is the prior precision plus the data precision, and the posterior mean combines the prior mean and the data mean, each weighted by its precision.</alertblock>
   </div>
   <drawer>
     <p>Log prior plus log likelihood, up to constants; then expand with $(\ba-\bb)^T\mA(\ba-\bb)=\ba^T\mA\ba-2\ba^T\mA\bb+\bb^T\mA\bb$ for symmetric $\mA$, use $\sum_i\bx_i=n\bar\bx$, and collect powers of $\btheta$:</p>
