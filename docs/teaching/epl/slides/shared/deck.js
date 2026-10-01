@@ -675,8 +675,9 @@ function wireDrawers() {
 //   <fig name="mean" init="mu=0 b=0">       a figure and its initial state
 //   <column> … </column>                    a text column; figures and columns
 //                                           next to each other form a row, and a
-//                                           figure keeps the caption (p.caption)
-//                                           and sliders written right after it
+//                                           figure keeps the caption (p.caption),
+//                                           paragraphs of class "under" and sliders
+//                                           written right after it
 //   <block title="…">, <alertblock title="…">   blocks; class "small" sets the body small
 //   <knob param="rho" min="-0.9" max="0.9" step="0.05" digits="2">$\rho$</knob>
 //                                           a slider for the figure (for="name",
@@ -785,10 +786,10 @@ function expandSlides(slides) {
   });
 }
 // A run of figures and columns side by side becomes a row, each figure with
-// the caption and sliders written right after it.
+// the caption, the p.under paragraphs and the sliders written right after it.
 function rows(body) {
   const kids = [...body.children], isFig = k => k.matches('.fig'), isCol = k => k.matches('.col');
-  const trails = k => k.matches('p.caption, .knobs');
+  const trails = k => k.matches('p.caption, p.under, .knobs');
   for (let i = 0; i < kids.length;) {
     if (!isFig(kids[i]) && !isCol(kids[i])) { i++; continue; }
     const items = [];

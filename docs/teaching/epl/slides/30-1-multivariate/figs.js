@@ -251,8 +251,8 @@ FIGS.tilt = {
     const st = { close: true, fill: 'prior', fo: 0.12, color: 'prior', w: 2.5 };
     g.plot(TLT).path([...bell, [R, 0], [-R, 0]], st);
     g.plot(TLS).path([...bell.map(([t, d]) => [d, t]), [0, -R], [0, R]], st);
-    P.label('m1', '<span class="cap">marginal of $X_1$</span>', [R * 0.4, R], 'l', { dy: -80, color: 'prior' });
-    P.label('m2', '<span class="cap">marginal of $X_2$</span>', [R, -R], 'tl', { dx: 40, dy: 14, color: 'prior' });
+    P.label('m1', '<span class="cap">marginal</span> $p(x_1)$', [R * 0.4, R], 'l', { dy: -80, color: 'prior' });
+    P.label('m2', '<span class="cap">marginal</span> $p(x_2)$', [R, -R], 'tl', { dx: 40, dy: 14, color: 'prior' });
     P.label('mn', 'both $\\cN(0,1)$', [R, -R], 'tl', { dx: 40, dy: 40, color: 'prior' });
     P.label('K', `$\\mK=\\begin{pmatrix}1&${fmt(p.rho)}\\\\${fmt(p.rho)}&1\\end{pmatrix}$`, [-R, R], 'tl', { dx: 6, dy: 8 });
   }
@@ -466,7 +466,8 @@ FIGS.mle4 = {
 // Residual colours, shared with the text of the outer-product slide.
 const RC = ['#087F80', '#B33362', '#A0521B', '#6A3D9A'];
 FIGS.outer = {
-  duration: 900, size: [480, 440],
+  enter: { k: 0 },   // entered forward, the four residuals arrive one after another
+  duration: 2400, size: [480, 440],
   draw(g, p) {
     const P = g.plot(FP);
     fourBase(P);
@@ -564,8 +565,9 @@ FIGS.bayesn = {
 };
 
 // ---------------------------------------------------------------- conditioning (from the 30-3-conditioning pilot)
-// Conditioning slides: the cloud with a vertical slice at x1, and the conditional
-// density of X2 on a side axis that shares the cloud's vertical x2 scale.
+// Conditioning slides: the cloud with a vertical slice at x1, and on a side axis that
+// shares the cloud's vertical x2 scale the marginal of X2, the joint density along the
+// slice and the conditional density of X2.
 const CP = frame2d(34, 30, 390, 3.2), SX0 = CP.X(3.2) + 44, SW = 165;   // density 1.0 = SW px
 const CS = box2d(SX0, CP.Y(3.2), SW, CP.S, 0, 1, -3.2, 3.2);   // the side axis: density across, x2 as in CP
 FIGS.cond = {
@@ -587,7 +589,7 @@ FIGS.cond = {
         S.text([t, -R], t, { dy: 24 });
       }
     });
-    S.param(t => [phi(t, 0, 1), t], { from: -R, to: R, n: 160, color: 'prior', w: 2.5, dash: '8 6' });
+    S.param(t => [phi(t, 0, 1), t], { from: -R, to: R, n: 160, color: 'prior', w: 2.5 });
     const curve = S.steps({}, -R, R, 200).map(t => [phi(t, m, v), t]);
     S.path([[0, -R], ...curve, [0, R]], { close: true, fill: 'post', fo: 0.15, color: 'none', w: null });
     S.path(curve, { color: 'post', w: 3 });
@@ -596,8 +598,13 @@ FIGS.cond = {
     g.line([S.X(0) + 62, P.Y(side * 2.35)], S.px([phi(1.6, 0, 1), side * 1.6]), { color: 'prior', w: 1.2, opacity: fade });
     S.label('dens', 'density', [1, -R], 'l', { dx: 32, color: '#444' });
     P.label('slice', `$x_1=${fmt(p.x1)}$`, [p.x1, -R], 't', { dy: 8, color: 'like' });
-    S.label('cond', `<span class="cap">conditional</span><br>$\\mathcal N(${fmt(m)},\\,${fmt(v)})$`, [pk, m], 'l', { dx: 12, color: 'post' });
-    S.label('marg', '<span class="cap">marginal</span> $\\mathcal N(0,1)$', [0, side * 2.35], 'l', { dx: 66, color: 'prior', opacity: fade });
+    S.label('cond', `<span class="cap">conditional</span><br>$p(x_2\\mid x_1=${fmt(p.x1)})$`, [pk, m], 'l', { dx: 12, color: 'post' });
+    S.label('marg', '<span class="cap">marginal</span> $p(x_2)$', [0, side * 2.35], 'l', { dx: 66, color: 'prior', opacity: fade });
+    // the joint density along the slice, p(x1) p(x2 | x1): the conditional before it is rescaled
+    const pj = phi(p.x1, 0, 1), ly = m - 1.05, lt = m - 0.6;
+    S.path(curve.map(([d, t]) => [pj * d, t]), { color: 'like', w: 2.5, dash: '8 6' });
+    g.line([S.X(0.5) - 4, S.Y(ly)], S.px([pj * phi(lt, m, v), lt]), { color: 'like', w: 1.2 });
+    S.label('joint', `<span class="cap">joint</span> $p(x_2,\\,x_1=${fmt(p.x1)})$`, [0.5, ly], 'l', { color: 'like' });
   }
 };
 
