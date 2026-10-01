@@ -874,7 +874,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
       \[\begin{aligned}\frac{\partial\ell}{\partial\btheta}&=\sum_{i}(\bx_i-\btheta)^T\mK^{-1}=\bzero^T\\ \xRightarrow{\ \times\mK\ }\quad&\sum_{i}(\bx_i-\btheta)^T=\bzero^T\;\Rightarrow\;\boxed{\hat\btheta_{\mle}=\bar\bx=\frac1n\sum_{i=1}^n\bx_i}\end{aligned}\]
     </div>
     <alertblock pause="c=1" title="The center does not depend on $\mK$">
-      The residuals (dashed) sum to $\bzero$ for every $\mK$. Here $\bar\bx=\frac14(8,4)^T=(2,1)^T$.
+      The estimate is $\bar\bx$ whatever $\mK$ is, so the mean can be found before $\mK$. Here $\bar\bx=\frac14(8,4)^T=(2,1)^T$.
     </alertblock>
   </column>
   <fig name="mle4" init="c=0 e=0"></fig>
@@ -882,7 +882,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <narration>
     <say>Start with the mean. Only the second term depends on theta, so we differentiate it with the rule in the box, the vector version of the derivative of a square.</say>
     <say>Setting the derivative to zero says that the residuals, the differences between the data points and theta, add up to zero after each is multiplied by K inverse. K inverse is invertible, so multiplying both sides by K removes it, and the residuals themselves add up to zero. The point from which the residuals cancel is the average, so the maximum likelihood estimate of the mean is x bar.</say>
-    <say>K is gone from the answer: whatever the covariance, the estimate of the center is the plain average of the data points. On the right, the dashed lines are the residuals from x bar to each of the four points, and they cancel.</say>
+    <say>K is gone from the answer: whatever the covariance, the estimate of the center is the plain average of the data points. So we can find the mean first and then plug it into the covariance estimate, on the next slide. On the right, the dashed lines are the residuals from x bar to each of the four points, and they cancel.</say>
   </narration>
 </section>
 
