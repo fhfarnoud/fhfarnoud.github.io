@@ -692,10 +692,10 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   </column>
   <notes>Live: move x1, then rho. Ask which control moves the peak and which also changes its width. At rho=0 the conditional equals the marginal.</notes>
   <narration>
-    <say wait>The previous slide derived the conditional distribution for any rho. Now keep the observation at x one equals two and change rho. First predict what moves the peak and what sets its width. With rho equal to minus one half, the cloud tilts down, and the conditional is centred at minus one with variance zero point seven five. The dashed green curve, the joint density along the slice, stays close to the axis, because x one equals two is a rare observation.</say>
-    <say>With rho equal to zero, the cloud is round. The conditional is centred at zero with variance one: it coincides with the marginal, so observing X one tells us nothing about X two.</say>
-    <say>At rho equal to one half, the peak moves up to one, and the variance is zero point seven five again, the same as for minus one half.</say>
-    <say>With a strong correlation of zero point nine, the cloud is a narrow ridge. The conditional mean is one point eight, and the variance drops to zero point one nine: the observation now pins down x two quite precisely.</say>
+    <say wait>The previous slide derived the conditional distribution for any rho. Now keep the observation at x one equals two and change rho. First predict what moves the peak and what sets its width. With rho equal to minus one half, the cloud tilts down, and the conditional sits below zero. The dashed green curve, the joint density along the slice, stays close to the axis, because x one equals two is a rare observation.</say>
+    <say>With rho equal to zero, the cloud is round, and the conditional coincides with the marginal: observing X one tells us nothing about X two.</say>
+    <say>At rho equal to one half, the peak moves above zero by the same amount, and the width is the same as for minus one half.</say>
+    <say>With a strong correlation of zero point nine, the cloud is a narrow ridge, and the conditional is tall and narrow: the observation now pins down x two quite precisely.</say>
     <say>The peak sits at rho times x one, so it moves up for positive rho and down for negative rho. The width depends only on rho squared, so one half and minus one half give the same variance, and a correlation near plus or minus one makes the prediction precise. Try the two sliders below the plot: move x one and watch the peak follow the observation, then change rho and watch the width.</say>
   </narration>
 </section>
@@ -719,10 +719,10 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
     </alertblock>
   </column>
   <narration>
-    <say>We found that the conditional mean is rho times the observed value. Now let the observed value sweep continuously and follow the conditional mean of X two, the red point on the left. At x one equals minus two, the conditional mean is minus one. The shaded band around it marks one conditional standard deviation on either side.</say>
-    <say>As x one moves up to zero, the point leaves a trail behind it, and the conditional mean reaches zero.</say>
-    <say>At x one equals two, it reaches one. The trail is a straight line.</say>
-    <say>So the conditional mean is a straight line through the origin with slope rho, here one half: every unit increase in x one raises the expected value of x two by half a unit. The band has the same width everywhere, plus or minus zero point eight six six, the square root of one minus rho squared, so the observation sharpens the prediction equally at every value of X one. A prediction that is linear in the observation is the setting of linear regression, the next chapter.</say>
+    <say>We found that the conditional mean is rho times the observed value. Now let the observed value sweep continuously and follow the conditional mean of X two, the red point on the left. The shaded band around it marks one conditional standard deviation on either side.</say>
+    <say>As x one moves up, the point leaves a trail behind it.</say>
+    <say>The trail is a straight line.</say>
+    <say>So the conditional mean is a straight line through the origin with slope rho: every unit increase in x one raises the expected value of x two by rho. The band has the same width everywhere, so the observation sharpens the prediction equally at every value of X one. A prediction that is linear in the observation is the setting of linear regression, the next chapter.</say>
   </narration>
 </section>
 
@@ -824,7 +824,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <notes>Read the mean from right to left: observed deviation, scale by observed uncertainty, then use cross-covariance. Conditioning alone makes no causal claim.</notes>
   <narration>
     <say>Everything so far had one observed coordinate and one to predict. Often we observe several and predict several, such as a child's height and weight from both parents' measurements. We split the vector into the part to predict, a, and the part we observe, b, and split the mean and the covariance matrix the same way, as on the left. As long as the observed block's covariance is invertible, the conditional distribution is again Gaussian. Its mean starts at the mean of the predicted part and adds a correction proportional to how far the observation is from its own mean, with the factor K a b times K b b inverse playing the role of the slope. Its covariance starts at K a a and subtracts a term that measures how much the observation reduces our uncertainty.</say>
-    <say>With one coordinate in each block, this is our running model: the correction factor is rho, one half, and the conditional variance is one minus rho squared, zero point seven five, the numbers we found at the start of this part.</say>
+    <say>With one coordinate in each block, this is our running model, and the formulas give the slope rho and the variance one minus rho squared that we found at the start of this part.</say>
     <say>So one update rule handles any number of observed coordinates. The conditional stays Gaussian, and the amount subtracted from the covariance is positive semidefinite, so observing more coordinates can only reduce our uncertainty. Concretely, take any weighted combination of the predicted coordinates. After conditioning on X b, its variance is the variance before minus a quantity that is never negative, so it goes down or stays the same. It stays the same only when the combination is uncorrelated with the observed coordinates. And since the conditional covariance does not depend on the observed values, this holds whatever we observe.</say>
   </narration>
 </section>
@@ -882,7 +882,7 @@ ul.needs .tags { flex: 0 0 62px; white-space: nowrap; padding-top: 1px; }
   <narration>
     <say>Start with the mean. Only the second term depends on theta, so we differentiate it with the rule in the box, the vector version of the derivative of a square.</say>
     <say>Setting the derivative to zero says that the residuals, the differences between the data points and theta, add up to zero after each is multiplied by K inverse. K inverse is invertible, so multiplying both sides by K removes it, and the residuals themselves add up to zero. The point from which the residuals cancel is the average, so the maximum likelihood estimate of the mean is x bar.</say>
-    <say>K is gone from the answer: whatever the covariance, the estimate of the center is the plain average of the data points. On the right, the dashed lines are the residuals from x bar to each of the four points, and they cancel. The points add up to eight in the first coordinate and four in the second, so x bar is two, one.</say>
+    <say>K is gone from the answer: whatever the covariance, the estimate of the center is the plain average of the data points. On the right, the dashed lines are the residuals from x bar to each of the four points, and they cancel.</say>
   </narration>
 </section>
 
