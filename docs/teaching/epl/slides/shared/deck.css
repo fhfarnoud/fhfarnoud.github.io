@@ -178,6 +178,8 @@ section.frame .fbody { transition: transform .45s cubic-bezier(.2, .7, .2, 1); t
 .deck-toolbar svg { flex: none; }
 .deck-toolbar button:hover:not(:disabled), .deck-toolbar a:hover { background: #d9d4e6; }
 .deck-toolbar button.active { background: var(--struct); color: #fff; }
+.deck-toolbar button.tb-play.waiting { background: var(--struct); color: #fff; animation: tb-wait 1.6s ease-in-out infinite; }
+@keyframes tb-wait { 50% { box-shadow: 0 0 0 6px rgba(70, 60, 125, .25); } }
 .deck-toolbar button:disabled { opacity: .4; cursor: default; }
 .deck-toolbar .tb-seek { width: 200px; accent-color: var(--struct); }
 .deck-toolbar .tb-time { min-width: 80px; font-variant-numeric: tabular-nums; color: #444; font-size: 14px; }

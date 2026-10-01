@@ -658,35 +658,36 @@ FIGS.rev = {
   }
 };
 
-// Mother (horizontal) and son (vertical) heights in cm: the two conditional-mean
-// lines and the SD line, all through the means (163, 177).
-const MS = { mm: 163, sm: 6, ms: 177, ss: 7, rho: 0.5 },
-  MB = box2d(62, 40, 360, 396, 144, 184, 156, 200);
-const msSon = m => MS.ms + MS.rho * MS.ss / MS.sm * (m - MS.mm);     // E[S | M=m]
-const msMom = s => MS.mm + MS.rho * MS.sm / MS.ss * (s - MS.ms);     // E[M | S=s]
-const msSD = s => MS.mm + (s - MS.ms) * MS.sm / MS.ss;               // SD line: s - 177 = (7/6)(m - 163)
+// Mother (horizontal) and daughter (vertical) heights in cm, the same distribution
+// for both: the two conditional-mean lines and the SD line (the diagonal), all
+// through the means (163, 163).
+const MD = { mm: 163, sm: 6, dm: 163, sd: 6, rho: 0.5 },
+  MB = box2d(62, 40, 360, 396, 144, 184, 142, 186);
+const mdDau = m => MD.dm + MD.rho * MD.sd / MD.sm * (m - MD.mm);     // E[D | M=m]
+const mdMom = d => MD.mm + MD.rho * MD.sm / MD.sd * (d - MD.dm);     // E[M | D=d]
+const mdSD = m => MD.dm + (m - MD.mm) * MD.sd / MD.sm;               // SD line: d - 163 = m - 163
 FIGS.ms = {
   duration: 1200, size: [565, 480],
   draw(g, p) {
     const P = g.plot(MB), B = MB, a = clamp(p.L1), b = clamp(p.L2);
-    const m1 = lerp(B.xlo, B.xhi, a), s2 = lerp(B.ylo, B.yhi, b), c = MS.rho * MS.sm * MS.ss;
-    P.axes({ step: 10, ox: B.xlo, oy: B.ylo, xt: [150, 160, 170, 180], yt: [160, 170, 180, 190, 200], names: ['$m$', '$s$'] });
-    P.cloud(corrPts(MS.rho).map(([z, x]) => [MS.mm + MS.sm * z, MS.ms + MS.ss * x])
-      .filter(([m, s]) => m > B.xlo && m < B.xhi && s > B.ylo && s < B.yhi), { fo: 0.25 });
-    for (const r of [1, 2]) P.ellipse([[MS.sm ** 2, c], [c, MS.ss ** 2]], { r, at: [MS.mm, MS.ms], so: 0.7 });
-    P.line([msSD(B.ylo), B.ylo], [msSD(B.yhi), B.yhi], { color: '#555', w: 2.5, dash: '8 6', opacity: p.sd });
+    const m1 = lerp(B.xlo, B.xhi, a), d2 = lerp(B.ylo, B.yhi, b), c = MD.rho * MD.sm * MD.sd;
+    P.axes({ step: 10, ox: B.xlo, oy: B.ylo, xt: [150, 160, 170, 180], yt: [150, 160, 170, 180], names: ['$m$', '$d$'] });
+    P.cloud(corrPts(MD.rho).map(([z, x]) => [MD.mm + MD.sm * z, MD.dm + MD.sd * x])
+      .filter(([m, d]) => m > B.xlo && m < B.xhi && d > B.ylo && d < B.yhi), { fo: 0.25 });
+    for (const r of [1, 2]) P.ellipse([[MD.sm ** 2, c], [c, MD.sd ** 2]], { r, at: [MD.mm, MD.dm], so: 0.7 });
+    P.line([B.xlo, mdSD(B.xlo)], [B.xhi, mdSD(B.xhi)], { color: '#555', w: 2.5, dash: '8 6', opacity: p.sd });
     P.line([175, B.ylo], [175, B.yhi], { color: 'like', w: 3, opacity: clamp(3 * a) });
-    P.line([B.xlo, 184], [B.xhi, 184], { color: 'like', w: 3, opacity: clamp(3 * b) });
-    P.line([B.xlo, msSon(B.xlo)], [m1, msSon(m1)], { color: 'post', w: 3.5, cap: 'round', opacity: a > 0 ? 1 : 0 });
-    P.line([msMom(B.ylo), B.ylo], [msMom(s2), s2], { color: 'postC', w: 3.5, cap: 'round', opacity: b > 0 ? 1 : 0 });
-    P.dot([175, 184], { r: 8, color: 'post', opacity: clamp((a - 0.75) / 0.15) });
-    P.dot([166, 184], { r: 8, color: 'postC', opacity: clamp((b - 0.6) / 0.15) });
-    P.dot([MS.mm, MS.ms], { r: 4, outline: false });
+    P.line([B.xlo, 169], [B.xhi, 169], { color: 'like', w: 3, opacity: clamp(3 * b) });
+    P.line([B.xlo, mdDau(B.xlo)], [m1, mdDau(m1)], { color: 'post', w: 3.5, cap: 'round', opacity: a > 0 ? 1 : 0 });
+    P.line([mdMom(B.ylo), B.ylo], [mdMom(d2), d2], { color: 'postC', w: 3.5, cap: 'round', opacity: b > 0 ? 1 : 0 });
+    P.dot([175, 169], { r: 8, color: 'post', opacity: clamp((a - 0.75) / 0.15) });
+    P.dot([166, 169], { r: 8, color: 'postC', opacity: clamp((b - 0.6) / 0.15) });
+    P.dot([MD.mm, MD.dm], { r: 4, outline: false });
     P.label('vs', '$m=175$', [175, B.ylo], 'br', { dx: -6, dy: -6, color: 'like', opacity: clamp(3 * a) });
-    P.label('hs', '$s=184$', [B.xlo, 184], 'bl', { dx: 6, dy: -6, color: 'like', opacity: clamp(3 * b) });
-    P.label('l1', '$\\E[S\\mid M=m]$', [B.xhi, msSon(B.xhi)], 'l', { dx: 8, color: 'post', opacity: clamp((a - 0.8) / 0.2) });
-    P.label('l2', '$\\E[M\\mid S=s]$', [msMom(B.yhi), B.yhi], 'b', { dy: -6, color: 'postC', opacity: clamp((b - 0.8) / 0.2) });
-    P.label('sdl', 'SD line', [msSD(B.yhi), B.yhi], 'l', { dx: 8, color: '#555', opacity: p.sd });
+    P.label('hs', '$d=169$', [B.xlo, 169], 'bl', { dx: 6, dy: -6, color: 'like', opacity: clamp(3 * b) });
+    P.label('l1', '$\\E[D\\mid M=m]$', [B.xhi, mdDau(B.xhi)], 'l', { dx: 8, color: 'post', opacity: clamp((a - 0.8) / 0.2) });
+    P.label('l2', '$\\E[M\\mid D=d]$', [mdMom(B.yhi), B.yhi], 'b', { dy: -6, color: 'postC', opacity: clamp((b - 0.8) / 0.2) });
+    P.label('sdl', 'SD line', [B.xhi, mdSD(B.xhi)], 'l', { dx: 8, color: '#555', opacity: p.sd });
   }
 };
 

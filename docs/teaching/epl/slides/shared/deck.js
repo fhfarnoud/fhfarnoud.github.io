@@ -819,7 +819,8 @@ function rows(body) {
 // Narration: a slide's <narration> holds one <say> per state, before the first
 // build step and then after each.  Play (or N) speaks the current state, takes
 // the next step when it ends, and goes on into the next slide while that one is
-// narrated too; pause, seek within the state and speed (remembered in this
+// narrated too, except after a passage marked <say wait>, which holds until the
+// reader takes the next step; pause, seek within the state and speed (remembered in this
 // browser) are on the bar, a paused player stays paused on whatever state you
 // move to, and N or Escape stops it.  A state rendered by
 // shared/narrate.py plays its audio file (narration/manifest.json, keyed by the
@@ -840,7 +841,7 @@ const ICON = Object.fromEntries(Object.entries({
 function wireToolbar() {
   if (PRINT) return;
   const synth = window.speechSynthesis, blobs = {};
-  let on = false, paused = false, pending = false, token = 0, voice = null, audio = null, files = {}, speed = 1, trOn = false;
+  let on = false, paused = false, pending = false, waiting = false, token = 0, voice = null, audio = null, files = {}, speed = 1, trOn = false;
   try { speed = +localStorage.getItem('deck-narration-speed') || 1; } catch (e) { /* storage blocked */ }
   fetch('narration/manifest.json').then(r => r.ok ? r.json() : null).then(m => { if (m) files = m.files || {}; }).catch(() => {});
   const pick = () => {
@@ -878,7 +879,10 @@ function wireToolbar() {
   if (sel.value !== String(speed)) { speed = 1; sel.value = '1'; }
 
   // the transcript: a drawer on each narrated slide, in the derivation drawer's place,
-  // one paragraph per state; clicking a paragraph goes to that state
+  // one paragraph per state; clicking a paragraph goes to that state. A viewer that
+  // edits the deck in place (localtools) stamps each <say> with its span in the file
+  // (data-src...); the stamp moves to the paragraph, so a cmd-click there edits the
+  // passage, and the click is left to the editor
   document.querySelectorAll('.slides > section').forEach(sec => {
     const list = says(sec);
     if (!list.length) return;
@@ -887,8 +891,12 @@ function wireToolbar() {
     d.innerHTML = '<div class="dh">Transcript</div>';
     list.forEach((say, i) => {
       const para = document.createElement('p');
-      para.textContent = say.textContent.replace(/\s+/g, ' ').trim();
-      para.addEventListener('click', e => { e.stopPropagation(); Reveal.slide(slides().indexOf(sec), 0, i - 1); });
+      para.innerHTML = say.innerHTML.trim();
+      for (const a of [...say.attributes]) if (a.name.startsWith('data-src')) { para.setAttribute(a.name, a.value); say.removeAttribute(a.name); }
+      para.addEventListener('click', e => {
+        if (e.metaKey || e.ctrlKey || e.altKey || document.documentElement.classList.contains('lt-session')) return;
+        e.stopPropagation(); Reveal.slide(slides().indexOf(sec), 0, i - 1);
+      });
       d.appendChild(para);
     });
     sec.appendChild(d);
@@ -896,6 +904,7 @@ function wireToolbar() {
 
   const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
   const showTime = () => {
+    if (waiting) { seek.disabled = true; time.textContent = 'your turn'; return; }
     if (!on || !audio || !isFinite(audio.duration)) { seek.value = 0; seek.disabled = !(on && audio); time.textContent = on && !audio ? 'voice' : '0:00'; return; }
     seek.disabled = false; seek.value = audio.currentTime / audio.duration;
     time.textContent = `${clock(audio.currentTime)} / ${clock(audio.duration)}`;
@@ -927,8 +936,9 @@ function wireToolbar() {
     const has = says(sec).length > 0;
     narrGroup.classList.toggle('off', !has && !on);
     play.disabled = !has && !on;
-    play.innerHTML = on && !paused ? ICON.pause : ICON.play;
-    play.title = on ? (paused ? 'Resume' : 'Pause') : 'Play narration (N)';
+    play.innerHTML = on && !paused && !waiting ? ICON.pause : ICON.play;
+    play.title = waiting ? 'Continue to the next step' : on ? (paused ? 'Resume' : 'Pause') : 'Play narration (N)';
+    play.classList.toggle('waiting', waiting);
     const dr = sec && sec.querySelector(':scope > .drawer');
     derivBtn.disabled = !dr;
     derivBtn.classList.toggle('active', !!dr && sec.classList.contains('drawer-open'));
@@ -938,7 +948,7 @@ function wireToolbar() {
   };
 
   const hush = () => { if (audio) { audio.pause(); audio = null; } if (synth) synth.cancel(); };
-  const stop = () => { on = false; paused = false; pending = false; token++; hush(); refresh(); };
+  const stop = () => { on = false; paused = false; pending = false; waiting = false; token++; hush(); refresh(); };
   const sha1 = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-1', new TextEncoder().encode(t)))]
     .map(b => b.toString(16).padStart(2, '0')).join('');
   const next = my => {
@@ -947,8 +957,15 @@ function wireToolbar() {
     else if (says(slides()[Reveal.getIndices().h + 1]).length) Reveal.next();
     else stop();
   };
+  // a passage marked <say wait> asks the reader to predict or try something: when it
+  // ends the narration holds, and the next step (the play button or the usual keys) resumes it
+  const done = (my, say) => {
+    if (my !== token || !on) return;
+    if (say.hasAttribute('wait')) { waiting = true; refresh(); wake(); }
+    else next(my);
+  };
   const speak = async () => {
-    const my = ++token; hush(); pending = false;   // a paused player stays paused on the new state
+    const my = ++token; hush(); pending = false; waiting = false;   // a paused player stays paused on the new state
     if (!on) return;
     const say = says(Reveal.getCurrentSlide())[stateOf()];
     if (!say) { stop(); return; }
@@ -965,7 +982,7 @@ function wireToolbar() {
       audio = new Audio(blobs[file]);
       audio.playbackRate = speed;
       audio.onloadedmetadata = audio.ontimeupdate = showTime;
-      audio.onended = () => next(my);
+      audio.onended = () => done(my, say);
       showTime();
       if (!paused) audio.play().catch(() => stop());
       return;
@@ -979,13 +996,14 @@ function wireToolbar() {
       const u = new SpeechSynthesisUtterance(txt.trim());
       if (voice) u.voice = voice;
       u.rate = 0.97 * speed;
-      if (i === parts.length - 1) u.onend = () => next(my);
+      if (i === parts.length - 1) u.onend = () => done(my, say);
       synth.speak(u);
     });
   };
   const toggleNarration = () => { if (on) stop(); else { on = true; speak(); } };
   const playPause = () => {
     if (!on) { toggleNarration(); return; }
+    if (waiting) { waiting = false; next(token); return; }
     paused = !paused;
     if (audio) { if (paused) audio.pause(); else audio.play().catch(() => stop()); }
     else if (synth) { if (paused) synth.pause(); else if (pending) { synth.resume(); speak(); } else synth.resume(); }
