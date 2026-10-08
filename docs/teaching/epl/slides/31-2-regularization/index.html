@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Linear Regression II</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<link rel="stylesheet" href="../shared/deck.css">
+<style>
+/* Deck-local layout.  Beamer's \only replaces content in place: the alternatives
+   of a .swap share one grid cell (a fade-out step leaves, the next arrives). */
+.swap { display: grid; }
+.swap > * { grid-area: 1 / 1; }
+/* two blocks side by side, as one balanced block */
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start; }
+/* a row between content above and below it takes the height that is left */
+section.fill > .fbody, .fbody.fill { display: flex; flex-direction: column; }
+section.fill > .fbody > .row, .fbody.fill > .row { flex: 1 1 0; height: auto; min-height: 0; }
+.block .bb > :last-child { margin-bottom: 0; }
+.center { text-align: center; }
+.fine { font-size: 18px; color: #555; }
+.panelname { font-weight: bold; margin: 4px 0 6px; }
+/* the lambda slider shows lambda and the coefficient norm, not its log-scale position */
+.knobs input[data-param="ll"] + output, .knobs input[data-param="tq"] + output { display: none; }
+/* Slide 6: the penalized and constrained forms side by side, each with its picture and slider under it */
+.pair7 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 30px; row-gap: 6px; }
+.pair7 > .block { margin: 0; display: flex; flex-direction: column; }
+.pair7 > .block > .bb { flex: 1; padding-top: 4px; padding-bottom: 6px; }
+.pair7 .katex-display { margin: 4px 0; }
+.pair7 > .both { grid-column: 1 / 3; margin: 12px 0 10px; }
+.pair7 > .fig, .pair7 > div:not(.block) { justify-self: center; }
+section.linked .fig .lab { font-size: 16px; }
+section.linked .knobs { margin-top: 2px; }
+section.linked .knobs .ro b { min-width: 2.6em; }
+/* in print the sliders go, and their readouts stay on the slider's line */
+html.deck-print section.linked .knobs { display: flex; justify-content: center; }
+html.deck-print section.linked .knobs input, html.deck-print section.linked .knobs .kl { display: none; }
+.mark { display: none; }
+.knobs .ro { order: 1; font-variant-numeric: tabular-nums; }
+.knobs .ro b { font-weight: normal; display: inline-block; min-width: 3.4em; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1 -->
+<section class="frame">
+  <svg class="bells" width="1280" height="720"></svg>
+  <div class="titlebox">
+    <div class="t">Linear Regression II</div>
+    <div class="st">Regularization, overfitting, bias, variance, and noise</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Sarvin Motamen</div>
+    <div class="i">University of Virginia</div>
+    <div class="d">October 8, 2026</div>
+  </div>
+  <notes>Opening, 30 seconds. This follows least squares, gradient descent, Gaussian regression, and Bayesian regression from Lecture I. Today we ask which fitted predictor generalizes and how to compute it efficiently. Source: course notes, Sections 5.4–5.6.</notes>
+</section>
+
+<!-- Outline -->
+<section class="frame" data-slide="map">
+  <ol class="toc" hidden>
+    <li><a href="#/sec-reg">Regularization</a></li>
+    <li><a href="#/sec-bv">Error analysis, bias, and variance</a></li>
+    <li><a href="#/sec-sel">Model selection</a></li>
+    <li><a href="#/sec-sgd">Stochastic gradient descent</a></li>
+  </ol>
+  <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+</section>
+
+<!-- ============ Regularization ============ -->
+
+<!-- 2 -->
+<section id="sec-reg">
+  <h2>Which model would you trust?</h2>
+  <column>
+    <div class="swap">
+      <div pause class="fade-out" data-fragment-index="1">
+        <p><alert>Question:</alert> What should our goal be?</p>
+        <p>We have observed 12 noisy outcomes. A new outcome has yet to arrive.</p>
+      </div>
+      <div pause="s=1" data-fragment-index="1">
+        <p><alert>Question:</alert> Which would you trust on new data?</p>
+        <p class="c-pred">A smooth quadratic fit</p>
+        <p class="c-teal">A degree-11 interpolating fit</p>
+      </div>
+    </div>
+    <block pause="s=2" data-fragment-index="2" title="New data reveal the difference">Zero training error can coexist with poor prediction. The dashed curve is the true mean relationship.</block>
+  </column>
+  <fig name="trust" init="s=0"></fig>
+  <p class="caption" style="margin-left:60px"><span class="c-like">Training observations</span>&emsp;<span pause class="c-mle" data-fragment-index="2">Held-out observations</span></p>
+  <notes>2–3 minutes. Reveal 1: invite goals, especially accurate future prediction. Reveal 2: ask students to vote and identify the regions where they distrust the flexible curve. Reveal 3: compare held-out points, not only training fit. All observations are synthetic: mean .45+.65x-1.25x squared, Gaussian noise SD .27. The fits use the same 12 observations.</notes>
+</section>
+
+<!-- 3 -->
+<section>
+  <h2>Fitting the data is not the whole goal</h2>
+  <column>
+    <block title="Least squares from Lecture I">
+      \[\min_{\btheta}\;\|\by-X\btheta\|_2^2.\]
+      This measures residuals at the observed inputs.
+    </block>
+    <p><alert>Question:</alert> Can we discourage unnecessarily complicated solutions?</p>
+    <div pause>
+      \[\text{data fit}+\text{complexity penalty}\]
+      <p>The model should explain patterns that persist in new data.</p>
+    </div>
+  </column>
+  <fig name="lsfit"></fig>
+  <notes>2 minutes. Connect the nearly zero residuals to the least-squares objective. A polynomial is still linear in its coefficients: the design matrix contains powers of x. We retain least squares as a data-fit term and change how we choose among plausible fits. Next: specify a coefficient penalty.</notes>
+</section>
+
+<!-- 4 -->
+<section class="fill">
+  <h2>Regularization</h2>
+  <div>\[\cL(\btheta)=\underbrace{\cte{\|\by-X\btheta\|_2^2}}_{\text{fit to data}}+\underbrace{\cpr{\lambda\|\btheta\|_2^2}}_{\text{complexity penalty}}.\]</div>
+  <column>
+    <block title="Two competing preferences">
+      <p>Fit the observed responses well.</p>
+      <p>Prefer coefficients with smaller squared length.</p>
+    </block>
+    <div pause="lam=1">
+      \[\lambda\geq0\quad\text{sets the strength of the penalty.}\]
+      <p>At $\lambda=0$, recover ordinary least squares.</p>
+    </div>
+  </column>
+  <fig name="penalty" init="lam=0"></fig>
+  <notes>2 minutes. Ask how a larger coefficient vector affects each term. The squared coefficient length is a model preference, not a direct count of wiggles. A fixed feature representation connects coefficients to fitted curves. The displayed objective penalizes every coefficient; implementations often leave the intercept unpenalized.</notes>
+</section>
+
+<!-- 5 -->
+<section>
+  <h2>What does $\lambda$ do?</h2>
+  <column>
+    <p><alert>Question:</alert> What do you expect as $\lambda$ increases?</p>
+    <div class="swap">
+      <block pause="on=1" class="current-visible" data-fragment-index="1" title="$\lambda=0$">
+        <p>Interpolates the training points.</p>
+        <p>$\|\widehat{\btheta}\|_2\approx765$.</p>
+      </block>
+      <block pause='{"ll":-0.09691,"gh":"0"}' class="current-visible" data-fragment-index="2" title="$\lambda=0.8$">
+        <p>Accepts some residual error.</p>
+        <p>$\|\widehat{\btheta}\|_2\approx0.667$.</p>
+      </block>
+      <div pause='{"ll":1.39794,"gh":"0.8"}' data-fragment-index="3">
+        <block title="$\lambda=25$">
+          <p>Strong shrinkage toward zero.</p>
+          <p>$\|\widehat{\btheta}\|_2\approx0.195$.</p>
+        </block>
+        <p>Larger $\lambda$ gives a stronger preference for smaller coefficients.</p>
+      </div>
+    </div>
+  </column>
+  <fig name="lam" init="on=0 ll=-4 gh=none"></fig>
+  <p class="caption" style="margin-left:60px">Same degree-11 polynomial basis, data, and axes in every state.</p>
+  <knob param="ll" min="-4" max="3" step="0.001">$\lambda$ (log scale) <span class="ro">$\lambda=$ <b class="v-lam"></b> $\|\widehat{\btheta}\|_2\approx$ <b class="v-norm"></b></span></knob>
+  <notes>3 minutes. Ask before revealing any curve. Discuss the disappearance of noise-following oscillations, then the eventual flattening. The generator fits actual ridge models, not schematic curves. The basis is (1,x,...,x to power 11), so the large unregularized norm reflects cancellation among large coefficients. Lambda values are meaningful for this fixed basis and summed-error normalization only.</notes>
+</section>
+
+<!-- 6 -->
+<section class="linked">
+  <h2>Two ways to say the same thing</h2>
+  <div class="pair7">
+    <block title="Penalized" class="small">
+      \[\min_{\btheta}\;\|\by-X\btheta\|_2^2+\lambda\|\btheta\|_2^2.\]
+      Pay a price for coefficient length.
+    </block>
+    <block title="Constrained" class="small">
+      \[\min_{\btheta}\;\|\by-X\btheta\|_2^2\quad\text{subject to }\|\btheta\|_2^2\leq t.\]
+      Limit the allowed coefficient length.
+    </block>
+    <p class="both center">For each $\lambda$ there is a $t$ giving the same solution, and vice versa: $t=\|\widehat{\btheta}(\lambda)\|_2^2$.</p>
+    <fig name="penpic" init="lam=0.5"></fig>
+    <fig name="conpic" init="lam=0.5"></fig>
+    <div><knob param="ll" for="penpic" min="-1.30103" max="1.302" step="0.001"><span class="kl">$\lambda$ (log scale)</span><span class="ro">$\lambda=$ <b class="v-lam"></b></span></knob></div>
+    <div><knob param="tq" for="conpic" min="0.031" max="3.099" step="0.001"><span class="kl">$t$</span><span class="ro">$t=$ <b class="v-t"></b></span></knob></div>
+  </div>
+  <span class="mark" pause="lam=4"></span>
+  <notes>2 minutes. Explain that for a penalized optimum, choose t as its squared norm. Conversely an active constrained solution has a Lagrange multiplier. The correspondence concerns matching optima, not lambda=t or a universal reciprocal relation. In inactive or degenerate cases uniqueness of the correspondence needs care. Next: solve the penalized problem.</notes>
+</section>
+
+<!-- 7 -->
+<section>
+  <h2>Ridge regression: solution</h2>
+  <div>\[\cL(\btheta)=\|\by-X\btheta\|_2^2+\lambda\|\btheta\|_2^2.\]</div>
+  <div pause data-fragment-index="1">\[\nabla\cL(\btheta)=-2X^T(\by-X\btheta)+2\lambda\btheta.\]</div>
+  <div pause data-fragment-index="2">\[\nabla\cL(\widehat{\btheta})=0\quad\Longleftrightarrow\quad(X^TX+\cpr{\lambda I})\widehat{\btheta}=X^T\by.\]</div>
+  <div pause data-fragment-index="3">\[\boxed{\widehat{\btheta}_{\rm ridge}=(X^TX+\cpr{\lambda I})^{-1}X^T\by}.\]</div>
+  <block pause data-fragment-index="4" title="Compare with Lecture I">
+    <p class="center">$\displaystyle\widehat{\btheta}_{\rm LS}=(X^TX)^{-1}X^T\by.$<span style="display:inline-block;width:2em"></span><span class="c-prior">Only the added $+\lambda I$ changes the system.</span></p>
+    <p pause data-fragment-index="5" class="center">With $X^TX=I$: $\widehat{\btheta}_{\rm LS}=X^T\by$ and $\widehat{\btheta}_{\rm ridge}=\frac{1}{1+\lambda}X^T\by$.</p>
+  </block>
+  <notes>3 minutes. Have students supply the penalty gradient. Reveal one algebraic step at a time. Multiplication by X transpose collects residual contributions across observations. Unlike OLS, the ridge residual need not be orthogonal to every design column: X transpose residual=lambda theta. OLS inverse requires full column rank; the next slide removes that restriction for positive lambda.</notes>
+</section>
+
+<!-- 8 -->
+<section class="fill">
+  <h2>A useful side effect</h2>
+  <p><alert>Question:</alert> What if $X^TX$ is singular?</p>
+  <column>
+    <p>Example: $X=\begin{bmatrix}1&2\\2&4\\3&6\end{bmatrix}$, $\by=(2,4,6)$. The second column is twice the first, so $X^TX$ is singular.</p>
+    <p pause="ls=1">Least squares has a whole line of minimizers: every $\btheta$ with $\theta_1+2\theta_2=2$ fits exactly.</p>
+    <p pause="rg=1 ll=0">Adding $\lambda\|\btheta\|_2^2$ turns the valley into a bowl with one minimum, since $X^TX+\lambda I$ is invertible for every $\lambda>0$.</p>
+    <p pause>Ridge both constrains coefficients and stabilizes the linear system.</p>
+  </column>
+  <fig name="side" init="ls=0 rg=0 ll=0"></fig>
+  <knob param="ll" min="-1" max="1.7" step="0.001"><span class="kl">$\lambda$ (log scale)</span><span class="ro">$\lambda=$ <b class="v-lam9"></b></span></knob>
+  <notes>2 minutes. Recall duplicate columns from Lecture I. Adding lambda I shifts eigenvalues without changing eigenvectors. Zero eigenvalues become positive, so the solution is unique. This assumes every coefficient receives the positive penalty shown in the formula. Avoid a formal proof; ask which bar was problematic before regularization.</notes>
+</section>
+
+<!-- 9 -->
+<section>
+  <h2>Ridge through a Bayesian lens</h2>
+  <column class="small">
+    <block title="Likelihood from Lecture I">\[\by\mid\btheta,\sigma^2\sim\cN(X\btheta,\sigma^2I).\]</block>
+    <div pause="s=1">
+      \[\btheta\mid\sigma^2\sim\cN\!\left(\bzero,\frac{\sigma^2}{\lambda}I\right).\]
+      <p>Smaller coefficient vectors have higher prior density.</p>
+    </div>
+    <div pause>\[p(\btheta\mid\by,\sigma^2)\propto\exp\!\left[-\frac{\|\by-X\btheta\|_2^2+\lambda\btheta^T\btheta}{2\sigma^2}\right].\]</div>
+    <div pause>
+      \[\text{MAP estimate}=\text{posterior mode}=\widehat{\btheta}_{\rm ridge}.\]
+      <p>Regularization expresses prior information about plausible coefficients.</p>
+    </div>
+  </column>
+  <fig name="coef" init="q=2 lab=1 s=0"></fig>
+  <notes>3 minutes. Hold sigma squared fixed, as the notes do. Reveal likelihood, prior, posterior kernel, then mode. Contours show equal prior density; the center is zero. Multiplication of likelihood and prior adds quadratic terms. The posterior is Gaussian with covariance sigma squared times the inverse of X transpose X+lambda I, so its mode and mean agree. Source: Section 5.4.</notes>
+</section>
+
+<!-- 10 -->
+<section>
+  <h2>Do we always want “small”?</h2>
+  <p class="center"><alert>Question:</alert> What if we want unimportant features to disappear entirely?</p>
+  <div class="swap">
+    <div pause class="fade-out" data-fragment-index="1">\[\btheta=(2.8,\ \cgy{0.05},\ \cgy{-0.03},\ 1.9,\ \cgy{0.01}).\]</div>
+    <div pause="z=1" data-fragment-index="1">\[\btheta=(2.8,\ \cbr{0},\ \cbr{0},\ 1.9,\ \cbr{0}).\]</div>
+  </div>
+  <fig name="feat" init="z=0" style="margin:0 auto"></fig>
+  <block pause data-fragment-index="1" title="LASSO">Shrink coefficients and allow exact zeros: a sparse, more interpretable predictor.</block>
+  <notes>2 minutes. The coefficient vector is schematic, not the result of a fitted optimization problem. Ask what a zero coefficient means for prediction. The visual change highlights selection of features; important coefficients may also shrink. Next compare the actual penalties that create different behavior.</notes>
+</section>
+
+<!-- 11 -->
+<section>
+  <h2>Lasso</h2>
+  <div class="pair">
+    <block title="Ridge">
+      \[\min_{\btheta}\;\|\by-X\btheta\|_2^2+\lambda\|\btheta\|_2^2.\]
+      Shrink coefficients.
+    </block>
+    <block title="Lasso">
+      \[\min_{\btheta}\;\|\by-X\btheta\|_2^2+\lambda\|\btheta\|_1.\]
+      \[\|\btheta\|_1=\sum_{i=1}^m|\theta_i|.\]
+      <p pause data-fragment-index="1">Shrink coefficients and create exact zeros.</p>
+    </block>
+  </div>
+  <div pause data-fragment-index="1">
+    \[\min_{\btheta}\;\|\by-X\btheta\|_2^2\quad\text{subject to}\quad\|\btheta\|_1\leq t.\]
+    <p>As for ridge, the penalty strength corresponds to a constraint size.</p>
+  </div>
+  <p pause data-fragment-index="2">Lasso has no general matrix-inverse solution like ridge. Efficient numerical methods exist.</p>
+  <notes>2 minutes. Have students compare squaring with taking absolute values near zero. Explicitly discuss both constrained and penalized forms. Lasso does not guarantee zeros for every coordinate or dataset; it encourages them. For orthonormal designs there is soft thresholding, but the general solution is numerical. Next use two-dimensional geometry.</notes>
+</section>
+
+<!-- 12 -->
+<section>
+  <h2>Why does lasso create zeros?</h2>
+  <column>
+    <p><alert>Question:</alert> Where can the smallest loss contour touch the constraint?</p>
+    <div class="swap">
+      <block pause class="fade-out" data-fragment-index="1" title="$\ell_2$ constraint">A smooth circle usually touches away from an axis.</block>
+      <block pause="s=2" data-fragment-index="1" title="$\ell_1$ constraint">
+        <p>The diamond has corners on the axes.</p>
+        <p pause="s=3" data-fragment-index="2">A corner solution has a coefficient exactly zero.</p>
+      </block>
+    </div>
+  </column>
+  <fig name="geom" init="s=1"></fig>
+  <notes>3 minutes. The loss is proportional to (theta1-2.6) squared+1.6(theta2-.55) squared. The circle and diamond both have radius 1.4 on their coordinate axes. Draw the first touching contour conceptually: a corner can receive a range of supporting slopes. Exact zeros are common, not inevitable. The rounded constraint can also meet an axis in special cases.</notes>
+</section>
+
+<!-- 13 -->
+<section>
+  <h2>Bayesian view: ridge vs lasso</h2>
+  <column>
+    <fig name="coef" init="q=2" style="margin:0 auto"></fig>
+    <block title="Ridge: Gaussian prior">
+      \[p(\btheta\mid\sigma^2)\propto e^{-\lambda\|\btheta\|_2^2/(2\sigma^2)}.\]
+      <p>Circular equal-density contours.</p>
+      <p pause data-fragment-index="1">MAP = ridge; mean and mode coincide.</p>
+    </block>
+  </column>
+  <column>
+    <fig name="coef" init="q=1" style="margin:0 auto"></fig>
+    <block title="Lasso: independent Laplace priors">
+      \[p(\btheta\mid\sigma^2)\propto e^{-\lambda\|\btheta\|_1/(2\sigma^2)}.\]
+      <p>Diamond equal-density contours.</p>
+      <p pause data-fragment-index="1">MAP = lasso; the mean need not be sparse.</p>
+    </block>
+  </column>
+  <notes>2 minutes. Use the same Gaussian likelihood in both columns. The difference is the prior. For lasso the posterior is not generally Gaussian and its mode is not generally its mean. A continuous prior can yield a zero MAP coefficient without positive prior point mass at zero. Source: Section 5.4 Bayesian interpretations.</notes>
+</section>
+
+<!-- 14 -->
+<section class="fill small">
+  <h2>A whole family of regularizers</h2>
+  <div>\[R_q(\btheta)=\|\btheta\|_q^q=\sum_{i=1}^m|\theta_i|^q,\qquad p(\btheta\mid\sigma^2)\propto e^{-\lambda R_q(\btheta)/(2\sigma^2)}.\]</div>
+  <column class="center">
+    <fig name="coef" init="q=2" style="margin:0 auto;zoom:0.9"></fig>
+    <p>$q=2$&ensp;<span pause class="c-prior" data-fragment-index="1">ridge</span></p>
+  </column>
+  <column class="center">
+    <fig name="coef" init="q=1" style="margin:0 auto;zoom:0.9"></fig>
+    <p>$q=1$&ensp;<span pause class="c-brown" data-fragment-index="2">lasso</span></p>
+  </column>
+  <column class="center">
+    <fig name="coef" init="q=0.5" style="margin:0 auto;zoom:0.9"></fig>
+    <p>$q=\tfrac12$&ensp;<span pause class="c-rose" data-fragment-index="3">stronger axis preference</span></p>
+  </column>
+  <div pause data-fragment-index="3">
+    <p>Density falls away from zero. Small $q$ gives relatively longer tails along axes.</p>
+    <p>For $0&lt;q&lt;1$, the penalty is nonconvex and $\|\cdot\|_q$ is not a norm.</p>
+  </div>
+  <notes>2–3 minutes. Redraw of the notes' Lq figure in the reference deck's contour style. All shapes are level sets of sum absolute coefficient to power q. Reveal the identities before discussing sparse axes. Smaller q can emphasize sparsity but makes optimization nonconvex. Next return to the original question: why can changing the training objective improve squared test error?</notes>
+</section>
+
+<!-- ============ Error analysis, bias, and variance ============ -->
+
+<!-- 15 -->
+<section id="sec-bv" class="fill">
+  <h2>But why should adding bias ever help?</h2>
+  <column>
+    <block title="Our goal remains squared prediction error">\[\E[(Y-f(\bx))^2\mid\bX=\bx].\]</block>
+    <p><alert>Question:</alert> Why did we deliberately change the squared-error objective?</p>
+    <p>Discuss what changes when we evaluate a new response rather than fit an observed one.</p>
+  </column>
+  <fig name="lsridge"></fig>
+  <p class="caption" style="margin-left:60px"><span class="c-teal">Least squares</span>&emsp;<span class="c-prior">Ridge</span>&emsp;dashed: true mean</p>
+  <p class="fine">“Adding bias” means making the estimator statistically biased—not adding a bias term to the loss.</p>
+  <notes>2 minutes. Invite hypotheses without giving the decomposition yet. A training fit and a future response depend on different randomness. The ridge curve is biased under the original Gaussian linear model, but the relevant goal is prediction risk. The next slides separate noise in a future response from instability of the fitted model.</notes>
+</section>
+
+<!-- 16 -->
+<section>
+  <h2>Prediction has a ceiling</h2>
+  <column>
+    <p><alert>Question:</alert> Even if we knew the true mean exactly, could we predict $Y$ perfectly?</p>
+    <div pause>
+      <block title="No: responses still vary at this input">
+        \[\ybar(x)=\E[Y\mid X=x].\]
+        Each blue outcome is one realization around that mean.
+      </block>
+      <p>The remaining variation is <span class="c-pred">intrinsic / irreducible error</span>.</p>
+    </div>
+  </column>
+  <fig name="ceiling"></fig>
+  <notes>2 minutes. The sideways Gaussian is centered at the mean on the regression relationship; it is not centered at an observed point. Vertical position is response, horizontal width is density, not another x value. The Gaussian is an illustration, while the next decomposition needs only finite second moments. Irreducibility is relative to the current inputs X; additional informative inputs could change it.</notes>
+</section>
+
+<!-- 17 -->
+<section class="fill">
+  <h2>Where does prediction error come from?</h2>
+  <p>At a fixed input $\bx$, first hold the predictor $f$ fixed.</p>
+  <div>\[\E[(Y-f(\bx))^2\mid\bX=\bx]=\underbrace{\cpd{\var(Y\mid\bX=\bx)}}_{\text{intrinsic noise}}+\underbrace{\cro{(\ybar(\bx)-f(\bx))^2}}_{\text{error in our predictor}}.\]</div>
+  <column>
+    <p><alert>Question:</alert> Which part can choosing $f$ change?</p>
+    <div pause>
+      <block title="Best possible squared-error predictor">
+        \[f^*(\bx)=\ybar(\bx)=\E[Y\mid\bX=\bx].\]
+        The second term becomes zero. Intrinsic noise remains.
+      </block>
+      <p>More training data do not remove $\var(Y\mid\bX=\bx)$ for these inputs.</p>
+    </div>
+  </column>
+  <fig name="errf"></fig>
+  <notes>2–3 minutes. Use E[(Z-c) squared]=Var(Z)+(EZ-c) squared for the conditional distribution. If useful, add and subtract the conditional mean verbally: the cross term is zero. The notes distinguish this test error of a given fitted function from expected test error of a learning procedure, which also averages over training datasets. Transition to that extra randomness.</notes>
+</section>
+
+<!-- 18 -->
+<section>
+  <h2>Our fitted model is also random</h2>
+  <column>
+    <block title="One learning procedure">
+      <p>Same hypothesis class: quadratics.</p>
+      <p>Same loss: least squares.</p>
+      <p>New independent noise in each dataset.</p>
+    </block>
+    <p><alert>Question:</alert> Why are the fits different if our algorithm did not change?</p>
+    <span pause="k=2" data-fragment-index="1"></span>
+    <p pause="k=3" data-fragment-index="2">The training dataset $\cD$ is random, so the learned function $f_{\cD}$ is random.</p>
+  </column>
+  <fig name="rand" init="k=1"></fig>
+  <p class="caption" style="margin-left:60px">Dashed: the same true mean. Colors: independent datasets and their fits.</p>
+  <notes>3 minutes. Each dataset has 16 fixed inputs and fresh independent Gaussian noise SD .30. Reveal the second and third independently fitted curves, keeping truth and axes unchanged. In the notes, M consists of the fixed hypothesis class and empirical loss. Empirical risk minimization picks $f_{\cD}$ from that class; changing $\cD$ changes the chosen predictor.</notes>
+</section>
+
+<!-- 19 -->
+<section class="fill small">
+  <h2>Bias vs variance: see it first</h2>
+  <p><alert>Question:</alert> Classify each learning procedure from its repeated fits.</p>
+  <column class="center">
+    <fig name="panel" init="w=A" style="margin:0 auto"></fig>
+    <p class="panelname">A</p>
+    <p pause data-fragment-index="1">High bias<br>low variance</p>
+  </column>
+  <column class="center">
+    <fig name="panel" init="w=B" style="margin:0 auto"></fig>
+    <p class="panelname">B</p>
+    <p pause data-fragment-index="1">Low bias<br>high variance</p>
+  </column>
+  <column class="center">
+    <fig name="panel" init="w=C" style="margin:0 auto"></fig>
+    <p class="panelname">C</p>
+    <p pause data-fragment-index="1">Low bias<br>low variance</p>
+  </column>
+  <p>Dashed: truth. Thin: individual fits. Thick: the average fit across datasets.</p>
+  <block pause data-fragment-index="1" title="Two different comparisons">Bias compares the average fit with truth. Variance compares individual fits with their average.</block>
+  <notes>3 minutes, including a one-minute pair discussion before the answer reveal. These are schematic repeated-fit ensembles designed to isolate the two ideas. Ask students to identify the average curve before using the labels. High variance concerns changes across datasets, not noise around a single fitted curve. Next give exact mathematical definitions at a fixed input.</notes>
+</section>
+
+<!-- 20 -->
+<section class="fill">
+  <h2>Bias–variance decomposition</h2>
+  <p>For a fixed input $\bx$, average over independent training datasets and a new response.</p>
+  <div>\[\underbrace{\E_{\cD,Y}[(Y-f_{\cD}(\bx))^2\mid\bX=\bx]}_{\text{expected test error}}=\cpd{\underbrace{\var(Y\mid\bX=\bx)}_{\text{irreducible error}}}+\cro{\underbrace{(\E_{\cD}f_{\cD}(\bx)-\ybar(\bx))^2}_{\text{bias}^{2}}}+\cam{\underbrace{\var_{\cD}(f_{\cD}(\bx))}_{\text{variance}}}.\]</div>
+  <column class="center">
+    <fig name="bvmini" init="k=1" style="margin:0 auto"></fig>
+    <p>Variation around the true mean.</p>
+  </column>
+  <column class="center">
+    <fig name="bvmini" init="k=2" style="margin:0 auto"></fig>
+    <p>Average prediction misses truth.</p>
+  </column>
+  <column class="center">
+    <fig name="bvmini" init="k=3" style="margin:0 auto"></fig>
+    <p>Predictions vary across datasets.</p>
+  </column>
+  <p pause class="center">Neither unbiasedness nor low variance alone guarantees the smallest test error.</p>
+  <notes>3 minutes. Read the expectation subscripts carefully. The future outcome is independent of the training set conditional on this test input. Both the model family and fitting rule are fixed. The identity does not require a Gaussian model. There is a swapped-term sentence in the notes after the intermediate variance identity; the displayed definitions here follow the correct identity. Do not derive on the slide.</notes>
+</section>
+
+<!-- 21 -->
+<section>
+  <h2>Watch bias and variance happen</h2>
+  <column>
+    <p><alert>Question:</alert> What changes when we change only model flexibility?</p>
+    <div class="swap">
+      <block pause class="fade-out" data-fragment-index="1" title="Degree 1">Fits cluster together but miss the curvature of the truth.</block>
+      <block pause="deg=2" class="current-visible" data-fragment-index="1" title="Degree 2">The model can represent the truth, and the fitted curves remain relatively stable.</block>
+      <block pause="deg=9" data-fragment-index="2" title="Degree 9">Extra freedom follows sample-specific fluctuations. Fits vary more across datasets.</block>
+    </div>
+  </column>
+  <fig name="degfits" init="deg=1"></fig>
+  <p class="caption" style="margin-left:60px">Eight independently sampled datasets, each with $n=16$ and the same noise level.</p>
+  <knob param="deg" min="0" max="11" step="1" digits="0">polynomial degree</knob>
+  <notes>3 minutes. These are actual least-squares fits on the same eight datasets used in the previous repeated-sampling demonstration. Ask for a prediction before each reveal. One realization looking close to truth is weaker evidence than stability across repetitions. The true mean is quadratic in all states, and all coordinate axes stay fixed.</notes>
+</section>
+
+<!-- 22 -->
+<section>
+  <h2>What happens as flexibility increases?</h2>
+  <column>
+    <block title="Typical tendencies">
+      <p>More flexibility: bias generally falls.</p>
+      <p pause="v=1" data-fragment-index="1">More flexibility: variance generally rises.</p>
+    </block>
+    <div pause data-fragment-index="2">
+      <p style="margin-bottom:4px">More training data generally reduce variance.</p>
+      <fig name="moredata"></fig>
+      <p class="caption" style="margin-left:46px">Same quadratic procedure, now $n=150$.</p>
+    </div>
+  </column>
+  <fig name="comp" init="v=0"></fig>
+  <p class="caption" style="margin-left:66px"><span class="c-rose">Bias$^2$</span>&emsp;<span pause class="c-postC" data-fragment-index="1">Variance</span>; repeated-data estimate</p>
+  <notes>2–3 minutes. The curves estimate integrated squared bias and variance over a fixed x grid from 1200 independent noise samples, with the same 16 training inputs. More flexibility removes the missed quadratic curvature, after which bias is already near zero. The larger-data panel uses eight independent n=150 samples. More data can also reduce finite-sample bias, depending on the procedure. Expected test error falls when bias or variance falls while intrinsic noise stays fixed. These are tendencies, not universal monotonic laws. Training error with more data can rise as memorization becomes harder.</notes>
+</section>
+
+<!-- 23 -->
+<section>
+  <h2>Underfit, good fit, overfit</h2>
+  <div class="fbody fade-out" pause data-fragment-index="6">
+    <div class="row">
+      <column>
+        <p><alert>Question:</alert> What failure, if any, do you see?</p>
+        <div class="swap">
+          <block pause class="current-visible" data-fragment-index="1" title="A constant predictor">Insufficient flexibility misses the pattern: underfit / high bias.</block>
+          <block pause class="current-visible" data-fragment-index="3" title="A quadratic predictor">Captures the underlying form without interpolating each fluctuation.</block>
+          <block pause class="current-visible" data-fragment-index="5" title="A degree-11 predictor">Training fit is exact, but noise sensitivity is high: overfit / high variance.</block>
+        </div>
+        <span pause="s=2" data-fragment-index="2"></span>
+        <span pause="s=3" data-fragment-index="4"></span>
+      </column>
+      <div>
+        <fig name="fits" init="s=1"></fig>
+        <p class="caption" style="margin-left:60px">Illustrative quadratic truth with noisy observations.</p>
+      </div>
+    </div>
+  </div>
+  <div class="fbody small" pause data-fragment-index="6">
+    <block title="The notes’ exact two-observation example (Example 5.6)">Truth: $Y=ax+W$, $W\sim\cN(0,\sigma^2)$; train at $x_1=1$, $x_2=2$; test at $x_3=3$.</block>
+    <div>\[\begin{aligned}f_0(x)&=0,\\[1mm]f_1(x)&=\frac{y_1+2y_2}{5}\,x,\\[1mm]f_2(x)&=\frac{4y_1-y_2}{2}\,x-\frac{2y_1-y_2}{2}\,x^2.\end{aligned}\]</div>
+    <p><alert>Question:</alert> Which model has zero training error? Does it predict best at $x=3$?</p>
+    <p>The flexible quadratic can fit both noisy observations exactly even when the true mean is linear.</p>
+  </div>
+  <notes>3 minutes. Invite labels before discussing each revealed fit; the title identifies the sequence but not which visual is which. The first six states use the requested quadratic illustration, with a question state and a label state for each model. The final state faithfully presents the notes' actual Example 5.6, which has linear truth, two training points, and extrapolation to x=3. Assume sigma small relative to the signal when judging the zero predictor. The following slide compares exact risks.</notes>
+</section>
+
+<!-- 24 -->
+<section>
+  <h2>Training error tells only half the story</h2>
+  <div class="fbody fade-out" pause data-fragment-index="2">
+    <div class="row">
+      <column>
+        <p><alert>Question:</alert> If we only inspect training error, what model would we choose?</p>
+        \[\frac1n\sum_{i=1}^n(y_i-f_{\cD}(\bx_i))^2.\]
+        <div pause="r=1" data-fragment-index="1">
+          <p>Training error rewards fitting the same observations that chose the parameters.</p>
+          <p>New responses were not used to choose them.</p>
+        </div>
+      </column>
+      <div>
+        <fig name="traintest" init="r=0"></fig>
+        <p class="caption" style="margin-left:66px"><span class="c-like">Expected training error</span>&emsp;<span pause class="c-teal" data-fragment-index="1">Expected test error</span></p>
+      </div>
+    </div>
+  </div>
+  <div class="fbody small" pause data-fragment-index="2">
+    <p><b>Example 5.6: exact expectations at $x_3=3$</b></p>
+    <table class="vals" style="margin:0 auto 14px">
+      <thead><tr><th></th><th>Train</th><th>Noise</th><th>Bias$^2$</th><th>Variance</th><th>Test total</th></tr></thead>
+      <tbody>
+        <tr><td style="text-align:left">$f_0=0$</td><td>$\frac52a^2+\sigma^2$</td><td>$\sigma^2$</td><td>$9a^2$</td><td>$0$</td><td>$9a^2+\sigma^2$</td></tr>
+        <tr><td style="text-align:left">$f_1$: linear</td><td>$\sigma^2/2$</td><td>$\sigma^2$</td><td>$0$</td><td>$\frac95\sigma^2$</td><td>$\frac{14}5\sigma^2$</td></tr>
+        <tr><td style="text-align:left">$f_2$: quadratic</td><td>$0$</td><td>$\sigma^2$</td><td>$0$</td><td>$18\sigma^2$</td><td>$19\sigma^2$</td></tr>
+      </tbody>
+    </table>
+    <p>Both fits are unbiased, but the quadratic prediction variance at $x=3$ is ten times larger.</p>
+    <div>\[\text{expected training error}=\frac1n\sum_{i=1}^n\E_{\cD}[(Y_i-f_{\cD}(\bx_i))^2].\]</div>
+    <p>Lower training error does not establish lower expected test error.</p>
+  </div>
+  <notes>3 minutes. Reveal test error after a vote. First two states are a 1200-repetition simulation averaged over test inputs in [-1,1], with intrinsic noise .09. Final state uses the notes' exact example at x=3, so these are different evaluations. The flexible predictor has zero training error but expected test loss 19 sigma squared versus 2.8 sigma squared for the correctly specified linear model. The zero predictor can have larger bias when the signal dominates noise.</notes>
+</section>
+
+<!-- 25 -->
+<section>
+  <h2>Regularization is a bias–variance knob</h2>
+  <div class="fbody fill fade-out" pause data-fragment-index="3">
+    <div class="row">
+      <column>
+        <p><alert>Question:</alert> When is accepting bias worthwhile?</p>
+        <p pause="b=1" data-fragment-index="1">Shrinkage reduces variation across datasets but moves the average prediction toward zero.</p>
+        <block pause="t=1" data-fragment-index="2" title="Compare the two changes">Test error improves when the variance reduction exceeds the increase in squared bias.</block>
+      </column>
+      <div>
+        <fig name="ridgerisk" init="b=0 t=0"></fig>
+        <p class="caption" style="margin-left:66px"><span class="c-postC">Variance</span>&emsp;<span pause class="c-rose" data-fragment-index="1">Bias$^2$</span>&emsp;<span pause class="c-teal" data-fragment-index="2">Total test error</span></p>
+      </div>
+    </div>
+    <p pause class="fine" data-fragment-index="2">Expected test error $=$ bias$^2$ $+$ variance $+$ irreducible error.</p>
+  </div>
+  <div class="fbody current-visible" pause data-fragment-index="3">
+    <block title="Example 5.7: ridge prediction is generally biased">
+      For $\by=X\btheta+\boldsymbol\varepsilon$, with $\E\boldsymbol\varepsilon=0$,
+      \[\E_{\cD}[\widehat y_{\rm new}]=\bx_{\rm new}^T(X^TX+\lambda I)^{-1}X^TX\btheta.\]
+    </block>
+    <p>If $X^TX=I$, then</p>
+    <div>\[\E[\widehat y_{\rm new}]=\frac{\bx_{\rm new}^T\btheta}{1+\lambda},\qquad\bias=-\frac{\lambda}{1+\lambda}\bx_{\rm new}^T\btheta.\]</div>
+    <div>\[\var(\widehat y_{\rm new})=\frac{\sigma^2\|\bx_{\rm new}\|_2^2}{(1+\lambda)^2}.\]</div>
+    <p>The mean shrinks toward zero for either sign of the true response. Variance also falls.</p>
+  </div>
+  <div class="fbody fill small" pause data-fragment-index="4">
+    <div class="row">
+      <column>
+        \[\cL_b=\|\by-X\btheta\|_2^2+b\theta_2^2.\]
+        \[\begin{aligned}\widehat\theta_1&=\frac{b(y_1+2y_2)+8y_1-2y_2}{5b+4},\\\widehat\theta_2&=\frac{-4y_1+2y_2}{5b+4}.\end{aligned}\]
+        <p>For $h=1+5b/4$,</p>
+        \[\E[\text{train error}]=\frac{\sigma^2}{2}(1-h^{-1})^2,\]
+        \[\text{bias}^2=0,\quad\var(f_{\cD}(3))=\frac{9\sigma^2}{5}(1+9h^{-2}),\]
+        \[\E[\text{test error}]=\frac{\sigma^2}{5}(14+81h^{-2}).\]
+      </column>
+      <div>
+        <fig name="selrisk"></fig>
+        <p class="caption" style="margin-left:66px">Example 5.6: penalize only curvature.</p>
+      </div>
+    </div>
+    <p>As $b\to\infty$, the unbiased linear fit remains: no large-$b$ underfit for this selective penalty.</p>
+  </div>
+  <notes>3–4 minutes. First plot uses an exact orthonormal-design example: true prediction 1, unregularized prediction variance .6, noise .2. Risk=.2+(lambda/(1+lambda)) squared+.6/(1+lambda) squared; optimum lambda=.6. State 4 reproduces Example 5.7 without the notes' sign-specific less-than statement. State 5 includes the regularized row of Example 5.6. To agree with the printed coefficient/error formulas, the displayed objective is SSE+b theta2 squared: the notes' leading half on SSE otherwise requires replacing b by 2b. The displayed training error remains half-SSE as in the table.</notes>
+</section>
+
+<!-- 26 -->
+<section>
+  <h2>Poor prediction does not always mean overfitting</h2>
+  <column>
+    <p><alert>Question:</alert> Would more data fix this?</p>
+    <p><alert>Question:</alert> Would more regularization fix this?</p>
+    <div pause>
+      <block title="Model mismatch">The chosen family cannot express the periodic relationship over this range.</block>
+      <p>Changing the model family can matter more than tuning its complexity.</p>
+    </div>
+  </column>
+  <fig name="mismatch"></fig>
+  <p class="caption" style="margin-left:66px">Dashed: sinusoidal mean. Red: a poorly matched linear family.</p>
+  <notes>2 minutes. The notes warn that a fixed polynomial family is a poor global match to y=a sin x+noise over a wide range. A polynomial can approximate a sine on a bounded interval with sufficient degree; do not claim otherwise. The linear red curve illustrates family mismatch. More data may estimate the best member more accurately without removing approximation bias; regularization alone cannot add periodic structure.</notes>
+</section>
+
+<!-- ============ Model selection ============ -->
+
+<!-- 27 -->
+<section id="sec-sel" class="fill">
+  <h2>How do we choose the model in practice?</h2>
+  <column>
+    <block title="What we do not know">
+      <p>Nature’s true model.</p>
+      <p>The true expected test error of each candidate.</p>
+    </block>
+    <p><alert>Question:</alert> So how do we choose?</p>
+    <p>Candidates might differ in degree, $\lambda$, or the model family.</p>
+  </column>
+  <fig name="cands"></fig>
+  <div pause><fig name="split"></fig></div>
+  <notes>2 minutes. All candidates in the opening visual were compared with truth only because this was a simulation. In real data the conditional mean and true risk are unknown. Ask students for a way to mimic future prediction before revealing the three roles. These are disjoint datasets in the same target prediction setting; random splits assume suitable iid observations.</notes>
+</section>
+
+<!-- 28 -->
+<section>
+  <h2>Train, validate, test</h2>
+  <fig name="tvt" init="k=1"></fig>
+  <span pause="k=2"></span>
+  <span pause="k=3"></span>
+  <alertblock pause title="Do not use the test set to choose the model">Repeated test-based choices adapt to that test set. Its error then loses its role as an honest evaluation on unseen data.</alertblock>
+  <notes>3 minutes. Ask where theta belongs and where lambda belongs. For example fit three ridge candidates on training, choose the lowest validation MSE, then evaluate the selected model once on test. Preprocessing must be fitted using training data; apply those learned transforms to validation/test. If refitting after selection, fix the procedure before final test evaluation. The test set cannot be used for another round of model selection. Source: Section 5.5 data splits.</notes>
+</section>
+
+<!-- ============ Stochastic gradient descent ============ -->
+
+<!-- 29 -->
+<section id="sec-sgd">
+  <h2>One more problem: computation</h2>
+  <column>
+    <block title="Recall one full gradient step">
+      \[\nabla\widehat\cL(\btheta)=-\frac2n\sum_{i=1}^n(y_i-\bx_i^T\btheta)\bx_i.\]
+      Every update reads all $n$ observations.
+    </block>
+    <p><alert>Question:</alert> What if $n$ is enormous?</p>
+    <p pause>Could we update using one randomly sampled observation, or a small batch, at a time?</p>
+  </column>
+  <fig name="datamat"></fig>
+  <notes>2 minutes. Use the normalized empirical squared error so the full gradient is the average per-example gradient. Full gradient work is roughly O(nm) per step for dense data; one sampled example costs O(m). Sampling a batch offers an intermediate cost and noise level. Before writing the update, follow the notes' root-finding argument.</notes>
+</section>
+
+<!-- 30 -->
+<section>
+  <h2>Before SGD: finding a root</h2>
+  <column>
+    <p><alert>Question:</alert> Which way should we move to reach the zero?</p>
+    <block title="A deterministic iteration">
+      \[\theta^{(t+1)}=\theta^{(t)}-a_t f(\theta^{(t)}).\]
+      $a_t>0$ controls the step size.
+    </block>
+    <div pause="a=1">
+      <p>If $f(\theta)>0$, move left.</p>
+      <p>If $f(\theta)<0$, move right.</p>
+    </div>
+    <p pause="h=1">Repeating the correction can approach $\theta^*$.</p>
+  </column>
+  <fig name="root" init="a=0 h=0"></fig>
+  <p class="caption" style="margin-left:24px">Bounded increasing illustration: $f(\theta)=\tanh(\theta-1)$.</p>
+  <notes>2–3 minutes. Notes assume a bounded function, a unique root, locally increasing behavior, and an appropriately close initialization. These are part of a convergence setup, not a guarantee for an arbitrary function and start. Ask for the sign-based correction before the reveal. The illustrated steps use .5/t; later steps get smaller. The root remains at theta=1 on all related slides.</notes>
+</section>
+
+<!-- 31 -->
+<section class="fill">
+  <h2>How large should the steps be?</h2>
+  <column>
+    <p><span class="c-teal">$a_t=1/t$</span>: enough cumulative movement.</p>
+    <p pause="f=1"><span class="c-rose">$a_t=1/t^2$</span>: can shrink too quickly and stop short.</p>
+    <p pause><alert>Question:</alert> What should shrinking steps preserve?</p>
+  </column>
+  <fig name="steps" init="f=0"></fig>
+  <p class="caption" style="margin-left:24px">Shown with common scale $1/2$; vertical offsets separate the tracks.</p>
+  <block pause title="Stochastic-approximation step conditions">\[\underbrace{\sum_{t=1}^{\infty}a_t=\infty}_{\text{enough total movement}},\qquad\underbrace{\sum_{t=1}^{\infty}a_t^2<\infty}_{\text{accumulated noise is controlled}}.\]</block>
+  <notes>2–3 minutes. Displayed paths use a common constant .5 multiplying 1/t and 1/t squared; multiplying by a positive constant does not alter either sum condition. After 40 steps theta is about 1.32 for harmonic steps and 2.07 for squared-harmonic steps, from start 2.8. The harmonic path keeps making progress beyond the finite picture. Square summability controls cumulative noise effects under the other stochastic-approximation assumptions; the noise observations themselves do not disappear.</notes>
+</section>
+
+<!-- 32 -->
+<section>
+  <h2>What if the direction is noisy?</h2>
+  <column>
+    <block title="The direction is right on average">
+      \[\E[F(\theta)\mid\theta]=f(\theta).\]
+      Individual observations can have the wrong sign.
+    </block>
+    <p><alert>Question:</alert> Can repeated noisy corrections still find the zero?</p>
+    <div pause="i=1">
+      \[\theta^{(t+1)}=\theta^{(t)}-a_tF(\theta^{(t)}).\]
+      <p>Diminishing steps can average out noise and approach the root.</p>
+    </div>
+  </column>
+  <fig name="noisy" init="i=0"></fig>
+  <p class="caption" style="margin-left:24px">Red: noisy function samples. Orange: iterates in order (vertical offset is time).</p>
+  <notes>2–3 minutes. The simulation adds independent bounded uniform noise in [-1.2,1.2] to tanh(theta-1) and uses .5/t steps. Ask students to identify a point with the wrong sign. The descending display offset orders the iterates; it is not a function value. Unbiased directions and the two step-size sums are not sufficient without regularity and stability assumptions. Next replace this noisy direction with a one-example regression gradient.</notes>
+</section>
+
+<!-- 33 -->
+<section class="small">
+  <h2>This is stochastic gradient descent</h2>
+  <div>\[\cL(\btheta)=\E[(y-\bx^T\btheta)^2],\qquad\nabla\cL(\btheta)=\E[-2(y-\bx^T\btheta)\bx].\]</div>
+  <div class="pair">
+    <block title="The same root-finding setup">
+      \[f(\btheta)=\E[-2(y-\bx^T\btheta)\bx],\]
+      \[F(\btheta)=-2(y-\bx^T\btheta)\bx,\]
+      \[f(\btheta)=\E[F(\btheta)].\]
+      One random observation provides a noisy gradient.
+    </block>
+    <div>
+      <block pause data-fragment-index="1" title="Use sampled observation $i$">
+        Realization of $F$ from sampled observation $i$:
+        \[F_i(\btheta)=-2(y_i-\bx_i^T\btheta)\bx_i.\]
+        \[\btheta^{(t+1)}=\btheta^{(t)}-\eta_tF_i(\btheta^{(t)})\]
+        \[=\btheta^{(t)}+2\eta_t(y_i-\bx_i^T\btheta^{(t)})\bx_i.\]
+      </block>
+      <p pause data-fragment-index="2">Set $a_t=2\eta_t$ to obtain the notes’ update:</p>
+    </div>
+  </div>
+  <div pause data-fragment-index="2">
+    \[\boxed{\btheta^{(t+1)}=\btheta^{(t)}+a_t\underbrace{\bigl(y_i-\bx_i^T\btheta^{(t)}\bigr)}_{\text{error}}\underbrace{\bx_i}_{\text{feature direction}}}.\]
+    <p class="center">Prediction: $\bx_i^T\btheta^{(t)}$.&emsp;Update direction: (error)$\,\bx_i$.</p>
+  </div>
+  <notes>3 minutes. In the population objective, lowercase x,y denote a random observation. Interchanging gradient and expectation assumes suitable integrability. For finite data, uniform sampling makes the one-example gradient unbiased for the averaged empirical gradient, conditional on the current iterate. The raw squared loss yields a factor 2; the notes absorb it into the learning rate. A mini-batch averages sampled per-example gradients.</notes>
+</section>
+
+<!-- 34 -->
+<section class="fill">
+  <h2>Gradient descent vs SGD</h2>
+  <column>
+    <block title="Full gradient descent">
+      <p>All data per update.</p>
+      <p>Exact empirical gradient.</p>
+      <p>Expensive update.</p>
+    </block>
+    <block pause="s=1" data-fragment-index="1" title="SGD">
+      <p>One point / mini-batch.</p>
+      <p>Noisy gradient.</p>
+      <p>Cheap update.</p>
+    </block>
+  </column>
+  <fig name="gdsgd" init="s=0"></fig>
+  <p class="caption" style="margin-left:24px"><span class="c-teal">Full gradient</span>&emsp;<span pause class="c-postC" data-fragment-index="1">Stochastic gradient</span></p>
+  <p pause class="center" data-fragment-index="1">Noise buys computational efficiency.</p>
+  <notes>2 minutes. Both paths share a start and one quadratic loss surface. Paths come from actual deterministic and stochastic iterations for a quadratic population objective with Hessian diag(1,3), minimum (.3,-.2), and randomly perturbed per-sample centers. This is a schematic loss example, not the earlier polynomial ridge data. Full-gradient steps use .22; SGD steps decrease. The finite noisy path illustrates motion, not a finite-time convergence guarantee.</notes>
+</section>
+
+<!-- 35 -->
+<section>
+  <h2>The whole story</h2>
+  <fig name="story" style="margin:0 auto"></fig>
+  <notes>2 minutes. Ask students to narrate one link in the chain. Least squares addresses fitting, regularization controls a model preference, bias-variance describes repeated-sampling risk, validation chooses complexity without knowing truth, and SGD addresses computational cost. None eliminates conditional response variation given the current inputs. Exit question: If training MSE falls after increasing degree, what additional evidence is needed before trusting the new model?</notes>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="../shared/deckmap.js"></script>
+<script src="figs.js"></script>
+<script>startDeck();</script>
+</body>
+</html>

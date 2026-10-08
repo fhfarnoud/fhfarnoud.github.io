@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Linear Regression I</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<link rel="stylesheet" href="../shared/deck.css">
+<style>
+/* Deck-local: the Beamer deck's boxes, badges and diagrams, in the engine palette */
+.k-prior { --c: var(--prior); } .k-like { --c: var(--like); } .k-post { --c: var(--post); }
+.k-pred { --c: var(--pred); } .k-teal { --c: var(--teal); } .k-rose { --c: var(--rose); }
+.k-brown { --c: var(--brown); } .k-gray { --c: #9a9a9a; }
+/* tcolorbox: a light fill and a darker frame */
+.tbox { background: color-mix(in srgb, var(--c) 7%, #fff); border: 1.5px solid color-mix(in srgb, var(--c) 70%, #000);
+  border-radius: 9px; padding: 8px 18px 10px; margin: 0 0 16px; }
+.tbox.k-gray { background: #f6f6f6; border-color: #c7c7c7; }
+.tbox > :last-child, .block .bb > :last-child { margin-bottom: 0; }
+/* the TikZ softbox: frame c!70, fill c!10, rounded, a soft shadow */
+.softbox { display: inline-block; box-sizing: border-box; padding: 8px 18px; border-radius: 7px; text-align: center;
+  background: color-mix(in srgb, var(--c) 10%, #fff); border: 1.5px solid color-mix(in srgb, var(--c) 70%, #fff);
+  box-shadow: 1.5px 1.5px 3px rgba(0, 0, 0, .22); }
+/* \badge and \modelbox */
+.badge { display: inline-block; padding: 2px 11px; border-radius: 6px; background: var(--c); color: #fff;
+  font-size: 21px; font-weight: bold; }
+.modelbox { display: inline-block; padding: 6px 16px; border-radius: 7px; font-size: 25px; font-weight: bold;
+  background: color-mix(in srgb, var(--c) 10%, #fff); border: 1.5px solid color-mix(in srgb, var(--c) 70%, #fff);
+  box-shadow: 1.5px 1.5px 3px rgba(0, 0, 0, .22); }
+.smallnote { font-size: 18px; color: #6b6b6b; }
+.big { font-size: 33px; line-height: 1.25; }
+.bigger { font-size: 40px; line-height: 1.2; }
+.huge { font-size: 54px; line-height: 1.15; }
+.foot { font-size: 21px; }
+.center { text-align: center; }
+section.centered .fbody { text-align: center; }
+section.smaller .fbody { font-size: 24px; }
+.mx { margin-left: auto !important; margin-right: auto !important; }
+.cards { display: flex; gap: 24px; margin: 0 0 16px; }
+.cards > * { flex: 1 1 0; min-width: 0; margin-bottom: 0; }
+.altcard .al, .block .bt { text-align: left; }
+.fbody ul, .fbody ol { display: block; margin: 0 0 14px 1.3em; padding: 0; text-align: left; }
+.fbody li { margin: 0 0 6px; }
+.fbody li::marker { color: var(--struct); }
+table.vals .l { text-align: left; }
+table.lives th, table.lives td { padding: 3px 10px; }
+table.blue td { padding: 0 14px 0 0; vertical-align: middle; }
+table.blue .L { font-size: 60px; font-weight: bold; line-height: 1.05; }
+table.blue .W { font-size: 33px; }
+.verify { display: flex; justify-content: space-between; align-items: baseline; gap: 18px; }
+.backdrop { position: absolute; left: 0; top: 0; }
+.plainbody { position: absolute; left: 60px; right: 60px; top: 0; bottom: 0; display: flex; flex-direction: column;
+  justify-content: center; align-items: center; text-align: center; }
+.nextboxes { display: grid; grid-template-columns: auto auto; gap: 18px 34px; justify-content: center; align-items: center;
+  margin: 8px 0 34px; }
+.nextboxes > :nth-child(3) { grid-column: 1 / 3; justify-self: center; }
+/* diagrams of softboxes: .flow stacks them with arrows (.arr, its label a child span), .flow.h in a row */
+.flow { display: flex; flex-direction: column; align-items: center; }
+.flow .fstep { display: flex; flex-direction: column; align-items: center; }
+.flow .arr { position: relative; flex: none; width: 2px; height: 28px; margin: 3px 0 12px; background: #333; }
+.flow .arr::after { content: ''; position: absolute; left: -5px; bottom: -10px; border-style: solid;
+  border-width: 10px 6px 0; border-color: #333 transparent transparent; }
+.flow .arr > span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 17px; color: #666;
+  white-space: nowrap; }
+.flow.h { flex-direction: row; justify-content: center; }
+.flow.h .arr { width: 30px; height: 2px; margin: 0 13px 0 3px; }
+.flow.h .arr::after { left: auto; right: -10px; bottom: -5px; border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent #333; }
+.flow.h .arr > span { left: 50%; top: auto; bottom: 7px; transform: translateX(-50%); }
+/* candidate for deck.js/deck.css: \only.  The alternatives of a .swap share one place, and an
+   alternative is hidden once a later one is visible, so the slide shows the last step reached */
+.swap { display: grid; }
+.swap > * { grid-area: 1 / 1; align-self: start; min-width: 0; }
+section.centered .swap > * { justify-self: center; }
+.reveal .slides section .swap > :has(~ .visible) { opacity: 0 !important; visibility: hidden !important; }
+/* candidate for deck.js/deck.css: \uncover inside one formula.  \htmlClass{uK}{...} parts show once
+   the slide's empty step marker .sK (a pause) is visible */
+.reveal .slides section .u2, .reveal .slides section .u3, .reveal .slides section .u4 { opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s; }
+.reveal .slides section:has(.s2.visible) .u2, .reveal .slides section:has(.s3.visible) .u3,
+.reveal .slides section:has(.s4.visible) .u4 { opacity: 1; visibility: visible; }
+.mark { display: none; }
+section.noout .knobs output { display: none; }
+section.solve .knobs { justify-content: center; }
+/* candidate for deck.css: a row below other body content fills what is left of the body */
+.fbody:has(> .row) { display: flex; flex-direction: column; }
+.fbody > .row { flex: 1 1 auto; height: auto; min-height: 0; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 01 Title -->
+<section class="frame">
+  <svg class="icon backdrop" data-icon="titlefit" width="1280" height="720"></svg>
+  <div class="titlebox">
+    <div class="t">Linear Regression I</div>
+    <div class="st">Least Squares and Its Probabilistic Model</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Sarvin Motamen</div>
+    <div class="i">University of Virginia</div>
+    <div class="d">September 24, 2026</div>
+  </div>
+  <notes>TIME: 1 min.<br>SAY: Today one estimator will appear in three forms.<br>TRANSITION: Start with the prediction problem, before choosing a line.</notes>
+</section>
+
+<!-- Outline -->
+<section class="frame" data-slide="map">
+  <ol class="toc" hidden>
+    <li><a href="#/sec-pred">From prediction to least squares</a></li>
+    <li><a href="#/sec-alg">Algebra and geometry</a></li>
+    <li><a href="#/sec-opt">Optimization at scale</a></li>
+    <li><a href="#/sec-stat">Statistical properties of least squares</a></li>
+    <li><a href="#/sec-gauss">The Gaussian model</a></li>
+    <li><a href="#/sec-eff">Efficiency under the Gaussian model</a></li>
+    <li><a href="#/sec-bayes">Bayesian linear regression</a></li>
+    <li><a href="#/sec-syn">Synthesis</a></li>
+  </ol>
+  <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+</section>
+
+<!-- ============ 1. From prediction to least squares ============ -->
+
+<!-- 02 -->
+<section id="sec-pred">
+  <h2>What would you predict here?</h2>
+  <fig name="predict" class="mx"></fig>
+  <p class="big center"><b>One number. What is your prediction?</b></p>
+  <notes>TIME: 2.5 min.<br>ASK: What value would you report at $x_\star$? How did you use all the points?<br>PAUSE: Take two or three answers.<br>SAY: We are already choosing a function, even if we have not named it.<br>TRANSITION: Let us name the objects in that choice.</notes>
+</section>
+
+<!-- 03 -->
+<section>
+  <h2>Regression learns a function</h2>
+  <column>
+    <block title="Training data">
+      \[\cD=\{(\bx_i,y_i)\}_{i=1}^{n},\qquad \bx_i\in\bbR^d,\quad y_i\in\bbR.\]
+    </block>
+    <block pause title="Goal">
+      Choose $f_{\btheta}:\bbR^d\to\bbR$ so that
+      \[\widehat y_\star=f_{\btheta}(\bx_\star)\]
+      predicts a new response.
+    </block>
+  </column>
+  <column>
+    <div class="flow">
+      <div class="softbox k-prior" style="width:290px">features $\bx$</div>
+      <div class="arr"></div>
+      <div class="softbox k-teal" style="width:290px">model $f_{\btheta}$</div>
+      <div class="arr"></div>
+      <div class="softbox k-post" style="width:290px">prediction $\widehat y$</div>
+    </div>
+    <p pause class="big center">Learning means choosing <span class="c-teal">parameters $\btheta$</span> from data.</p>
+  </column>
+  <notes>TIME: 1.5 min.<br>ASK: Which objects are observed, and which one must be learned?<br>REVEAL: Data, prediction rule, then parameters.<br>TRANSITION: We need a score for deciding which parameters are good.</notes>
+</section>
+
+<!-- 04 -->
+<section class="centered">
+  <h2>Learning as empirical risk minimization</h2>
+  <div class="flow h">
+    <div class="softbox k-prior">data $(\bx_i,y_i)$</div><div class="arr"></div>
+    <div class="softbox k-teal">predictions $f_{\btheta}(\bx_i)$</div><div class="arr"></div>
+    <div class="softbox k-rose">loss $\ell(y_i,f_{\btheta}(\bx_i))$</div><div class="arr"></div>
+    <div class="softbox k-pred" style="min-width:160px">risk</div>
+  </div>
+  <div class="tbox k-pred" style="width:80%;margin-inline:auto">
+    Prediction error on future data:
+    \[R(\btheta)=\E\!\left[\ell\!\left(Y,f_{\btheta}(X)\right)\right].\]
+  </div>
+  <div pause class="tbox k-brown" style="width:80%;margin-inline:auto">We would minimize $R(\btheta)$, but the true data distribution is unknown.</div>
+  <div pause class="tbox k-prior" style="width:80%;margin-inline:auto">
+    Training data give a computable proxy:
+    \[\widehat R(\btheta)=\frac1n\sum_{i=1}^n\ell\!\left(y_i,f_{\btheta}(\bx_i)\right)\]
+  </div>
+  <div pause class="tbox k-prior" style="width:72%;margin-inline:auto">
+    \[\widehat{\btheta}=\argmin_{\btheta}\widehat R(\btheta)=\argmin_{\btheta}\frac1n\sum_{i=1}^n\ell\!\left(y_i,f_{\btheta}(\bx_i)\right).\]
+  </div>
+  <notes>TIME: 2.5 min.<br>ASK: What prediction error would we minimize if we knew the population?<br>PAUSE: Ask why $R(\btheta)$ is unavailable.<br>REVEAL: Population risk, the unknown distribution, then empirical risk as a computable proxy.<br>SAY: Training loss stands in for prediction error on the underlying distribution.<br>TRANSITION: ERM still allows far too many functions.</notes>
+</section>
+
+<!-- 05 -->
+<section>
+  <h2>Many functions can fit the same data</h2>
+  <column>
+    <p class="big">Which function should we trust at a new $x$?</p>
+    <span class="mark" pause="k=1"></span><span class="mark" pause="k=2"></span><span class="mark" pause="k=3"></span>
+    <block pause title="Two choices">
+      <div class="center"><b>hypothesis class $\cH$</b><br>$+$<br><b>loss</b></div>
+    </block>
+  </column>
+  <fig name="many" init="k=0"></fig>
+  <notes>TIME: 1.5 min.<br>ASK: Which curve is best? What information is missing?<br>REVEAL: Candidate functions one at a time.<br>SAY: Data alone do not answer this. We choose a hypothesis class $\cH$ and a loss. This restriction is an inductive bias.<br>TRANSITION: Our first restriction is linearity in the parameters.</notes>
+</section>
+
+<!-- 06 -->
+<section>
+  <h2>Restrict the hypothesis class</h2>
+  <column>
+    <block title="Linear predictor">
+      \[f_{\btheta}(\bx)=\btheta^\top\bx=\sum_{j=0}^{d}\theta_j x_j,\qquad x_0\equiv 1.\]
+      <div class="center">$f_{\btheta}\in\cH_{\mathrm{linear}}$</div>
+    </block>
+    <div pause class="tbox k-teal">
+      The intercept is just the weight on an always-on feature.
+      \[\bx=(1,x_1,\ldots,x_d)^\top.\]
+    </div>
+  </column>
+  <fig name="restrict"></fig>
+  <p class="caption">&ldquo;Linear&rdquo; describes the parameters, not necessarily the raw input.</p>
+  <notes>TIME: 1.5 min.<br>ASK: Where did the intercept go?<br>REVEAL: The augmented feature $x_0=1$.<br>SAY: This notation scales directly to many features.<br>TRANSITION: Check what linear in parameters really permits.</notes>
+</section>
+
+<!-- 07 -->
+<section>
+  <h2>Poll: linear in the parameters?</h2>
+  <column>
+    <table class="vals">
+      <thead><tr><th></th><th class="l">Model</th><th>Linear in $\btheta$?</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td class="l">$\theta_0+\theta_1x$</td><td><b class="c-like" pause data-fragment-index="1">Yes</b></td></tr>
+        <tr><td>B</td><td class="l">$\theta_0+\theta_1x+\theta_2x^2$</td><td><b class="c-like" pause data-fragment-index="1">Yes</b></td></tr>
+        <tr><td>C</td><td class="l">$\theta_0+\theta_1\sin x$</td><td><b class="c-like" pause data-fragment-index="1">Yes</b></td></tr>
+        <tr><td>D</td><td class="l">$\theta_0+\exp(\theta_1x)$</td><td><b class="c-post" pause data-fragment-index="1">No</b></td></tr>
+      </tbody>
+    </table>
+    <div class="swap">
+      <p class="big">Vote before the answer appears.</p>
+      <p pause data-fragment-index="1"><b>Test:</b> can we write $f_{\btheta}(x)=\btheta^\top\boldsymbol\phi(x)$ with fixed features $\boldsymbol\phi(x)$?</p>
+    </div>
+  </column>
+  <fig name="poll"></fig>
+  <p class="caption">A curved prediction can still be linear in $\btheta$.</p>
+  <notes>TIME: 3 min.<br>ASK: Vote A through D. Which models are linear regression?<br>PAUSE: Ask one student to justify B and another to justify D.<br>REVEAL: A, B, C yes. D no.<br>TRANSITION: With the model class fixed, we still need to choose one line.</notes>
+</section>
+
+<!-- 08 -->
+<section>
+  <h2>Three lines enter. Which one wins?</h2>
+  <column>
+    <p class="big">A, B, or C?</p>
+    <block pause title="We need a ruler">Measure every vertical miss, then combine them.</block>
+  </column>
+  <fig name="three"></fig>
+  <notes>TIME: 1.5 min.<br>ASK: Which line looks best? What numerical criterion could settle the vote?<br>PAUSE: Let students propose distance summaries.<br>REVEAL: The residual-based ruler.<br>TRANSITION: First define one miss precisely.</notes>
+</section>
+
+<!-- 09 -->
+<section>
+  <h2>Residuals are the vertical misses</h2>
+  <column>
+    <div class="swap">
+      <p class="big">What should count as an error?</p>
+      <p pause="r=1" class="big">Each vertical segment is a residual.</p>
+      <div pause="a=1">
+        <block title="Sign matters">$e_i>0$: point above line<br>$e_i<0$: point below line</block>
+        <p>But positive and negative misses can cancel.</p>
+      </div>
+    </div>
+  </column>
+  <fig name="resid" init="r=0 a=0"></fig>
+  <notes>TIME: 1.5 min.<br>ASK: Why not simply add the residuals?<br>PAUSE: Wait for &ldquo;cancellation.&rdquo;<br>REVEAL: Residual segments, then sign convention.<br>TRANSITION: Squaring prevents cancellation and defines our objective.</notes>
+</section>
+
+<!-- 10 -->
+<section>
+  <h2>Least squares turns misses into a score</h2>
+  <column>
+    <div class="tbox k-teal">
+      \[\widehat{\btheta}_{\mathrm{LS}}=\argmin_{\btheta}\sum_{i=1}^{n}\underbrace{\left(y_i-\btheta^\top\bx_i\right)^2}_{\text{squared residual}}\]
+    </div>
+    <ul pause>
+      <li>every contribution is nonnegative</li>
+      <li>positive and negative residuals cannot cancel</li>
+      <li>large residuals receive disproportionately more weight</li>
+    </ul>
+    <span class="mark" pause="s=1"></span>
+  </column>
+  <fig name="sq" init="s=0"></fig>
+  <p class="caption">Multiplying by $1/n$ would not change the minimizer.</p>
+  <notes>TIME: 2 min.<br>ASK: What properties does squaring buy us immediately?<br>REVEAL: Objective, three consequences, then the quadratic growth.<br>SAY: Squaring prevents cancellation, but it also gives large misses extra influence.<br>TRANSITION: Now try to beat the optimum by eye.</notes>
+</section>
+
+<!-- 11 -->
+<section>
+  <h2>Demo 1: can you beat least squares?</h2>
+  <fig name="demo1" init="s=0 a=0.5 b=0.65"></fig>
+  <knob param="a" min="-1" max="3" step="0.01" digits="3">intercept</knob>
+  <knob param="b" min="0" max="1.6" step="0.01" digits="3">slope</knob>
+  <column>
+    <p class="center"><span data-ro="d1model"></span></p>
+    <div data-ro="d1sse"></div>
+    <div class="swap">
+      <p class="big">What would you change?</p>
+      <p pause="s=1 a=1.6 b=0.72" class="big">Better. Can we do more?</p>
+      <p pause="s=2 a=1.15 b=0.93" class="big">One last adjustment?</p>
+      <p pause="s=3 a=1.0083 b=0.99405" class="big c-teal">Least-squares optimum</p>
+    </div>
+  </column>
+  <notes>TIME: 4 min.<br>ASK: On each state, should slope rise or fall? Should the intercept rise or fall?<br>PAUSE: Take a show of hands before advancing.<br>REVEAL: Poor line, two improvements, then the optimum and SSE sequence.<br>SAY: Visual tuning got close, but optimization certifies the winner.<br>TRANSITION: Matrix notation lets us derive that certificate.</notes>
+</section>
+
+<!-- new: least squares in one dimension, before any model (plan, change 9) -->
+<section class="noout">
+  <h2>Least squares in one dimension</h2>
+  <column>
+    <span class="mark s2" pause="show=1 th=0.5"></span><span class="mark s3" pause></span><span class="mark s4" pause="th=1.02"></span>
+    \[\begin{aligned}
+    \text{Data:}\quad & (x_i,y_i),\ i=1,\dots,n;\quad \text{fit } y=\theta x\\[6pt]
+    \htmlClass{u2}{\text{Loss:}\quad} & \htmlClass{u2}{L(\theta)=\sum_i\,(y_i-\theta x_i)^2}\\[6pt]
+    \htmlClass{u3}{\text{Derivative:}\quad} & \htmlClass{u3}{L'(\theta)=-2\sum_i x_i\,(y_i-\theta x_i)=0}\\[6pt]
+    \htmlClass{u4}{\text{Solution:}\quad} & \htmlClass{u4}{\widehat\theta=\frac{\sum_i x_iy_i}{\sum_i x_i^2}}
+    \end{aligned}\]
+  </column>
+  <fig name="lsfit1" init="show=0 th=0.5"></fig>
+  <p class="caption">(numbers are illustrative)</p>
+  <knob param="th" min="0" max="2.001" step="0.01">$\theta$</knob>
+</section>
+
+<!-- 33 -->
+<section>
+  <h2>Demo 3: one evil outlier</h2>
+  <column>
+    <p><span data-ro="res"></span></p>
+    <div data-ro="sq"></div>
+    <div class="swap">
+      <p class="big">The line begins to tilt.</p>
+      <p pause="h=12" class="big">One point pulls harder.</p>
+      <p pause="h=17" class="big">The fit is dominated.</p>
+    </div>
+    <p class="smallnote">Dashed line: fit before the outlier moved.</p>
+  </column>
+  <fig name="outlier" init="h=9"></fig>
+  <knob param="h" min="4" max="18" step="0.5" digits="1">outlier height</knob>
+  <notes>TIME: 3 min.<br>ASK: Predict how the fitted line will move as one point rises.<br>PAUSE: Before each state, ask how the squared contribution changes.<br>REVEAL: Residuals 2, 5, 10 and losses 4, 25, 100.<br>SAY: Squaring gives smooth optimization, but it amplifies extreme residuals.<br>TRANSITION: Stack all n equations into one matrix equation.</notes>
+</section>
+
+<!-- ============ 2. Algebra and geometry ============ -->
+
+<!-- 12 -->
+<section id="sec-alg">
+  <h2>Stack the data into one equation</h2>
+  <column style="flex:1.3 1 0">
+    \[X=\begin{bmatrix}---\ \bx_1^\top\ ---\\---\ \bx_2^\top\ ---\\\vdots\\---\ \bx_n^\top\ ---\end{bmatrix}\in\bbR^{n\times m}.\]
+    \[\by=\begin{bmatrix}y_1\\ \vdots\\ y_n\end{bmatrix}\in\bbR^n,\qquad\btheta\in\bbR^m.\]
+    <div pause class="tbox k-prior">
+      \[X:\bbR^m\longrightarrow\bbR^n,\qquad\btheta\longmapsto\widehat{\by}=X\btheta.\]
+      \[\boldsymbol e=\by-\widehat{\by}=\by-X\btheta.\]
+    </div>
+  </column>
+  <column>
+    <table class="vals small lives">
+      <thead><tr><th>object</th><th>size</th><th>lives in</th></tr></thead>
+      <tbody>
+        <tr><td>$X$</td><td>$n\times m$</td><td style="white-space:nowrap">rows: input data space;<br>columns: label data space</td></tr>
+        <tr><td>$\btheta$</td><td>$m\times1$</td><td>parameter space</td></tr>
+        <tr><td>$X\btheta$</td><td>$n\times1$</td><td>label data space</td></tr>
+        <tr><td>$\by$</td><td>$n\times1$</td><td>label data space</td></tr>
+      </tbody>
+    </table>
+    <div pause>\[\widehat{\btheta}_{\mathrm{LS}}=\argmin_{\btheta}\|\by-X\btheta\|_2^2.\]</div>
+  </column>
+  <notes>TIME: 2.5 min.<br>ASK: What must the dimensions of $X\btheta$ be?<br>REVEAL: $X$ maps parameter space into label data space, then show the residual and norm form.<br>SAY: $X\btheta$ lies in $\bbR^n$, and soon we will restrict it further to $\operatorname{col}(X)$.<br>TRANSITION: Use a tiny system to make every object concrete.</notes>
+</section>
+
+<!-- 13 -->
+<section>
+  <h2>Your turn: compute prediction, residual, loss</h2>
+  <column>
+    <block title="Given">
+      \[X=\begin{bmatrix}0&1\\2&0\\1&1\end{bmatrix},\qquad\by=\begin{bmatrix}-1\\1\\0\end{bmatrix},\qquad\btheta=\begin{bmatrix}1\\0\end{bmatrix}.\]
+    </block>
+    <p class="big">Compute:</p>
+    <div class="big">\[X\btheta,\qquad\boldsymbol e=\by-X\btheta,\qquad\|\boldsymbol e\|_2^2.\]</div>
+  </column>
+  <column>
+    <div class="swap">
+      <div class="tbox k-gray center">
+        <p class="big">Work with a neighbor.</p>
+        <p>Two minutes. Check dimensions as you go.</p>
+      </div>
+      <div pause>
+        \[\begin{aligned}X\btheta&=\begin{bmatrix}0\\2\\1\end{bmatrix},\\[2mm]\boldsymbol e&=\begin{bmatrix}-1\\1\\0\end{bmatrix}-\begin{bmatrix}0\\2\\1\end{bmatrix}=\begin{bmatrix}-1\\-1\\-1\end{bmatrix},\\[2mm]\|\boldsymbol e\|_2^2&=1+1+1=3.\end{aligned}\]
+      </div>
+    </div>
+  </column>
+  <notes>TIME: 4 min.<br>ASK: Compute all three quantities with a neighbor.<br>PAUSE: Give two minutes. Ask for the prediction vector first.<br>REVEAL: Full calculation.<br>SAY: Keep this $X$ and $y$. We will return to them twice.<br>TRANSITION: Before optimizing, ask what predictions $X\btheta$ can ever produce.</notes>
+</section>
+
+<!-- 14 -->
+<section>
+  <h2>All possible predictions form a subspace</h2>
+  <column>
+    \[X\btheta=\theta_1\underbrace{\begin{bmatrix}0\\2\\1\end{bmatrix}}_{\boldsymbol x^{(1)}}+\theta_2\underbrace{\begin{bmatrix}1\\0\\1\end{bmatrix}}_{\boldsymbol x^{(2)}}.\]
+    <div pause class="tbox k-pred">
+      As $\btheta$ varies, $X\btheta$ ranges over
+      \[\operatorname{col}(X)=\operatorname{span}\{\boldsymbol x^{(1)},\boldsymbol x^{(2)}\}\subseteq\bbR^3.\]
+    </div>
+  </column>
+  <fig name="subspace" init="y=0"></fig>
+  <p class="under big center" pause="y=1">Usually, $\by$ is not in that subspace.</p>
+  <notes>TIME: 2.5 min.<br>ASK: Why can $X\btheta$ not reach every point in $\bbR^3$ here?<br>REVEAL: Linear combination, column space, then $y$ outside it.<br>SAY: Regression is now a nearest-point problem.<br>TRANSITION: The nearest point has a familiar geometric name.</notes>
+</section>
+
+<!-- 15 -->
+<section class="centered">
+  <h2>Least squares is an orthogonal projection</h2>
+  <fig name="proj" init="hat=0 res=0" class="mx"></fig>
+  <div class="swap big">
+    <p>Which reachable prediction is closest to $\by$?</p>
+    <p pause="hat=1">The least-squares prediction is the projection of $\by$.</p>
+    <p pause="res=1">The leftover residual is perpendicular to the whole subspace.</p>
+  </div>
+  <notes>TIME: 2.5 min.<br>ASK: On the first state, where would you place the closest point?<br>REVEAL: Projection, then residual and right angle.<br>SAY: The geometry gives the optimality condition without calculus.<br>TRANSITION: Translate &ldquo;perpendicular to the column space&rdquo; into algebra.</notes>
+</section>
+
+<!-- 16 -->
+<section>
+  <h2>What must be orthogonal to what?</h2>
+  <column>
+    <p class="big">At the optimum, the residual $\boldsymbol e$ is perpendicular to</p>
+    <ol type="A" class="big">
+      <li>the response $\by$</li>
+      <li>the parameter vector $\widehat{\btheta}$</li>
+      <li>every column of $X$</li>
+      <li>every row of $X$</li>
+    </ol>
+  </column>
+  <column>
+    <div class="swap">
+      <fig name="projs" class="mx"></fig>
+      <div pause class="tbox k-like center">
+        <p class="big"><b>C. Every column of $X$</b></p>
+        \[(\boldsymbol x^{(j)})^\top\boldsymbol e=0\quad\text{for every }j\]
+        \[\boxed{X^\top\boldsymbol e=\boldsymbol 0}\]
+      </div>
+    </div>
+  </column>
+  <notes>TIME: 2 min.<br>ASK: Vote A through D.<br>PAUSE: Ask a student to connect the answer to $\operatorname{col}(X)$.<br>REVEAL: C and the compact matrix equation.<br>TRANSITION: Substitute the residual definition and solve.</notes>
+</section>
+
+<!-- 17 -->
+<section class="centered">
+  <h2>The normal equations</h2>
+  <div class="flow">
+    <div class="softbox k-rose" style="min-width:330px">$X^\top\boldsymbol e=\boldsymbol 0$</div>
+    <div class="fstep" pause data-fragment-index="1"><div class="arr"><span>substitute</span></div>
+      <div class="softbox k-pred" style="min-width:420px">$X^\top(\by-X\widehat{\btheta})=\boldsymbol 0$</div></div>
+    <div class="fstep" pause data-fragment-index="2"><div class="arr"><span>expand</span></div>
+      <div class="softbox k-prior" style="min-width:420px">$X^\top\by-X^\top X\widehat{\btheta}=\boldsymbol 0$</div></div>
+    <div class="fstep" pause data-fragment-index="3"><div class="arr"><span>rearrange</span></div>
+      <div class="softbox k-like" style="min-width:420px">$\boxed{X^\top X\widehat{\btheta}=X^\top\by}$</div></div>
+  </div>
+  <p pause data-fragment-index="3"><b>Normal</b> means perpendicular: these equations encode the projection condition.</p>
+  <notes>TIME: 3 min.<br>ASK: Predict the next algebraic line before each reveal.<br>REVEAL: Substitute, expand, rearrange.<br>SAY: These are not a separate trick. They are the geometry written in symbols.<br>TRANSITION: Under a rank condition, the equations have one closed-form solution.</notes>
+</section>
+
+<!-- 18 -->
+<section>
+  <h2>Closed-form least-squares estimator</h2>
+  <div class="tbox k-like mx" style="width:72%">
+    \[\boxed{\widehat{\btheta}_{\mathrm{LS}}=(X^\top X)^{-1}X^\top\by}\]
+  </div>
+  <div class="cards">
+    <block title="When is this expression valid?">$X$ must have full column rank, so $X^\top X$ is invertible.</block>
+    <block title="What does it produce?">The unique parameter vector whose prediction $X\widehat{\btheta}$ is closest to $\by$.</block>
+  </div>
+  <p class="smallnote">In numerical software, solve the system or use a factorization. Do not explicitly form an inverse.</p>
+  <notes>TIME: 1.5 min.<br>ASK: What assumption did we use when multiplying by $(X^\top X)^{-1}$?<br>SAY: Full column rank gives a unique parameter vector. Stable software uses QR or related solvers.<br>TRANSITION: Return to our three-point example and close the loop.</notes>
+</section>
+
+<!-- 19 -->
+<section>
+  <h2>Your turn: solve least squares</h2>
+  <p class="small center" style="margin-bottom:10px">Work with a partner for about 5 minutes</p>
+  <column style="flex:0.55 1 0">
+    <div class="tbox k-prior center">
+      <b>Given</b>
+      \[X=\begin{bmatrix}0&1\\2&0\\1&1\end{bmatrix}\hspace{2mm}\by=\begin{bmatrix}-1\\[2pt]1\\[2pt]0\end{bmatrix}\]
+    </div>
+    <div class="tbox k-like center">
+      \[\widehat{\btheta}_{\mathrm{LS}}=(X^\top X)^{-1}X^\top\by\]
+    </div>
+  </column>
+  <column>
+    <div class="swap">
+      <div>
+        <div class="tbox k-gray">
+          <b>Compute in this order</b>
+          <div class="cards" style="margin:6px 0 0">
+            <ol style="flex:1.25 1 0">
+              <li>$X^\top X$</li>
+              <li>$(X^\top X)^{-1}$</li>
+              <li>$X^\top\by$</li>
+              <li>$\widehat{\btheta}_{\mathrm{LS}}=(X^\top X)^{-1}X^\top\by$</li>
+            </ol>
+            <ol start="5">
+              <li>$\widehat{\by}=X\widehat{\btheta}_{\mathrm{LS}}$</li>
+              <li>$\boldsymbol e=\by-\widehat{\by}$</li>
+              <li>$X^\top\boldsymbol e$</li>
+            </ol>
+          </div>
+        </div>
+        <div class="tbox k-pred verify"><span style="white-space:nowrap"><b>VERIFY</b>&emsp;&emsp;$X^\top\boldsymbol e=?$</span><span>What does your result mean geometrically?</span></div>
+      </div>
+      <div pause class="tbox k-post">
+        <b>1&ndash;3. Build the normal-equation pieces</b>
+        \[X^\top X=\begin{bmatrix}5&1\\1&2\end{bmatrix},\qquad(X^\top X)^{-1}=\frac{1}{9}\begin{bmatrix}2&-1\\-1&5\end{bmatrix}\]
+        \[X^\top\by=\begin{bmatrix}2\\[2pt]-1\end{bmatrix}\]
+      </div>
+      <div pause class="tbox k-like">
+        <b>4. Solve for the parameters</b>
+        \[\widehat{\btheta}_{\mathrm{LS}}=(X^\top X)^{-1}X^\top\by=\begin{bmatrix}5/9\\[2pt]-7/9\end{bmatrix}\]
+      </div>
+      <div pause class="tbox k-prior">
+        <b>5&ndash;6. Predict, then form the residual</b>
+        \[\begin{aligned}\widehat{\by}=X\widehat{\btheta}_{\mathrm{LS}}&=\begin{bmatrix}-7/9\\[2pt]10/9\\[2pt]-2/9\end{bmatrix},\\[3mm]\boldsymbol e=\by-\widehat{\by}&=\begin{bmatrix}-2/9\\[2pt]-1/9\\[2pt]2/9\end{bmatrix}.\end{aligned}\]
+      </div>
+      <div pause class="tbox k-pred center">
+        \[X^\top\boldsymbol e=\begin{bmatrix}0&2&1\\1&0&1\end{bmatrix}\begin{bmatrix}-2/9\\[2pt]-1/9\\[2pt]2/9\end{bmatrix}=\begin{bmatrix}0\\[2pt]0\end{bmatrix}.\]
+        <b>Residual $\perp\operatorname{col}(X)$</b>&emsp;&emsp;The numerical solution confirms the projection geometry.
+      </div>
+    </div>
+  </column>
+  <notes>TIME: 5 min.<br>FIRST REVEAL: Say: &ldquo;Now you are going to solve the whole least-squares problem yourselves. Work with the person next to you. Start with $X^\top X$, its inverse, and $X^\top\by$. Then find $\widehat{\btheta}$, the predictions, the residual, and finally $X^\top\boldsymbol e$. Use exact fractions. You have about five minutes.&rdquo;<br>PAUSE: Give students the full working time. After about four minutes, say: &ldquo;If you already have $\widehat{\btheta}$, keep going. Make sure you get all the way to $X^\top\boldsymbol e$.&rdquo;<br>REVEAL 2: Ask for $X^\top X$, its inverse, and $X^\top\by$. Reveal each ingredient, then say: &ldquo;Check these against your work before we continue.&rdquo;<br>REVEAL 3: Ask: &ldquo;Using those pieces, what did you get for $\widehat{\btheta}$?&rdquo; Take an answer, then reveal.<br>REVEAL 4: Ask for $\widehat{\by}$, then for $\boldsymbol e=\by-\widehat{\by}$. Reveal after responses.<br>REVEAL 5: Ask: &ldquo;What happens when we compute $X^\top\boldsymbol e$? Why did we expect zero?&rdquo; WAIT: Connect to the projection geometry. SAY: &ldquo;$X^\top\boldsymbol e=0$ means the residual is orthogonal to every column of $X$, hence perpendicular to $\operatorname{col}(X)$.&rdquo;<br>TRANSITION: The closed-form solution gives exactly the projection predicted by the geometry.</notes>
+</section>
+
+<!-- new: a check by moving theta that theta-hat reaches y-hat (plan, change 5) -->
+<section class="noout solve">
+  <h2>The least-squares solution in the column space</h2>
+  <fig name="solve3" init="t1=1 t2=0" class="mx"></fig>
+  <knob param="t1" min="-0.5" max="1.501" step="0.011111111111111112">$\theta_1$</knob>
+  <knob param="t2" min="-1.5" max="0.501" step="0.011111111111111112">$\theta_2$</knob>
+  <span class="mark" pause="t1=0.5555555555555556 t2=-0.7777777777777778"></span>
+</section>
+
+<!-- 20 -->
+<section>
+  <h2>The gradient route reaches the same place</h2>
+  <column style="flex:1.45 1 0">
+    \[\begin{aligned}J(\btheta)&=\|\by-X\btheta\|_2^2\\&=(\by-X\btheta)^\top(\by-X\btheta),\end{aligned}\]
+    <div pause data-fragment-index="1">\[\nabla_{\btheta} J(\btheta)=-2X^\top(\by-X\btheta).\]</div>
+    <div pause data-fragment-index="2">\[\nabla_{\btheta} J(\widehat{\btheta})=\boldsymbol 0\quad\Longleftrightarrow\quad X^\top X\widehat{\btheta}=X^\top\by.\]</div>
+  </column>
+  <column>
+    <div pause data-fragment-index="2" class="tbox k-like center">
+      \[\nabla^2 J(\btheta)=2X^\top X\succeq 0.\]
+      The objective is convex.
+    </div>
+    <div pause data-fragment-index="3" class="tbox k-gray center small">orthogonal residual<br>$\Updownarrow$<br>normal equations<br>$\Updownarrow$<br>zero gradient</div>
+  </column>
+  <notes>TIME: 2.5 min.<br>ASK: What condition characterizes the minimum of this convex quadratic?<br>REVEAL: Gradient, zero-gradient equation, then the positive-semidefinite Hessian.<br>SAY: The Hessian confirms convexity. Geometry and calculus identify the same global optimum.<br>TRANSITION: A formula is not always the best computational route.</notes>
+</section>
+
+<!-- ============ 3. Optimization at scale ============ -->
+
+<!-- 21 -->
+<section id="sec-opt">
+  <h2>What if $X$ is huge?</h2>
+  <div class="cards">
+    <div class="altcard">
+      <div class="al">Closed-form route</div>
+      \[\widehat{\btheta}=(X^\top X)^{-1}X^\top\by\]
+      <ul>
+        <li>direct for moderate $m$</li>
+        <li>exact up to numerical precision</li>
+        <li>factorization can be expensive</li>
+      </ul>
+    </div>
+    <div class="altcard">
+      <div class="al">Iterative route</div>
+      \[\btheta^{(t+1)}=\btheta^{(t)}+\rho X^\top\bigl(\by-X\btheta^{(t)}\bigr)\]
+      <ul>
+        <li>uses repeated gradient steps</li>
+        <li>avoids solving in one shot</li>
+        <li>$\rho$ absorbs the factor of $2$</li>
+      </ul>
+    </div>
+  </div>
+  <p class="big center">Same objective. Different computational path.</p>
+  <notes>TIME: 1.5 min.<br>ASK: Which route would you prefer when $X$ is too large for a direct factorization?<br>SAY: Both optimize the same least-squares objective. The notes' update absorbs the factor of $2$ into the learning rate $\rho$.<br>TRANSITION: Step size controls whether the iterative path crawls, converges, or explodes.</notes>
+</section>
+
+<!-- 22 -->
+<section>
+  <h2>Demo 2: one objective, three learning rates</h2>
+  <column>
+    <div class="swap">
+      <div>
+        <p class="big">Predict each path.</p>
+        <p class="small">$J(\btheta)=(\theta_0-1)^2+4(\theta_1-2)^2$</p>
+      </div>
+      <div pause="eta=0.04 n=7"><p><span data-ro="eta"></span></p><p class="big">Stable, but slow.</p></div>
+      <div pause="eta=0.15 n=8"><p><span data-ro="eta"></span></p><p class="big">Fast convergence.</p></div>
+      <div pause="eta=0.28 n=3"><p><span data-ro="eta"></span></p><p class="big">Overshoots and diverges.</p></div>
+    </div>
+  </column>
+  <fig name="gd" init="eta=0 n=8"></fig>
+  <knob param="eta" min="0" max="0.3" step="0.01">$\eta$</knob>
+  <notes>TIME: 4 min.<br>ASK: Before each reveal, predict the trajectory for the learning rate.<br>PAUSE: Let students trace a path in the air from the common start.<br>REVEAL: Small, useful, then too-large learning rate.<br>SAY: The objective is convex, yet an unstable step size can still prevent convergence.<br>TRANSITION: We know how to minimize squared error. Why squared error in the first place?</notes>
+</section>
+
+<!-- ============ 4. Statistical properties of least squares ============ -->
+
+<!-- 23 -->
+<section id="sec-stat" class="frame">
+  <div class="plainbody">
+    <p class="big">How do we compute $\widehat{\btheta}$?</p>
+    <p class="bigger" style="margin-bottom:40px"><span class="c-like">$\checkmark$</span> Closed form or gradient descent</p>
+    <p pause class="huge"><b>What can we say statistically about $\widehat{\btheta}$?</b></p>
+  </div>
+  <notes>TIME: 0.5 min.<br>ASK: We know how to compute the estimate. What questions remain about its behavior across possible datasets?<br>REVEAL: The statistical question.<br>SAY: This connects directly to our earlier lecture on bias, variance, and estimator quality.<br>TRANSITION: Begin with assumptions on only the first two moments of the error.</notes>
+</section>
+
+<!-- new: OLS with a scalar theta, its bias and variance evaluated (plan, change 8) -->
+<section>
+  <h2>Bias and variance in one dimension</h2>
+  <column>
+    <span class="mark s2" pause="fit=1"></span><span class="mark s3" pause></span><span class="mark s4" pause="samp=1"></span>
+    \[\begin{aligned}
+    \text{Model:}\quad & Y_i=\theta^*x_i+\varepsilon_i,\\
+    & \mathbb E[\varepsilon_i]=0,\ \operatorname{Var}(\varepsilon_i)=\sigma^2,\text{ independent}\\[6pt]
+    \htmlClass{u2}{\text{OLS:}\quad} & \htmlClass{u2}{\widehat\theta=\frac{\sum_i x_iY_i}{\sum_i x_i^2}}\\[6pt]
+    \htmlClass{u3}{\text{Bias:}\quad} & \htmlClass{u3}{\mathbb E[\widehat\theta]-\theta^*=\frac{\sum_i x_i\,\mathbb E[Y_i]}{\sum_i x_i^2}-\theta^*}\\
+    & \htmlClass{u3}{\phantom{\mathbb E[\widehat\theta]-\theta^*}=\frac{\sum_i x_i\,\theta^*x_i}{\sum_i x_i^2}-\theta^*=0}\\[6pt]
+    \htmlClass{u4}{\text{Variance:}\quad} & \htmlClass{u4}{\operatorname{Var}(\widehat\theta)=\frac{\sum_i x_i^2\operatorname{Var}(Y_i)}{\big(\sum_i x_i^2\big)^2}=\frac{\sigma^2}{\sum_i x_i^2}}
+    \end{aligned}\]
+  </column>
+  <fig name="ls1d" init="fit=0 samp=0"></fig>
+  <p class="caption">$\theta^*=1$, $\sigma=0.5$; thin lines: fits to five more samples (numbers are illustrative)</p>
+</section>
+
+<!-- 24 -->
+<section>
+  <h2>The general regression model specifies two moments</h2>
+  <div class="tbox k-prior mx" style="width:82%">
+    \[\bY=X\btheta^*+\boldsymbol\varepsilon,\qquad\E[\boldsymbol\varepsilon]=\boldsymbol 0,\qquad\cov(\boldsymbol\varepsilon)=\sigma^2 I_n.\]
+  </div>
+  <div class="cards">
+    <block pause title="What these moments say">
+      \[\E[\bY\mid X]=X\btheta^*,\qquad\cov(\bY\mid X)=\sigma^2 I_n.\]
+      The errors have mean zero, common variance, and zero covariance across observations.
+    </block>
+    <div pause>
+      <div class="tbox k-brown center">
+        <p class="big"><b>No Gaussian assumption yet</b></p>
+        <p>We have specified only the mean and covariance of the error.</p>
+      </div>
+      <p class="smallnote">As in the notes, treat $X$ as fixed and assume full column rank.</p>
+    </div>
+  </div>
+  <notes>TIME: 2 min.<br>ASK: Does a mean and covariance determine a full distribution?<br>PAUSE: Wait for &ldquo;no.&rdquo;<br>REVEAL: Moment implications, then the no-Gaussian warning.<br>SAY: Uncorrelated errors with common variance are enough for the next results.<br>TRANSITION: Apply these assumptions to the least-squares estimator.</notes>
+</section>
+
+<!-- 25 -->
+<section class="centered">
+  <h2>What kind of estimator is least squares?</h2>
+  <div class="tbox k-teal mx" style="width:76%">
+    \[\widehat{\btheta}=(X^\top X)^{-1}X^\top\bY.\]
+  </div>
+  <span class="mark s2" pause></span><span class="mark s3" pause></span>
+  \[\begin{aligned}\htmlClass{u2}{\E[\widehat{\btheta}]}&\htmlClass{u2}{{}=(X^\top X)^{-1}X^\top\E[\bY]}\\&\htmlClass{u3}{{}=(X^\top X)^{-1}X^\top X\btheta^*}\\&\htmlClass{u3}{{}=\btheta^*.}\end{aligned}\]
+  <div pause class="tbox k-like mx" style="width:62%"><p class="big"><b>OLS is unbiased</b></p></div>
+  <notes>TIME: 2.5 min.<br>ASK: Which frequentist property are we checking when we compute $\E[\widehat{\btheta}]$?<br>REVEAL: Move expectation through the linear estimator, substitute the model mean, then conclude.<br>SAY: Across repeated datasets generated at the same fixed $X$, the estimator centers on $\btheta^*$.<br>TRANSITION: Unbiasedness gives the center. Now compute the spread.</notes>
+</section>
+
+<!-- 26 -->
+<section>
+  <h2>How variable is least squares?</h2>
+  <span class="mark s2" pause></span><span class="mark s3" pause></span>
+  <div class="small">\[\begin{aligned}\cov(\widehat{\btheta})&=\cov\!\left((X^\top X)^{-1}X^\top\bY\right)\\&\htmlClass{u2}{{}=(X^\top X)^{-1}X^\top\cov(\bY)X(X^\top X)^{-1}}\\&\htmlClass{u3}{{}=(X^\top X)^{-1}X^\top(\sigma^2 I_n)X(X^\top X)^{-1}}\\&\htmlClass{u3}{{}=\boxed{\sigma^2(X^\top X)^{-1}}.}\end{aligned}\]</div>
+  <div pause class="cards">
+    <block title="Coordinate variance">\[\var(\widehat\theta_j)=\sigma^2\bigl[(X^\top X)^{-1}\bigr]_{jj}.\]</block>
+    <block title="Because OLS is unbiased">\[\operatorname{MSE}(\widehat\theta_j)=\var(\widehat\theta_j).\]</block>
+  </div>
+  <notes>TIME: 2.5 min.<br>ASK: In the covariance rule $\cov(A\bY)=A\cov(\bY)A^T$, what is $A$ here?<br>REVEAL: Covariance transformation, substitute $\sigma^2I_n$, simplify, then connect variance to MSE.<br>SAY: This reuses the frequentist bias-variance identity from the estimator-properties lecture.<br>TRANSITION: Unbiasedness and covariance lead to an optimality theorem.</notes>
+</section>
+
+<!-- 27 -->
+<section>
+  <h2>Gauss&ndash;Markov: how good is OLS?</h2>
+  <div class="cards">
+    <div style="flex:1.4 1 0">
+      <block title="Under the general model">
+        \[\E[\boldsymbol\varepsilon]=\boldsymbol 0,\qquad\cov(\boldsymbol\varepsilon)=\sigma^2I_n,\]
+        OLS is the <b>best linear unbiased estimator</b> of $\btheta^*$.
+      </block>
+      <div pause data-fragment-index="1" class="tbox k-prior">
+        <b>Linear</b> means linear in the observed response:
+        \[\widetilde{\btheta}=A\bY.\]
+      </div>
+    </div>
+    <div>
+      <table class="blue" pause data-fragment-index="1">
+        <tr><td class="L c-like">B</td><td class="W">Best</td></tr>
+        <tr><td class="L c-teal">L</td><td class="W">Linear</td></tr>
+        <tr><td class="L c-prior">U</td><td class="W">Unbiased</td></tr>
+        <tr><td class="L c-pred">E</td><td class="W">Estimator</td></tr>
+      </table>
+    </div>
+  </div>
+  <div pause data-fragment-index="2" class="center">
+    <p>For any vector $\bu$, $\bu^\top\widehat{\btheta}$ has the smallest variance among linear unbiased estimators of $\bu^\top\btheta^*$.</p>
+    <span class="badge k-brown">Gaussianity is not required for Gauss&ndash;Markov</span>
+  </div>
+  <notes>TIME: 2.5 min.<br>ASK: In BLUE, what does &ldquo;linear&rdquo; refer to?<br>REVEAL: The response-linear form, the acronym, then the scalar-combination consequence.<br>SAY: Gauss&ndash;Markov compares OLS with all linear unbiased competitors. It uses only the first two error moments.<br>TRANSITION: Now strengthen the model from moment assumptions to a full distribution.</notes>
+</section>
+
+<!-- ============ 5. The Gaussian model ============ -->
+
+<!-- 28 -->
+<section id="sec-gauss">
+  <h2>The Gaussian model adds a full distribution</h2>
+  <column>
+    <div class="swap">
+      <div class="tbox k-prior center">
+        <b>General model</b>
+        \[\begin{aligned}\E[\boldsymbol\varepsilon]&=\boldsymbol0,\\\cov(\boldsymbol\varepsilon)&=\sigma^2I_n.\end{aligned}\]
+        <span class="small">Moments only.</span>
+      </div>
+      <div pause="b=1">
+        <div class="tbox k-like small">
+          \[\begin{aligned}\bY&=X\btheta^*+\boldsymbol\varepsilon,\\\boldsymbol\varepsilon&\sim\cN(\boldsymbol0,\sigma^2I_n).\end{aligned}\]
+        </div>
+        <div class="foot">
+          \[\begin{aligned}\bY\mid X&\sim\cN(X\btheta^*,\sigma^2I_n),\\Y_i\mid\bx_i&\sim\cN(\bx_i^\top\btheta^*,\sigma^2).\end{aligned}\]
+          <p class="center">independently for $i=1,\ldots,n$.</p>
+        </div>
+      </div>
+    </div>
+  </column>
+  <fig name="gauss" init="b=0"></fig>
+  <notes>TIME: 3 min.<br>ASK: At a fixed $x$, what varies from one possible observation to another?<br>REVEAL: Start with moment assumptions, then add Gaussianity and the full distributions.<br>SAY: The Gaussian model strengthens the general model. It does not replace the mean and covariance assumptions.<br>TRANSITION: State that progression explicitly before forming the likelihood.</notes>
+</section>
+
+<!-- 29 -->
+<section class="centered">
+  <h2>From moments to a Gaussian distribution</h2>
+  <div class="tbox k-prior mx" style="width:82%;text-align:left">
+    <b>General model: mean and covariance assumptions</b>
+    \[\E[\boldsymbol\varepsilon]=\boldsymbol0,\qquad\cov(\boldsymbol\varepsilon)=\sigma^2I_n.\]
+  </div>
+  <div pause>
+    <p class="big"><b>$+$ assume the full error distribution</b></p>
+    <div class="tbox k-like mx" style="width:82%;text-align:left">
+      <b>Gaussian model: full distributional assumption</b>
+      \[\boldsymbol\varepsilon\sim\cN(\boldsymbol0,\sigma^2I_n)\quad\Longrightarrow\quad\bY\sim\cN(X\btheta^*,\sigma^2I_n).\]
+    </div>
+  </div>
+  <p pause class="big">The stronger assumption enables likelihoods and full sampling distributions.</p>
+  <notes>TIME: 1.5 min.<br>ASK: Which line adds information beyond the first two moments?<br>REVEAL: Add the Gaussian distribution, then the statistical consequences.<br>SAY: Everything proved under the general model remains true. Gaussianity gives additional results.<br>TRANSITION: Begin those results with the likelihood.</notes>
+</section>
+
+<!-- 30 -->
+<section>
+  <h2>From one observation to the likelihood</h2>
+  <column>
+    <block title="One observation">
+      \[p(y_i\mid\bx_i,\btheta,\sigma^2)=\frac{1}{\sqrt{2\pi\sigma^2}}\exp\!\left[-\frac{(y_i-\btheta^\top\bx_i)^2}{2\sigma^2}\right].\]
+    </block>
+    <block pause="on=1" title="Independent observations">
+      \[p(\by\mid X,\btheta,\sigma^2)=\prod_{i=1}^{n}p(y_i\mid\bx_i,\btheta,\sigma^2).\]
+    </block>
+  </column>
+  <fig name="lik" init="on=0"></fig>
+  <notes>TIME: 2.5 min.<br>ASK: What operation combines independent densities?<br>PAUSE: Wait for &ldquo;multiply.&rdquo;<br>REVEAL: Product likelihood and diagram.<br>SAY: Independence is what lets us multiply the observation densities. The observed data determine how plausible each parameter value is.<br>TRANSITION: Logs turn the product into the sum we already know.</notes>
+</section>
+
+<!-- 31 -->
+<section class="centered">
+  <h2>Maximum likelihood reveals least squares</h2>
+  <p class="smallnote">Under independent, constant-variance Gaussian noise: $\boldsymbol\varepsilon\sim\cN(\mathbf0,\sigma^2I_n)$.</p>
+  <div class="small">\[\begin{aligned}\ell(\btheta,\sigma^2)&=\log p(\by\mid X,\btheta,\sigma^2)\\&=-\frac n2\log(2\pi\sigma^2)-\frac{1}{2\sigma^2}\sum_{i=1}^{n}(y_i-\btheta^\top\bx_i)^2.\end{aligned}\]</div>
+  <div class="swap">
+    <div class="tbox k-gray" style="width:78%"><p class="big">For fixed $\sigma^2$, what must maximizing $\ell$ do to the residuals?</p></div>
+    <div pause>
+      <div class="flow h" style="margin-bottom:18px">
+        <div class="softbox k-like" style="min-width:300px">$\displaystyle \argmax_{\btheta}\ \ell(\btheta,\sigma^2)$</div>
+        <div class="arr" style="width:60px"><span class="small" style="font-size:17px">same $\btheta$</span></div>
+        <div class="softbox k-teal" style="min-width:400px">$\displaystyle =\argmin_{\btheta}\sum_{i=1}^n(y_i-\btheta^\top\bx_i)^2$</div>
+      </div>
+      <p>The constants and the positive factor $1/(2\sigma^2)$ do not change the optimizer.</p>
+    </div>
+  </div>
+  <notes>TIME: 3 min.<br>ASK: Stop before the reveal. For fixed variance, what quantity must shrink when log-likelihood grows?<br>PAUSE: Let students identify the squared-residual sum.<br>REVEAL: The equivalent argmin.<br>TRANSITION: We can now state the central equivalence.</notes>
+</section>
+
+<!-- 32 -->
+<section>
+  <h2>Maximum likelihood estimates both parameters</h2>
+  <div class="cards">
+    <div class="tbox k-like center">
+      <b>Mean parameters</b>
+      \[\widehat{\btheta}_{\mathrm{ML}}=(X^\top X)^{-1}X^\top\by=\widehat{\btheta}_{\mathrm{LS}}.\]
+    </div>
+    <div pause class="tbox k-like center">
+      <b>Noise variance</b>
+      \[\widehat\sigma^2_{\mathrm{ML}}=\frac1n\sum_{i=1}^{n}\left(y_i-\bx_i^\top\widehat{\btheta}\right)^2.\]
+    </div>
+  </div>
+  <div pause class="center">
+    <p class="big"><b>Least squares $=$ maximum likelihood</b></p>
+    <p><b>under independent Gaussian noise with common variance.</b></p>
+  </div>
+  <notes>TIME: 2 min.<br>ASK: Which unknown quantity remains after maximizing over $\btheta$?<br>REVEAL: The OLS estimate, the variance MLE, then the equivalence statement.<br>SAY: The variance MLE divides the residual sum of squares by $n$. This differs from the later unbiased variance estimate that uses degrees of freedom.<br>TRANSITION: The squared residuals also explain a practical vulnerability.</notes>
+</section>
+
+<!-- ============ 6. Efficiency under the Gaussian model ============ -->
+
+<!-- 34 -->
+<section id="sec-eff">
+  <h2>What else does Gaussianity buy us?</h2>
+  <div class="cards">
+    <block title="From the general model" style="flex:0.86 1 0">
+      \[\E[\widehat{\btheta}]=\btheta^*,\qquad\cov(\widehat{\btheta})=\sigma^2(X^\top X)^{-1}.\]
+    </block>
+    <block pause title="Gaussianity adds a distribution">
+      Because $\widehat{\btheta}$ is a linear transformation of Gaussian $\bY$,
+      \[\boxed{\widehat{\btheta}\sim\cN\!\left(\btheta^*,\sigma^2(X^\top X)^{-1}\right)}.\]
+    </block>
+  </div>
+  <div pause class="cards">
+    <div class="tbox k-prior"><b>General model gives</b><br>unbiasedness, covariance, and Gauss&ndash;Markov.</div>
+    <div class="tbox k-like"><b>Gaussian model additionally gives</b><br>sampling distribution, likelihood, and stronger efficiency results.</div>
+  </div>
+  <notes>TIME: 2 min.<br>ASK: Why can we now identify the full distribution of $\widehat{\btheta}$?<br>REVEAL: The Gaussian sampling distribution, then the general-versus-Gaussian comparison.<br>SAY: In the frequentist statement, $\btheta^*$ is fixed and $\widehat{\btheta}$ varies across datasets.<br>TRANSITION: Use the likelihood curvature to obtain a stronger optimality bound.</notes>
+</section>
+
+<!-- 35 -->
+<section class="smaller">
+  <h2>Cram&eacute;r&ndash;Rao: a stronger optimality result</h2>
+  <column>
+    <block title="Lower bound for unbiased estimators">
+      \[\cov(\widetilde{\btheta})\succeq I(\btheta^*)^{-1}.\]
+      <p class="smallnote">$A\succeq B$ means $A-B$ is positive semidefinite.</p>
+    </block>
+    <div pause>\[\begin{aligned}I(\btheta^*)&=-\E\!\left[\nabla_{\btheta}^2\ell(\btheta,\sigma^2)\right]\\&=\frac1{\sigma^2}X^\top X,\\[1mm]I(\btheta^*)^{-1}&=\sigma^2(X^\top X)^{-1}.\end{aligned}\]</div>
+  </column>
+  <column>
+    <div pause class="tbox k-like center">
+      \[\cov(\widehat{\btheta})=\sigma^2(X^\top X)^{-1}=I(\btheta^*)^{-1}.\]
+      <p class="big"><b>OLS attains the CRLB</b></p>
+    </div>
+  </column>
+  <div pause class="cards center">
+    <div><b>Gauss&ndash;Markov</b><br>best among linear unbiased estimators</div>
+    <div><b>Gaussian CRLB</b><br>attains the lower bound among unbiased estimators</div>
+  </div>
+  <notes>TIME: 2.5 min.<br>ASK: Compare the covariance from the general model with the inverse Fisher information.<br>REVEAL: The bound, Fisher information calculation, equality, then the comparison.<br>SAY: This is the calculation represented by Example 5.5. The Gaussian assumption strengthens the comparison class beyond linear estimators.<br>TRANSITION: So far $\btheta$ has remained fixed but unknown. Bayesian inference changes what carries uncertainty.</notes>
+</section>
+
+<!-- ============ 7. Bayesian linear regression ============ -->
+
+<!-- 36 -->
+<section id="sec-bayes" class="smaller">
+  <h2>From a point estimate to a posterior</h2>
+  <div class="swap">
+    <div class="tbox k-prior center mx" style="width:78%">
+      <p class="big">So far, $\btheta$ has been unknown but <b>fixed</b>.</p>
+      <p>What if we represent uncertainty about $\btheta$ probabilistically?</p>
+    </div>
+    <div pause class="cards">
+      <div>
+        <block title="Gaussian likelihood">\[\by\mid\btheta,\sigma^2\sim\cN(X\btheta,\sigma^2I_n).\]</block>
+        <block title="Non-informative prior from the notes">
+          \[p(\btheta,\sigma^2)\propto\frac1{\sigma^2}.\]
+          Equivalently,
+          \[p(\btheta)\propto1,\quad p(\sigma^2)\propto\frac1{\sigma^2},\]
+          with $\btheta$ and $\sigma^2$ independent.
+        </block>
+      </div>
+      <div pause>
+        <div class="tbox k-pred center">
+          Bayesian inference seeks
+          \[p(\btheta,\sigma^2\mid\by),\]
+          not only a point estimate.
+        </div>
+        <div class="tbox k-like">\[p(\btheta,\sigma^2\mid\by)=p(\btheta\mid\sigma^2,\by)p(\sigma^2\mid\by).\]</div>
+      </div>
+    </div>
+  </div>
+  <notes>TIME: 2 min.<br>ASK: In the frequentist analysis, which object was random and which parameter was fixed?<br>REVEAL: The Bayesian question, likelihood and prior, then posterior factorization.<br>SAY: The prior is the exact non-informative choice used in the notes.<br>TRANSITION: Condition on $\sigma^2$ and complete the square in $\btheta$.</notes>
+</section>
+
+<!-- 37 -->
+<section class="centered">
+  <h2>Posterior for $\btheta\mid\by,\sigma^2$</h2>
+  <p class="smallnote" style="margin-bottom:8px">On this slide, $\sigma^2$ is treated as fixed and known.</p>
+  <div class="swap">
+    <div>
+      \[p(\btheta\mid\by,\sigma^2)\propto p(\by\mid\btheta,\sigma^2)\,p(\btheta\mid\sigma^2).\]
+      <div class="tbox k-prior mx" style="width:48%">
+        <b>Flat prior on $\btheta$</b>
+        \[p(\btheta\mid\sigma^2)\propto 1.\]
+      </div>
+      \[p(\btheta\mid\by,\sigma^2)\propto p(\by\mid\btheta,\sigma^2).\]
+      <p class="c-prior"><b>Flat prior $\Longrightarrow$ posterior shape comes from the likelihood.</b></p>
+    </div>
+    <div pause>
+      <p style="margin-bottom:0"><b>Gaussian regression model</b></p>
+      \[\bY\mid\btheta,\sigma^2\sim\cN(X\btheta,\sigma^2I_n).\]
+      \[p(\by\mid\btheta,\sigma^2)\propto\exp\!\left\{-\frac{1}{2\sigma^2}(\by-X\btheta)^\top(\by-X\btheta)\right\}.\]
+      <div class="tbox k-like mx" style="width:88%">
+        \[p(\btheta\mid\by,\sigma^2)\propto\exp\!\left\{-\frac{1}{2\sigma^2}(\by-X\btheta)^\top(\by-X\btheta)\right\}.\]
+      </div>
+      <p class="c-like"><b>Same likelihood as before, now used in Bayes&rsquo; rule.</b></p>
+    </div>
+    <div pause>
+      \[\widehat{\btheta}=(X^\top X)^{-1}X^\top\by.\]
+      <div class="small">\[\begin{aligned}(\by-X\btheta)^\top(\by-X\btheta)&=\underbrace{(\btheta-\widehat{\btheta})^\top X^\top X(\btheta-\widehat{\btheta})}_{\textcolor{#087F80}{\text{depends on }\btheta}}\\[-1mm]&\quad+\underbrace{\textcolor{#8c8c8c}{(\by-X\widehat{\btheta})^\top(\by-X\widehat{\btheta})}}_{\textcolor{#737373}{\text{constant with respect to }\btheta}}.\end{aligned}\]</div>
+      <div class="tbox k-teal mx" style="width:88%">
+        \[p(\btheta\mid\by,\sigma^2)\propto\exp\!\left\{-\frac{1}{2\sigma^2}(\btheta-\widehat{\btheta})^\top X^\top X(\btheta-\widehat{\btheta})\right\}.\]
+      </div>
+      <p class="c-teal"><b>Completing the square reveals a posterior centered at $\widehat{\btheta}$.</b></p>
+    </div>
+    <div pause>
+      <div class="cards">
+        <div>
+          <b>Posterior kernel</b>
+          <div class="small">\[\exp\!\left\{-\frac12(\textcolor{#2354A8}{\btheta}-\textcolor{#087F80}{\widehat{\btheta}})^\top\textcolor{#762A83}{\left[\frac1{\sigma^2}X^\top X\right]}(\textcolor{#2354A8}{\btheta}-\textcolor{#087F80}{\widehat{\btheta}})\right\}\]</div>
+        </div>
+        <div style="flex:0.8 1 0">
+          <b>Gaussian template</b>
+          <div class="small">\[\boldsymbol z\sim\cN(\boldsymbol\mu,\Sigma)\]\[\exp\!\left\{-\frac12(\textcolor{#2354A8}{\boldsymbol z}-\textcolor{#087F80}{\boldsymbol\mu})^\top\textcolor{#762A83}{\Sigma^{-1}}(\textcolor{#2354A8}{\boldsymbol z}-\textcolor{#087F80}{\boldsymbol\mu})\right\}\]</div>
+        </div>
+      </div>
+      <div class="tbox k-pred mx" style="width:92%;margin-top:14px">
+        \[\begin{gathered}\textcolor{#2354A8}{\boldsymbol z}\leftrightarrow\textcolor{#2354A8}{\btheta},\qquad\textcolor{#087F80}{\boldsymbol\mu}\leftrightarrow\textcolor{#087F80}{\widehat{\btheta}},\qquad\textcolor{#762A83}{\Sigma^{-1}}\leftrightarrow\textcolor{#762A83}{\frac1{\sigma^2}X^\top X},\\[1mm]\Sigma^{-1}=\frac1{\sigma^2}X^\top X\quad\Longrightarrow\quad\boxed{\Sigma=\sigma^2(X^\top X)^{-1}}.\end{gathered}\]
+      </div>
+    </div>
+    <div pause>
+      <div class="tbox k-like mx big" style="width:88%;margin-top:18px">
+        \[\boxed{\btheta\mid\by,\sigma^2\sim\cN\!\left(\widehat{\btheta},\sigma^2(X^\top X)^{-1}\right)}\]
+      </div>
+      <div class="cards">
+        <div><b>Posterior mean</b>\[\E[\btheta\mid\by,\sigma^2]=\widehat{\btheta}\]</div>
+        <div><b>Posterior covariance</b>\[\cov(\btheta\mid\by,\sigma^2)=\sigma^2(X^\top X)^{-1}\]</div>
+      </div>
+      <p class="c-like"><b>With a flat prior, the posterior is centered at the least-squares estimate.</b></p>
+    </div>
+  </div>
+  <notes>TIME: 5 min total for the five reveals.<br>REVEAL 1: Bayes' rule and the flat prior.<br>SAY: Let us slow this derivation down. We want the posterior of $\btheta$, conditional on the data and $\sigma^2$. Bayes' rule says the posterior is proportional to the likelihood times the prior. The prior on $\btheta$ is flat, so it does not favor one value over another. The posterior shape therefore comes entirely from the likelihood.<br>REVEAL 2: The Gaussian likelihood.<br>SAY: This is the same Gaussian likelihood we used for maximum likelihood. Before, we maximized it. Now we use it to construct a distribution over $\btheta$.<br>REVEAL 3: The completing-the-square identity.<br>ASK: Which term still depends on $\btheta$?<br>SAY: This is the vector version of rewriting a quadratic as a squared distance plus a constant. The first term depends on $\btheta$ and is centered at $\widehat{\btheta}$. The second term contains no $\btheta$, so it only changes the normalizing constant.<br>REVEAL 4: Compare the kernel with a multivariate Gaussian.<br>SAY: The quadratic has the Gaussian form. Its center is $\widehat{\btheta}$, and its precision is $(1/\sigma^2)X^\top X$. Inverting the precision gives covariance $\sigma^2(X^\top X)^{-1}$.<br>REVEAL 5: The final posterior.<br>SAY: Conditioned on $\sigma^2$, the posterior is Gaussian. Its center is the least-squares estimate, and its covariance quantifies uncertainty around that estimate.<br>TRANSITION: This has almost the same form as the sampling distribution derived earlier, but its interpretation differs.</notes>
+</section>
+
+<!-- 37b -->
+<section class="smaller">
+  <h2>Same Gaussian form, different uncertainty</h2>
+  <div class="cards">
+    <block title="Frequentist sampling distribution">
+      \[\widehat{\btheta}\sim\cN\!\left(\btheta,\sigma^2(X^\top X)^{-1}\right).\]
+      <p><b>$\btheta$ is fixed.</b><br>Data $\bY$ and the estimator $\widehat{\btheta}$ are random.</p>
+      <p><b class="c-prior">Question</b><br>How would $\widehat{\btheta}$ vary across repeated datasets?</p>
+    </block>
+    <block title="Bayesian posterior">
+      \[\btheta\mid\by,\sigma^2\sim\cN\!\left(\widehat{\btheta},\sigma^2(X^\top X)^{-1}\right).\]
+      <p><b>Observed $\by$ is fixed.</b><br>$\btheta$ is uncertain and described by the posterior.</p>
+      <p><b class="c-post">Question</b><br>Given the observed data, which $\btheta$ values are plausible?</p>
+    </block>
+  </div>
+  <div class="tbox k-pred center mx" style="width:82%">The covariance has the same algebraic form. The random object and the conditioning are different.</div>
+  <notes>TIME: 2 min.<br>ASK: In each statement, what is fixed and what is random?<br>SAY: The frequentist statement describes repeated samples of the estimator when the parameter is fixed. The Bayesian statement conditions on the observed data and describes uncertainty about the parameter. The covariance matrices match under the flat prior, but the probability statements answer different questions.<br>TRANSITION: The joint posterior also represents uncertainty in the noise variance.</notes>
+</section>
+
+<!-- 38 -->
+<section class="centered">
+  <h2>What about $\sigma^2$?</h2>
+  <div class="small">\[p(\sigma^2\mid\by)=\frac{p(\btheta,\sigma^2\mid\by)}{p(\btheta\mid\sigma^2,\by)}.\]</div>
+  <div class="tbox k-like mx" style="width:72%">
+    \[\boxed{\sigma^2\mid\by\sim\operatorname{Inv\text{-}}\chi^2(n-m,s^2)}\]
+  </div>
+  \[s^2=\frac1{n-m}(\by-X\widehat{\btheta})^\top(\by-X\widehat{\btheta}).\]
+  <div class="cards" style="text-align:left">
+    <block title="Degrees of freedom" style="flex:0.85 1 0">$m$ is the number of model parameters, equivalently the number of columns of $X$.</block>
+    <block title="Main point">The posterior represents uncertainty about both $\btheta$ and $\sigma^2$.</block>
+  </div>
+  <notes>TIME: 1.5 min.<br>ASK: Why does the scale use $n-m$ rather than $n$?<br>SAY: Estimating $m$ mean parameters consumes $m$ degrees of freedom. We will use this distribution without deriving its normalization.<br>TRANSITION: Posterior sampling turns these two uncertainty statements into predictions.</notes>
+</section>
+
+<!-- 39 -->
+<section class="centered">
+  <h2>Bayesian prediction propagates parameter uncertainty</h2>
+  <div class="flow" style="margin-bottom:18px">
+    <div class="softbox k-like" style="width:640px">1. Sample $\sigma^2\sim p(\sigma^2\mid\by)$</div>
+    <div class="fstep" pause><div class="arr"></div>
+      <div class="softbox k-pred" style="width:640px">2. Sample $\btheta\sim p(\btheta\mid\by,\sigma^2)$</div></div>
+    <div class="fstep" pause><div class="arr"></div>
+      <div class="softbox k-teal" style="width:640px">3. Sample $y_{\mathrm{new}}\mid\btheta,\sigma^2\sim\cN(\bx_{\mathrm{new}}^\top\btheta,\sigma^2)$</div></div>
+  </div>
+  <div pause class="tbox k-like mx" style="width:82%;text-align:left">Instead of plugging in one pair $(\widehat{\btheta},\widehat\sigma^2)$, posterior prediction propagates uncertainty in both parameters into $y_{\mathrm{new}}$.</div>
+  <p pause class="foot"><b>Frequentist:</b> $\btheta$ is fixed; $\widehat{\btheta}$ varies across datasets.<br><b>Bayesian:</b> after observing $\by$, $p(\btheta\mid\by)$ represents uncertainty about $\btheta$.</p>
+  <notes>TIME: 2 min.<br>ASK: At which steps do we propagate parameter uncertainty rather than only observation noise?<br>REVEAL: Sample $\sigma^2$, then $\btheta$, then a new response; finish with the practical comparison.<br>SAY: Repeating the three steps produces samples from the posterior predictive distribution.<br>TRANSITION: Assemble the complete story of Sections 5.1 through 5.3.</notes>
+</section>
+
+<!-- ============ 8. Synthesis ============ -->
+
+<!-- 40 -->
+<section id="sec-syn">
+  <h2>One estimator: optimization, geometry, computation</h2>
+  <div class="cards">
+    <div class="altcard center">
+      <div class="al">Optimization</div>
+      \[\min_{\btheta}\|\by-X\btheta\|_2^2\]
+      <p>Minimize squared training error.</p>
+    </div>
+    <div class="altcard center">
+      <div class="al">Geometry</div>
+      <fig name="synth" class="mx"></fig>
+      <p>Project $\by$ onto $\operatorname{col}(X)$.</p>
+    </div>
+    <div class="altcard center">
+      <div class="al">Computation</div>
+      \[\widehat{\btheta}=(X^\top X)^{-1}X^\top\by\]
+      or gradient descent with
+      \[\rho X^\top(\by-X\btheta^{(t)}).\]
+    </div>
+  </div>
+  <div class="tbox k-like center big mx" style="width:90%">$\displaystyle X^\top(\by-X\widehat{\btheta})=\boldsymbol0$&emsp;links all three views.</div>
+  <notes>TIME: 2.5 min.<br>ASK: Explain the same estimator in one sentence from each viewpoint.<br>PAUSE: Call on three students, one per column.<br>SAY: The normal equations are simultaneously an optimization condition, an orthogonality statement, and the target of the computation.<br>TRANSITION: The statistical views also describe the same model, with progressively stronger assumptions.</notes>
+</section>
+
+<!-- 41 -->
+<section>
+  <h2>One model: frequentist, Gaussian, Bayesian views</h2>
+  <div class="cards">
+    <div class="altcard center small">
+      <div class="al">General model</div>
+      \[\E[\boldsymbol\varepsilon]=0,\quad\cov(\boldsymbol\varepsilon)=\sigma^2I\]
+      <p>Unbiasedness, covariance, and Gauss&ndash;Markov.</p>
+    </div>
+    <div class="altcard center small">
+      <div class="al">Gaussian model</div>
+      \[\boldsymbol\varepsilon\sim\cN(0,\sigma^2I)\]
+      <p>MLE, sampling distribution, and the CRLB.</p>
+    </div>
+    <div class="altcard center small">
+      <div class="al">Bayesian inference</div>
+      \[p(\btheta,\sigma^2\mid\by)\]
+      <p>Posterior uncertainty and posterior prediction.</p>
+    </div>
+  </div>
+  <div class="tbox k-like center big mx" style="width:88%">Different questions about the same model: $\bY=X\btheta+\boldsymbol\varepsilon$.</div>
+  <notes>TIME: 2 min.<br>ASK: Which conclusions survive without Gaussianity, and which require it?<br>REVEAL: Read left to right from weaker assumptions to posterior uncertainty.<br>SAY: These are complementary analyses of one linear-regression model, not disconnected techniques.<br>TRANSITION: Stop at Section 5.3 and preview where Lecture II begins.</notes>
+</section>
+
+<!-- 42 -->
+<section class="frame">
+  <div class="plainbody">
+    <p class="bigger"><b>Next: what happens when fitting the data too well<br>becomes the problem?</b></p>
+    <p class="big" style="margin:10px 0 18px"><b>Linear Regression II</b></p>
+    <div class="nextboxes">
+      <div class="softbox k-post" style="min-width:300px">&sect;&#8201;5.4 Regularization</div>
+      <div class="softbox k-pred" style="min-width:400px">&sect;&#8201;5.5 Bias, variance, overfitting,<br>and model selection</div>
+      <div class="softbox k-prior" style="min-width:340px">&sect;&#8201;5.6 Stochastic gradient descent</div>
+    </div>
+    <div class="tbox k-gray" style="width:72%"><b>Post-class reading:</b> &sect;5.2 Standardization and Example 5.3.</div>
+  </div>
+  <notes>TIME: 0.5 min.<br>ASK: Leave the opening question for Lecture II unanswered.<br>SAY: Assign Standardization and Example 5.3 as post-class reading. Lecture II begins at Section 5.4.<br>TRANSITION: End.</notes>
+</section>
+
+<!-- ============ Reserve ============ -->
+
+<!-- R1 -->
+<section>
+  <h2>Reserve: what if the normal equations are singular?</h2>
+  <column>
+    <div class="bigger">\[X=\begin{bmatrix}1&2\\2&4\\3&6\end{bmatrix}\]</div>
+    <block title="Question">Can we recover a unique $\btheta$ from the predictions $X\btheta$?</block>
+  </column>
+  <column>
+    <div class="swap">
+      <p class="big center">Inspect the columns before calculating.</p>
+      <div pause>
+        <div class="tbox k-brown center">
+          \[\boldsymbol x^{(2)}=2\boldsymbol x^{(1)}\]
+          The columns are linearly dependent, so $X$ does not have full column rank.
+        </div>
+        <div class="center">\[\det(X^\top X)=0.\]</div>
+      </div>
+    </div>
+  </column>
+  <notes>TIME: Reserve.<br>ASK: Diagnose the issue without multiplying matrices.<br>REVEAL: Column dependence and singularity.<br>TRANSITION: Show two parameter vectors with identical predictions.</notes>
+</section>
+
+<!-- R2 -->
+<section>
+  <h2>Reserve: different parameters, same predictions</h2>
+  <div class="cards">
+    <div class="tbox k-prior">\[\btheta_A=\begin{bmatrix}2\\0\end{bmatrix}\qquad\Longrightarrow\qquad X\btheta_A=\begin{bmatrix}2\\4\\6\end{bmatrix}.\]</div>
+    <div class="tbox k-pred">\[\btheta_B=\begin{bmatrix}0\\1\end{bmatrix}\qquad\Longrightarrow\qquad X\btheta_B=\begin{bmatrix}2\\4\\6\end{bmatrix}.\]</div>
+  </div>
+  <p class="big center">The prediction is identifiable. The parameter vector is not.</p>
+  <p class="smallnote center">In fact, every $\btheta$ satisfying $\theta_1+2\theta_2=2$ gives the same prediction.</p>
+  <notes>TIME: Reserve.<br>ASK: Verify both matrix products. Can you describe all equivalent parameter vectors?<br>SAY: Redundant features create a flat direction in parameter space.<br>TRANSITION: Connect redundancy to nonunique least-squares solutions.</notes>
+</section>
+
+<!-- R3 -->
+<section class="centered">
+  <h2>Reserve: the rank-deficiency chain</h2>
+  <div class="flow h" style="margin-bottom:24px">
+    <div class="softbox k-brown" style="width:210px">redundant columns in $X$</div><div class="arr"></div>
+    <div class="softbox k-brown" style="width:210px">$X^\top X$ is singular</div><div class="arr"></div>
+    <div class="softbox k-brown" style="width:210px">least-squares parameters may be nonunique</div><div class="arr"></div>
+    <div class="softbox k-pred" style="width:210px">predictions can still be unique</div>
+  </div>
+  <div class="tbox k-gray mx" style="width:72%">The inverse formula requires full column rank.<br>Other solution concepts belong to later sections.</div>
+  <notes>TIME: Reserve.<br>ASK: Which link in the chain breaks the closed-form inverse?<br>SAY: Stop at the rank diagnosis. Remedies belong to later sections.</notes>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="../shared/deckmap.js"></script>
+<script src="figs.js"></script>
+<script>startDeck();</script>
+</body>
+</html>
