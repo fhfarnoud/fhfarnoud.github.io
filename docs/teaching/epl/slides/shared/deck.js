@@ -868,8 +868,8 @@ function wireToolbar() {
   bar.innerHTML =
     `<div class="tb-group"><a class="tb-course" href="${COURSE_PAGE}" title="Course page: all chapters, slides and demos">${ICON.course}Course</a></div>` +
     `<div class="tb-group"><button class="tb-outline" title="Outline">${ICON.outline}Outline</button>` +
-    `<button class="tb-prev" title="Previous slide">${ICON.prev}</button>` +
-    `<button class="tb-next" title="Next slide">${ICON.next}</button></div>` +
+    `<button class="tb-prev" title="Previous step">${ICON.prev}</button>` +
+    `<button class="tb-next" title="Next step">${ICON.next}</button></div>` +
     `<div class="tb-group tb-narr"><button class="tb-play" title="Play narration (N)">${ICON.play}</button>` +
     '<input class="tb-seek" type="range" min="0" max="1" step="0.001" value="0" title="Seek">' +
     '<span class="tb-time">0:00</span><select class="tb-speed" title="Speed">' +
@@ -1102,8 +1102,9 @@ function wireToolbar() {
 
   const go = h => { if (h >= 0 && h < slides().length) Reveal.slide(h, 0, -1); };
   q('tb-outline').addEventListener('click', () => go(slides().findIndex(x => x.dataset.slide === 'map')));
-  q('tb-prev').addEventListener('click', () => go(Reveal.getIndices().h - 1));
-  q('tb-next').addEventListener('click', () => go(Reveal.getIndices().h + 1));
+  // one build step at a time, then on to the next slide, as the arrow keys do
+  q('tb-prev').addEventListener('click', () => Reveal.prev());
+  q('tb-next').addEventListener('click', () => Reveal.next());
   play.addEventListener('click', playPause);
   transBtn.addEventListener('click', toggleTranscript);
   derivBtn.addEventListener('click', () => DRAWER.toggle(Reveal.getCurrentSlide()));

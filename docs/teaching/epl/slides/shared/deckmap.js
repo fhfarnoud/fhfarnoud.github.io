@@ -14,7 +14,10 @@
 // Layout as in the viewer: the title and the slides before the outline in a
 // column; the sections in a row under the last of them, each head slide over
 // a block of its slides read across and then down; every slide moved by its
-// own data-map="dx,dy" plus its parent's. Thumbnails: img/thumbs/<n>.jpg,
+// own data-map="dx,dy" plus its parent's. A branch whose ol.toc item has
+// data-map-num="k" shows the number k in its circle, and k = 0 shows no
+// circle (a before-class or after-class branch); without the attribute the
+// branches are numbered in order. Thumbnails: img/thumbs/<n>.jpg,
 // n the slide number, written by shared/make_thumbs.py from the built PDF.
 (function () {
   const W = 1280, H = 720, VT = 420, VE = 1250, VK = 300, SG = 520, VG = 110, HG = 140;
@@ -43,10 +46,12 @@
     all.forEach((s, i) => { if (s.id) ids[s.id] = i; });
     const isMap = s => s.dataset.slide === 'map';
     const O = all.findIndex((s, i) => i > 0 && isMap(s));
-    const labels = {}, starts = [];
+    const labels = {}, starts = [], nums = {};
     all[O].querySelectorAll('a[href^="#/"]').forEach(a => {
       const id = decodeURIComponent(a.getAttribute('href').slice(2));
-      if (id in ids && !(ids[id] in labels)) { labels[ids[id]] = norm(a.textContent); starts.push(ids[id]); }
+      if (id in ids && !(ids[id] in labels)) { labels[ids[id]] = norm(a.textContent); starts.push(ids[id]);
+        const li = a.closest('li');
+        if (li && li.dataset.mapNum != null && /^\d+$/.test(li.dataset.mapNum)) nums[ids[id]] = +li.dataset.mapNum; }
     });
     starts.sort((a, b) => a - b);
     const parent = all.map(() => -1), pre = [], heads = [], drawn = [0];
@@ -63,7 +68,7 @@
       head.kids.push(j); parent[j] = head.slide >= 0 ? head.slide : hub;
     }
     let k = 0;
-    heads.forEach(h => { h.colour = h.lead ? '#8f8577' : PAL[(k++) % PAL.length]; h.num = h.lead ? 0 : k; });
+    heads.forEach(h => { h.colour = h.lead ? '#8f8577' : PAL[(k++) % PAL.length]; h.num = h.lead ? 0 : (h.slide in nums ? nums[h.slide] : k); });
     const colour = {};
     heads.forEach(h => { if (h.slide >= 0) colour[h.slide] = h.colour; h.kids.forEach(c => { colour[c] = h.colour; }); });
 
