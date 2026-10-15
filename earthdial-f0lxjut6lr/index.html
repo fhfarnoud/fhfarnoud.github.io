@@ -129,7 +129,7 @@ footer a { color: var(--fg); }
     </div>
     <div class="readout" id="readout">Point at the globe for the official time there.</div>
     <section class="notes">
-      <p class="note"><strong>Choosing a viewpoint.</strong> Every view is fixed relative to the Sun, so Earth turns beneath it. From the North Pole the rim is the equator and only the northern hemisphere shows; from the South Pole Earth turns clockwise. Orbital north and south look down the normal to Earth's orbital plane from either side, where day and night meet along a straight line. From the Sun you see the whole day side. From the Moon you see the face of Earth turned toward it right now; the lit fraction is Earth's phase as seen from the Moon, the complement of the Moon's phase seen from here. Drag to turn the view anywhere in between.</p>
+      <p class="note"><strong>Choosing a viewpoint.</strong> Each view is set by the Sun: from the North Pole the Sun is straight up the page, and the other views are turned from that one. Live, the view keeps up with the Sun, so Earth turns beneath it; when you press Play the view freezes to the ground at that moment and the Sun travels around Earth instead. From the North Pole the rim is the equator and only the northern hemisphere shows; from the South Pole Earth turns clockwise. Orbital north and south look down the normal to Earth's orbital plane from either side, where day and night meet along a straight line. From the Sun you see the whole day side. From the Moon you see the face of Earth turned toward it right now; the lit fraction is Earth's phase as seen from the Moon, the complement of the Moon's phase seen from here. Drag to turn the view anywhere in between.</p>
       <p class="note"><strong>The shape of the night.</strong> Day and night meet along a great circle facing the Sun. From over the North Pole it projects to half an ellipse with semi-axes 1 and |sin δ|, where δ is the Sun's declination. At the equinoxes it is a straight diameter. In northern winter it bows toward the Sun and the pole sits in darkness; in summer it bows the other way. Pick Loop → Year to watch it swing: that loop steps one whole day at a time at a fixed clock time, so the continents hold still while the seasons change.</p>
       <p class="note"><strong>The Sun's size.</strong> The Sun is drawn far larger than its true size, as a disk several times wider than Earth just past the edge of the frame. Seen from near Earth the real Sun spans only about 0.53° (0.524° to 0.542° over the year), which at true scale would be a speck that could not plausibly light a whole hemisphere. The lighting on the globe uses the real Sun's direction with parallel rays; the big disk is there so the picture matches the light.</p>
       <p class="note"><strong>Official time.</strong> The thin borders on land outline the real time zones as currently defined, daylight saving included, and pointing anywhere gives the official time there. The ring shows standard time for the 24 nominal zones centered on multiples of 15°, so a place on daylight saving reads one hour ahead of the ring.</p>
@@ -188,7 +188,7 @@ footer a { color: var(--fg); }
           <input type="radio" name="view" id="vw-moon" value="moon"><label for="vw-moon">Moon</label>
         </div>
       </div>
-      <p class="note" style="font-size:12.5px">Drag the globe to turn the view freely. The view stays fixed relative to the Sun, so Earth keeps turning beneath it.</p>
+      <p class="note" style="font-size:12.5px">Drag the globe to turn the view freely. Live, the view keeps up with the Sun, so Earth turns beneath it. While playing, the view holds still over the ground and the Sun moves around Earth.</p>
     </section>
 
     <section class="block">
@@ -277,13 +277,21 @@ function cameraRows(view, s) {
   }
   return [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
 }
+// The view is built from the Sun at an anchor instant. Live, the anchor is the current
+// instant, so the Sun stays put and Earth turns beneath it. Otherwise the anchor is held
+// (from the moment playback started, or the date picked), the view stays fixed to the
+// ground, and the Sun moves.
+let anchorCache = null;
 function makeA(s) {
-  const c = Math.cos(s.subLon * D2R), sn = Math.sin(s.subLon * D2R);
-  const C = cameraRows(state.view, s);
+  if (state.mode === "live" || state.anchorT == null) state.anchorT = state.t;
+  if (!anchorCache || anchorCache.t !== state.anchorT) anchorCache = { t: state.anchorT, s: state.anchorT === state.t ? s : solar(state.anchorT) };
+  const sa = anchorCache.s;
+  const c = Math.cos(sa.subLon * D2R), sn = Math.sin(sa.subLon * D2R);
+  const C = cameraRows(state.view, sa);
   state.lastCam = C;
   const cam = w => [dot(C[0], w), dot(C[1], w), dot(C[2], w)];
   const f = v => cam([v[0] * c + v[1] * sn, -v[0] * sn + v[1] * c, v[2]]);
-  s.sun = cam(s.sunV);
+  s.sun = f(ll2v(s.subLat, s.subLon)); // the Sun now, carried through the anchored frame
   return [f([1, 0, 0]), f([0, 1, 0]), f([0, 0, 1])]; // columns: images of Earth-fixed basis vectors
 }
 const applyA = (A, v) => [
@@ -474,7 +482,7 @@ CITIES.forEach(c => {
 });
 
 // ---------- State ----------
-const state = { mode: "live", t: Date.now(), speed: 86400, loop: null, view: "north", cam: null, lastCam: null, show: { zones: false, cities: true, lat: false }, hover: null };
+const state = { mode: "live", t: Date.now(), speed: 86400, loop: null, view: "north", cam: null, lastCam: null, anchorT: null, show: { zones: false, cities: true, lat: false }, hover: null };
 let S = 600, dpr = 1, last = performance.now();
 
 function resize() {
@@ -581,7 +589,11 @@ function drawOverlay(s, A) {
     }
     ctx.font = `600 ${small ? 9 : 10.5}px "Archivo", Arial, sans-serif`;
     ctx.fillStyle = "#8b92a9";
-    ctx.fillText("STANDARD TIME BY 15° ZONE", cx, cy + R * 1.26);
+    { // caption sits opposite the Sun
+    const l = Math.hypot(s.sun[0], s.sun[1]);
+    const ux = l > 1e-6 ? s.sun[1] / l : 0, uy = l > 1e-6 ? s.sun[0] / l : 1;
+    ctx.fillText("STANDARD TIME BY 15° ZONE", cx + ux * R * 1.26, cy + uy * R * 1.26);
+  }
     ctx.restore();
   }
 
@@ -757,7 +769,7 @@ function syncWhen() {
 when.addEventListener("change", () => {
   const t = new Date(when.value).getTime();
   if (isNaN(t)) return;
-  state.t = t; if (state.loop) { state.loop.start = t; state.loop.days = 0; }
+  state.t = t; state.anchorT = t; if (state.loop) { state.loop.start = t; state.loop.days = 0; }
   if (state.mode === "live") state.mode = "paused";
   draw();
 });
