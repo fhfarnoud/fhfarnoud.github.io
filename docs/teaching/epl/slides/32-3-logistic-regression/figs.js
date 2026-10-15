@@ -656,7 +656,7 @@ FIGS.sig = {
 // [0, 1] at h: the probability a rainy
 // day receives (below h) and the probability the dry day receives (above h).
 const D11 = box2d(56, 70, 400, 290, 4.3, 9.95, -0.2, 1.25);
-// B and G are beta and gamma themselves; the slide's .v-ll shows the log-likelihood of the 32 days.
+// B and G are beta and gamma themselves; the slide's .v-ll shows the negative log-likelihood of the 32 days.
 // er: each day's contribution to minus the log-likelihood, as a bar on its dot.
 FIGS.days = {
   duration: 1200, size: [550, 430],
@@ -682,7 +682,7 @@ FIGS.days = {
       }
     });
     const sec = g.root.closest('section'), out = sec && sec.querySelector('.v-ll');
-    if (out) out.textContent = neg(fmt(-loss32(LN3 * p.b, LN3 * p.g), 2));
+    if (out) out.textContent = fmt(loss32(LN3 * p.b, LN3 * p.g), 2);
   }
 };
 
@@ -1010,8 +1010,8 @@ FIGS.kl = {
     g.group({ opacity: b2 }, () => bar(X1, 0, LMIN, 'mle'));
     P.label('n0', '$\\btheta=\\bzero$', [X0, 0], 't', { dy: 8, color: '#333' });
     P.label('n1', '$\\hat\\btheta$', [X1, 0], 't', { dy: 8, color: '#333', opacity: b2 });
-    P.label('e0', `$H(\\hat p)$ ${f3(LMIN)}`, [X0 + 0.25, LMIN / 2], 'l', { dx: 8, color: 'mle' });
-    P.label('e1', `$H(\\hat p)$ ${f3(LMIN)}`, [X1 + 0.25, LMIN / 2], 'l', { dx: 8, color: 'mle', opacity: b2 });
+    P.label('e0', `$H$ ${f3(LMIN)}`, [X0 + 0.25, LMIN / 2], 'l', { dx: 8, color: 'mle' });
+    P.label('e1', `$H$ ${f3(LMIN)}`, [X1 + 0.25, LMIN / 2], 'l', { dx: 8, color: 'mle', opacity: b2 });
     P.label('d0', `$D$ ${f3(D0)}`, [X0 + 0.25, LMIN + D0 / 2], 'l', { dx: 8, color: 'rose' });
     P.label('d1', '$D$ 0', [X1 + 0.25, LMIN], 'l', { dx: 8, color: 'rose', opacity: b2 });
     P.label('t0', `total ${f3(GD.L[0])}`, [X0, GD.L[0]], 'b', { dy: -6, color: '#333' });

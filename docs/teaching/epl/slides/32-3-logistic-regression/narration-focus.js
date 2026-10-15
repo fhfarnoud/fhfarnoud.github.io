@@ -194,15 +194,15 @@
         { phrase: 'The slider under the plot scales beta and gamma together', selector: 'knob > span:first-child' }]
     ],
     26: [
-      [{ phrase: 'each rainy day contributes the log of the model\'s probability of rain', to: 'h1' },
-        { phrase: 'each dry day the log of one minus that probability', to: 'h0' },
-        { phrase: 'The value under the formula is the log-likelihood of the curve on the right', selector: 'column > p.llval' }],
+      [{ phrase: 'each rainy day contributes the log of one over the model\'s probability of rain', to: 'h1' },
+        { phrase: 'each dry day the log of one over one minus that probability', to: 'h0' },
+        { phrase: 'The value under the formula is the negative log-likelihood of the curve on the right', selector: 'column > p.llval' }],
       [{ phrase: 'Use the sliders under the plot to search for it', selector: 'knob > span:first-child' },
         { phrase: 'watching its value under the formula', selector: 'column > p.llval' }],
-      [{ phrase: 'The maximum is the rain model', selector: 'column > p.llval' }]
+      [{ phrase: 'The minimum is the rain model', selector: 'column > p.llval' }]
     ],
     27: [
-      [{ phrase: 'minimizing its negative, the loss L', to: 'nllx' },
+      [{ phrase: 'Call the negative log-likelihood the loss L', to: 'nllx' },
         { phrase: 'Append a one to the input', to: 'xt' },
         { phrase: 'collect beta and gamma into theta', to: 'th' },
         { phrase: 'a sum over the days of the input', to: 'in' },
@@ -214,7 +214,7 @@
         { phrase: 'each step moves theta a small distance against the gradient', to: 'gd' }]
     ],
     28: [
-      [{ phrase: 'using step sizes matched to the units of beta and gamma', selector: ':scope > p:nth-of-type(1)' },
+      [{ phrase: 'with a step for beta one hundredth of gamma\'s', selector: ':scope > p:nth-of-type(1)' },
         { phrase: 'On the left are the days and the current curve, flat at the start', to: 'label:lr' },
         { phrase: 'On the right is the loss per day against the number of steps', to: 'label:ry' },
         { phrase: 'predict where the curve will settle', selector: ':scope > p:nth-of-type(2)' }],
@@ -248,7 +248,7 @@
         { phrase: 'a dry day, which the model thought unlikely, costs many times as much', to: 'label:vc' }]
     ],
     32: [
-      [{ phrase: 'the average cost is the cross-entropy between the observed label frequencies and the model\'s probabilities', to: 'ce' },
+      [{ phrase: 'replaced by the observed label frequencies at its humidity', to: 'ce' },
         { phrase: 'the entropy of the observed labels', to: 'h' },
         { phrase: 'the relative entropy from them to the model', to: 'd' },
         { phrase: 'the lower part of the bar is the entropy', to: 'label:e0' },
@@ -284,9 +284,7 @@
       [{ phrase: 'two classes tie where the difference of their logits is zero', to: 'tie' }]
     ],
     36: [
-      [{ phrase: 'the negative log of the probability the model gave to the observed class', to: 'nl' },
-        { phrase: 'Each term is again a cross-entropy', to: 'ce' },
-        { phrase: 'the distribution that puts all its mass on the observed class', to: 'ey' }],
+      [{ phrase: 'the negative log of the probability the model gave to the observed class', to: 'nl' }],
       [{ phrase: 'Its gradient has the same shape as for two classes', selector: '.cards .altcard:nth-child(1)' },
         { phrase: 'each example contributes minus its input', to: 'in' },
         { phrase: 'times an error', to: 'err' }],
@@ -316,8 +314,8 @@
     41: [
       [{ phrase: 'it is a cross-entropy', selector: 'column > p:nth-of-type(1)' },
         { phrase: 'On the right is the model of the softmax exercise', to: 'label:mt' }],
-      [{ phrase: 'measured in bits per token, with base-two logarithms', to: 'bits' },
-        { phrase: 'Raising two to that power gives the perplexity', to: 'ppl' },
+      [{ phrase: 'the average loss is measured in bits per token', to: 'bits' },
+        { phrase: 'Raising two to this average gives the perplexity', to: 'ppl' },
         { phrase: 'this model pays the cost marked under its bars', to: 'label:cost' }],
       [{ phrase: 'has a perplexity equal to the vocabulary size', to: 'v' },
         { phrase: 'a uniform choice among the tokens on the right', to: 'label:ut' },
