@@ -220,13 +220,12 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
   <ol class="toc" hidden>
     <li data-map-num="1"><a href="#/sec-gen">Generative models</a></li>
     <li data-map-num="2"><a href="#/sec-disc">Discriminative models</a></li>
-    <li data-map-num="3"><a href="#/sec-opt">Optimization and loss functions</a></li>
-    <li data-map-num="4"><a href="#/sec-many">Many classes and language models</a></li>
+    <li data-map-num="3"><a href="#/sec-many">Many classes and language models</a></li>
   </ol>
   <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
   <notes>The mind map of the deck. Entering pulls back from the opening slides to the whole map.</notes>
   <narration>
-    <say>This lecture has four parts. We start with generative models, which describe inputs and labels together by modeling their joint distribution. Then we turn to discriminative models, which model the label given the input directly. Next, we look at how to train classifiers and compare the losses used to do so. Finally, we move beyond two classes to many, including the next-token predictions made by language models.</say>
+    <say>This lecture has three parts. We start with generative models, which describe inputs and labels together by modeling their joint distribution. Then we turn to discriminative models, which model the label given the input directly. We fit one by maximum likelihood, with gradient descent. Finally, we move beyond two classes to many, including the next-token predictions made by language models.</say>
   </narration>
 </section>
 
@@ -328,7 +327,7 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
 <section>
   <h2>Gaussian class-conditionals in $d$ dimensions</h2>
   <p>With $\bx\in\bbR^d$, each class has a Gaussian density $\bX\mid Y=j\sim\cN(\bmu_j,\Sigma_j)$ and prior probability $p(y=j)=\pi_j$.</p>
-  <p>Illustration: $x_1$ is standardized humidity and $x_2$ is standardized pressure. Rain has higher humidity and lower pressure. Compare two covariance choices:</p>
+  <p>Illustration: $x_1$ is humidity and $x_2$ is pressure, both rescaled. Rain has higher humidity and lower pressure. Compare two covariance choices:</p>
   <div class="covariance-pair">
     <div class="covariance-card"><b>Same covariance</b><div class="cov-label">$\Sigma_0=\Sigma_1=\begin{pmatrix}1&0.4\\0.4&1\end{pmatrix}$</div>
       <fig name="lda" init="el=1 bd=0 s=0"></fig>
@@ -338,7 +337,7 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
     </div>
   </div>
   <narration>
-    <say>Previously, we assumed the input was one-dimensional. Here we extend it to a multidimensional input, for example humidity and pressure. In this illustration both features are standardized. Rainy days have higher humidity and lower pressure. Both classes have positively correlated features, shown by the tilted ellipses. On the left they share the same covariance, including the off-diagonal terms. On the right, the rainy class spreads farther in humidity and less in pressure. Shared versus different covariances will decide whether the classification boundary is linear or curved.</say>
+    <say>Previously, we assumed the input was one-dimensional. Here we extend it to a multidimensional input, for example humidity and pressure. In this illustration both features are rescaled. Rainy days have higher humidity and lower pressure. Both classes have positively correlated features, shown by the tilted ellipses. On the left they share the same covariance, including the off-diagonal terms. On the right, the rainy class spreads farther in humidity and less in pressure. Shared versus different covariances will decide whether the classification boundary is linear or curved.</say>
   </narration>
 </section>
 
@@ -462,7 +461,7 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
   </drawer>
   <narration>
     <say>Quadratic discriminant analysis, QDA, lets each class keep its own covariance matrix. Then the quadratic terms of the two log posteriors differ, and they no longer cancel. The boundary, where the two log posteriors are equal, is the set where a quadratic function of the input is zero: a curve. Both class ellipses are tilted by their nonzero covariance; class one is also stretched along humidity and squeezed along pressure, and the boundary bends around it.</say>
-    <say>There is another way to get a quadratic boundary. Add all products of pairs of input coordinates as features, then fit a linear rule in that expanded feature vector. The rule is linear in the new features but quadratic in the original input.</say>
+    <say>There is another way to get a quadratic boundary. Add the squares and the pairwise products of the input coordinates as features, then fit a linear rule in that expanded feature vector. The rule is linear in the new features but quadratic in the original input.</say>
   </narration>
 </section>
 
@@ -545,7 +544,7 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
   <notes>Generative models done: the map pulls back and enters discriminative models.</notes>
   <narration>
     <say>That completes the generative classifiers. With Gaussian classes that share a covariance, the posterior is the sigmoid of a linear function of the input.</say>
-    <say>The second part takes that form and makes it the model.</say>
+    <say>The second part takes that form, makes it the model, and fits it to data.</say>
   </narration>
 </section>
 
@@ -553,16 +552,24 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
 <section>
   <h2>Exponential-family class-conditionals</h2>
   <column>
-    <p>Suppose each class-conditional has sufficient statistic $\bx$ and the same base term $f(\bx)$:</p>
-    \[\htmlClass{hl-ef}{p(\bx\mid y=j)=\exp\big(\boldsymbol\eta_j^T\bx+f(\bx)+g_j\big)}.\]
-    <p>In Bayes' rule, $f(\bx)$ cancels between classes, and the log ratio of the posteriors is linear:</p>
-    \[\ln\frac{p(y=1\mid\bx)}{p(y=0\mid\bx)}=\htmlClass{hl-lin}{(\boldsymbol\eta_1-\boldsymbol\eta_0)^T\bx+\ln\frac{\piOne}{\piZero}+g_1-g_0}.\]
-    <p pause>Thus the binary posterior is a sigmoid of a linear function of $\bx$. Why not model that posterior directly?</p>
+    <p>With Gaussian class-conditionals that share a covariance, the posterior is the sigmoid of a linear function of $\bx$: \[\htmlClass{hl-gs}{p(y=1\mid\bx)=\sigma(\bbeta^T\bx+\cgamma)}\]</p>
+    <p pause>Is this form limited to Gaussian class-conditionals?</p>
+    <div pause>
+      <p>No! It holds for the exponential family with the same base term $f(\bx)$:</p>
+      \[\htmlClass{hl-ef}{p(\bx\mid y=j)=\exp\big(\boldsymbol\eta_j^T\bx+\htmlClass{hl-f}{f(\bx)}+g_j\big)}.\]
+    </div>
+    <div pause>\[\ln\frac{p(y=1\mid\bx)}{p(y=0\mid\bx)}=\htmlClass{hl-lin}{(\boldsymbol\eta_1-\boldsymbol\eta_0)^T\bx+\ln\frac{\piOne}{\piZero}+g_1-g_0}.\]</div>
+    <div pause>\[p(y=1\mid\bx)=\sigma\Big(\htmlClass{hl-eb}{\underbrace{(\boldsymbol\eta_1-\boldsymbol\eta_0)^T}_{\bbeta^T}}\bx+\htmlClass{hl-eg}{\underbrace{\ln\frac{\piOne}{\piZero}+g_1-g_0}_{\cgamma}}\Big).\]</div>
+    <p pause>If the posterior form is the same, why not model that posterior directly?</p>
   </column>
-  <fig name="post1d" init="bl=1 cv=1" data-nudge='{"hy":[1,-25]}'></fig>
+  <fig name="post1d" init="pi=0.333333333333 bl=1 cv=1" data-nudge='{"hy":[1,-25]}' style="zoom:0.633"></fig>
   <narration>
-    <say>The first part followed the generative route. With Gaussian classes that share one covariance, the posterior probability of class one is the sigmoid of a linear function of the input, whose coefficients and offset are computed from the class probabilities, the means and the covariance. On the right is the one-input example of slide eight: the two joint densities underneath, faint and scaled, and the posterior that Bayes' rule makes of them. The notes' section on the exponential family shows that this form is not special to Gaussians: any exponential-family class-conditional whose statistic is the input itself gives it.</say>
-    <say wait>The decision, and every probability we want, depend only on that sigmoid of a linear function. Before going on, think about what would be gained by modeling it directly, without the class densities.</say>
+    <say>The first part followed the generative route. With Gaussian class-conditionals that share a covariance, the posterior probability of class one is the sigmoid of a linear function of the input, with coefficients beta and offset gamma. On the right is the one-input example of slide eight: the two joint densities underneath, faint and scaled, and the posterior that Bayes' rule makes of them.</say>
+    <say>Is this form limited to Gaussian class-conditionals?</say>
+    <say>No. It holds for any exponential-family class-conditional whose statistic is the input itself, as long as every class has the same base term f of x. Each class has its own natural parameter, eta j, and its own normalizing term, g j.</say>
+    <say>By Bayes' rule, the log ratio of the posteriors is the log ratio of the class probabilities plus the log ratio of the class-conditionals. The base term cancels, and what remains is linear in the input.</say>
+    <say>So the posterior is again a sigmoid of a linear function. Beta is the difference of the natural parameters, and gamma is the log ratio of the class probabilities plus the difference of the g terms.</say>
+    <say wait>The posterior has the same form for all of these class-conditionals. So why not model that posterior directly, without the class densities? Think about it before going on.</say>
   </narration>
 </section>
 
@@ -620,21 +627,21 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
 <section>
   <h2>The logistic model</h2>
   <column>
-    \[h_{\btheta}(\bx)=p(y=1\mid\bx)=\htmlClass{hl-model}{\sigma(\bbeta^T\bx+\cgamma)},\qquad\htmlClass{hl-theta}{\btheta=(\bbeta,\cgamma)},\]
-    <p>With one input $x$, $h_{\btheta}(x)=\frac12$ at the midpoint $\htmlClass{hl-midx}{x=-\cgamma/\cbeta}$.</p>
-    <p>Example: $y=1$ for rain tomorrow; $x$ is the afternoon humidity in percent; $\cbeta=\ln 3/10$, $\cgamma=-7\ln 3$.</p>
+    \[p_{\btheta}(y=1\mid\bx)=\htmlClass{hl-model}{\sigma(\bbeta^T\bx+\cgamma)},\qquad\htmlClass{hl-theta}{\btheta=(\bbeta,\cgamma)},\]
+    <p>With one input $x$, $p_{\btheta}(y=1\mid x)=\frac12$ at the midpoint $\htmlClass{hl-midx}{x=-\cgamma/\cbeta}$.</p>
+    <p>Example: $\cbeta=1$ and $\cgamma=-1$, so the midpoint is $x=1$.</p>
     <p pause><alert>Question:</alert> Double both $\cbeta$ and $\cgamma$: what changes?</p>
-    <p pause="b=2 g=-14 gh=1">The midpoint stays at 70, and the curve is steeper.</p>
-    <p pause="b=1 g=-6">With $\htmlClass{hl-g6}{\cgamma=-6\ln 3}$ the midpoint moves to 60, with the same steepness.</p>
+    <p pause="b=2 g=-2 gh=1">The midpoint stays at 1, and the curve is steeper.</p>
+    <p pause="b=1 g=1">With $\htmlClass{hl-g1}{\cgamma=1}$ the midpoint moves to $-1$, with the same steepness.</p>
   </column>
-  <fig name="sig" init="b=1 g=-7 mid=1 gh=0 gb=1 gg=-7" style="zoom:0.92"></fig>
-  <knob param="b" min="0.2" max="3" step="0.05">$\cbeta/(\ln 3/10)$</knob>
-  <knob param="g" min="-20" max="-1" step="0.1">$\cgamma/\ln 3$</knob>
+  <fig name="sigab" init="b=1 g=-1 gh=0 gb=1 gg=-1" style="zoom:0.92"></fig>
+  <knob param="b" min="0.2" max="4" step="0.05">$\cbeta$</knob>
+  <knob param="g" min="-5" max="5" step="0.1">$\cgamma$</knob>
   <narration>
-    <say>Logistic regression takes the form that LDA arrived at and makes it the model: the probability of class one is the sigmoid of a linear function of the input, with the coefficients and the offset as its parameters. With a single input, the curve crosses one half where the linear part is zero, the midpoint. The curve on the right is the rain model: the probability of rain tomorrow as a function of the afternoon humidity, measured in percent, so that seventy on the axis is seventy percent.</say>
+    <say>Logistic regression takes the form that LDA arrived at and makes it the model: the probability of class one is the sigmoid of a linear function of the input, with the coefficients and the offset as its parameters. With a single input, the curve crosses one half where the linear part is zero, the midpoint. The curve on the right has beta equal to one and gamma equal to minus one, so its midpoint is at one.</say>
     <say wait>Suppose both beta and gamma are doubled. Before going on, predict what happens to the midpoint and to the shape of the curve.</say>
     <say>Doubling both beta and gamma leaves the midpoint where it was. The linear part now grows twice as fast with x, so the curve rises from near zero to near one over half the distance: it is steeper. The dashed curve is the original.</say>
-    <say>Changing gamma alone moves the curve sideways. With beta back at its original value and gamma raised by ten times beta, the midpoint moves left and the shape is unchanged; the dashed curve is still the original. So beta alone sets the steepness, and the midpoint, which depends on both, sets where the curve rises.</say>
+    <say>Changing gamma alone moves the curve sideways. With beta back at one and gamma raised from minus one to one, the midpoint moves left and the shape is unchanged; the dashed curve is still the original. So beta alone sets the steepness, and the midpoint, which depends on both, sets where the curve rises.</say>
   </narration>
 </section>
 
@@ -651,241 +658,104 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
       </tbody>
     </table>
     <div pause>
-      <p>The log-odds undo the sigmoid: if $\htmlClass{hl-hs}{h=\sigma(u)}$, then $1-h=\dfrac{e^{-u}}{1+e^{-u}}$, so $\dfrac{h}{1-h}=e^{u}$ and</p>
-      \[\htmlClass{hl-inv}{\ln\frac{h}{1-h}=u}.\]
+      <p>The log-odds undo the sigmoid:  \[\htmlClass{hl-hs}{p=\sigma(u) = \dfrac{1}{1+e^{-u}}}\iff \htmlClass{hl-inv}{\ln \frac{p}{1-p}=u}\]</p>
+      
+    </div>
+    <div pause>
+      \[\ln\frac{p_{\btheta}(y=1\mid\bx)}{1-p_{\btheta}(y=1\mid\bx)}=\htmlClass{hl-lin}{\bbeta^T\bx+\cgamma}\]
+      <p>One more unit of $x_j$, with the other features fixed, adds $\htmlClass{hl-add}{\cbeta_j}$ to the log-odds and multiplies the odds by $\htmlClass{hl-exp}{e^{\cbeta_j}}$.</p>
     </div>
   </column>
   <fig name="logodds" init="pts=0"></fig>
   <narration>
-    <say>The sigmoid has an inverse with a name. The odds of an event are its probability divided by the probability that it does not happen, and the log-odds are their logarithm. On the right are the log-odds as a function of the probability: negative below one half, zero at one half, and growing without bound toward either end.</say>
+    <say>The sigmoid has an inverse with a name. The odds of an event are its probability divided by the probability that it does not happen, and the log-odds are their logarithm. On the right are the log-odds as a function of the probability: negative below one half, zero at one half, and positive above it, without bound toward either end.</say>
     <say>The table pairs a few probabilities with their odds and log-odds. Probabilities symmetric about one half have reciprocal odds and log-odds of opposite sign, and each step along the row multiplies the odds by the same factor.</say>
-    <say>Applying the log-odds to a sigmoid gives back the score it started from, as the short computation on the slide shows. So the two undo each other: the sigmoid turns a score into a probability, and the log-odds turn the probability back into the score.</say>
+    <say>If a probability is the sigmoid of a score, its log-odds are that score, and the other way round. So the two undo each other: the sigmoid turns a score into a probability, and the log-odds turn the probability back into the score.</say>
+    <say>Applied to the logistic model, the log-odds give back the linear function of the input: logistic regression is the model in which the log-odds are linear in the input. So each coefficient has a direct reading. One more unit of an input, with the other inputs fixed, adds its coefficient to the log-odds, which multiplies the odds by the exponential of the coefficient.</say>
   </narration>
 </section>
 
 <!-- 25 -->
 <section>
-  <h2>The log-odds are linear in $\bx$</h2>
+  <h2>Decision boundary and level sets</h2>
   <column>
-    \[\ln\frac{h_{\btheta}(\bx)}{1-h_{\btheta}(\bx)}=\htmlClass{hl-lin}{\bbeta^T\bx+\cgamma}\]
-    <p>One more unit of $x_j$, with the other features fixed, adds $\htmlClass{hl-add}{\cbeta_j}$ to the log-odds and multiplies the odds $h/(1-h)$ by $\htmlClass{hl-exp}{e^{\cbeta_j}}$.</p>
-    <div pause="pts=1 x3=1">
-      <p>For the rain model, log-odds $\frac{\ln 3}{10}(x-70)$:</p>
-      <table class="vals tight">
-        <thead><tr><th>humidity $x$</th><th>50</th><th>60</th><th>70</th><th>80</th><th>90</th></tr></thead>
-        <tbody>
-          <tr><td>log-odds</td><td>$-2\ln 3$</td><td>$-\ln 3$</td><td>$0$</td><td>$\ln 3$</td><td>$2\ln 3$</td></tr>
-          <tr><td>odds</td><td>$1/9$</td><td>$1/3$</td><td>$1$</td><td>$3$</td><td>$9$</td></tr>
-          <tr><td>probability</td><td>0.10</td><td>0.25</td><td>0.50</td><td>0.75</td><td>0.90</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <alertblock pause title="Each 10 points of humidity triples the odds of rain" class="small">From 60% to 70% the odds go from 1/3 to 1, and from 80% to 90% from 3 to 9.</alertblock>
+    <p>$p_{\btheta}(y=1\mid\bx)\ge\frac12$ exactly when $\htmlClass{hl-ge}{\bbeta^T\bx+\cgamma\ge0}$: the boundary is the hyperplane $\htmlClass{hl-hyp}{\htmlClass{dk1}{\bbeta^T\bx+\cgamma=0}}$, and $\bbeta$ is perpendicular to it.</p>
+    <p pause="lv=1">Each level set $p_{\btheta}(y=1\mid\bx)=\sigma(u)$ is the parallel hyperplane $\htmlClass{hl-lev}{\bbeta^T\bx+\cgamma=u}$, at <span class="dk2">signed distance $\htmlClass{hl-dist}{u/\|\bbeta\|}$</span> from the boundary.</p>
+    <p pause><alert>Question:</alert> Double both $\bbeta$ and $\cgamma$. What happens to the boundary and the level sets?</p>
+    <alertblock pause="lc=1 cs=1" title="The length of $\boldsymbol\beta$ sets how sharp the model is">Scaling $\bbeta$ and $\cgamma$ by $c$ keeps the boundary and divides each level set's distance from it by $c$.</alertblock>
   </column>
-  <fig name="sig" init="b=1 g=-7 pts=0 x3=0"></fig>
+  <fig name="bnd" init="lc=0 lv=0 ro=0 cs=0"></fig>
+  <p class="caption" style="margin-left:46px">Illustrative samples, labels drawn from the model.</p>
+  <knob param="lc" min="-2" max="2" step="0.01"><span>$c$ (log scale)</span> <span class="ro">$c=$ <b class="v-c"></b></span></knob>
+  <drawer>
+    <p class="dk1">For two points $\bx,\bx'$ on the boundary, $\bbeta^T\bx+\cgamma=\bbeta^T\bx'+\cgamma=0$, so $\bbeta^T(\bx-\bx')=0$: $\bbeta$ is perpendicular to every direction within the boundary.</p>
+    <p class="dk2">Write a point as $\bx=\bx_0+d\,\bbeta/\|\bbeta\|$, with $\bx_0$ on the boundary and $d$ its signed distance from it. Then</p>
+    \[\htmlClass{dk2}{\bbeta^T\bx+\cgamma=\underbrace{\bbeta^T\bx_0+\cgamma}_{0}+d\,\frac{\bbeta^T\bbeta}{\|\bbeta\|}=d\,\|\bbeta\|,}\]
+    <p class="dk2">so the level set $\bbeta^T\bx+\cgamma=u$ lies at $d=u/\|\bbeta\|$.</p>
+    <p>Replacing $\bbeta,\cgamma$ by $c\bbeta,c\cgamma$ with $c>0$ leaves the boundary $\bbeta^T\bx+\cgamma=0$ unchanged and multiplies $\|\bbeta\|$ by $c$, so each distance $u/\|\bbeta\|$ is divided by $c$.</p>
+  </drawer>
   <narration>
-    <say>Applied to the logistic model, the log-odds give back the linear function of the input: logistic regression is the model in which the log-odds are linear in the input. So each coefficient has a direct reading. One more unit of an input, with the other inputs fixed, adds its coefficient to the log-odds, which multiplies the odds by the exponential of the coefficient.</say>
-    <say>In the rain model of slide twenty-three, the coefficient makes each step of humidity multiply the odds by the same factor, marked between the dots on the curve, and the offset puts even odds at the middle humidity.</say>
-    <say>In the odds, the model is a ladder of equal factors; in the probability, it is the sigmoid. Equal steps in humidity are equal multiplications of the odds, but they move the probability by different amounts: a lot near the middle, and little near the ends, where the curve flattens.</say>
+    <say>A probability becomes a decision through a threshold. The model predicts class one when class one is at least as likely as class zero, which happens exactly when the linear part is nonnegative. So the predicted classes are separated by the hyperplane where the linear part is zero, a line in two dimensions, and beta points across it, toward class one. The example on the right has two inputs; its boundary is the solid line, with beta drawn from a point on it.</say>
+    <say>Every other probability has a level set too. Where the probability is the sigmoid of u, the linear part equals u, which is a hyperplane parallel to the boundary, at a distance of u divided by the length of beta. The dashed lines on the right are the level sets for a few probabilities. The Derivation drawer shows where the distance comes from.</say>
+    <say wait>As with one input on slide twenty-three, doubling both beta and gamma keeps the boundary in place. Before going on, predict what happens to the level sets.</say>
+    <say>The level sets move in, each to half its distance from the boundary: the probability now changes twice as fast across it, and beta, drawn to scale, is twice as long. So the direction of beta and the ratio of gamma to the length of beta fix where the boundary lies, and scaling beta and gamma together changes only how sharply the probability changes across it. The slider under the plot scales beta and gamma together.</say>
   </narration>
 </section>
 
 <!-- 26 -->
 <section>
-  <h2>Your turn: reading the rain model</h2>
+  <h2>Maximum likelihood for logistic regression</h2>
   <column>
-    <p>The rain model: log-odds $=\frac{\ln 3}{10}(x-70)$, with $x$ the humidity in percent.</p>
-    <ol class="parts">
-      <li>(a) By what factor do the odds of rain grow from 40% to 100% humidity?</li>
-      <li>(b) A second model has $\cbeta=\ln 3/5$ and the same midpoint. At what humidity does it give rain the probability 0.25?</li>
-      <li>(c) What probability of rain does the second model give at 80% humidity?</li>
-    </ol>
+    <p>To find the parameters, we can use maximum likelihood. </p>
+    \[\begin{aligned}&\ln p_{\btheta}(y_1,\dots,y_n\mid\bx_1,\dots,\bx_n)\\&\quad=\sum_{i=1}^n\Big[\htmlClass{hl-h1}{y_i\ln p_{\btheta}(y=1\mid\bx_i)}\\&\qquad\quad\htmlClass{hl-h0}{{}+(1-y_i)\ln\big(1-p_{\btheta}(y=1\mid\bx_i)\big)}\Big].\end{aligned}\]
+    <p class="llval">At the current $\cbeta$ and $\cgamma$, the log-likelihood is <b class="v-ll"></b>.</p>
+    <p>Let's try it by hand first: Use the sliders to make the log-likelihood as large as you can: that $\btheta=(\cbeta,\cgamma)$ is the ML estimate.</p>
+    <p pause="B=0.109861 G=-7.690286" data-fragment-index="1"></p>
   </column>
-  <fig name="sig" init="b=1 g=-7"></fig>
+  <fig name="days" init="B=0 G=0 er=0"></fig>
+  <p class="under" pause data-fragment-index="0" style="margin:4px 0 0 56px;width:480px"></p>
+  <knob param="B" min="0" max="0.3" step="0.005" digits="3">$\cbeta$</knob>
+  <knob param="G" min="-20" max="2" step="0.1">$\cgamma$</knob>
+  <toggle param="er">each day's −log-likelihood (smaller is better)</toggle>
   <narration>
-    <say wait>Solve the following problem. The solution is on the next slide.</say>
+    <say>To learn beta and gamma from data, we need a measure of how well a choice of them fits labelled examples. The model gives each label a Bernoulli distribution whose probability of class one depends on the input, and the labels are independent given the inputs, so the probability of all the observed labels is a product, and its logarithm, the log-likelihood, is a sum: each rainy day contributes the log of the model's probability of rain, and each dry day the log of one minus that probability. The data are thirty-two days. On the right, rainy days sit at the top and dry days at the bottom, each at its humidity. With both parameters at zero the curve is flat, and every day receives the same probability whatever its humidity. The value under the formula is the log-likelihood of the curve on the right, and it changes as you move the sliders.</say>
+    <say wait>The maximum-likelihood estimate is the choice of beta and gamma that makes the log-likelihood as large as possible. Use the sliders under the plot to search for it, watching its value under the formula. The box under the plot gives each day a bar for its contribution: minus the log of the probability the model gave to its label. The bars add up to minus the log-likelihood, so a long bar marks a day the model explains badly. Before going on, try to make it as large as you can.</say>
+    <say>The maximum is the rain model: at each humidity, its probability of rain equals the fraction of rainy days observed there, and slide thirty-two shows why no other choice does better. Rainy days now receive high probability where rain is common, and dry days where it is rare.</say>
   </narration>
 </section>
 
 <!-- 27 -->
 <section>
-  <h2>Your turn: reading the rain model (a) to (c)</h2>
-  <column>
-    <p>Log-odds $=\frac{\ln 3}{10}(x-70)$. (a) Factor by which the odds grow from 40% to 100%. (b) Humidity at which a second model, $\cbeta=\ln 3/5$ with the same midpoint, gives rain the probability 0.25. (c) The second model's probability of rain at 80%.</p>
-    <div pause>
-      <span class="structure">Solution</span>
-      <p class="solrow">(a) Six steps of $\ln 3$: the odds grow by $e^{6\ln 3}=3^6=729$.</p>
-    </div>
-    <p pause="two=1 pb=1" class="solrow">(b) Probability 0.25 means odds 1/3, log-odds $-\ln 3$: $\frac{\ln 3}{5}(x-70)=-\ln 3$ gives $x=65$, that is, 65% (solid curve).</p>
-    <p pause="pc=1" class="solrow">(c) Log-odds $\frac{\ln 3}{5}(80-70)=\ln 9$: odds 9, probability $9/10=0.9$.</p>
-  </column>
-  <fig name="sig" init="b=1 g=-7 two=0 pb=0 pc=0"></fig>
-</section>
-
-<!-- 28 -->
-<section>
-  <h2>Decision boundary</h2>
-  <column>
-    <p>$h_{\btheta}(\bx)\ge\frac12$ exactly when $\htmlClass{hl-ge}{\bbeta^T\bx+\cgamma\ge0}$: the model predicts class 1 where $\bbeta^T\bx+\cgamma>0$, on one side of the hyperplane $\htmlClass{hl-hyp}{\htmlClass{dk1}{\bbeta^T\bx+\cgamma=0}}$, and $\bbeta$ is perpendicular to it.</p>
-    <p>Example: $\bbeta=\ln 3\,(0.6,0.8)$, $\cgamma=-2\ln 3$, so $\htmlClass{hl-norm}{\|\bbeta\|=\ln 3}$; the boundary is $0.6x_1+0.8x_2=2$.</p>
-    <p pause="lv=1" data-fragment-index="0">Each level line $h_{\btheta}=\sigma(a)$ is the parallel hyperplane $\htmlClass{hl-lev}{\bbeta^T\bx+\cgamma=a}$, at <span class="dk2">signed distance $\htmlClass{hl-dist}{a/\|\bbeta\|}$</span>.</p>
-    <p pause="lv=1" data-fragment-index="0">Here the $h=0.75$ level line is one unit from the boundary on the side $\bbeta$ points to, $h=0.9$ two units, and $h=0.25$ one unit on the other side.</p>
-  </column>
-  <fig name="bnd" init="lc=0 lv=0 ro=0"></fig>
-  <p class="caption" style="margin-left:46px">Illustrative samples, labels drawn from the model.</p>
-  <drawer>
-    <p class="dk1">For two points $\bx,\bx'$ on the boundary, $\bbeta^T\bx+\cgamma=\bbeta^T\bx'+\cgamma=0$, so $\bbeta^T(\bx-\bx')=0$: $\bbeta$ is perpendicular to every direction within the boundary.</p>
-    <p class="dk2">Write a point as $\bx=\bx_0+d\,\bbeta/\|\bbeta\|$, with $\bx_0$ on the boundary and $d$ its signed distance from it. Then</p>
-    \[\htmlClass{dk2}{\bbeta^T\bx+\cgamma=\underbrace{\bbeta^T\bx_0+\cgamma}_{0}+d\,\frac{\bbeta^T\bbeta}{\|\bbeta\|}=d\,\|\bbeta\|,}\]
-    <p class="dk2">so the level line $h_{\btheta}=\sigma(a)$, where $\bbeta^T\bx+\cgamma=a$, lies at $d=a/\|\bbeta\|$.</p>
-    <p>Example: the $h=0.75$ level line has $a=\ln 3$, so $d=\ln 3/\ln 3=1$; the $h=0.9$ level line has $a=\ln 9=2\ln 3$, so $d=2$.</p>
-  </drawer>
-  <narration>
-    <say>A probability becomes a decision through a threshold. The model predicts class one when class one is at least as likely as class zero, which happens exactly when the linear part is nonnegative. So the predicted classes are separated by the hyperplane where the linear part is zero, a line in two dimensions, and beta points across it, toward class one. The example on the right has two inputs; its boundary is the solid line, with beta drawn from a point on it.</say>
-    <say>Every other level of probability is a level line parallel to the boundary, at a distance proportional to its log-odds and inversely proportional to the length of beta. In the example, the length of beta is chosen so that each unit of distance multiplies the odds by three, so the dashed level lines sit at whole units from the boundary. The Derivation drawer shows where the distance comes from.</say>
-  </narration>
-</section>
-
-<!-- 29 -->
-<section>
-  <h2>Decision boundary: scaling $\btheta$</h2>
-  <column>
-    <p>The example of slide 28: $\bbeta=\ln 3\,(0.6,0.8)$, $\cgamma=-2\ln 3$; the $h=0.75$ level line lies one unit from the boundary.</p>
-    <p><alert>Question:</alert> As on slide 23, doubling $\btheta$ keeps the boundary. What happens to the level lines?</p>
-    <p pause="lc=1 cs=1">Replace $\btheta$ by $c\btheta$; at $c=2$ the boundary stays; the $0.75$ level line is half a unit away.</p>
-    <alertblock pause title="The length of $\boldsymbol\beta$ sets how sharp the model is">Scaling $\btheta$ by $c$ multiplies $\|\bbeta\|$ by $c$, keeps the boundary, and divides each level line's distance from it by $c$.</alertblock>
-  </column>
-  <fig name="bnd" init="lc=0 lv=1 ro=1 cs=0"></fig>
-  <p class="caption" style="margin-left:46px">Illustrative samples, labels drawn from the model.</p>
-  <knob param="lc" min="-2" max="2" step="0.01"><span>$c$ (log scale)</span> <span class="ro">$c=$ <b class="v-c"></b></span></knob>
-  <narration>
-    <say wait>The length of beta has an effect of its own, separate from where the boundary lies. As with one input on slide twenty-three, doubling both beta and gamma keeps the boundary in place. Before going on, predict what happens to the level lines.</say>
-    <say>The level lines move in, each to half its distance from the boundary: the probability now changes twice as fast across it, and beta, drawn to scale, is twice as long.</say>
-    <say>So the direction of beta and the offset fix where the boundary lies, and the length of beta fixes how sharply the probability changes across it. A very long beta gives a model that is nearly certain everywhere except close to the boundary. The slider under the plot scales theta.</say>
-  </narration>
-</section>
-
-<!-- 30 -->
-<section>
-  <h2>Logistic regression and LDA compared</h2>
-  <p>Both give $\htmlClass{hl-post}{p(y=1\mid\bx)=\sigma(\bbeta^T\bx+\cgamma)}$.</p>
-  <div class="cards">
-    <div class="altcard"><div class="al">LDA</div>Estimates $\piOne$, $\muZero$, $\muOne$, $\Sigma$: 5,251 numbers at $d=100$. When the classes are Gaussian with a shared covariance, it uses that knowledge and estimates the boundary more efficiently.</div>
-    <div class="altcard"><div class="al">Logistic regression</div>Estimates $\bbeta$ and $\cgamma$: 101 numbers at $d=100$. It assumes nothing about $p(\bx\mid y)$, so its estimate does not depend on the Gaussian assumption holding.</div>
-  </div>
-  <p>Efron compares the two: &ldquo;The efficiency of logistic regression compared to normal discriminant analysis,&rdquo; <i>JASA</i>, 1975.</p>
-  <narration>
-    <say>Both routes end in the same form of posterior, so which should we use? LDA estimates far more numbers, but it also assumes more. When its assumption holds, with Gaussian classes sharing one covariance, that extra knowledge lets it estimate the boundary more efficiently. Logistic regression assumes nothing about how the inputs of each class are distributed, so its estimate does not rely on the Gaussian assumption holding.</say>
-  </narration>
-</section>
-
-
-
-
-
-<!-- 31 -->
-<section id="sec-opt" class="frame" data-slide="map">
-  <fig name="deckmap" init="a=1 b=2 t=1" class="mapfig"></fig>
-  <span pause="t=2"></span>
-  <notes>Discriminative models done: the map pulls back and enters optimization and losses.</notes>
-  <narration>
-    <say>That completes part two. Starting from the generative classifiers, we arrived at a direct model of the label given the input: the sigmoid of a linear function, whose log-odds are linear in the input. Its decision boundary is a hyperplane, and the length of beta sets how sharply the probability changes across it.</say>
-    <say>Part three learns the coefficients from labelled data, by maximum likelihood.</say>
-  </narration>
-</section>
-
-<!-- 32 -->
-<section>
-  <h2>Conditional likelihood of labelled data</h2>
-  <column>
-    <p>Here the inputs are given. Fit the logistic model from the labels, $\htmlClass{hl-ber}{Y_i\mid\bX_i=\bx_i\sim\ber\big(h_{\btheta}(\bx_i)\big)}$, independently:</p>
-    \[\begin{aligned}&p(y_1,\dots,y_n\mid\bx_1,\dots,\bx_n;\btheta)\\&\quad=\prod_{i=1}^n\htmlClass{hl-h1}{h_{\btheta}(\bx_i)^{y_i}}\htmlClass{hl-h0}{\big(1-h_{\btheta}(\bx_i)\big)^{1-y_i}}.\end{aligned}\]
-    <p>Data: 32 days.</p>
-    <table class="vals tight">
-      <thead><tr><th>humidity $x$</th><th>50</th><th>60</th><th>70</th><th>80</th><th>90</th></tr></thead>
-      <tbody>
-        <tr><td>days</td><td>10</td><td>4</td><td>4</td><td>4</td><td>10</td></tr>
-        <tr><td>rainy</td><td>1</td><td>1</td><td>2</td><td>3</td><td>9</td></tr>
-      </tbody>
-    </table>
-    <p>At $\btheta=\bzero$ every day receives probability $\frac12$.</p>
-    <p pause="b=1 g=-7">The rain model of slide 23, $\btheta=(\ln 3/10,-7\ln 3)$, gives the observed labels more probability.</p>
-  </column>
-  <fig name="days" init="b=0 g=0 br=1"></fig>
-  <p class="under" pause style="margin:4px 0 0 56px;width:480px">The ML estimate is the $\btheta$ that makes the observed labels most probable.</p>
-  <knob param="b" min="0" max="3" step="0.05">$\cbeta/(\ln 3/10)$</knob>
-  <knob param="g" min="-20" max="2" step="0.1">$\cgamma/\ln 3$</knob>
-  <narration>
-    <say>To learn beta and gamma from data, we need a measure of how well a choice of them fits labelled examples. The model gives each label a Bernoulli distribution whose probability of class one is h of the input, and the labels are independent given the inputs, so the probability of all the observed labels is a product: each rainy day contributes h, and each dry day contributes one minus h. The data are a record of days, grouped by humidity. On the right, rainy days sit at the top and dry days at the bottom. With both parameters at zero the curve is flat, and every day receives the same probability whatever its humidity.</say>
-    <say>The rain model of slide twenty-three does much better. At the highest humidity, the bar on the right splits the model's probability at that humidity between rain and no rain; each day receives the part for its own label. Rainy days now receive high probability where rain is common, and dry days where it is rare.</say>
-    <say>Among all choices of the two parameters, the one that makes the observed labels most probable is the maximum-likelihood estimate. The sliders under the plot let you search for it by hand.</say>
-  </narration>
-</section>
-
-<!-- 33 -->
-<section>
-  <h2>The cross-entropy loss</h2>
-  <column>
-    \[\begin{aligned}\cL(\btheta)&=\htmlClass{hl-nll}{-\ln p(y_1,\dots,y_n\mid\bx_1,\dots,\bx_n;\btheta)}\\&=\sum_{i=1}^n\Big[\htmlClass{hl-term}{y_i\ln\frac{1}{h_{\btheta}(\bx_i)}+(1-y_i)\ln\frac{1}{1-h_{\btheta}(\bx_i)}}\Big]\end{aligned}\]
-    <p>The ML estimate minimizes $\cL$. A day costs $\htmlClass{hl-cost}{\cro{\ln(1/q)}}$, where $q$ is the probability the model gave to what happened.</p>
-    <p pause>Each term is the cross-entropy $\htmlClass{hl-ce}{H(p_i,q_i)}$ of Sec. 1.4, in nats, with $\htmlClass{hl-pi}{p_i}$ the label's distribution (all mass on $\htmlClass{hl-pi}{y_i}$) and $q_i$ also denoting the model's distribution $\htmlClass{hl-qi}{\ber\big(h_{\btheta}(\bx_i)\big)}$.</p>
-    <alertblock pause="ex=1" title="A confident wrong prediction costs the most" class="small">At 90% humidity a dry day costs $\ln 10=2.303$ nats and a rainy day 0.105.</alertblock>
-  </column>
-  <fig name="nll" init="ex=0"></fig>
-  <narration>
-    <say>Maximizing a product is awkward, so we take its negative logarithm and minimize instead, as with least squares. The result is the loss L. Each day adds one term: the logarithm of one over the probability the model gave to what actually happened. On the right is that cost as a function of the probability. It is zero for a certain and correct prediction, and it grows without bound as the probability given to the outcome goes to zero.</say>
-    <say>This cost has a name from chapter one. Put all of a distribution's mass on the observed label and compare it with the model's Bernoulli distribution: their cross-entropy is exactly this term. With natural logarithms it is measured in nats rather than bits. That is why L is called the cross-entropy loss.</say>
-    <say>At high humidity the model is confident of rain. A rainy day then costs almost nothing, while a dry day, which the model thought unlikely, costs many times as much.</say>
-  </narration>
-</section>
-
-<!-- 34 -->
-<section>
-  <h2>Cross-entropy and relative entropy</h2>
-  <column>
-    <p>Group the $n$ examples by input: $n_{\bx}$ have input $\bx$, with label distribution $\hat p=\hat p(\cdot\mid\bx)$; the model's is $q_{\btheta}=q_{\btheta}(\cdot\mid\bx)$. Then</p>
-    \[\begin{aligned}\frac1n\cL(\btheta)&=\sum_{\bx}\frac{n_{\bx}}{n}\htmlClass{hl-ce}{H(\hat p,q_{\btheta})}\\&=\sum_{\bx}\frac{n_{\bx}}{n}\Big(\htmlClass{hl-h}{\cml{H(\hat p)}}+\htmlClass{hl-d}{\cro{D(\hat p\,\|\,q_{\btheta})}}\Big).\end{aligned}\]
-    <p pause="b2=1">$H(\hat p)$ does not depend on $\btheta$, so minimizing the loss minimizes the average relative entropy $\sum_{\bx}\frac{n_{\bx}}{n}D(\hat p\|q_{\btheta})$, which is never negative (Sec. 1.4). At $\btheta=(\ln 3/10,-7\ln 3)$ the model gives 0.1, 0.25, 0.5, 0.75, 0.9, the observed fractions, so every $D$ is 0. This $\btheta$ minimizes $\cL$, so it is the ML estimate $\hat\btheta$.</p>
-  </column>
-  <fig name="kl" init="b2=0"></fig>
-  <narration>
-    <say>Chapter one split a cross-entropy into an entropy and a relative entropy. Group the days by humidity. At each humidity, the average cost is the cross-entropy between the observed label frequencies and the model's probabilities, which is the entropy of the observed labels plus the relative entropy from them to the model. On the right, for the thirty-two rain days and the model at zero, the lower part of the bar is the entropy and the upper part the relative entropy.</say>
-    <say>The entropy part is fixed by the data: it is the dashed floor of the previous slide. Only the relative entropy depends on theta, and it is never negative. The rain model of slide twenty-three reproduces the data: at each humidity, its probability of rain equals the fraction of rainy days observed there. So every relative entropy is zero, as the second bar shows, no theta does better, and that model is the maximum-likelihood estimate.</say>
-  </narration>
-</section>
-
-<!-- 35 -->
-<section>
-  <h2>Gradient of the cross-entropy loss</h2>
-  <p>With $\htmlClass{hl-xt}{\tbx=(\bx,1)}$ and $\htmlClass{hl-th}{\btheta=(\bbeta,\cgamma)}$, so that $h_{\btheta}(\tbx)=\sigma(\btheta^T\tbx)$:</p>
-  \[\nabla\cL(\btheta)=-\sum_{i=1}^n\big(\htmlClass{hl-err}{\htmlClass{dk1}{y_i-h_{\btheta}(\tbx_i)}}\big)\,\htmlClass{hl-in}{\htmlClass{dk2}{\tbx_i}}\]
+  <h2>Gradient of the negative log-likelihood</h2>
+  <p>Maximizing the log-likelihood is minimizing the loss $\htmlClass{hl-nllx}{\cL(\btheta)=-\ln p_{\btheta}(y_1,\dots,y_n\mid\bx_1,\dots,\bx_n)}$. With $\htmlClass{hl-xt}{\tbx=(\bx,1)}$ and $\htmlClass{hl-th}{\btheta=(\bbeta,\cgamma)}$, so that $p_{\btheta}(y=1\mid\bx)=\sigma(\btheta^T\tbx)$, its gradient is</p>
+  \[\nabla\cL(\btheta)=-\sum_{i=1}^n\big(\htmlClass{hl-err}{\htmlClass{dk1}{y_i-p_{\btheta}(y=1\mid\bx_i)}}\big)\,\htmlClass{hl-in}{\htmlClass{dk2}{\tbx_i}}\]
   <div class="cards" pause>
     <div class="altcard"><div class="al">Least squares (Sec. 5.2)</div>
       \[\nabla\cL=-2\sum_i\big(\htmlClass{hl-lserr}{\htmlClass{dk1}{y_i-\bx_i^T\btheta}}\big)\,\htmlClass{dk2}{\bx_i}\]
       <p class="ctr"><span class="dk1">error</span> × <span class="dk2">input</span></p></div>
     <div class="altcard"><div class="al">Logistic regression</div>
-      \[\nabla\cL=-\sum_i\big(\htmlClass{hl-lrerr}{\htmlClass{dk1}{y_i-h_{\btheta}(\tbx_i)}}\big)\,\htmlClass{dk2}{\tbx_i}\]
+      \[\nabla\cL=-\sum_i\big(\htmlClass{hl-lrerr}{\htmlClass{dk1}{y_i-p_{\btheta}(y=1\mid\bx_i)}}\big)\,\htmlClass{dk2}{\tbx_i}\]
       <p class="ctr"><span class="dk1">error</span> × <span class="dk2">input</span></p></div>
   </div>
-  <alertblock pause title="The ML estimate has no closed form">The equations $\htmlClass{hl-eq}{\sum_i\big(y_i-\htmlClass{hl-sg}{\sigma(\btheta^T\tbx_i)}\big)\tbx_i=\bzero}$ are nonlinear in $\btheta$; $\hat\btheta$ is computed iteratively, by gradient descent.</alertblock>
+  <alertblock pause title="The ML estimate has no closed form">The equations $\htmlClass{hl-eq}{\sum_i\big(y_i-\htmlClass{hl-sg}{\sigma(\btheta^T\tbx_i)}\big)\tbx_i=\bzero}$ are nonlinear in $\btheta$, so $\hat\btheta$ is computed iteratively, by gradient descent: $\htmlClass{hl-gd}{\btheta^{(t+1)}=\btheta^{(t)}-\rho\,\nabla\cL(\btheta^{(t)})}$.</alertblock>
   <drawer>
     <p>The sigmoid's derivative is $\sigma'(u)=\dfrac{e^{-u}}{(1+e^{-u})^2}=\sigma(u)\big(1-\sigma(u)\big)$.</p>
-    <p>With $h=\sigma(\btheta^T\tbx)$ and the chain rule, $\nabla_{\btheta}h=h(1-h)\,\tbx$, so</p>
-    \[\nabla_{\btheta}\ln h=(1-h)\,\tbx,\qquad\nabla_{\btheta}\ln(1-h)=-h\,\tbx.\]
-    <p>One day's term of $\cL$ is $-y\ln h-(1-y)\ln(1-h)$, whose gradient is</p>
-    \[-\big[y(1-h)-(1-y)h\big]\tbx=-\big(\htmlClass{dk1}{y-h}\big)\,\htmlClass{dk2}{\tbx}.\]
-    <p class="dk1">The error $y-h$: the label minus the predicted probability.</p>
+    <p>Write $p=p_{\btheta}(y=1\mid\bx)=\sigma(\btheta^T\tbx)$. By the chain rule, $\nabla_{\btheta}p=p(1-p)\,\tbx$, so</p>
+    \[\nabla_{\btheta}\ln p=(1-p)\,\tbx,\qquad\nabla_{\btheta}\ln(1-p)=-p\,\tbx.\]
+    <p>One day's term of $\cL$ is $-y\ln p-(1-y)\ln(1-p)$, whose gradient is</p>
+    \[-\big[y(1-p)-(1-y)p\big]\tbx=-\big(\htmlClass{dk1}{y-p}\big)\,\htmlClass{dk2}{\tbx}.\]
+    <p class="dk1">The error $y-p$: the label minus the predicted probability.</p>
     <p class="dk2">The input $\tbx$, with a 1 in the place of the offset $\cgamma$.</p>
     <p>Summing over the days gives $\nabla\cL(\btheta)$.</p>
   </drawer>
   <narration>
-    <say>Minimizing the loss needs its gradient. Append a one to the input, so that the offset gamma becomes one more coefficient, and collect beta and gamma into theta. The gradient then has a compact form: a sum over the days of the input, weighted by the error, the label minus the predicted probability. The Derivation drawer works it out from the derivative of the sigmoid.</say>
-    <say>The same structure appeared in least squares. There the error is the label minus a linear prediction, here the label minus the predicted probability, and in both the gradient adds up each input weighted by its error. A day that the model already predicts well contributes little.</say>
-    <say>In least squares, setting the gradient to zero gives linear equations, which have a closed-form solution. Here the predicted probability passes through the sigmoid, so the equations are nonlinear in theta, and no formula gives the estimate: it is computed iteratively, by gradient descent.</say>
+    <say>Maximizing the log-likelihood is the same as minimizing its negative, the loss L, as with least squares, and minimizing it needs the gradient. Append a one to the input, so that the offset gamma becomes one more coefficient, and collect beta and gamma into theta. The gradient then has a compact form: minus a sum over the days of the input, weighted by the error, the label minus the predicted probability. The Derivation drawer works it out from the derivative of the sigmoid.</say>
+    <say>The same structure appeared in least squares. There the error is the label minus a linear prediction, here the label minus the predicted probability, and in both the gradient is minus the sum of each input weighted by its error, with a factor of two in least squares. A day that the model already predicts well contributes little.</say>
+    <say>In least squares, setting the gradient to zero gives linear equations, which have a closed-form solution. Here the predicted probability passes through the sigmoid, so the equations are nonlinear in theta, and no formula gives the estimate: it is computed iteratively, by gradient descent, where each step moves theta a small distance against the gradient.</say>
   </narration>
 </section>
 
-<!-- 36 -->
+<!-- 28 -->
 <section>
   <h2>Gradient descent on the rain data</h2>
   <p>From $\btheta^{(0)}=\bzero$, take gradient-descent steps with sizes $1/32000$ for $\cbeta$ and $1/320$ for $\cgamma$, matching their units.</p>
@@ -894,16 +764,16 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
   <knob param="lt" min="-0.5" max="4" step="0.01"><span>$t$ (log scale)</span> <span class="ro">$t=$ <b class="v-t"></b></span></knob>
   <span pause="lt=2"></span>
   <span pause="lt=3"></span>
-  <p pause="lt=4 fl=1">It approaches the rain model of slide 23, $\htmlClass{hl-rm}{(\cbeta,\cgamma)=(\ln 3/10,-7\ln 3)}$.</p>
+  <p pause="lt=4 fl=1">It approaches the ML estimate of slide 26, $\htmlClass{hl-rm}{(\cbeta,\cgamma)=(\ln 3/10,-7\ln 3)}$.</p>
   <narration>
     <say wait>Gradient descent starts from zero and repeatedly moves theta against the gradient, using step sizes matched to the units of beta and gamma. On the left are the days and the current curve, flat at the start. On the right is the loss per day against the number of steps, on a logarithmic scale. Before going on, predict where the curve will settle.</say>
-    <say>In the early steps the curve starts to rise, but its midpoint is still far to the left, and the loss has fallen by about a tenth of its starting value.</say>
-    <say>Ten times as many steps bring the midpoint near the middle humidity, and the loss falls to about two thirds of its starting value. The lighter curves are the earlier iterates.</say>
-    <say>Ten times more again, and the curve approaches the rain model of slide twenty-three: its midpoint is at the middle humidity, and the loss levels off at that model's value, the dashed line, which slide thirty-four showed no theta can beat. Two questions remain: why gradient descent needs so many steps, which the next slide answers, and why it finds the minimum, which follows from convexity, on slide forty-two.</say>
+    <say>In the early steps beta and gamma are still small: the curve starts to rise, but its midpoint is still far to the left, and the loss has fallen by about a tenth of its starting value.</say>
+    <say>Ten times as many steps grow beta and gamma and bring the midpoint near the middle humidity, and the loss falls to about two thirds of its starting value. The lighter curves are the earlier iterates.</say>
+    <say>Ten times more again, and the curve approaches the rain model of slide twenty-six: its midpoint is at the middle humidity, and the loss levels off at that model's value, the dashed line, which slide thirty-two shows no theta can beat. One question remains: why gradient descent needs so many steps, which the next slide answers.</say>
   </narration>
 </section>
 
-<!-- 37 -->
+<!-- 29 -->
 <section>
   <h2>Centering the input</h2>
   <fig name="cont" style="margin:0 auto"></fig>
@@ -914,309 +784,120 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
   </narration>
 </section>
 
-<!-- 38 -->
+<!-- 30 -->
 <section>
-  <h2>Your turn: one gradient step</h2>
-  <column>
-    <p>Four days, with humidity in percent centered at 70: $u=x-70=-20,-10,10,20$, and rain $y=0,0,1,1$. The log-odds are $\cbeta u+\cgamma$; start at $\btheta=(\cbeta,\cgamma)=(0,0)$.</p>
-    <ol class="parts">
-      <li>(a) Find $h$ at each day and the gradient $\nabla\cL$ at $\btheta=\bzero$.</li>
-      <li>(b) Take one gradient-descent step with $\rho=1/300$.</li>
-      <li>(c) Can the gradient ever be zero for these four days?</li>
-    </ol>
-  </column>
-  <fig name="four" init="b=0"></fig>
+  <h2>Logistic regression and LDA compared</h2>
+  <p>Both give $\htmlClass{hl-post}{p(y=1\mid\bx)=\sigma(\bbeta^T\bx+\cgamma)}$.</p>
+  <div class="cards">
+    <div class="altcard"><div class="al">LDA</div>Estimates $\piOne$, $\muZero$, $\muOne$, $\Sigma$: 5,251 numbers at $d=100$. When the classes are Gaussian with a shared covariance, it uses that knowledge and estimates the boundary more efficiently.</div>
+    <div class="altcard"><div class="al">Logistic regression</div>Estimates $\bbeta$ and $\cgamma$: 101 numbers at $d=100$. It does not model $p(\bx\mid y)$, so its estimate does not depend on the Gaussian assumption holding.</div>
+  </div>
+  <p>Efron compares the two: &ldquo;The efficiency of logistic regression compared to normal discriminant analysis,&rdquo; <i>JASA</i>, 1975.</p>
   <narration>
-    <say wait>Solve the following problem. The solution is on the next slide.</say>
+    <say>Both routes end in the same form of posterior, so which should we use? LDA estimates far more numbers, but it also assumes more. When its assumption holds, with Gaussian classes sharing one covariance, that extra knowledge lets it estimate the boundary more efficiently. Logistic regression does not model how the inputs of each class are distributed, so its estimate does not rely on the Gaussian assumption holding.</say>
   </narration>
 </section>
 
-<!-- 39 -->
+<!-- 31 -->
 <section>
-  <h2>Your turn: one gradient step (a) to (c)</h2>
-  <column class="flushleft">
-    <p>(a) $h$ and $\nabla\cL$ at $\btheta=\bzero$. (b) One step with $\rho=1/300$. (c) Can the gradient ever be zero?</p>
-    <div pause>
-      <span class="structure">Solution</span>
-      \[\begin{aligned}\text{(a)}\quad&h_i=\sigma(0)=\tfrac12,\quad\tfrac{\partial\cL}{\partial\cbeta}=-\textstyle\sum_i\big(y_i-\tfrac12\big)u_i=-30,\\&\tfrac{\partial\cL}{\partial\cgamma}=-\textstyle\sum_i\big(y_i-\tfrac12\big)=0.\end{aligned}\]
-    </div>
-    <div pause="b=1 cl=1">
-      \[\text{(b)}\quad\btheta^{(1)}=\btheta^{(0)}-\rho\nabla\cL=(0,0)+\tfrac1{300}(30,0)=(0.1,0).\]
-    </div>
-    <p pause="err=1" class="small">(c) No. Every term $(y_i-h_i)u_i$ of $\partial\cL/\partial\cbeta=-\sum_i(y_i-h_i)u_i$ is positive at every $\btheta$: days with $u_i&lt;0$ have $y_i=0&lt;h_i$, and days with $u_i>0$ have $y_i=1>h_i$. At $\btheta^{(1)}$ the terms are 2.38, 2.69, 2.69, 2.38.</p>
-    <alertblock pause title="Gradient descent never stops on these four days" class="small">$\partial\cL/\partial\cbeta&lt;0$ at every $\btheta$, so every step increases $\cbeta$.</alertblock>
-  </column>
-  <fig name="four" init="b=0 cl=0 err=0" style="zoom:0.84"></fig>
-</section>
-
-<!-- 40 -->
-<section>
-  <h2>Separable data</h2>
+  <h2>The cross-entropy loss</h2>
   <column>
-    <p>For the four days of slide 38, slide 39 showed $\htmlClass{hl-neg}{\partial\cL/\partial\cbeta&lt;0}$ at every $\btheta$, so no $\btheta$ has zero gradient.</p>
-    <p>Data are <b>separable</b> when some $\btheta$ has $\bbeta^T\bx_i+\cgamma>0$ exactly at the class-1 points. They are separable at $\htmlClass{hl-u0}{u=0}$.</p>
-    <div pause data-fragment-index="0">
-      <p>Along $\htmlClass{hl-dir}{\btheta=(\cbeta,0)}$:</p>
-      <table class="vals tight">
-        <thead><tr><th>$\cbeta$</th><th>0</th><th>0.1</th><th>0.2</th><th>0.3</th><th>0.5</th></tr></thead>
-        <tbody><tr><td>$\cL$</td><td>2.773</td><td>0.880</td><td>0.290</td><td>0.102</td><td>0.0135</td></tr></tbody>
-      </table>
-    </div>
-    <p pause data-fragment-index="1">Every term of $\cL$ is positive at every $\btheta$, and $\cL(\cbeta,0)\to0$ as $\cbeta\to\infty$, so no $\btheta$ minimizes $\cL$: the ML estimate does not exist.</p>
+    \[\begin{aligned}\cL(\btheta)&=\htmlClass{hl-nll}{-\ln p_{\btheta}(y_1,\dots,y_n\mid\bx_1,\dots,\bx_n)}\\&=\sum_{i=1}^n\Big[\htmlClass{hl-term}{y_i\ln\frac{1}{p_{\btheta}(y=1\mid\bx_i)}}\\&\qquad\quad\htmlClass{hl-term}{{}+(1-y_i)\ln\frac{1}{1-p_{\btheta}(y=1\mid\bx_i)}}\Big]\end{aligned}\]
+    <p>The ML estimate minimizes $\cL$. A day costs $\htmlClass{hl-cost}{\cro{\ln(1/q)}}$, where $q$ is the probability the model gave to what happened.</p>
+    <p pause>Each term is the cross-entropy $\htmlClass{hl-ce}{H(p_i,q_i)}$ of Sec. 1.4, in nats, with $\htmlClass{hl-pi}{p_i}$ the label's distribution (all mass on $\htmlClass{hl-pi}{y_i}$) and $q_i$ also denoting the model's distribution $\htmlClass{hl-qi}{\ber\big(p_{\btheta}(y=1\mid\bx_i)\big)}$.</p>
+    <alertblock pause="ex=1" title="A confident wrong prediction costs the most" class="small">Under the ML estimate of slide 26, at 90% humidity a dry day costs $\ln 10=2.303$ nats and a rainy day 0.105.</alertblock>
   </column>
-  <fig name="cvx" pause data-fragment-index="0"></fig>
+  <fig name="nll" init="ex=0" style="zoom:0.85"></fig>
   <narration>
-    <say>The exercise showed that on these four days the derivative in beta is negative at every theta, so the gradient is never zero and no theta can be a minimum. Behind this is a special property of the four days: a threshold at the middle humidity puts every dry day on one side and every rainy day on the other. Data like this are called separable.</say>
-    <say>Look at the loss along the direction where gamma is zero. On the right is the loss as a function of beta: it keeps falling as beta grows.</say>
-    <say>It approaches zero but never reaches it, because every day's term stays positive at any finite theta. So no theta minimizes the loss, and the maximum-likelihood estimate does not exist: there is nothing for gradient descent to converge to. It keeps increasing beta, and the next slide follows where it goes.</say>
+    <say>Each day adds one term to the loss L, the negative log-likelihood: the logarithm of one over the probability the model gave to what actually happened. On the right is that cost as a function of the probability. It is zero for a certain and correct prediction, and it grows without bound as the probability given to the outcome goes to zero.</say>
+    <say>This cost has a name from chapter one. Put all of a distribution's mass on the observed label and compare it with the model's Bernoulli distribution: their cross-entropy is exactly this term. With natural logarithms it is measured in nats rather than bits. That is why L is called the cross-entropy loss.</say>
+    <say>At high humidity the model is confident of rain. A rainy day then costs almost nothing, while a dry day, which the model thought unlikely, costs many times as much.</say>
   </narration>
 </section>
 
-<!-- 41 -->
+<!-- 32 -->
 <section>
-  <h2>Gradient descent on separable data</h2>
+  <h2>Cross-entropy and relative entropy</h2>
   <column>
-    <p>The four days of slide 38, from $\btheta=\bzero$ with step size $\rho=1/300$.</p>
-    <div class="swap">
-      <table class="vals tight fade-out" pause data-fragment-index="1">
-        <thead><tr><th>steps $t$</th><th>1</th></tr></thead>
-        <tbody><tr><td>$\cbeta$</td><td>0.1</td></tr></tbody>
-      </table>
-      <table class="vals tight current-visible" pause="lt=1" data-fragment-index="1">
-        <thead><tr><th>steps $t$</th><th>1</th><th>10</th></tr></thead>
-        <tbody><tr><td>$\cbeta$</td><td>0.1</td><td>0.235</td></tr></tbody>
-      </table>
-      <table class="vals tight current-visible" pause="lt=2" data-fragment-index="2">
-        <thead><tr><th>steps $t$</th><th>1</th><th>10</th><th>100</th></tr></thead>
-        <tbody><tr><td>$\cbeta$</td><td>0.1</td><td>0.235</td><td>0.429</td></tr></tbody>
-      </table>
-      <table class="vals tight" pause="lt=4" data-fragment-index="3">
-        <thead><tr><th>steps $t$</th><th>1</th><th>10</th><th>100</th><th>1,000</th><th>10,000</th></tr></thead>
-        <tbody><tr><td>$\cbeta$</td><td>0.1</td><td>0.235</td><td>0.429</td><td>0.652</td><td>0.881</td></tr></tbody>
-      </table>
-    </div>
-    <p pause data-fragment-index="3">$\cbeta$ grows by about 0.2 for every tenfold increase in the number of steps.</p>
-    <alertblock pause data-fragment-index="4" title="Lowering the loss drives $h$ to 0 and 1">As $\cbeta$ grows, $h$ tends to 0 and 1 at the four days: a certain prediction from four observations.</alertblock>
+    <p>Group the $n$ examples by input: $n_{\bx}$ have input $\bx$, with label distribution $\hat p=\hat p(\cdot\mid\bx)$; the model's is $q_{\btheta}=q_{\btheta}(\cdot\mid\bx)$. Then</p>
+    \[\begin{aligned}\frac1n\cL(\btheta)&=\sum_{\bx}\frac{n_{\bx}}{n}\htmlClass{hl-ce}{H(\hat p,q_{\btheta})}\\&=\sum_{\bx}\frac{n_{\bx}}{n}\Big(\htmlClass{hl-h}{\cml{H(\hat p)}}+\htmlClass{hl-d}{\cro{D(\hat p\,\|\,q_{\btheta})}}\Big).\end{aligned}\]
+    <p pause="b2=1">$H(\hat p)$ does not depend on $\btheta$, so minimizing the loss minimizes the average relative entropy $\sum_{\bx}\frac{n_{\bx}}{n}D(\hat p\|q_{\btheta})$, which is never negative (Sec. 1.4). At $\btheta=(\ln 3/10,-7\ln 3)$ the model gives 0.1, 0.25, 0.5, 0.75, 0.9, the observed fractions, so every $D$ is 0. This $\btheta$ minimizes $\cL$, so it is the ML estimate $\hat\btheta$.</p>
   </column>
-  <fig name="four" init="lt=0 sep=1"></fig>
+  <fig name="kl" init="b2=0"></fig>
   <narration>
-    <say>The previous slide showed that no theta minimizes the loss on the four separable days. Gradient descent can still be run from zero. After the first step, the one computed in the exercise, the curve is a gentle sigmoid centred on the boundary between the dry and the rainy days.</say>
-    <say>With more steps, beta keeps growing, though each step adds less than the one before. The curve steepens around the boundary, and the loss keeps falling. The lighter curves on the right are the earlier iterates.</say>
-    <say>Ten times as many steps steepen the curve further: the dry days' probability of rain falls toward zero, the rainy days' rises toward one, and the loss falls with them.</say>
-    <say>The growth slows down but never ends: beta gains roughly the same amount for every tenfold increase in the number of steps, and the curve approaches a step at the boundary.</say>
-    <say>In the limit the model gives the dry days probability zero of rain and the rainy days probability one. That is certainty, claimed from a handful of days, which is not a reasonable conclusion from so little data.</say>
+    <say>Chapter one split a cross-entropy into an entropy and a relative entropy. Group the days by humidity. At each humidity, the average cost is the cross-entropy between the observed label frequencies and the model's probabilities, which is the entropy of the observed labels plus the relative entropy from them to the model. On the right, for the thirty-two rain days and the model at zero, the lower part of the bar is the entropy and the upper part the relative entropy.</say>
+    <say>The entropy part is fixed by the data: it is the dashed floor on slide twenty-eight. Only the relative entropy depends on theta, and it is never negative. The rain model of slide twenty-six reproduces the data: at each humidity, its probability of rain equals the fraction of rainy days observed there. So every relative entropy is zero, as the second bar shows, no theta does better, and that model is the maximum-likelihood estimate.</say>
   </narration>
 </section>
 
-<!-- 42 -->
-<section>
-  <h2>Convexity of the cross-entropy loss</h2>
-  <column>
-    \[\nabla^2\cL(\btheta)=\sum_i\htmlClass{hl-var}{h_i(1-h_i)}\,\htmlClass{hl-outer}{\tbx_i\tbx_i^T},\qquad h_i=h_{\btheta}(\tbx_i),\]
-    \[\bv^T\nabla^2\cL(\btheta)\,\bv=\htmlClass{hl-qf}{\sum_ih_i(1-h_i)\,(\bv^T\tbx_i)^2\ge0}.\]
-    <alertblock title="The cross-entropy loss is convex">So $\cL$ is convex: any $\btheta$ with $\nabla\cL=\bzero$ is a global minimum, and gradient descent with a small enough step approaches the minimum value.</alertblock>
-    <p>On separable data the loss is still convex but has no minimizer (slide 40).</p>
-  </column>
-  <fig name="cvx"></fig>
-  <drawer>
-    <p>From slide 35, $\nabla\cL(\btheta)=-\sum_i(y_i-h_i)\,\tbx_i$, and $\nabla_{\btheta}h_i=h_i(1-h_i)\,\tbx_i$ (the sigmoid's derivative and the chain rule). The labels $y_i$ do not depend on $\btheta$, so</p>
-    \[\nabla^2\cL(\btheta)=\sum_i\tbx_i\,\big(\nabla_{\btheta}h_i\big)^T=\sum_ih_i(1-h_i)\,\tbx_i\tbx_i^T.\]
-    <p>For any $\bv$, $\bv^T\tbx_i\tbx_i^T\bv=(\bv^T\tbx_i)^2$, and $h_i(1-h_i)>0$.</p>
-  </drawer>
-  <narration>
-    <say>Gradient descent found the minimum on the rain data because the cross-entropy loss is convex. Differentiating the gradient once more gives the Hessian, a sum of outer products of the inputs, each weighted by the variance of that example's Bernoulli label under the model, which is positive. Any quadratic form in this matrix is a sum of nonnegative terms, so the Hessian is positive semidefinite, and that makes the loss convex. For a convex loss, a point where the gradient vanishes is a global minimum, and gradient descent with a small enough step gets as close to the minimum value as we like. On separable data convexity still holds, but there is no minimum to reach: the loss of the four separable days on the right, along the direction where gamma is zero, keeps decreasing toward zero.</say>
-  </narration>
-</section>
-
-<!-- 43 -->
-<section>
-  <h2>Loss functions for a linear classifier</h2>
-  <column>
-    <p>Conditional maximum likelihood gave cross-entropy. We can use other losses for the same linear score.</p>
-    <p>Labels $\htmlClass{hl-pm}{y\in\{-1,1\}}$ (the convention of Sec. 6.4) and the prediction $\htmlClass{hl-sign}{\hat y(\bx)=\operatorname{sign}(\bbeta^T\bx+\cgamma)}$.</p>
-    <p>Each loss is a function of $\htmlClass{hl-m}{y(\bbeta^T\bx+\cgamma)}=\htmlClass{hl-yd}{y\,d\,\|\bbeta\|}$, with $d$ the signed distance of slide 28. It is positive exactly when $\bx$ is classified correctly.</p>
-    <div pause>
-      <p>Learning minimizes the average loss over the data,</p>
-      \[\htmlClass{hl-avg}{\frac1n\sum_{i=1}^nL\big(y_i(\bbeta^T\bx_i+\cgamma)\big)}.\]
-    </div>
-  </column>
-  <fig name="bnd" init="lc=0 lv=0 ro=0"></fig>
-  <p class="caption" style="margin-left:46px">The example of slide 28.</p>
-  <narration>
-    <say>So far, logistic regression was fitted by maximum likelihood. The notes' section on loss functions takes a second view: choose a loss that says how bad each prediction is, and minimize its average. For this view the two labels are coded as plus one and minus one, so the brown points of the example on the right are now labelled minus one, and the classifier predicts the sign of the linear part. Every loss here depends on a point only through its label times the linear part. That product is the signed distance from the boundary, scaled by the length of beta and multiplied by the label, so it is positive exactly when the point is on its correct side.</say>
-    <say>Learning then means finding the beta and gamma with the smallest average loss over the data. The next slides compare three losses, each a function of that one product.</say>
-  </narration>
-</section>
-
-<!-- 44 -->
-<section>
-  <h2>Zero-one loss</h2>
-  <column>
-    \[L_{01}=\htmlClass{hl-ind}{I\big(y(\bbeta^T\bx+\cgamma)<0\big)}\]
-    <p>It counts mistakes; how far a point lies from the boundary does not matter.</p>
-    <p pause>Minimizing it is NP-hard in general (Sec. 6.4.1), so differentiable losses are used instead.</p>
-  </column>
-  <fig name="margin" init="n=1"></fig>
-  <narration>
-    <say>The most natural loss counts mistakes: one for a point on the wrong side of the boundary, and zero for a point on its correct side. On the right it is the step, drawn against the label times the linear part. A point just across the boundary costs as much as a point far across it.</say>
-    <say>Minimizing the number of mistakes over all linear classifiers is computationally hard in general; the notes cite the result that it is NP-hard. Its slope is also zero everywhere except at the boundary, so gradient descent has nothing to follow. In practice, differentiable losses, for which efficient algorithms exist, are minimized instead.</say>
-  </narration>
-</section>
-
-<!-- 45 -->
-<section>
-  <h2>Logistic loss</h2>
-  <column>
-    \[L_{\log}=\htmlClass{hl-llog}{\ln\big(1+e^{-y(\bbeta^T\bx+\cgamma)}\big)}\]
-    <p>The cross-entropy of slide 33 with labels $\pm1$: with $u=\bbeta^T\bx+\cgamma$,</p>
-    \[\begin{aligned}y=1:&\quad\htmlClass{hl-y1}{\ln\frac{1}{\sigma(u)}=\ln(1+e^{-u})},\\ y=-1:&\quad\htmlClass{hl-y0}{\ln\frac{1}{1-\sigma(u)}=\ln(1+e^{u})}.\end{aligned}\]
-    <table class="vals tight">
-      <thead><tr><th>$y(\bbeta^T\bx+\cgamma)$</th><th>$-1$</th><th>$0$</th><th>$1$</th></tr></thead>
-      <tbody><tr><td>logistic</td><td>1.313</td><td>0.693</td><td>0.313</td></tr></tbody>
-    </table>
-    <p pause>It is positive for every point, and smaller the farther a correctly classified point lies from the boundary.</p>
-  </column>
-  <fig name="margin" init="n=2"></fig>
-  <narration>
-    <say>The cross-entropy loss of slide thirty-three is one of these losses. Recode the label zero as minus one. A day with rain costs the log of one over the sigmoid, a dry day costs the log of one over one minus the sigmoid, and both become the same expression in the label times the linear part. On the right, the logistic loss joins the zero-one step; the marked points are the values in the table.</say>
-    <say>Unlike the zero-one loss, it never reaches zero: even a correctly classified point pays a little, and the farther it lies on its correct side, the less it pays. A point on the wrong side pays more the farther away it is. The loss is smooth, so gradient descent can minimize it, as it did on the rain data.</say>
-  </narration>
-</section>
-
-<!-- 46 -->
-<section>
-  <h2>Hinge loss and the SVM</h2>
-  <column>
-    \[L_{\text{hinge}}=\htmlClass{hl-hinge}{\max\big(0,1-y(\bbeta^T\bx+\cgamma)\big)}\]
-    <p>It is 0 once $\htmlClass{hl-ge1}{y(\bbeta^T\bx+\cgamma)\ge1}$: on the correct side, at least $\htmlClass{hl-margin}{1/\|\bbeta\|}$ from the boundary, the margin.</p>
-    <table class="vals tight">
-      <thead><tr><th>$y(\bbeta^T\bx+\cgamma)$</th><th>$-1$</th><th>$0$</th><th>$1$</th></tr></thead>
-      <tbody><tr><td>logistic</td><td>1.313</td><td>0.693</td><td>0.313</td></tr><tr><td>hinge</td><td>2</td><td>1</td><td>0</td></tr></tbody>
-    </table>
-    <div pause>
-      <p>With a penalty, the support vector machine (SVM):</p>
-      \[\frac1n\sum_{i=1}^n\max\big(0,1-y_i(\bbeta^T\bx_i+\cgamma)\big)+\htmlClass{hl-pen}{\clambda\|\bbeta\|^2}.\]
-      <p>On separable data with small $\clambda$, it picks the separating boundary with the largest margin (Sec. 6.4.3).</p>
-    </div>
-  </column>
-  <fig name="margin" init="n=3"></fig>
-  <narration>
-    <say>The hinge loss charges points on the wrong side, and points on the correct side that lie close to the boundary, and nothing beyond that. Since the product is the distance times the length of beta, the hinge loss is zero for every point at least one over the length of beta from the boundary on its correct side; that distance is called the margin. On the right, the hinge is the straight line that bends to zero.</say>
-    <say>Adding a penalty on the squared length of beta gives the support vector machine. A short beta means a wide margin. On separable data, any boundary that keeps every point outside the margin has zero hinge loss, and among those a small penalty picks the one whose margin is widest. The notes draw this maximum-margin boundary, and mention the kernels that make the method nonlinear.</say>
-  </narration>
-</section>
-
-<!-- 47 -->
-<section>
-  <h2>L2-regularized logistic regression</h2>
-  <column>
-    \[\cL_{\clambda}(\btheta)=\cL(\btheta)+\htmlClass{hl-pen}{\cpr{\clambda\|\bbeta\|^2}},\qquad\clambda>0,\ \htmlClass{hl-gnp}{\cgamma\text{ not penalized}}\]
-    <p>The logistic loss of slide 45 with the SVM's penalty. With both classes in the data, $\cL_{\clambda}$ has a minimizer, separable data or not.</p>
-    <div pause>
-      <p>Four days ($\htmlClass{hl-g0}{\hat\cgamma_{\clambda}=0}$ by symmetry):</p>
-      <table class="vals tight">
-        <thead><tr><th>$\clambda$</th><th>10</th><th>25</th><th>50</th><th>100</th></tr></thead>
-        <tbody><tr><td>$\hat\cbeta_{\clambda}$</td><td>0.1847</td><td>0.1341</td><td>0.1007</td><td>0.0715</td></tr></tbody>
-      </table>
-    </div>
-    <p pause="ll=-0.30103 hv=1">At $\clambda=50$: $h=0.732$ at $u=10$ and $h=0.882$ at $u=20$.</p>
-  </column>
-  <fig name="fourl2" init="ll=-1 hv=0"></fig>
-  <knob param="ll" min="-2" max="1" step="0.001"><span>$\clambda/100$ (log scale)</span> <span class="ro">$\clambda=$ <b class="v-lam"></b></span></knob>
-  <narration>
-    <say>The same penalty fixes logistic regression on separable data. Add a penalty on the squared length of beta to the cross-entropy loss, as in ridge regression, and leave the offset unpenalized. When both classes appear in the data, this loss grows without bound in every direction of theta: either beta grows and the penalty with it, or gamma grows and one class's probabilities go to zero. So it has a minimizer for every positive lambda, separable data or not, unlike the plain loss on separable data shown earlier. On the right is the regularized fit for the four separable days at the displayed lambda.</say>
-    <say>As lambda grows, the fitted beta shrinks toward zero. The offset stays at zero because the four days are symmetric about the boundary.</say>
-    <say>At a moderate lambda the fit is gentle: the rainy day nearest the boundary gets a probability of rain well below one, and the farther one gets more. The slider under the plot varies lambda.</say>
-  </narration>
-</section>
-
-<!-- 48 -->
-<section>
-  <h2>Bayesian view: L2 regularization as a Gaussian prior</h2>
-  <column>
-    <p>Prior $\htmlClass{hl-prior}{\bbeta\sim\cN(0,\sigma_0^2I)}$, flat in $\cgamma$. Then</p>
-    \[-\ln p(\btheta\mid\cD)=\cL(\btheta)+\htmlClass{hl-pen}{\frac{\|\bbeta\|^2}{2\sigma_0^2}}+\text{const},\]
-    <p>so the MAP estimate minimizes $\cL_{\clambda}$ (slide 47) with $\htmlClass{hl-lam}{\clambda=1/(2\sigma_0^2)}$; $\clambda=50$ is $\sigma_0^2=0.01$.</p>
-    <div class="cards" pause data-fragment-index="1">
-      <div class="altcard small"><div class="al">Ridge (Sec. 5.4)</div>Prior $\cN\big(0,(\sigma^2/\clambda)I\big)$, $\sigma^2$ the noise variance<br>MAP&nbsp;$\htmlClass{hl-ridge}{(X^TX+\clambda I)^{-1}X^T\by}$</div>
-      <div class="altcard small"><div class="al">Logistic</div>Prior $\htmlClass{hl-pv}{\cN\big(0,\tfrac{1}{2\clambda}I\big)}$<br>MAP by gradient descent on $\cL+\clambda\|\bbeta\|^2$</div>
-    </div>
-    <alertblock pause="po=1" data-fragment-index="2" title="The prior keeps $\boldsymbol\beta$ finite" class="small">The likelihood increases forever in $\cbeta$; the prior's tail brings the posterior back down, so the posterior has a mode.</alertblock>
-  </column>
-  <fig name="post" init="po=0" style="zoom:0.9"></fig>
-  <p class="caption" style="margin-left:50px;width:480px">The four days, $\cgamma=0$, $\clambda=50$.</p>
-  <narration>
-    <say>Regularization also has a Bayesian reading, as ridge regression did in chapter five. Put a Gaussian prior with mean zero on beta and a flat prior on gamma. The negative logarithm of the posterior is then the cross-entropy loss plus the prior's quadratic penalty, so the most probable theta, the MAP estimate, minimizes the regularized loss, with lambda set by the prior variance. On the right, for the four days, are the prior and the likelihood as functions of beta, with gamma at zero: the prior is a density in beta, and the likelihood is the probability of the four labels. The density curves are divided by ten to share a readable vertical scale with the likelihood.</say>
-    <say>The correspondence is the same as for ridge regression: a smaller prior variance means a larger lambda and a stronger pull toward zero. The difference is computational. Ridge has a closed-form MAP estimate, while logistic regression needs gradient descent, as the unregularized fit did.</say>
-    <say>The picture shows why the regularized estimate exists. The likelihood keeps increasing in beta and never peaks, which is why maximum likelihood fails. Multiplying by the prior, whose tail falls off quickly, brings the product back down, so the posterior, a density in beta like the prior, has a mode, at the value of beta that the regularized fit found.</say>
-  </narration>
-</section>
-
-<!-- 49 -->
+<!-- 33 -->
 <section id="sec-many" class="frame" data-slide="map">
-  <fig name="deckmap" init="a=2 b=3 t=1" class="mapfig"></fig>
+  <fig name="deckmap" init="a=1 b=2 t=1" class="mapfig"></fig>
   <span pause="t=2"></span>
-  <notes>Part 3 done: the map pulls back; the click zooms into part 4.</notes>
+  <notes>Part 2 done: the map pulls back; the click zooms into part 3.</notes>
   <narration>
-    <say>That completes part three. Each loss for classification is a function of the label times the linear part. The zero-one loss counts mistakes but is hard to minimize, the logistic loss is the cross-entropy loss, and the hinge loss with a penalty on the length of beta gives the support vector machine. The same penalty keeps logistic regression finite on separable data.</say>
-    <say>Part four goes from two classes to many, and from rain to the next word of a text.</say>
+    <say>That completes part two. Logistic regression models the posterior directly, and maximum likelihood fits it by minimizing the cross-entropy loss, with gradient descent.</say>
+    <say>Part three goes from two classes to many, and from rain to the next word of a text.</say>
   </narration>
 </section>
 
-<!-- 50 -->
+<!-- 34 -->
 <section>
   <h2>Softmax regression</h2>
   <column>
-    <p>$K$ classes, $y\in\{1,\dots,K\}$. Each class $k$ has a logit $\htmlClass{hl-z}{z_k=\bbeta_k^T\bx+\cgamma_k}$, and</p>
+    <p>$K$ classes, $y\in\{1,\dots,K\}$. Each class $k$ has a score $\htmlClass{hl-z}{z_k=\bbeta_k^T\bx+\cgamma_k}$, called its logit, and</p>
     \[p(y=k\mid\bx)=\frac{\htmlClass{hl-num}{e^{z_k}}}{\htmlClass{hl-den}{\sum_{j=1}^Ke^{z_j}}},\]
+    <p>So $\ln p(y=k\mid\bx)=z_k-\ln\sum_je^{z_j}$: a logit is a log-probability up to a constant shared by all classes, and $z_k-z_j=\ln\frac{p(y=k\mid\bx)}{p(y=j\mid\bx)}$.</p>
     <p pause="z1=3.0986122886681098 z2=2.6931471805599454 z3=2">Adding the same constant to every logit leaves $p$ unchanged.</p>
     <div pause>
-      <p>With $K=2$,</p>
-      \[p(y=2\mid\bx)=\frac{e^{z_2}}{e^{z_1}+e^{z_2}}=\htmlClass{hl-sd}{\sigma(z_2-z_1)},\]
+      <p></p>
+      With $K=2$: $p(y=2\mid\bx)=\frac{e^{z_2}}{e^{z_1}+e^{z_2}}=\htmlClass{hl-sd}{\sigma(z_2-z_1)},$
       <p>logistic regression with $\htmlClass{hl-bd}{\bbeta=\bbeta_2-\bbeta_1}$ and $\cgamma=\cgamma_2-\cgamma_1$.</p>
     </div>
   </column>
-  <fig name="softk" init="z1=1.0986122886681098 z2=0.6931471805599453 z3=0"></fig>
+  <fig name="softk" init="z1=1.0986122886681098 z2=0.6931471805599453 z3=0" style="zoom:0.85"></fig>
   <knob param="z1" min="-1.5" max="4.5" step="0.05" digits="2">$z_1$</knob>
+  <knob param="z2" min="-1.5" max="4.5" step="0.05" digits="2">$z_2$</knob>
+  <knob param="z3" min="-1.5" max="4.5" step="0.05" digits="2">$z_3$</knob>
   <narration>
-    <say>With more than two classes, each class gets its own linear function of the input, called its logit. The softmax turns the logits into probabilities: exponentiate each one, so that every value is positive, and divide by the total, so that they add up to one. This is the softmax that LDA gave for many classes; softmax regression estimates the coefficients directly. On the right are three logits and the probabilities they produce. The slider changes the first logit.</say>
+    <say>With more than two classes, each class gets its own linear score, called its logit. A logit is not the log-odds of its class: it is the class's log-probability up to a constant shared by all classes, and only the difference of two logits is a log-odds. The softmax turns the logits into probabilities: exponentiate each one, so that every value is positive, and divide by the total, so that they add up to one. LDA's log-posteriors on slide ten have this form for any number of classes; softmax regression estimates the coefficients directly. On the right are three logits and the probabilities they produce. The sliders change the three logits.</say>
     <say>Only the differences between logits matter. Adding the same constant to all of them multiplies every exponential by the same factor, which cancels in the ratio, so the probabilities on the right stay where they were.</say>
-    <say>With two classes, dividing the numerator and the denominator by the first exponential leaves the sigmoid of the difference of the two logits. So softmax regression with two classes is logistic regression, whose coefficients are the difference of the two classes' coefficients.</say>
+    <say>With two classes, dividing the numerator and the denominator by the first exponential leaves the sigmoid of the difference of the two logits, so that difference is the log-odds of slide twenty-four. Softmax regression with two classes is logistic regression, whose coefficients are the difference of the two classes' coefficients.</say>
   </narration>
 </section>
 
-<!-- 51 -->
+<!-- 35 -->
 <section>
   <h2>Softmax regression in two dimensions</h2>
   <column>
     <p>Three classes, $\bx\in\bbR^2$: $\bbeta_1=(1,0)$, $\bbeta_2=(0,1)$, $\bbeta_3=\bzero$ and every $\cgamma_k=0$, so the logits are $\htmlClass{hl-lg}{(x_1,x_2,0)}$. Each class is the most probable where its logit is the largest.</p>
     <p pause="bd=1">The regions are bounded by the lines where two logits tie.</p>
-    <p pause="pt=1">At $\bx=(\ln 3,\ln 2)$ the logits are $(\ln 3,\ln 2,0)$, as on slide 50: probabilities $(1/2,1/3,1/6)$.</p>
+    <p pause="pt=1">At $\bx=(\ln 3,\ln 2)$ the logits are $(\ln 3,\ln 2,0)$, as on slide 34: probabilities $(1/2,1/3,1/6)$.</p>
     <alertblock pause title="The boundaries between classes are lines" class="small">Classes $k$ and $j$ tie where $\htmlClass{hl-tie}{(\bbeta_k-\bbeta_j)^T\bx+\cgamma_k-\cgamma_j=0}$, a hyperplane, as for two classes.</alertblock>
   </column>
   <fig name="soft2d" init="bd=0 pt=0"></fig>
   <narration>
     <say>With two inputs, softmax regression divides the plane into regions, one per class. In this example each class's logit is one coordinate or zero, so class one wins where the first coordinate is the largest of the three logits, class two where the second is, and class three where both coordinates are negative. On the right the plane is shaded by the most probable class.</say>
     <say>Between two neighbouring regions, the two leading logits are equal. Each such tie is a linear equation in the input, so the regions are bounded by pieces of straight lines that meet at the origin: the diagonal where the two coordinates are equal, in the upper right; the vertical axis below the origin, where the first coordinate ties with zero; and the horizontal axis to its left, where the second does.</say>
-    <say>The marked point is the input whose logits are those of slide fifty. Its probabilities are the ones computed there, with class one the most probable, as its region says.</say>
+    <say>The marked point is the input whose logits are those of slide thirty-four. Its probabilities are the ones computed there, with class one the most probable, as its region says.</say>
     <say>In general, two classes tie where the difference of their logits is zero, which is linear in the input. So the boundaries of softmax regression are hyperplanes, as they were for two classes.</say>
   </narration>
 </section>
 
-<!-- 52 -->
+<!-- 36 -->
 <section>
   <h2>Cross-entropy loss for $K$ classes</h2>
   <p>With $\htmlClass{hl-ey}{\be_y}$ the distribution with all its mass on $y$, the negative log-likelihood is again a cross-entropy:</p>
   \[\cL(\btheta)=\htmlClass{hl-nl}{-\sum_{i=1}^n\ln p_{\btheta}(y_i\mid\bx_i)}=\sum_{i=1}^n\htmlClass{hl-ce}{H\big(\be_{y_i},p_{\btheta}(\cdot\mid\bx_i)\big)}.\]
   <div class="cards" pause>
-    <div class="altcard"><div class="al">Logistic regression (slide 35)</div>
-      \[\nabla\cL=-\sum_i\big(\htmlClass{dk1}{y_i-h_{\btheta}(\tbx_i)}\big)\,\htmlClass{dk2}{\tbx_i}\]
+    <div class="altcard"><div class="al">Logistic regression (slide 27)</div>
+      \[\nabla\cL=-\sum_i\big(\htmlClass{dk1}{y_i-p_{\btheta}(y=1\mid\bx_i)}\big)\,\htmlClass{dk2}{\tbx_i}\]
       <p class="ctr"><span class="dk1">error</span> × <span class="dk2">input</span></p></div>
     <div class="altcard"><div class="al">Softmax regression, class $k$</div>
       \[\nabla_{(\bbeta_k,\cgamma_k)}\cL=-\sum_i\big(\htmlClass{hl-err}{\htmlClass{dk1}{I(y_i=k)-p_{\btheta}(k\mid\bx_i)}}\big)\,\htmlClass{hl-in}{\htmlClass{dk2}{\tbx_i}}\]
       <p class="ctr"><span class="dk1">error</span> × <span class="dk2">input</span></p></div>
   </div>
-  <p pause>With $K=2$, the gradient for class 2 is slide 35's gradient, with $\htmlClass{hl-i2}{I(y_i=2)}$ as the label and $\htmlClass{hl-p2}{p_{\btheta}(2\mid\bx_i)}$ as $h_{\btheta}$.</p>
+  <p pause>With $K=2$, the gradient for class 2 is slide 27's gradient, with $\htmlClass{hl-i2}{I(y_i=2)}$ as the label and $\htmlClass{hl-p2}{p_{\btheta}(2\mid\bx_i)}$ as $p_{\btheta}(y=1\mid\bx_i)$.</p>
   <drawer>
     <p>The log-probability of class $y$ is $\ln p_{\btheta}(y\mid\bx)=z_y-\ln\sum_je^{z_j}$.</p>
     <p class="dk1">Its derivative with respect to the logit $z_k$:</p>
@@ -1226,12 +907,12 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
   </drawer>
   <narration>
     <say>Fitting softmax regression by maximum likelihood works as before. The loss adds up, over the examples, the negative log of the probability the model gave to the observed class. Each term is again a cross-entropy, now between the distribution that puts all its mass on the observed class and the model's distribution over all the classes.</say>
-    <say>Its gradient has the same shape as for two classes. For the coefficients of class k, each example contributes its input times an error: one minus the predicted probability if the example belongs to class k, and minus the predicted probability if it does not. The Derivation drawer shows the two steps.</say>
+    <say>Its gradient has the same shape as for two classes. For the coefficients of class k, each example contributes minus its input times an error: one minus the predicted probability if the example belongs to class k, and minus the predicted probability if it does not. The Derivation drawer shows the two steps.</say>
     <say>With two classes, the error for the second class is the indicator of that class minus the sigmoid of the difference of logits, and the gradient is that of logistic regression.</say>
   </narration>
 </section>
 
-<!-- 53 -->
+<!-- 37 -->
 <section>
   <h2>Your turn: softmax by hand</h2>
   <column>
@@ -1248,9 +929,9 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
   </narration>
 </section>
 
-<!-- 54 -->
+<!-- 38 -->
 <section>
-  <h2>Your turn: softmax by hand (a) to (c)</h2>
+  <h2>Your turn: softmax by hand</h2>
   <column>
     <p>Logits $\bz=(\ln 2,0,0)$ for rain, snow, clear. (a) The probabilities. (b) The loss for &ldquo;snow&rdquo;, in nats and bits. (c) The probabilities after adding 3 to every logit.</p>
     <div pause="pb=1">
@@ -1263,7 +944,7 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
   <fig name="tok" init="z1=0.6931471805599453 z2=0 z3=0 pb=0"></fig>
 </section>
 
-<!-- 55 -->
+<!-- 39 -->
 <section>
   <h2>Next-token prediction as classification</h2>
   <column>
@@ -1281,11 +962,11 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
   </narration>
 </section>
 
-<!-- 56 -->
+<!-- 40 -->
 <section>
   <h2>The last layer of a language model</h2>
   <column>
-    <p>With $\bphi$ fixed, fitting $\mW$ and $\bb$ by maximum likelihood is softmax regression with inputs $\bphi$: slide 52's loss and gradient with $\htmlClass{hl-phit}{\tbphi=(\bphi,1)}$ in place of $\tbx$,</p>
+    <p>With $\bphi$ fixed, fitting $\mW$ and $\bb$ by maximum likelihood is softmax regression with inputs $\bphi$: slide 36's loss and gradient with $\htmlClass{hl-phit}{\tbphi=(\bphi,1)}$ in place of $\tbx$,</p>
     \[\htmlClass{hl-grad}{\nabla_{(\mW_k,\,b_k)}\cL=-\sum_t\big(I(w_t=k)-p(k\mid w_{1:t-1})\big)\,\tbphi_t},\]
     <p>with $\mW_k$ the row of token $k$ and $\tbphi_t=\tbphi(w_{1:t-1})$.</p>
     <alertblock pause title="A language model ends in softmax regression">Its last layer is softmax regression on features the network learns.</alertblock>
@@ -1297,23 +978,23 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
   </narration>
 </section>
 
-<!-- 57 -->
+<!-- 41 -->
 <section>
   <h2>Perplexity</h2>
   <column>
-    <p>A language model's training loss is the cross-entropy averaged over the positions of a text (slide 34).</p>
+    <p>A language model's training loss is the cross-entropy averaged over the positions of a text (slide 32).</p>
     <p pause="hi=1">The average of $\htmlClass{hl-bits}{-\log_2p(w_t\mid w_{1:t-1})}$ over a text is the loss in bits per token; the perplexity $\htmlClass{hl-ppl}{2^{\text{bits per token}}}$ is the number of equally likely tokens with the same cross-entropy.</p>
   </column>
   <fig name="ppl" init="hi=0 u=0"></fig>
   <p class="under" pause="u=1" style="margin:12px 0 0 20px;width:540px">A model uniform over $\htmlClass{hl-v}{V=10{,}000}$ tokens has perplexity 10,000. A model that gives each observed token probability $1/4$ spends 2 bits per token and has perplexity 4, as the exercise's model does for snow.</p>
   <narration>
     <say>A language model is trained with the same loss as the rain model. Averaged over the positions of a text, it is a cross-entropy, so minimizing it minimizes the relative entropy from the text's next-token distributions to the model's, exactly as on the rain days. On the right is the model of the softmax exercise, for the word after the phrase tomorrow it will.</say>
-    <say>Language-model losses are usually reported in bits per token, with base-two logarithms. Raising two to that power gives the perplexity: the number of equally likely tokens that would cost the same. If the next word is snow, this model pays the cost marked under its bars.</say>
+    <say>A language-model loss can be measured in bits per token, with base-two logarithms. Raising two to that power gives the perplexity: the number of equally likely tokens that would cost the same. If the next word is snow, this model pays the cost marked under its bars.</say>
     <say>A model that spreads its probability evenly over the vocabulary has a perplexity equal to the vocabulary size. The exercise's model pays as much for snow as a uniform choice among the tokens on the right, so its perplexity on that word is the number of those tokens. Lower perplexity means that the model is, on average, choosing among fewer tokens.</say>
   </narration>
 </section>
 
-<!-- 58 -->
+<!-- 42 -->
 <section>
   <h2>Temperature</h2>
   <column>
@@ -1345,7 +1026,7 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
   </narration>
 </section>
 
-<!-- 59 -->
+<!-- 43 -->
 <section>
   <h2>Summary</h2>
   <div class="fbody" style="top:100px">
@@ -1354,18 +1035,18 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
     <div class="sumrow"><svg class="icon" data-icon="logit" width="110" height="64"></svg>
       <div>Exponential-family class-conditionals can yield linear log-odds; logistic regression models that posterior directly.</div></div>
     <div class="sumrow"><svg class="icon" data-icon="losses" width="110" height="64"></svg>
-      <div>Conditional maximum likelihood gives cross-entropy. Gradient descent fits it; zero-one and hinge losses offer other objectives, and L2 regularization keeps separable fits finite.</div></div>
+      <div>Conditional maximum likelihood gives the cross-entropy loss. Gradient descent fits it, faster on a centered input.</div></div>
     <div class="sumrow"><svg class="icon" data-icon="soft" width="110" height="64"></svg>
       <div>Softmax regression handles $K$ classes, and a language model's last layer is softmax regression with $K=V$.</div></div>
-    <p>Further reading: the notes' Sec. 6.2.4, 6.2.6 and 6.4 (slide 60).</p>
+    <p>Further reading: the notes' Sec. 6.2.4, 6.2.6 and 6.4 (slide 44).</p>
     <p><alert>Next:</alert> Language models I, starting from Sec. 1.3: the chain rule, n-gram models, smoothing, and perplexity.</p>
   </div>
   <narration>
-    <say>Generative classifiers model each class's inputs and apply Bayes' rule, and a shared Gaussian covariance makes their posterior logistic. Logistic regression models that posterior directly, linear in the log-odds, and learns it by minimizing the cross-entropy loss, whose gradient is error times input. On separable data the maximum-likelihood estimate does not exist. The cross-entropy is one of several losses of the label times the linear part, beside the zero-one loss and the hinge loss of the support vector machine, and a penalty on the length of beta keeps the fit finite. With many classes the sigmoid becomes the softmax, and that is the last layer of a neural language model. The further topics at the end of the deck go with the listed sections of the notes. Next come language models: the chain rule, n-gram models, smoothing and perplexity.</say>
+    <say>Generative classifiers model each class's inputs and apply Bayes' rule, and a shared Gaussian covariance makes their posterior logistic. Logistic regression models that posterior directly, linear in the log-odds, and learns it by minimizing the cross-entropy loss, whose gradient is error times input, and gradient descent fits it, faster when the input is centered. With many classes the sigmoid becomes the softmax, and that is the last layer of a neural language model. The last slide lists sections of the notes for further reading. Next come language models: the chain rule, n-gram models, smoothing and perplexity.</say>
   </narration>
 </section>
 
-<!-- 60 -->
+<!-- 44 -->
 <section>
   <h2>Further reading</h2>
   <ol class="reading">
@@ -1375,9 +1056,233 @@ section[data-slide="illus"] .cards { gap: 16px; font-size: 23px; }
     <li>Optional: <a href="https://fhfarnoud.github.io/docs/teaching/epl/06-Linear-Classification.pdf#nameddest=subsection.6.2.5">Sec. 6.2.5</a>, Generative model for discrete features.</li>
   </ol>
   <narration>
-    <say>Three sections of the notes go with these topics. Maximum likelihood for LDA and naive Bayes gives more detail on fitting the generative models of the first part. The exponential-family section explains why so many generative models give log-odds that are linear in the input, which is what makes logistic regression a natural model. The loss-function section works through part three in more detail, with the maximum-margin view of the support vector machine and kernels. The section on discrete features is optional.</say>
+    <say>Three sections of the notes go with this lecture. Maximum likelihood for LDA and naive Bayes gives more detail on fitting the generative models of the first part. The exponential-family section explains why so many generative models give log-odds that are linear in the input, which is what makes logistic regression a natural model. The loss-function section compares the cross-entropy with other losses for a linear classifier, among them the zero-one loss and the hinge loss of the support vector machine, and adds regularization for separable data. The section on discrete features is optional.</say>
   </narration>
 </section>
+
+<template id="hidden-loss-functions">
+<!-- outline item -->
+    <li data-map-num="3"><a href="#/sec-opt">Loss functions</a></li>
+
+<!-- loss functions, was slide 30 -->
+<section id="sec-opt" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=1 b=2 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Discriminative models done: the map pulls back and enters optimization and losses.</notes>
+  <narration>
+    <say>That completes part two. Starting from the generative classifiers, we arrived at a direct model of the label given the input: the sigmoid of a linear function, whose log-odds are linear in the input. Its decision boundary is a hyperplane, and the length of beta sets how sharply the probability changes across it. We fit it by maximum likelihood, with gradient descent.</say>
+    <say>Part three looks more closely at the loss behind that fit, the cross-entropy, compares it with other losses for a linear classifier, and adds a penalty that keeps the fit finite on separable data.</say>
+  </narration>
+</section>
+
+<!-- loss functions, was slide 33 -->
+<section>
+  <h2>Separable data</h2>
+  <column>
+    <p>Four days, with humidity centered at 70: $u=x-70=-20,-10,10,20$ and rain $y=0,0,1,1$, with log-odds $\cbeta u+\cgamma$. Then $\htmlClass{hl-neg}{\partial\cL/\partial\cbeta&lt;0}$ at every $\btheta$, so no $\btheta$ has zero gradient.</p>
+    <p>Data are <b>separable</b> when some $\btheta$ has $\bbeta^T\bx_i+\cgamma>0$ exactly at the class-1 points. They are separable at $\htmlClass{hl-u0}{u=0}$.</p>
+    <div pause data-fragment-index="0">
+      <p>Along $\htmlClass{hl-dir}{\btheta=(\cbeta,0)}$:</p>
+      <table class="vals tight">
+        <thead><tr><th>$\cbeta$</th><th>0</th><th>0.1</th><th>0.2</th><th>0.3</th><th>0.5</th></tr></thead>
+        <tbody><tr><td>$\cL$</td><td>2.773</td><td>0.880</td><td>0.290</td><td>0.102</td><td>0.0135</td></tr></tbody>
+      </table>
+    </div>
+    <p pause data-fragment-index="1">Every term of $\cL$ is positive at every $\btheta$, and $\cL(\cbeta,0)\to0$ as $\cbeta\to\infty$, so no $\btheta$ minimizes $\cL$: the ML estimate does not exist.</p>
+  </column>
+  <fig name="cvx" pause data-fragment-index="0"></fig>
+  <drawer>
+    <p>With $p_i=p_{\btheta}(y=1\mid u_i)$, the gradient of slide 27 gives $\partial\cL/\partial\cbeta=-\sum_i(y_i-p_i)u_i$.</p>
+    <p>Every term $(y_i-p_i)u_i$ is positive at every $\btheta$: the days with $u_i&lt;0$ have $y_i=0&lt;p_i$, and the days with $u_i>0$ have $y_i=1>p_i$. So $\partial\cL/\partial\cbeta&lt;0$ everywhere.</p>
+  </drawer>
+  <narration>
+    <say>Take four days, with the humidity centered at seventy percent: two dry days below it and two rainy days above it. On these days the derivative in beta is negative at every theta, as the Derivation drawer shows, so the gradient is never zero and no theta can be a minimum. Behind this is a special property of the four days: a threshold at the middle humidity puts every dry day on one side and every rainy day on the other. Data like this are called separable.</say>
+    <say>Look at the loss along the direction where gamma is zero. On the right is the loss as a function of beta: it keeps falling as beta grows.</say>
+    <say>It approaches zero but never reaches it, because every day's term stays positive at any finite theta. So no theta minimizes the loss, and the maximum-likelihood estimate does not exist: there is nothing for gradient descent to converge to. It keeps increasing beta, and the next slide follows where it goes.</say>
+  </narration>
+</section>
+
+<!-- loss functions, was slide 34 -->
+<section>
+  <h2>Gradient descent on separable data</h2>
+  <column>
+    <p>The four days of slide 33, from $\btheta=\bzero$ with step size $\rho=1/300$.</p>
+    <div class="swap">
+      <table class="vals tight fade-out" pause data-fragment-index="1">
+        <thead><tr><th>steps $t$</th><th>1</th></tr></thead>
+        <tbody><tr><td>$\cbeta$</td><td>0.1</td></tr></tbody>
+      </table>
+      <table class="vals tight current-visible" pause="lt=1" data-fragment-index="1">
+        <thead><tr><th>steps $t$</th><th>1</th><th>10</th></tr></thead>
+        <tbody><tr><td>$\cbeta$</td><td>0.1</td><td>0.235</td></tr></tbody>
+      </table>
+      <table class="vals tight current-visible" pause="lt=2" data-fragment-index="2">
+        <thead><tr><th>steps $t$</th><th>1</th><th>10</th><th>100</th></tr></thead>
+        <tbody><tr><td>$\cbeta$</td><td>0.1</td><td>0.235</td><td>0.429</td></tr></tbody>
+      </table>
+      <table class="vals tight" pause="lt=4" data-fragment-index="3">
+        <thead><tr><th>steps $t$</th><th>1</th><th>10</th><th>100</th><th>1,000</th><th>10,000</th></tr></thead>
+        <tbody><tr><td>$\cbeta$</td><td>0.1</td><td>0.235</td><td>0.429</td><td>0.652</td><td>0.881</td></tr></tbody>
+      </table>
+    </div>
+    <p pause data-fragment-index="3">$\cbeta$ grows by about 0.2 for every tenfold increase in the number of steps.</p>
+    <alertblock pause data-fragment-index="4" title="Lowering the loss drives the probabilities to 0 and 1">As $\cbeta$ grows, $p_{\btheta}(y=1\mid u)$ tends to 0 and 1 at the four days: a certain prediction from four observations.</alertblock>
+  </column>
+  <fig name="four" init="lt=0 sep=1"></fig>
+  <narration>
+    <say>The previous slide showed that no theta minimizes the loss on the four separable days. Gradient descent can still be run from zero. After the first step, the curve is a gentle sigmoid centred on the boundary between the dry and the rainy days.</say>
+    <say>With more steps, beta keeps growing, though each step adds less than the one before. The curve steepens around the boundary, and the loss keeps falling. The lighter curves on the right are the earlier iterates.</say>
+    <say>Ten times as many steps steepen the curve further: the dry days' probability of rain falls toward zero, the rainy days' rises toward one, and the loss falls with them.</say>
+    <say>The growth slows down but never ends: beta gains roughly the same amount for every tenfold increase in the number of steps, and the curve approaches a step at the boundary.</say>
+    <say>In the limit the model gives the dry days probability zero of rain and the rainy days probability one. That is certainty, claimed from a handful of days, which is not a reasonable conclusion from so little data.</say>
+  </narration>
+</section>
+
+<!-- loss functions, was slide 35 -->
+<section>
+  <h2>Convexity of the cross-entropy loss</h2>
+  <column>
+    \[\nabla^2\cL(\btheta)=\sum_i\htmlClass{hl-var}{p_i(1-p_i)}\,\htmlClass{hl-outer}{\tbx_i\tbx_i^T},\qquad p_i=p_{\btheta}(y=1\mid\bx_i),\]
+    \[\bv^T\nabla^2\cL(\btheta)\,\bv=\htmlClass{hl-qf}{\sum_ip_i(1-p_i)\,(\bv^T\tbx_i)^2\ge0}.\]
+    <alertblock title="The cross-entropy loss is convex">So $\cL$ is convex: any $\btheta$ with $\nabla\cL=\bzero$ is a global minimum, and gradient descent with a small enough step approaches the minimum value.</alertblock>
+    <p>On separable data the loss is still convex but has no minimizer (slide 33).</p>
+  </column>
+  <fig name="cvx"></fig>
+  <drawer>
+    <p>From slide 27, $\nabla\cL(\btheta)=-\sum_i(y_i-p_i)\,\tbx_i$, and $\nabla_{\btheta}p_i=p_i(1-p_i)\,\tbx_i$ (the sigmoid's derivative and the chain rule). The labels $y_i$ do not depend on $\btheta$, so</p>
+    \[\nabla^2\cL(\btheta)=\sum_i\tbx_i\,\big(\nabla_{\btheta}p_i\big)^T=\sum_ip_i(1-p_i)\,\tbx_i\tbx_i^T.\]
+    <p>For any $\bv$, $\bv^T\tbx_i\tbx_i^T\bv=(\bv^T\tbx_i)^2$, and $p_i(1-p_i)>0$.</p>
+  </drawer>
+  <narration>
+    <say>Gradient descent found the minimum on the rain data because the cross-entropy loss is convex. Differentiating the gradient once more gives the Hessian, a sum of outer products of the inputs, each weighted by the variance of that example's Bernoulli label under the model, which is positive. Any quadratic form in this matrix is a sum of nonnegative terms, so the Hessian is positive semidefinite, and that makes the loss convex. For a convex loss, a point where the gradient vanishes is a global minimum, and gradient descent with a small enough step gets as close to the minimum value as we like. On separable data convexity still holds, but there is no minimum to reach: the loss of the four separable days on the right, along the direction where gamma is zero, keeps decreasing toward zero.</say>
+  </narration>
+</section>
+
+<!-- loss functions, was slide 36 -->
+<section>
+  <h2>Loss functions for a linear classifier</h2>
+  <column>
+    <p>Conditional maximum likelihood gave cross-entropy. We can use other losses for the same linear score.</p>
+    <p>Labels $\htmlClass{hl-pm}{y\in\{-1,1\}}$ (the convention of Sec. 6.4) and the prediction $\htmlClass{hl-sign}{\hat y(\bx)=\operatorname{sign}(\bbeta^T\bx+\cgamma)}$.</p>
+    <p>Each loss is a function of $\htmlClass{hl-m}{y(\bbeta^T\bx+\cgamma)}=\htmlClass{hl-yd}{y\,d\,\|\bbeta\|}$, with $d$ the signed distance of slide 25. It is positive exactly when $\bx$ is classified correctly.</p>
+    <div pause>
+      <p>Learning minimizes the average loss over the data,</p>
+      \[\htmlClass{hl-avg}{\frac1n\sum_{i=1}^nL\big(y_i(\bbeta^T\bx_i+\cgamma)\big)}.\]
+    </div>
+  </column>
+  <fig name="bnd" init="lc=0 lv=0 ro=0"></fig>
+  <p class="caption" style="margin-left:46px">The example of slide 25.</p>
+  <narration>
+    <say>So far, logistic regression was fitted by maximum likelihood. The notes' section on loss functions takes a second view: choose a loss that says how bad each prediction is, and minimize its average. For this view the two labels are coded as plus one and minus one, so the brown points of the example on the right are now labelled minus one, and the classifier predicts the sign of the linear part. Every loss here depends on a point only through its label times the linear part. That product is the signed distance from the boundary, scaled by the length of beta and multiplied by the label, so it is positive exactly when the point is on its correct side.</say>
+    <say>Learning then means finding the beta and gamma with the smallest average loss over the data. The next slides compare three losses, each a function of that one product.</say>
+  </narration>
+</section>
+
+<!-- loss functions, was slide 37 -->
+<section>
+  <h2>Zero-one loss</h2>
+  <column>
+    \[L_{01}=\htmlClass{hl-ind}{I\big(y(\bbeta^T\bx+\cgamma)<0\big)}\]
+    <p>It counts mistakes; how far a point lies from the boundary does not matter.</p>
+    <p pause>Minimizing it is NP-hard in general (Sec. 6.4.1), so differentiable losses are used instead.</p>
+  </column>
+  <fig name="margin" init="n=1"></fig>
+  <narration>
+    <say>The most natural loss counts mistakes: one for a point on the wrong side of the boundary, and zero for a point on its correct side. On the right it is the step, drawn against the label times the linear part. A point just across the boundary costs as much as a point far across it.</say>
+    <say>Minimizing the number of mistakes over all linear classifiers is computationally hard in general; the notes cite the result that it is NP-hard. Its slope is also zero everywhere except at the boundary, so gradient descent has nothing to follow. In practice, differentiable losses, for which efficient algorithms exist, are minimized instead.</say>
+  </narration>
+</section>
+
+<!-- loss functions, was slide 38 -->
+<section>
+  <h2>Logistic loss</h2>
+  <column>
+    \[L_{\log}=\htmlClass{hl-llog}{\ln\big(1+e^{-y(\bbeta^T\bx+\cgamma)}\big)}\]
+    <p>The cross-entropy of slide 31 with labels $\pm1$: with $u=\bbeta^T\bx+\cgamma$,</p>
+    \[\begin{aligned}y=1:&\quad\htmlClass{hl-y1}{\ln\frac{1}{\sigma(u)}=\ln(1+e^{-u})},\\ y=-1:&\quad\htmlClass{hl-y0}{\ln\frac{1}{1-\sigma(u)}=\ln(1+e^{u})}.\end{aligned}\]
+    <table class="vals tight">
+      <thead><tr><th>$y(\bbeta^T\bx+\cgamma)$</th><th>$-1$</th><th>$0$</th><th>$1$</th></tr></thead>
+      <tbody><tr><td>logistic</td><td>1.313</td><td>0.693</td><td>0.313</td></tr></tbody>
+    </table>
+    <p pause>It is positive for every point, and smaller the farther a correctly classified point lies from the boundary.</p>
+  </column>
+  <fig name="margin" init="n=2"></fig>
+  <narration>
+    <say>The cross-entropy loss of slide thirty-one is one of these losses. Recode the label zero as minus one. A day with rain costs the log of one over the sigmoid, a dry day costs the log of one over one minus the sigmoid, and both become the same expression in the label times the linear part. On the right, the logistic loss joins the zero-one step; the marked points are the values in the table.</say>
+    <say>Unlike the zero-one loss, it never reaches zero: even a correctly classified point pays a little, and the farther it lies on its correct side, the less it pays. A point on the wrong side pays more the farther away it is. The loss is smooth, so gradient descent can minimize it, as it did on the rain data.</say>
+  </narration>
+</section>
+
+<!-- loss functions, was slide 39 -->
+<section>
+  <h2>Hinge loss and the SVM</h2>
+  <column>
+    \[L_{\text{hinge}}=\htmlClass{hl-hinge}{\max\big(0,1-y(\bbeta^T\bx+\cgamma)\big)}\]
+    <p>It is 0 once $\htmlClass{hl-ge1}{y(\bbeta^T\bx+\cgamma)\ge1}$: on the correct side, at least $\htmlClass{hl-margin}{1/\|\bbeta\|}$ from the boundary, the margin.</p>
+    <table class="vals tight">
+      <thead><tr><th>$y(\bbeta^T\bx+\cgamma)$</th><th>$-1$</th><th>$0$</th><th>$1$</th></tr></thead>
+      <tbody><tr><td>logistic</td><td>1.313</td><td>0.693</td><td>0.313</td></tr><tr><td>hinge</td><td>2</td><td>1</td><td>0</td></tr></tbody>
+    </table>
+    <div pause>
+      <p>With a penalty, the support vector machine (SVM):</p>
+      \[\frac1n\sum_{i=1}^n\max\big(0,1-y_i(\bbeta^T\bx_i+\cgamma)\big)+\htmlClass{hl-pen}{\clambda\|\bbeta\|^2}.\]
+      <p>On separable data with small $\clambda$, it picks the separating boundary with the largest margin (Sec. 6.4.3).</p>
+    </div>
+  </column>
+  <fig name="margin" init="n=3"></fig>
+  <narration>
+    <say>The hinge loss charges points on the wrong side, and points on the correct side that lie close to the boundary, and nothing beyond that. Since the product is the distance times the length of beta, the hinge loss is zero for every point at least one over the length of beta from the boundary on its correct side; that distance is called the margin. On the right, the hinge is the straight line that bends to zero.</say>
+    <say>Adding a penalty on the squared length of beta gives the support vector machine. A short beta means a wide margin. On separable data, any boundary that keeps every point outside the margin has zero hinge loss, and among those a small penalty picks the one whose margin is widest. The notes draw this maximum-margin boundary, and mention the kernels that make the method nonlinear.</say>
+  </narration>
+</section>
+
+<!-- loss functions, was slide 40 -->
+<section>
+  <h2>L2-regularized logistic regression</h2>
+  <column>
+    \[\cL_{\clambda}(\btheta)=\cL(\btheta)+\htmlClass{hl-pen}{\cpr{\clambda\|\bbeta\|^2}},\qquad\clambda>0,\ \htmlClass{hl-gnp}{\cgamma\text{ not penalized}}\]
+    <p>The logistic loss of slide 38 with the SVM's penalty. With both classes in the data, $\cL_{\clambda}$ has a minimizer, separable data or not.</p>
+    <div pause>
+      <p>Four days ($\htmlClass{hl-g0}{\hat\cgamma_{\clambda}=0}$ by symmetry):</p>
+      <table class="vals tight">
+        <thead><tr><th>$\clambda$</th><th>10</th><th>25</th><th>50</th><th>100</th></tr></thead>
+        <tbody><tr><td>$\hat\cbeta_{\clambda}$</td><td>0.1847</td><td>0.1341</td><td>0.1007</td><td>0.0715</td></tr></tbody>
+      </table>
+    </div>
+    <p pause="ll=-0.30103 hv=1">At $\clambda=50$: $p_{\btheta}(y=1\mid u)=0.732$ at $u=10$ and $0.882$ at $u=20$.</p>
+  </column>
+  <fig name="fourl2" init="ll=-1 hv=0"></fig>
+  <knob param="ll" min="-2" max="1" step="0.001"><span>$\clambda/100$ (log scale)</span> <span class="ro">$\clambda=$ <b class="v-lam"></b></span></knob>
+  <narration>
+    <say>The same penalty fixes logistic regression on separable data. Add a penalty on the squared length of beta to the cross-entropy loss, as in ridge regression, and leave the offset unpenalized. When both classes appear in the data, this loss grows without bound in every direction of theta: either beta grows and the penalty with it, or gamma grows and one class's probabilities go to zero. So it has a minimizer for every positive lambda, separable data or not, unlike the plain loss on separable data shown earlier. On the right is the regularized fit for the four separable days at the displayed lambda.</say>
+    <say>As lambda grows, the fitted beta shrinks toward zero. The offset stays at zero because the four days are symmetric about the boundary.</say>
+    <say>At a moderate lambda the fit is gentle: the rainy day nearest the boundary gets a probability of rain well below one, and the farther one gets more. The slider under the plot varies lambda.</say>
+  </narration>
+</section>
+
+<!-- loss functions, was slide 41 -->
+<section>
+  <h2>Bayesian view: L2 regularization as a Gaussian prior</h2>
+  <column>
+    <p>Prior $\htmlClass{hl-prior}{\bbeta\sim\cN(0,\sigma_0^2I)}$, flat in $\cgamma$. Then</p>
+    \[-\ln p(\btheta\mid\cD)=\cL(\btheta)+\htmlClass{hl-pen}{\frac{\|\bbeta\|^2}{2\sigma_0^2}}+\text{const},\]
+    <p>so the MAP estimate minimizes $\cL_{\clambda}$ (slide 40) with $\htmlClass{hl-lam}{\clambda=1/(2\sigma_0^2)}$; $\clambda=50$ is $\sigma_0^2=0.01$.</p>
+    <div class="cards" pause data-fragment-index="1">
+      <div class="altcard small"><div class="al">Ridge (Sec. 5.4)</div>Prior $\cN\big(0,(\sigma^2/\clambda)I\big)$, $\sigma^2$ the noise variance<br>MAP&nbsp;$\htmlClass{hl-ridge}{(X^TX+\clambda I)^{-1}X^T\by}$</div>
+      <div class="altcard small"><div class="al">Logistic</div>Prior $\htmlClass{hl-pv}{\cN\big(0,\tfrac{1}{2\clambda}I\big)}$<br>MAP by gradient descent on $\cL+\clambda\|\bbeta\|^2$</div>
+    </div>
+    <alertblock pause="po=1" data-fragment-index="2" title="The prior keeps $\boldsymbol\beta$ finite" class="small">The likelihood increases forever in $\cbeta$; the prior's tail brings the posterior back down, so the posterior has a mode.</alertblock>
+  </column>
+  <fig name="post" init="po=0" style="zoom:0.9"></fig>
+  <p class="caption" style="margin-left:50px;width:480px">The four days, $\cgamma=0$, $\clambda=50$.</p>
+  <narration>
+    <say>Regularization also has a Bayesian reading, as ridge regression did in chapter five. Put a Gaussian prior with mean zero on beta and a flat prior on gamma. The negative logarithm of the posterior is then the cross-entropy loss plus the prior's quadratic penalty, so the most probable theta, the MAP estimate, minimizes the regularized loss, with lambda set by the prior variance. On the right, for the four days, are the prior and the likelihood as functions of beta, with gamma at zero: the prior is a density in beta, and the likelihood is the probability of the four labels. The density curves are divided by ten to share a readable vertical scale with the likelihood.</say>
+    <say>The correspondence is the same as for ridge regression: a smaller prior variance means a larger lambda and a stronger pull toward zero. The difference is computational. Ridge has a closed-form MAP estimate, while logistic regression needs gradient descent, as the unregularized fit did.</say>
+    <say>The picture shows why the regularized estimate exists. The likelihood keeps increasing in beta and never peaks, which is why maximum likelihood fails. Multiplying by the prior, whose tail falls off quickly, brings the product back down, so the posterior, a density in beta like the prior, has a mode, at the value of beta that the regularized fit found.</say>
+  </narration>
+</section>
+
+</template>
 </div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>

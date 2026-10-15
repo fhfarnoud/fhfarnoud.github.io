@@ -543,6 +543,7 @@ function syncKnobs(root, p) {
   for (const k of knobsFor(root)) k.querySelectorAll('input[data-param]').forEach(inp => {
     const v = p[inp.dataset.param];
     if (typeof v !== 'number' || document.activeElement === inp) return;
+    if (inp.type === 'checkbox') { inp.checked = v > 0.5; return; }
     inp.value = v;
     const out = inp.parentNode.querySelector('output');
     if (out) out.textContent = fmt(v, +(inp.dataset.digits ?? 2));
@@ -555,10 +556,11 @@ function wireKnobs() {
     const root = slide.querySelector(`.fig[data-fig="${name}"]`);
     k.querySelectorAll('input[data-param]').forEach(inp => {
       const out = inp.parentNode.querySelector('output');
+      const val = () => inp.type === 'checkbox' ? (inp.checked ? 1 : 0) : +inp.value;
       const upd = () => {
         const st = live.get(root) || {}; cancelAnimationFrame(st.raf);
-        const p = Object.assign({}, st.p || stateFor(root), { [inp.dataset.param]: +inp.value });
-        if (out) out.textContent = fmt(+inp.value, +(inp.dataset.digits ?? 2));
+        const p = Object.assign({}, st.p || stateFor(root), { [inp.dataset.param]: val() });
+        if (out) out.textContent = fmt(val(), +(inp.dataset.digits ?? 2));
         FIGS[name].render(root, p); st.p = p; live.set(root, st);
       };
       inp.addEventListener('input', upd);
@@ -683,6 +685,8 @@ function wireDrawers() {
 //                                           a slider for the figure (for="name",
 //                                           default: the slide's first figure);
 //                                           consecutive knobs share one bar
+//   <toggle param="er">errors</toggle>      a checkbox in the same bar: the figure's
+//                                           parameter is 1 when checked, 0 when not
 //   pause, pause="b=1"                      on any element: it appears on the next
 //                                           click, which also sets the figure state
 //   <alert>, <drawer>, <notes>              \alert, the derivation drawer, speaker notes
@@ -728,20 +732,26 @@ function expandSlides(slides) {
     const s = stateAttr(e.getAttribute('init'));
     if (s) n.dataset.init = s;
   });
-  all('knob').forEach(e => {
+  all('knob, toggle').forEach(e => {
     if (!e.isConnected || e.parentNode.classList.contains('knobs')) return;
     const bar = document.createElement('div');
     bar.className = 'knobs';
     if (e.hasAttribute('for')) bar.dataset.for = e.getAttribute('for');
     e.before(bar);
-    for (let k = e; k && k.tagName === 'KNOB';) {
+    for (let k = e; k && (k.tagName === 'KNOB' || k.tagName === 'TOGGLE');) {
       const next = k.nextElementSibling, label = document.createElement('label');
       while (k.firstChild) label.appendChild(k.firstChild);
       const inp = document.createElement('input');
-      inp.type = 'range'; inp.dataset.param = k.getAttribute('param');
-      if (k.hasAttribute('digits')) inp.dataset.digits = k.getAttribute('digits');
-      for (const a of ['min', 'max', 'step']) inp.setAttribute(a, k.getAttribute(a));
-      label.append(' ', inp, document.createElement('output'));
+      inp.dataset.param = k.getAttribute('param');
+      if (k.tagName === 'TOGGLE') {
+        inp.type = 'checkbox';
+        label.prepend(inp, ' ');
+      } else {
+        inp.type = 'range';
+        if (k.hasAttribute('digits')) inp.dataset.digits = k.getAttribute('digits');
+        for (const a of ['min', 'max', 'step']) inp.setAttribute(a, k.getAttribute(a));
+        label.append(' ', inp, document.createElement('output'));
+      }
       if (bar.children.length) bar.append(' ');
       bar.appendChild(label); k.remove();
       k = next;

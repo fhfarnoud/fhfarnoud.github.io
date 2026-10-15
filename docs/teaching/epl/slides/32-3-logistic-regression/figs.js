@@ -264,7 +264,7 @@ FIGS.post1d = {
       const ea = p.ea ?? 0, eb = p.eb ?? 0, ec = p.ec ?? 0, b25 = bndOf(0.25);
       P.dot([7, 0.25], { r: 6.5, color: 'pred', opacity: ea });
       P.label('ea', '$0.25$', [7, 0.25], 'tl', { dx: 10, dy: 6, color: 'pred', opacity: ea });
-      P.line([7, 0], [7, 0.5], { color: 'pred', w: 1.5, dash: '4 4', opacity: 0.6 * eb });
+      P.line([bndOf(pi), 0], [bndOf(pi), 0.5], { color: 'pred', w: 1.5, dash: '4 4', opacity: 0.6 * eb });   // the boundary of the dashed model
       P.line([b25, 0], [b25, 0.5], { color: 'pred', w: 2, opacity: eb });
       P.label('eb', `$${fmt(10 * b25, 2)}$`, [b25, 0], 'bl', { dx: 6, dy: -4, color: 'pred', opacity: eb });   // above the axis, clear of the 80 tick
       P.dot([8, postAt(8, 0.25)], { r: 6.5, color: 'pred', opacity: ec });
@@ -541,6 +541,26 @@ FIGS.sigfun = {
   }
 };
 
+// Slide 23: h(x) = sigma(beta x + gamma) for one generic input; b and g are beta and gamma,
+// gh draws the curve for (gb, gg) dashed.
+const SAB = box2d(56, 56, 470, 280, -6, 6, 0, 1);
+FIGS.sigab = {
+  duration: 1100, size: [570, 400],
+  draw(g, p) {
+    const P = g.plot(SAB), h = (b, c) => x => sigm(b * x + c);
+    P.axes({ grid: false, ox: -6, oy: 0, xt: [-6, -4, -2, 0, 2, 4, 6], yt: [0.5, 1], names: ['$x$', '$p_{\\btheta}(y=1\\mid x)$'] });
+    P.line([-6, 0.5], [6, 0.5], { color: '#bbb', w: 1, dash: '4 5' });
+    P.line([-6, 1], [6, 1], { color: '#bbb', w: 1, dash: '4 5' });
+    if (p.gh) stroke(P, fpath(P, h(p.gb, p.gg), -6, 6), { color: 'pred', w: 2.5, dash: '7 6', opacity: 0.45 * p.gh });
+    stroke(P, fpath(P, h(p.b, p.g), -6, 6), { color: 'pred' });
+    const m = -p.g / p.b, on = m > -6 && m < 6 ? 1 : 0, right = m < 2;
+    P.line([m, 0], [m, 0.5], { color: 'pred', w: 1.5, dash: '5 4', opacity: on });
+    P.dot([m, 0.5], { r: 6, color: 'pred', opacity: on });
+    P.label('mid', `midpoint $-\\cgamma/\\cbeta=${fmt(m, 2)}$`, [m, 0.5], right ? 'l' : 'r', { dx: right ? 12 : -12, dy: 16, color: 'pred', opacity: on });
+    P.label('par', `$\\cbeta=${fmt(p.b, 2)},\\ \\cgamma=${fmt(p.g, 2)}$`, [0, 1], 'b', { dy: -30, color: 'pred' });
+  }
+};
+
 // ---------------------------------------------------------------- slide 21: odds and log-odds
 const LOB = box2d(70, 30, 430, 300, 0, 1, -3.4, 3.4);
 const LOP = [0.1, 0.25, 0.5, 0.75, 0.9], LOL = ['-2\\ln 3', '-\\ln 3', '0', '\\ln 3', '2\\ln 3'];
@@ -597,7 +617,7 @@ FIGS.sig = {
   duration: 1100, size: [580, 420],
   draw(g, p) {
     const P = g.plot(SB);
-    percentAxes(P, { grid: false, ox: 4, oy: 0, xt: [4, 5, 6, 7, 8, 9, 10], yt: [0.5, 1], names: ['', '$h_{\\btheta}(x)$'] });
+    percentAxes(P, { grid: false, ox: 4, oy: 0, xt: [4, 5, 6, 7, 8, 9, 10], yt: [0.5, 1], names: ['', '$p_{\\btheta}(y=1\\mid x)$'] });
     P.line([4, 0.5], [10, 0.5], { color: '#bbb', w: 1, dash: '4 5' });
     P.line([4, 1], [10, 1], { color: '#bbb', w: 1, dash: '4 5' });
     P.label('hum', HUM, [7, 0], 't', { dy: 30, color: '#444' });
@@ -636,21 +656,33 @@ FIGS.sig = {
 // [0, 1] at h: the probability a rainy
 // day receives (below h) and the probability the dry day receives (above h).
 const D11 = box2d(56, 70, 400, 290, 4.3, 9.95, -0.2, 1.25);
+// B and G are beta and gamma themselves; the slide's .v-ll shows the log-likelihood of the 32 days.
+// er: each day's contribution to minus the log-likelihood, as a bar on its dot.
 FIGS.days = {
   duration: 1200, size: [550, 430],
   draw(g, p) {
+    if (p.B != null) p = Object.assign({}, p, { b: p.B * 10 / LN3, g: p.G / LN3 });
     const P = g.plot(D11), h = hAt(p.b, p.g);
     humAxes(P);
     P.label('hx', HUM, [7, -0.2], 't', { dy: 26, color: '#444' });
-    P.label('hy', '$h_{\\btheta}(x)$', [4.3, 1.25], 'l', { dx: 8, dy: -10, color: '#444' });
-    dayDots(P);
+    P.label('hy', '$p_{\\btheta}(y=1\\mid x)$', [4.3, 1.25], 'l', { dx: 8, dy: -10, color: '#444' });
     stroke(P, fpath(P, h, 4.3, 9.3), { color: 'pred' });
-    const h9 = h(9), xb = 9.55;
-    P.line([9, h9], [xb, h9], { color: '#888', w: 1.2, dash: '3 3', opacity: p.br });
-    P.line([xb, 0], [xb, h9], { color: 'teal', w: 6, opacity: p.br });
-    P.line([xb, h9], [xb, 1], { color: 'brown', w: 6, opacity: p.br });
-    P.label('pr', `rainy day: ${fmt(h9, 2)}`, [xb, h9 / 2], 'l', { dx: 9, color: 'teal', opacity: p.br });
-    P.label('pd', `dry day: ${fmt(1 - h9, 2)}`, [xb, (1 + h9) / 2], 'l', { dx: 9, color: 'brown', opacity: p.br });
+    // one row of dots per humidity and label, so that each day can carry its own bar;
+    // er: each day's -ln q (q the probability given to its label), 20 px per nat up to 14 nats,
+    // hanging from the dot toward the curve
+    const r = 4, sp = 9.5;
+    DX.forEach((x, k) => {
+      for (const [cnt, y, col] of [[DR[k], 1, 'teal'], [DN[k] - DR[k], 0, 'brown']]) {
+        const q = y ? h(x) : 1 - h(x), len = Math.min(280, -20 * Math.log(q)), dir = y ? 1 : -1;
+        for (let i = 0; i < cnt; i++) {
+          const cx = P.X(x) + (i - (cnt - 1) / 2) * sp, cy = P.Y(y);
+          if (p.er) P.g.line([cx, cy + dir * r], [cx, cy + dir * (r + len)], { color: 'rose', w: 5, opacity: p.er });
+          P.g.el('circle', { cx, cy, r, fill: C[col], 'fill-opacity': 0.9, stroke: '#fff', 'stroke-width': 1 });
+        }
+      }
+    });
+    const sec = g.root.closest('section'), out = sec && sec.querySelector('.v-ll');
+    if (out) out.textContent = neg(fmt(-loss32(LN3 * p.b, LN3 * p.g), 2));
   }
 };
 
@@ -690,12 +722,12 @@ FIGS.gd = {
     const P = g.plot(GL);
     humAxes(P);
     P.label('lx', HUM, [7, -0.2], 't', { dy: 26, color: '#444' });
-    P.label('ly', '$h_{\\btheta^{(t)}}(x)$', [4.3, 1.25], 'l', { dx: 8, dy: -10, color: '#444' });
+    P.label('ly', '$p_{\\btheta^{(t)}}(y=1\\mid x)$', [4.3, 1.25], 'l', { dx: 8, dy: -10, color: '#444' });
     dayDots(P, DX, DN, DR, 5);
     for (const tg of [0, 100, 1000]) if (tg < t)
       stroke(P, fpath(P, x => sigm(GD.B[tg] * x + GD.G[tg]), 4.3, 9.95), { color: 'pred', w: 2.2, opacity: 0.3 });
     stroke(P, fpath(P, x => sigm(b * x + gm), 4.3, 9.95), { color: 'pred' });
-    P.label('lr', t ? `$t=${thou(t)}$: midpoint $-\\cgamma/\\cbeta=$ ${f2(-10 * gm / b)}` : '$t=0$: $h=1/2$ everywhere', [4.3, 1.25], 'bl', { dx: 90, dy: -12, color: 'pred' });
+    P.label('lr', t ? `$t=${thou(t)}$: $\\cbeta=${f3(b / 10)}$, $\\cgamma=${f2(gm)}$` : '$t=0$: probability $1/2$ everywhere', [4.3, 1.25], 'bl', { dx: 8, dy: -40, color: 'pred' });
     // right panel
     const Q = g.plot(GR);
     Q.axes({ grid: false, ox: -0.6, oy: 0.38, xt: [], yt: [0.5, 0.6, 0.7], names: ['', ''] });
@@ -705,7 +737,7 @@ FIGS.gd = {
     Q.label('rx', 'step $t$ (log scale)', [1.8, 0.38], 't', { dy: 28, color: '#444' });
     Q.label('ry', 'loss per day', [-0.6, 0.72], 'br', { dx: -10, dy: 0, color: '#444' });
     Q.line([-0.6, LMIN], [4.25, LMIN], { color: 'mle', w: 2, dash: true, opacity: p.fl ?? 0 });
-    Q.label('fl', `${f3(LMIN)}: the rain model of slide 23`, [-0.45, LMIN], 'tl', { dy: 4, color: 'mle', opacity: p.fl ?? 0 });
+    Q.label('fl', `${f3(LMIN)}: the ML estimate of slide 26`, [-0.45, LMIN], 'tl', { dy: 4, color: 'mle', opacity: p.fl ?? 0 });
     const pts = [[-0.5, GD.L[0]]];
     if (t >= 1) {
       const lc = Math.log10(t);
@@ -731,7 +763,7 @@ function fourAxes(P) {
     P.text([-2.8, v], String(v), { anchor: 'end', dx: -7, dy: 5 });
   }
   P.label('fx', '$u=x-70$ (percentage points)', [0, -0.12], 't', { dy: 26, color: '#444' });
-  P.label('fy', '$h$', [-2.8, 1.12], 'l', { dx: 8, dy: -8, color: '#444' });
+  P.label('fy', '$p_{\\btheta}(y=1\\mid u)$', [-2.8, 1.12], 'l', { dx: 8, dy: -8, color: '#444' });
 }
 const fourDots = P => FU.forEach((u, i) => P.dot([u, FY[i]], { r: 8, color: FY[i] ? 'teal' : 'brown' }));
 FIGS.four = {
@@ -753,8 +785,8 @@ FIGS.four = {
       P.line([u, h], [u, FY[i]], { color: 'ink', w: 2, dash: '4 3', opacity: p.err });
     });
     fourDots(P);
-    if (p.cl) P.label('cl', '$\\btheta^{(1)}$: $h=\\sigma(0.1u)$', [1.25, sigm(b * 1.25)], 'tl', { dx: 10, dy: 8, color: 'pred', opacity: p.on ?? 1 });
-    if (p.lt != null) P.label('st', t === 0 ? '$t=0$: $h=1/2$ everywhere' : `after $t=${thou(t)}$ ${t === 1 ? 'step' : 'steps'}: $\\cbeta=${f3(b / 10)}$`, [-2.8, 1.12], 'bl', { dx: 40, dy: -8, color: 'pred' });
+    if (p.cl) P.label('cl', '$\\btheta^{(1)}$: $\\sigma(0.1u)$', [1.25, sigm(b * 1.25)], 'tl', { dx: 10, dy: 8, color: 'pred', opacity: p.on ?? 1 });
+    if (p.lt != null) P.label('st', t === 0 ? '$t=0$: probability $1/2$ everywhere' : `after $t=${thou(t)}$ ${t === 1 ? 'step' : 'steps'}: $\\cbeta=${f3(b / 10)}$`, [-2.8, 1.12], 'bl', { dx: 150, dy: -8, color: 'pred' });
   }
 };
 // slide 24: the L2-regularized fit; ll = log10 lambda
@@ -768,7 +800,7 @@ FIGS.fourl2 = {
     for (const u of [1, 2]) P.dot([u, sigm(b * u)], { r: 6, color: 'pred', opacity: p.hv ?? 0 });
     P.label('h1', f3(sigm(b)), [1, sigm(b)], 'tl', { dx: 8, dy: 6, color: 'pred', opacity: p.hv ?? 0 });
     P.label('h2', f3(sigm(2 * b)), [2, sigm(2 * b)], 'tl', { dx: 8, dy: 6, color: 'pred', opacity: p.hv ?? 0 });
-    P.label('rd', `$\\clambda=${fmt(100 * lam, 2)}$: $\\hat\\cbeta_{\\clambda}=${f3(b / 10)}$`, [-2.8, 1.12], 'bl', { dx: 40, dy: -8, color: 'ink' });
+    P.label('rd', `$\\clambda=${fmt(100 * lam, 2)}$: $\\hat\\cbeta_{\\clambda}=${f3(b / 10)}$`, [-2.8, 1.12], 'bl', { dx: 150, dy: -8, color: 'ink' });
     const sec = g.root.closest('section'), out = sec && sec.querySelector('.v-lam');
     const shownLam = fmt(100 * lam, 2);
     if (out && out.textContent !== shownLam) out.textContent = shownLam;
@@ -956,7 +988,7 @@ FIGS.pipe = {
     g.label('ql', '$p(w_t=k\\mid w_{1:t-1})$', [330, 280], 'bl', { color: '#333' });
     g.arrow([252, 370], [318, 370], { color: '#666', w: 2 });
     g.label('smx', 'softmax', [285, 366], 'b', { color: '#555' });
-    g.label('cap', 'numbers are illustrative', [280, 500], 't', { color: '#666' });
+    g.label('cap', 'four of the V tokens, softmax over these four; numbers are illustrative', [280, 500], 't', { color: '#666' });
     // the last layer, softmax regression on the features
     g.el('rect', { x: 18, y: 160, width: 528, height: 330, rx: 14, fill: 'none', stroke: C.ink, 'stroke-width': 3, 'stroke-dasharray': '10 6', opacity: p.hl });
     g.label('sr', 'last layer: softmax regression', [540, 158], 'br', { dy: -2, color: 'ink', opacity: p.hl });

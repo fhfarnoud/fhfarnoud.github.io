@@ -112,6 +112,7 @@ section.lay-panel .illus-text { background: rgba(255,255,255,.82); padding: 16px
   margin-top: 6px; }
 .knobs label { display: flex; gap: 10px; align-items: center; white-space: nowrap; }
 .knobs input[type=range] { width: 170px; accent-color: var(--struct); }
+.knobs input[type=checkbox] { width: 18px; height: 18px; margin: 0; accent-color: var(--struct); }
 .knobs output { min-width: 3.2em; font-variant-numeric: tabular-nums; }
 html.deck-print .knobs { display: none; }
 
