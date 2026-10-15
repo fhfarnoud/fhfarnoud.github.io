@@ -130,6 +130,8 @@ input[type="datetime-local"] { width: 100%; min-height: 40px; padding: 6px 10px;
 .views button { min-height: 44px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--card-bd); background: var(--card); color: var(--seg-fg); font: 500 13.5px/1.15 var(--ui); cursor: pointer; }
 .views button:hover { border-color: #3a4a66; }
 .views button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.preset { min-height: 40px; border-radius: 10px; border: 1px dashed #3a4a66; background: transparent; color: var(--text); font: 500 13.5px/1 var(--ui); cursor: pointer; }
+.preset:hover { border-style: solid; background: #121a27; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips button { display: flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--card-bd); background: var(--card); color: var(--muted); font: 500 13.5px/1 var(--ui); cursor: pointer; }
 .chips button svg { display: none; }
@@ -170,7 +172,7 @@ footer p { margin: 0; max-width: 110ch; }
   main { grid-template-columns: minmax(0, 1fr); grid-template-areas: "time" "stage" "side"; grid-template-rows: none; gap: 18px; padding-block: 0 24px; }
   .timecard { padding: 14px; gap: 10px; }
   .clock { font-size: 32px; }
-  .globecard { border: 0; background: none; border-radius: 0; margin-inline: calc(-1 * var(--gut)); padding: 8px var(--gut) 0; }  /* the Sun runs to the screen edges */
+  .globecard { border: 0; background: none; border-radius: 0; margin-inline: calc(-1 * var(--gut)); padding: 22px var(--gut) 0; }  /* the Sun runs to the screen edges */
   .pointer { padding: 12px 14px; border-radius: 14px; }
   .pointer .p-time { margin-left: 0; width: 100%; justify-content: space-between; }
   .pointer .p-clock { font-size: 22px; }
@@ -184,6 +186,21 @@ footer p { margin: 0; max-width: 110ch; }
   .explain p { font-size: 14px; }
   footer .wide { font-size: 12px; padding-block: 18px 28px; }
 }
+/* Focused mode (Esc): only the dial, filling the window */
+.focus-btn { position: absolute; z-index: 5; top: 12px; right: 12px; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; border: 1px solid #2a3550; background: rgba(11,15,23,0.6); color: var(--muted); cursor: pointer; transition: opacity .3s; }
+.focus-btn:hover, .zoom-btns button:hover { color: var(--text); border-color: #3a4a66; }
+.zoom-btns { position: absolute; z-index: 5; top: 12px; right: 12px; display: none; gap: 6px; transition: opacity .3s; }
+.zoom-btns button { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid #2a3550; background: rgba(11,15,23,0.6); color: var(--muted); font: 500 18px/1 var(--ui); cursor: pointer; }
+body.focus .zoom-btns { display: flex; opacity: 0; }
+body.focus.show-ui .zoom-btns { opacity: 0.8; }
+@media (pointer: coarse) { body.focus .zoom-btns { opacity: 0.5; } }
+body.focus header.top, body.focus .timecard, body.focus .side, body.focus .pointer, body.focus .hint, body.focus .explain, body.focus footer { display: none; }
+body.focus main { display: block; padding: 0; }
+body.focus .globecard { position: fixed; inset: 0; z-index: 40; margin: 0; border: 0; border-radius: 0; padding: 2vmin; justify-content: center; background: var(--bg); }
+body.focus .stage { width: calc(min(96vw, 96vh) * var(--fz, 1)); max-width: none; flex: none; }
+body.focus .globecard { overflow: hidden; }
+body.focus .focus-btn { display: none; }
+body.focus #overlay:focus-visible { outline: none; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -236,6 +253,14 @@ footer p { margin: 0; max-width: 110ch; }
 
   <section class="stagecol" aria-label="Globe">
     <div class="globecard" id="globecard">
+      <div class="zoom-btns" role="group" aria-label="Focused view">
+        <button type="button" id="zoom-out" aria-label="Smaller (−)" title="Smaller (−)">−</button>
+        <button type="button" id="zoom-in" aria-label="Larger (+)" title="Larger (+)">+</button>
+        <button type="button" id="focus-clock" aria-label="Clock mode" title="Clock mode"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+        <button type="button" id="focus-reset" aria-label="Reset to the view before focused mode" title="Reset view"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 6.2A5 5 0 1 1 3 9.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M2.5 2.8v3.7h3.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" id="focus-exit" aria-label="Leave focused mode (Esc)" title="Leave focused mode (Esc)"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+      </div>
+      <button type="button" class="focus-btn" id="focus-btn" aria-pressed="false" title="Focused mode (Esc)" aria-label="Focused mode: show only the dial (Esc)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
       <canvas id="sun" aria-hidden="true"></canvas>
       <div class="stage" id="stage">
         <canvas id="gl" aria-hidden="true"></canvas>
@@ -243,7 +268,7 @@ footer p { margin: 0; max-width: 110ch; }
         <div class="msg" id="msg">Loading NASA imagery…</div>
       </div>
     </div>
-      <p class="hint">Drag the globe to turn the view freely. Live, the view keeps up with the Sun, so Earth turns beneath it. While playing, the view holds still over the ground and the Sun moves around Earth; set Sun to Stays still to keep it in place instead.</p>
+      <p class="hint">Press Esc for a focused view of just the dial (scroll, or + and −, to resize it). Drag the globe to turn the view freely. Live, the view keeps up with the Sun, so Earth turns beneath it. While playing, the view holds still over the ground and the Sun moves around Earth; set Sun to Stays still to keep it in place instead.</p>
     <div class="pointer card" id="pointer" aria-live="polite"><span class="eyebrow">Pointer</span><span class="p-idle">Point at the globe for the official time there.</span></div>
   </section>
 
@@ -258,6 +283,7 @@ footer p { margin: 0; max-width: 110ch; }
         <button type="button" data-view="sun" aria-pressed="false">Sun</button>
         <button type="button" data-view="moon" aria-pressed="false">Moon</button>
       </div>
+      <button type="button" class="preset" id="clock-mode" title="Live, Sun still, North Pole at the centre seen through Earth (hours clockwise), 1 h/s, loop off; cities, city and minute markers">Clock mode</button>
       <div class="chips">
         <button type="button" data-ov="through" aria-pressed="false"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5l2.5 2.5L10 3" fill="none" stroke="currentColor" stroke-width="1.75"/></svg><span>See through Earth</span></button>
       </div>
@@ -586,13 +612,13 @@ CITIES.forEach(c => {
 });
 
 // ---------- State ----------
-const state = { mode: "live", t: Date.now(), speed: 86400, loop: null, view: "north", cam: null, lastCam: null, anchorT: null, sunStill: true, show: { utcMark: true, cityMark: true, minuteMark: true, through: false, zones: false, cities: true, lat: false }, hover: null, home: null };
+const state = { mode: "live", t: Date.now(), speed: 86400, loop: null, view: "north", cam: null, lastCam: null, anchorT: null, sunStill: true, show: { utcMark: true, cityMark: true, minuteMark: true, through: false, zones: false, cities: true, lat: false }, hover: null, home: null, focus: false, zoom: 1, preFocus: null };
 let S = 600, dpr = 1, last = performance.now();
 let sunBox = { w: 600, h: 600, ox: 0, oy: 0 }; // the Sun's canvas fills the globe card; the stage sits inside it
 
 function resize() {
   const stage = document.getElementById("stage");
-  S = stage.clientWidth; dpr = Math.min(window.devicePixelRatio || 1, 2);
+  S = stage.clientWidth; dpr = Math.min(window.devicePixelRatio || 1, 2, 4096 / Math.max(S, 1));  // keep canvases within GPU limits when the dial is enlarged
   for (const c of [glCanvas, ov]) { c.width = Math.round(S * dpr); c.height = Math.round(S * dpr); }
   const card = sunCanvas.parentElement, cr = card.getBoundingClientRect(), sr = stage.getBoundingClientRect();
   sunBox = { w: card.clientWidth, h: card.clientHeight, ox: sr.left - cr.left - card.clientLeft, oy: sr.top - cr.top - card.clientTop };
@@ -633,7 +659,7 @@ function drawSun(s) {
   if (sun[2] > 0.85) return; // behind the viewer
   const l = Math.hypot(sun[0], sun[1]);
   const dx = l > 1e-6 ? -sun[1] / l : 0, dy = l > 1e-6 ? -sun[0] / l : -1;
-  const near = 1.27 * R, depth = 4 * R;
+  const near = (2 * ringOuter() - 1) * R, depth = 4 * R;  // as far beyond the outer strip as that strip is beyond Earth
   const edge = (sun[2] > 0 ? 1 : l) * (near + depth) - depth; // slides in behind Earth as the Sun moves behind it
   const ex = cx + dx * edge, ey = cy + dy * edge, ux = -dy, uy = dx, far = 3 * W;
   const band = (a, b) => { // the strip between distances a and b beyond the edge, across the whole stage
@@ -648,7 +674,7 @@ function drawSun(s) {
   const body = sctx.createLinearGradient(ex, ey, ex + dx * depth, ey + dy * depth); // darker toward the edge, as at the limb
   body.addColorStop(0, "#f6a845"); body.addColorStop(0.06, "#ffd98e"); body.addColorStop(0.2, "#fff1cf"); body.addColorStop(1, "#fffaf0");
   sctx.fillStyle = body; band(0, far); sctx.fill();
-  if (sun[2] > -0.3 && l > 0.5) { // label just inside the edge
+  if (!state.focus && sun[2] > -0.3 && l > 0.5) { // label just inside the edge (hidden in focused mode)
     const lx = ex + dx * 0.06 * R, ly = ey + dy * 0.06 * R;
     const ox = -dy * R * 0.40, oy = dx * R * 0.40; // slide sideways, clear of the noon label
     sctx.font = `650 ${R < 170 ? 9 : 10.5}px "Archivo", Arial, sans-serif`;
@@ -657,6 +683,9 @@ function drawSun(s) {
   }
 }
 
+// Ring geometry, in Earth radii: the hour strip, then the minute strip just outside it
+const RING = { r1: 1.061, r2: 1.15, mGap: 0.014, mWidth: 0.065 };
+const ringOuter = () => state.show.minuteMark ? RING.r2 + RING.mGap + RING.mWidth : RING.r2;
 const MONO = '"Geist Mono", ui-monospace, Menlo, monospace', UIF = 'Geist, "Helvetica Neue", system-ui, sans-serif';
 // The light ramp used by the ring, the legend and the city list (HANDOFF §2): night -> horizon -> amber day.
 const RAMP = { night: [24, 35, 58], hor: [61, 79, 120], day: [240, 192, 99] };
@@ -704,7 +733,7 @@ function drawOverlay(s, A) {
       const px = sg * (axis[2] * eh[0] - eh[2] * axis[0]), py = sg * (axis[2] * eh[1] - eh[2] * axis[1]);
       return Math.atan2(-px, -py);
     };
-    const r1 = R * 1.061, r2 = R * 1.15, rm = (r1 + r2) / 2;   // a narrow band just outside the globe
+    const r1 = R * RING.r1, r2 = R * RING.r2, rm = (r1 + r2) / 2;   // a narrow band just outside the globe
     const fs = Math.max(9, Math.min(13, (r2 - r1) * 0.72));
     const cd = Math.cos(s.dec * D2R);
     const colAt = L => rampColor(Math.asin(cd * Math.cos(norm180(L - s.subLon) * D2R)) * R2D);
@@ -758,7 +787,7 @@ function drawOverlay(s, A) {
     // Minute strip, just outside the hour strip: a conventional dial, 0 at the top, one turn per hour, clockwise.
     // Its white marker shows the minutes of the clock time (the city's official time, or UTC).
     const minuteOn = state.show.minuteMark;
-    const m1 = r2 + R * 0.014, m2 = m1 + R * 0.065, outer = minuteOn ? m2 : r2;
+    const m1 = r2 + R * RING.mGap, m2 = m1 + R * RING.mWidth, outer = minuteOn ? m2 : r2;
     if (minuteOn) {
       const mfs = Math.max(8.5, Math.min(11, (m2 - m1) * 0.68)), sparse = (m2 - m1) < 12;
       ctx.fillStyle = "#151d2c"; ctx.strokeStyle = "#223047"; ctx.lineWidth = 1;
@@ -808,13 +837,13 @@ function drawOverlay(s, A) {
   const sun = s.sun;
   ctx.font = `650 ${small ? 9 : 10.5}px "Archivo", Arial, sans-serif`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  if (sun[2] > 0.85) {
+  if (sun[2] > 0.85 && !state.focus) {
     ctx.fillStyle = "#f4b844";
-    ctx.fillText("THE SUN IS BEHIND YOU", cx, cy - R * 1.27);
+    ctx.fillText("THE SUN IS BEHIND YOU", cx, cy - R * (2 * ringOuter() - 1));
   }
 
   const moonAngle = moonAt ? drawMoon(s, moonAt, R, small) : null;
-  if (captionAngle !== null && (moonAngle === null || Math.abs(norm180((moonAngle - captionAngle) * R2D)) > 25)) {
+  if (!state.focus && captionAngle !== null && (moonAngle === null || Math.abs(norm180((moonAngle - captionAngle) * R2D)) > 25)) {
     ctx.save(); ctx.globalAlpha = ringA;
     ctx.font = `500 ${small ? 9.5 : 10.5}px ${UIF}`; ctx.fillStyle = "#8f9bb0";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
@@ -885,7 +914,7 @@ function drawOverlay(s, A) {
     ctx.fill(); ctx.stroke();
   }
 
-  if (state.hover) {
+  if (state.hover && !state.focus) {
     const { x, y } = state.hover;
     ctx.strokeStyle = "#6fa8e6"; ctx.fillStyle = "#6fa8e6"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.stroke();
@@ -1095,7 +1124,7 @@ ov.addEventListener("keydown", ev => {
 const YEAR_DAYS_PER_SEC = 30; // one year in about 12 s
 const PREFS_KEY = "earthdial.prefs";
 function savePrefs() {
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ view: state.view === "free" ? null : state.view, speed: state.speed, sunStill: state.sunStill, show: state.show })); } catch (e) {}
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ view: state.view === "free" ? null : state.view, speed: state.speed, sunStill: state.sunStill, focus: state.focus, zoom: state.zoom, show: state.show })); } catch (e) {}
 }
 function loadPrefs() {
   let p = null; try { p = JSON.parse(localStorage.getItem(PREFS_KEY) || "null"); } catch (e) {}
@@ -1103,6 +1132,8 @@ function loadPrefs() {
   if (["north", "south", "orbitN", "orbitS", "sun", "moon"].includes(p.view)) state.view = p.view;
   if ([3600, 21600, 86400].includes(p.speed)) state.speed = p.speed;
   if (typeof p.sunStill === "boolean") state.sunStill = p.sunStill;
+  if (typeof p.focus === "boolean") state.focus = p.focus;
+  if (typeof p.zoom === "number" && p.zoom >= 0.4 && p.zoom <= 3) state.zoom = p.zoom;
   if (p.show && typeof p.show === "object") for (const k of Object.keys(state.show)) if (typeof p.show[k] === "boolean") state.show[k] = p.show[k];
 }
 function syncControls() {
@@ -1241,6 +1272,65 @@ loadPrefs();
   if (q) { const m = searchCities(q); if (m.length) setHome(m[0], !fromUrl); }
 })();
 
+// Focused mode: Esc (outside a text field) or the corner button; the corner button fades in when the mouse moves
+const focusBtn = document.getElementById("focus-btn");
+function applyFocus() {
+  document.body.classList.toggle("focus", state.focus);
+  document.body.style.setProperty("--fz", String(state.zoom));
+  focusBtn.setAttribute("aria-pressed", state.focus ? "true" : "false");
+  focusBtn.title = state.focus ? "Leave focused mode (Esc)" : "Focused mode (Esc)";
+}
+// What the view was before focused mode, so Reset can bring it back
+const snapView = () => ({ view: state.view, cam: state.cam ? state.cam.map(r => r.slice()) : null, show: { ...state.show } });
+function setFocus(on) {
+  if (on && !state.focus) state.preFocus = snapView();
+  state.focus = on; applyFocus(); savePrefs(); resize();
+}
+function resetFocusView() {
+  const p = state.preFocus || { view: "north", cam: null, show: state.show };
+  state.view = p.view; state.cam = p.cam ? p.cam.map(r => r.slice()) : null; state.show = { ...p.show };
+  state.zoom = 1; applyFocus(); syncControls(); resize();
+}
+document.getElementById("focus-reset").addEventListener("click", resetFocusView);
+// Clock mode: one press for the 24-hour clock setup
+function clockMode() {
+  state.mode = "live"; state.loop = null; state.t = Date.now(); state.anchorT = null;
+  state.speed = 3600; state.sunStill = true; state.view = "south"; state.cam = null;  // seen through Earth from the south: North Pole at the centre, hours running clockwise
+  state.show = { ...state.show, through: true, zones: false, cities: true, lat: false, utcMark: false, cityMark: true, minuteMark: true };
+  syncWhen(); syncControls(); draw();
+}
+document.getElementById("clock-mode").addEventListener("click", clockMode);
+document.getElementById("focus-clock").addEventListener("click", clockMode);
+document.getElementById("focus-exit").addEventListener("click", () => setFocus(false));
+focusBtn.addEventListener("click", () => setFocus(!state.focus));
+document.addEventListener("keydown", ev => {
+  if (ev.key !== "Escape" || ev.defaultPrevented) return;
+  const t = ev.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+  setFocus(!state.focus);
+});
+// Resizing in focused mode: wheel or trackpad pinch, + / − / 0 keys, or the corner buttons
+function setZoom(z) { state.zoom = Math.max(0.4, Math.min(3, z)); applyFocus(); savePrefs(); resize(); }
+document.getElementById("zoom-in").addEventListener("click", () => setZoom(state.zoom * 1.12));
+document.getElementById("zoom-out").addEventListener("click", () => setZoom(state.zoom / 1.12));
+document.addEventListener("keydown", ev => {
+  if (!state.focus) return;
+  const t = ev.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+  if (ev.key === "+" || ev.key === "=") { ev.preventDefault(); setZoom(state.zoom * 1.12); }
+  else if (ev.key === "-" || ev.key === "_") { ev.preventDefault(); setZoom(state.zoom / 1.12); }
+  else if (ev.key === "0") { ev.preventDefault(); setZoom(1); }
+});
+document.getElementById("globecard").addEventListener("wheel", ev => {
+  if (!state.focus) return;
+  ev.preventDefault();
+  setZoom(state.zoom * Math.exp(-ev.deltaY * (ev.ctrlKey ? 0.01 : 0.0015)));
+}, { passive: false });
+let uiTimer = null;
+document.addEventListener("mousemove", () => {
+  if (!state.focus) return;
+  document.body.classList.add("show-ui"); clearTimeout(uiTimer);
+  uiTimer = setTimeout(() => document.body.classList.remove("show-ui"), 1800);
+});
+
 // Explainers: always open as a grid on desktop, collapsible on phones
 const wideMQ = window.matchMedia("(min-width: 980px)");
 function syncDetails() {
@@ -1274,6 +1364,8 @@ catch (e) { msg.textContent = "The globe could not start: " + e.message; }
 const ro = new ResizeObserver(resize); ro.observe(document.getElementById("stage")); ro.observe(document.getElementById("globecard"));
 syncWhen();
 syncControls();
+if (state.focus) state.preFocus = snapView();
+applyFocus();
 resize();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
 </script>
