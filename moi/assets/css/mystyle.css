@@ -222,3 +222,24 @@ p + ul, p + ol {
   font-size: 15px;
   margin-bottom: 2px;
 }
+
+/* "Edit this page" button, shown only after ?edit=on (see course-moi.html) */
+#edit-page {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 10;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: #333;
+  color: #fff;
+  font-size: 14px;
+  text-decoration: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+#edit-page:hover {
+  background: #76bdd5;
+}
+#edit-page[hidden] {
+  display: none;
+}

@@ -2017,6 +2017,20 @@ Image credit: Colin M. L. Burnett/Wikipedia -->
         </center>
       </footer>
     </div>
+    <!-- Link to this page's source on GitHub (the repo is private). Hidden
+         until a browser has opened any page with ?edit=on; ?edit=off hides it. -->
+    <a id="edit-page" hidden href="https://github.com/fhfarnoud/moi/edit/main/site/ecc.md">✎ Edit this page</a>
+    <script>
+      (function () {
+        var m = /[?&]edit=(on|off)\b/.exec(location.search);
+        var on = m && m[1] === "on";
+        try {
+          if (m) localStorage.setItem("moi-edit", m[1]);
+          on = localStorage.getItem("moi-edit") === "on";
+        } catch (e) {}
+        if (on) document.getElementById("edit-page").hidden = false;
+      })();
+    </script>
     <!-- Default Statcounter code for MoI https://fhfarnoud.github.io/moi/ -->
     <script type="text/javascript">
       var sc_project = 12471818;
