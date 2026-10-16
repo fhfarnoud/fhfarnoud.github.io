@@ -953,7 +953,7 @@ function drawSun(s) {
   const l = Math.hypot(sun[0], sun[1]);
   const dx = l > 1e-6 ? -sun[1] / l : 0, dy = l > 1e-6 ? -sun[0] / l : -1;
   if (sun[2] > 0.85) {                                     // behind the viewer: its light is an even wash here
-    sctx.fillStyle = `rgba(255,170,80,${(0.12 * Math.min(1, state.zoom)).toFixed(4)})`; sctx.fillRect(0, 0, sunBox.w, sunBox.h);
+    sctx.fillStyle = sunTint(0.75, 0.12 * Math.min(1, state.zoom)); sctx.fillRect(0, 0, sunBox.w, sunBox.h);
     return;
   }
   const Rs = TRUE_R.sun * R;
@@ -994,10 +994,21 @@ function drawSun(s) {
 // The Sun's light. Its circles of equal light are centred on the Sun's true (scaled) position, so wherever you look the
 // light comes from the same true direction (at 1x the Sun is about 570 R away, so they are almost straight lines).
 // How fast it fades is a display choice, set by the zoom:
-//   near 1x it fades across the card itself: orange, lighter at the card's edge nearest the Sun, falling off exponentially
+//   near 1x it fades across the card itself: amber (see SUN_TINT), lighter at the card's edge nearest the Sun, falling off exponentially
 //     (scale 0.22 of the card's depth along the Sun's direction), so the side away from the Sun is dark;
 //   zoomed out (below about 1/20x) it is a glow around the Sun's disc, falling as 1/d; between, the two cross-fade.
 const SUN_GLOW = 0.5;
+// Its colour as it fades, a twilight sky: amber at full strength, through peach and rose to a dusky violet that sinks into
+// the card's navy. A plain orange dimmed over navy turns brown; shifting the hue toward violet as it fades avoids that.
+const SUN_TINT = [   // [f, r, g, b, alpha], f = strength from 1 (at the Sun) to 0
+  [1, 255, 182, 92, 1], [0.75, 255, 200, 135, 0.9], [0.52, 250, 180, 160, 0.7], [0.34, 200, 150, 190, 0.5],
+  [0.19, 120, 115, 190, 0.3], [0.07, 60, 78, 150, 0.12], [0, 40, 60, 130, 0]];
+function sunTint(f, k = 1) {
+  f = Math.max(0, Math.min(1, f));
+  let i = 1; while (i < SUN_TINT.length - 1 && SUN_TINT[i][0] > f) i++;
+  const a = SUN_TINT[i - 1], b = SUN_TINT[i], u = (a[0] - f) / (a[0] - b[0]), m = j => a[j] + (b[j] - a[j]) * u;
+  return `rgba(${Math.round(m(1))},${Math.round(m(2))},${Math.round(m(3))},${(k * m(4)).toFixed(4)})`;
+}
 function sunGlow(sx, sy, Rs) {
   const w = sunBox.w, h = sunBox.h;
   const r1 = Math.max(Math.hypot(sx, sy), Math.hypot(sx - w, sy), Math.hypot(sx, sy - h), Math.hypot(sx - w, sy - h));
@@ -1008,10 +1019,10 @@ function sunGlow(sx, sy, Rs) {
   if (wc > 0) {
     const nx = Math.max(0, Math.min(w, sx)), ny = Math.max(0, Math.min(h, sy));
     const r0 = Math.max(Rs, Math.hypot(sx - nx, sy - ny)), span = Math.max(1, r1 - r0), lam = 0.22 * span;
-    const g = sctx.createRadialGradient(sx, sy, r0, sx, sy, r1), n = 14;
+    const g = sctx.createRadialGradient(sx, sy, r0, sx, sy, r1), n = 24;
     for (let i = 0; i <= n; i++) {
       const t = i / n, f = Math.exp(-t * span / lam);               // exponential fall-off across the card
-      g.addColorStop(t, `rgba(255,${Math.round(150 + 40 * f)},${Math.round(55 + 45 * f)},${(0.9 * f).toFixed(4)})`);   // orange, lighter at the edge nearest the Sun
+      g.addColorStop(t, sunTint(f));
     }
     sctx.globalAlpha = wc; sctx.fillStyle = g; sctx.fillRect(0, 0, w, h);
   }
@@ -1019,7 +1030,7 @@ function sunGlow(sx, sy, Rs) {
     const g = sctx.createRadialGradient(sx, sy, Rs, sx, sy, r1), n = 24;
     for (let i = 0; i <= n; i++) {                                    // stops spaced geometrically, so 1/d is followed closely
       const r = Rs * Math.pow(r1 / Rs, i / n);
-      g.addColorStop(Math.min(1, Math.max(0, (r - Rs) / (r1 - Rs))), `rgba(255,165,70,${(SUN_GLOW * Rs / r).toFixed(4)})`);
+      g.addColorStop(Math.min(1, Math.max(0, (r - Rs) / (r1 - Rs))), sunTint(Rs / r, SUN_GLOW));
     }
     sctx.globalAlpha = 1 - wc; sctx.fillStyle = g; sctx.fillRect(0, 0, w, h);
   }
