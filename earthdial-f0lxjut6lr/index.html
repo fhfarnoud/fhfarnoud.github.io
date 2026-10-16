@@ -364,6 +364,7 @@ body.focus #overlay:focus-visible { outline: none; }
         <button type="button" data-ov="cityMark" aria-pressed="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5l2.5 2.5L10 3" fill="none" stroke="currentColor" stroke-width="1.75"/></svg><span>City marker</span></button>
         <button type="button" data-ov="minuteMark" aria-pressed="true"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5l2.5 2.5L10 3" fill="none" stroke="currentColor" stroke-width="1.75"/></svg><span>Minute marker</span></button>
         <button type="button" data-ov="moon" aria-pressed="true" title="Show the Moon (M)"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5l2.5 2.5L10 3" fill="none" stroke="currentColor" stroke-width="1.75"/></svg><span>Moon</span></button>
+        <button type="button" data-ov="stars" aria-pressed="true" title="Background stars"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5l2.5 2.5L10 3" fill="none" stroke="currentColor" stroke-width="1.75"/></svg><span>Stars</span></button>
       </div>
     </section>
 
@@ -775,7 +776,7 @@ CITIES.forEach(c => {
 });
 
 // ---------- State ----------
-const state = { mode: "live", t: Date.now(), speed: 86400, loop: null, view: "north", cam: null, lastCam: null, anchorT: null, sunStill: true, preset: null, show: { utcMark: true, cityMark: true, minuteMark: true, moon: true, zones: false, cities: true, lat: false }, hands: "none", hover: null, home: null, focus: false, zoom: 1, zoomMode: "relax", preFocus: null };
+const state = { mode: "live", t: Date.now(), speed: 86400, loop: null, view: "north", cam: null, lastCam: null, anchorT: null, sunStill: true, preset: null, show: { utcMark: true, cityMark: true, minuteMark: true, moon: true, stars: true, zones: false, cities: true, lat: false }, hands: "none", hover: null, home: null, focus: false, zoom: 1, zoomMode: "relax", preFocus: null };
 let S = 600, dpr = 1, sdpr = 1, last = performance.now();
 // Zoom: state.zoom magnifies everything together (Earth, ring, Moon, Sun and their spacing) about a point, so nothing
 // about scale or direction changes; pan (CSS px) moves the dial within its stage. The stage keeps its layout size and
@@ -935,11 +936,39 @@ function initSunGL() {
     sgl = g;
   } catch (e) { sgl = null; }
 }
+// Background stars: a fixed, seeded field in card coordinates, drawn once per card size and copied each frame.
+// TODO: real positions - a bright-star catalogue (e.g. Yale BSC, to about magnitude 5) placed on the celestial sphere,
+// turned by sidereal time into Earth-fixed coordinates and through the camera (A), on a chosen field of view behind Earth.
+const STARS = (() => {
+  let seed = 20261016; const rnd = () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
+  const cols = [[170, 191, 255], [202, 215, 255], [248, 247, 255], [248, 247, 255], [255, 244, 234], [255, 222, 186]];
+  return Array.from({ length: 1400 }, () => ({ u: rnd(), v: rnd(), b: Math.pow(rnd(), 5), c: cols[Math.floor(rnd() * cols.length)] }));
+})();
+let starCache = null;
+function starLayer() {
+  const w = Math.round(sunBox.w * sdpr), h = Math.round(sunBox.h * sdpr);
+  if (starCache && starCache.width === w && starCache.height === h) return starCache;
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const g = c.getContext("2d"), n = Math.min(STARS.length, Math.round(sunBox.w * sunBox.h / 2600));
+  g.scale(sdpr, sdpr);
+  for (let i = 0; i < n; i++) {                            // most are faint; a few brighter ones get a soft halo
+    const st = STARS[i], x = st.u * sunBox.w, y = st.v * sunBox.h, b = st.b, [r, gg, bb] = st.c;
+    if (b > 0.35) {
+      const hr = 2 + 4 * b, hg = g.createRadialGradient(x, y, 0, x, y, hr);
+      hg.addColorStop(0, `rgba(${r},${gg},${bb},${(0.22 * b).toFixed(3)})`); hg.addColorStop(1, `rgba(${r},${gg},${bb},0)`);
+      g.fillStyle = hg; g.beginPath(); g.arc(x, y, hr, 0, 2 * Math.PI); g.fill();
+    }
+    g.fillStyle = `rgba(${r},${gg},${bb},${(0.22 + 0.73 * b).toFixed(3)})`;
+    g.beginPath(); g.arc(x, y, 0.45 + 0.85 * b, 0, 2 * Math.PI); g.fill();
+  }
+  return (starCache = c);
+}
 function drawSun(s) {
   const R = S * rfrac, cx = sunBox.ox + stageShift.x + S / 2, cy = sunBox.oy + stageShift.y + S / 2;
   sctx.setTransform(sdpr, 0, 0, sdpr, 0, 0);
   sctx.clearRect(0, 0, sunBox.w, sunBox.h);
   if (sgl) { sgl.viewport(0, 0, sunGLCanvas.width, sunGLCanvas.height); sgl.clearColor(0, 0, 0, 0); sgl.clear(sgl.COLOR_BUFFER_BIT); }
+  if (state.show.stars) { sctx.save(); sctx.setTransform(1, 0, 0, 1, 0, 0); sctx.drawImage(starLayer(), 0, 0); sctx.restore(); }   // under the sunlight, which washes them out near the Sun
   const sun = s.sun;
   if (!state.focus) {                                        // what is to scale
     const cm = plan.mTrue / plan.Dm, cs = plan.sTrue / plan.Ds, f = x => x < 10 ? x.toFixed(1) : Math.round(x).toLocaleString("en-US");
