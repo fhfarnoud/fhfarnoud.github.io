@@ -95,6 +95,7 @@ main { padding-block: 0 48px; display: grid; grid-template-columns: minmax(0, 1f
 .seg button { min-height: 38px; border: 0; border-radius: 9px; background: transparent; color: var(--seg-fg); font: 500 13px/1 var(--mono); cursor: pointer; }
 .seg.words button { font: 500 14px/1 var(--ui); }
 .seg.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.seg.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .seg button:hover { background: #172133; }
 .seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
 #city-list { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 4px; list-style: none; max-height: 280px; overflow-y: auto; background: var(--card); border: 1px solid #2a3550; border-radius: 12px; box-shadow: 0 12px 28px rgba(0,0,0,0.45); }
@@ -257,6 +258,7 @@ body.focus #overlay:focus-visible { outline: none; }
         <button type="button" id="zoom-out" aria-label="Smaller (−)" title="Smaller (−)">−</button>
         <button type="button" id="zoom-in" aria-label="Larger (+)" title="Larger (+)">+</button>
         <button type="button" id="focus-clock" aria-label="Clock mode" title="Clock mode"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+        <button type="button" id="focus-hands" aria-label="Clock hands: None (H)" title="Clock hands: None (H)"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 8l4.5 2.2M8 8L5.2 2.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></svg></button>
         <button type="button" id="focus-reset" aria-label="Reset to the view before focused mode" title="Reset view"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 6.2A5 5 0 1 1 3 9.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M2.5 2.8v3.7h3.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button type="button" id="focus-exit" aria-label="Leave focused mode (Esc)" title="Leave focused mode (Esc)"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
       </div>
@@ -264,7 +266,7 @@ body.focus #overlay:focus-visible { outline: none; }
       <canvas id="sun" aria-hidden="true"></canvas>
       <div class="stage" id="stage">
         <canvas id="gl" aria-hidden="true"></canvas>
-        <canvas id="overlay" tabindex="0" role="img" aria-label="Earth seen from a chosen viewpoint, lit by the Sun from beyond a straight-edged glow, with the Moon, official time-zone borders and a ring of the 24 nominal time zones. Drag, or use the arrow keys, to turn the view."></canvas>
+        <canvas id="overlay" tabindex="0" role="img" aria-label="Earth seen from a chosen viewpoint, lit by a large Sun beyond the ring, with the Moon, official time-zone borders and a ring of the 24 nominal time zones. Drag, or use the arrow keys, to turn the view."></canvas>
         <div class="msg" id="msg">Loading NASA imagery…</div>
       </div>
     </div>
@@ -286,6 +288,16 @@ body.focus #overlay:focus-visible { outline: none; }
       <button type="button" class="preset" id="clock-mode" title="Live, Sun still, North Pole at the centre seen through Earth (hours clockwise), 1 h/s, loop off; cities, city and minute markers">Clock mode</button>
       <div class="chips">
         <button type="button" data-ov="through" aria-pressed="false"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.5l2.5 2.5L10 3" fill="none" stroke="currentColor" stroke-width="1.75"/></svg><span>See through Earth</span></button>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="eyebrow" id="lbl-hands">Clock hands</h2>
+      <div class="seg words four" role="group" aria-labelledby="lbl-hands">
+        <button type="button" data-hands="none" aria-pressed="true">None</button>
+        <button type="button" data-hands="meridian" aria-pressed="false" title="Hairlines over the globe; the hour hand runs along the clock city's meridian">Meridian</button>
+        <button type="button" data-hands="skeleton" aria-pressed="false" title="Open outlined hands the globe shows through">Skeleton</button>
+        <button type="button" data-hands="bezel" aria-pressed="false" title="Pointers on the rings only, nothing over the globe">Bezel</button>
       </div>
     </section>
 
@@ -326,8 +338,8 @@ body.focus #overlay:focus-visible { outline: none; }
   <div class="wide gutter">
     <details><summary><h3>Choosing a viewpoint</h3></summary><p>Each view is set by the Sun: from the North Pole the Sun is straight up the page, and the other views are turned from that one. Live, the view keeps up with the Sun, so Earth turns beneath it; when you press Play the view freezes to the ground at that moment and the Sun travels around Earth instead. From the North Pole the rim is the equator and only the northern hemisphere shows; from the South Pole Earth turns clockwise. Orbital north and south look down the normal to Earth's orbital plane from either side, where day and night meet along a straight line. From the Sun you see the whole day side. From the Moon you see the face of Earth turned toward it right now; the lit fraction is Earth's phase as seen from the Moon, the complement of the Moon's phase seen from here. Drag to turn the view anywhere in between. Set Sun to Stays still to keep the Sun in place during playback too. See through Earth draws the far hemisphere as if the planet were glass: from the South Pole you look up through Antarctica at the northern hemisphere, mirror-reversed, with its own day and night.</p></details>
     <details><summary><h3>The shape of the night</h3></summary><p>Day and night meet along a great circle facing the Sun. From over the North Pole it projects to half an ellipse with semi-axes 1 and |sin δ|, where δ is the Sun's declination. At the equinoxes it is a straight diameter. In northern winter it bows toward the Sun and the pole sits in darkness; in summer it bows the other way. Pick Loop → Year to watch it swing: that loop steps one whole day at a time at a fixed clock time, so the continents hold still while the seasons change.</p></details>
-    <details><summary><h3>The Sun's size</h3></summary><p>The Sun is drawn far larger than its true size, as a glow with a straight edge just past the edge of the frame. Seen from near Earth the real Sun spans only about 0.53° (0.524° to 0.542° over the year), which at true scale would be a speck that could not plausibly light a whole hemisphere. Its light arrives as parallel rays, the same for Earth and the Moon, so the edge is drawn straight, at right angles to the sunlight. The lighting on the globe and the Moon uses the real Sun's direction.</p></details>
-    <details><summary><h3>Official time</h3></summary><p>The thin borders on land outline the real time zones as currently defined, daylight saving included, and pointing anywhere gives the official time there. The ring shows standard time for the 24 nominal zones centered on multiples of 15°, so a place on daylight saving reads one hour ahead of the ring. Each hour mark sits where that hour has just begun, so the ring turns with the Sun: still when the Sun is still, smoothly when it moves. The UTC mark is the prime meridian. When you set a clock city, the ring switches to that city's official time, daylight saving included: the amber mark on its meridian is the hour hand, and the UTC mark moves to where the ring reads UTC. The outer strip is an ordinary minute dial, 0 at the top and one turn an hour; its white marker shows the minutes of the same clock. Each marker can be turned off under Overlays, and turning off the minute marker removes its strip.</p></details>
+    <details><summary><h3>The Sun's size</h3></summary><p>The Sun is drawn far larger than its true size, as a disc more than twice Earth's width whose near edge sits just past the edge of the frame. Seen from near Earth the real Sun spans only about 0.53° (0.524° to 0.542° over the year), which at true scale would be a speck that could not plausibly light a whole hemisphere. Its light arrives as parallel rays, the same for Earth and the Moon, so the disc is made large enough that its edge curves only gently across the dial. It is darker and redder toward its edge (limb darkening, as on the real Sun) and mottled with granulation. The lighting on the globe and the Moon uses the real Sun's direction.</p></details>
+    <details><summary><h3>Official time</h3></summary><p>The thin borders on land outline the real time zones as currently defined, daylight saving included, and pointing anywhere gives the official time there. The ring shows standard time for the 24 nominal zones centered on multiples of 15°, so a place on daylight saving reads one hour ahead of the ring. Each hour mark sits where that hour has just begun, so the ring turns with the Sun: still when the Sun is still, smoothly when it moves. The UTC mark is the prime meridian. When you set a clock city, the ring switches to that city's official time, daylight saving included: the amber mark on its meridian is the hour hand, and the UTC mark moves to where the ring reads UTC. The outer strip is an ordinary minute dial, 0 at the top and one turn an hour; its white marker shows the minutes of the same clock. Each marker can be turned off under Overlays, and turning off the minute marker removes its strip. Under Clock hands you can draw hands instead (Meridian, Skeleton or Bezel; press H to cycle them): the hour hand lies along the clock city's meridian, through its star, and reads its official hour on the ring, and the minute hand is an ordinary one. Above 1 h/s the minute hand is left out, since it would spin several turns a second.</p></details>
   </div>
 </section>
 
@@ -612,7 +624,7 @@ CITIES.forEach(c => {
 });
 
 // ---------- State ----------
-const state = { mode: "live", t: Date.now(), speed: 86400, loop: null, view: "north", cam: null, lastCam: null, anchorT: null, sunStill: true, show: { utcMark: true, cityMark: true, minuteMark: true, through: false, zones: false, cities: true, lat: false }, hover: null, home: null, focus: false, zoom: 1, preFocus: null };
+const state = { mode: "live", t: Date.now(), speed: 86400, loop: null, view: "north", cam: null, lastCam: null, anchorT: null, sunStill: true, show: { utcMark: true, cityMark: true, minuteMark: true, through: false, zones: false, cities: true, lat: false }, hands: "none", hover: null, home: null, focus: false, zoom: 1, preFocus: null };
 let S = 600, dpr = 1, last = performance.now();
 let sunBox = { w: 600, h: 600, ox: 0, oy: 0 }; // the Sun's canvas fills the globe card; the stage sits inside it
 
@@ -649,37 +661,89 @@ function draw() {
   updatePanel(s, A);
 }
 
-// The Sun, as a glow with a straight edge just past the ring. Its light reaches Earth and the Moon as
-// parallel rays, so the edge is drawn straight, at right angles to the sunlight. The shading uses the real direction.
+// The Sun, as a large disc whose near limb sits just past the ring (as far beyond the outer strip as that
+// strip is beyond Earth). It is drawn far larger than true scale, and its radius is several Earth radii, so
+// near the dial its limb is gently curved and its light still reads as parallel rays. The disc is shaded by
+// limb darkening, I(μ) = 1 − u(1 − μ) with u = 0.6 (μ = cos of the angle from disc centre to the line of
+// sight), and the limb also reddens. A fine mottled granulation texture covers it, and a soft glow sits
+// just beyond the limb. The direction is the real one; as the Sun goes behind Earth the disc slides in behind it.
+const SUN_RADIUS = 2.2;        // in Earth radii R
+const SUN_U = 0.6;             // limb-darkening coefficient
+let sunGrain = null;           // granulation tile, made once
+function sunGrainTile() {
+  // Tileable cellular noise: bright granules separated by darker lanes, plus a little low-frequency mottling.
+  const N = 256, cells = 72, cv = document.createElement("canvas"); cv.width = N; cv.height = N;
+  const g = cv.getContext("2d"), img = g.createImageData(N, N), px = img.data;
+  let seed = 1;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const pts = []; for (let j = 0; j < cells; j++) for (let i = 0; i < cells; i++) pts.push([(i + rnd()) / cells, (j + rnd()) / cells]);
+  const lowN = 6, low = []; for (let k = 0; k < lowN * lowN; k++) low.push(rnd());
+  const lowAt = (x, y) => {   // smooth, tileable value noise on a 6 × 6 lattice
+    const X = x * lowN, Y = y * lowN, i = Math.floor(X), j = Math.floor(Y), fx = X - i, fy = Y - j;
+    const v = (a, b) => low[((b % lowN) + lowN) % lowN * lowN + ((a % lowN) + lowN) % lowN];
+    const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+    return (v(i, j) * (1 - sx) + v(i + 1, j) * sx) * (1 - sy) + (v(i, j + 1) * (1 - sx) + v(i + 1, j + 1) * sx) * sy;
+  };
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const u = (x + 0.5) / N, v = (y + 0.5) / N, ci = Math.floor(u * cells), cj = Math.floor(v * cells);
+    let d1 = 9, d2 = 9;
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      const ii = (ci + di + cells) % cells, jj = (cj + dj + cells) % cells, p = pts[jj * cells + ii];
+      let ddx = p[0] + (ci + di - ii) / cells - u, ddy = p[1] + (cj + dj - jj) / cells - v;
+      const d = (ddx * ddx + ddy * ddy) * cells * cells;
+      if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
+    }
+    const lane = 1 - Math.min(1, (Math.sqrt(d2) - Math.sqrt(d1)) * 1.6);   // 1 in the dark lanes, 0 in a granule's middle
+    const a = 0.02 + 0.09 * lane * lane * lane + 0.07 * lowAt(u, v);
+    const k = (y * N + x) * 4; px[k] = 170; px[k + 1] = 80; px[k + 2] = 15; px[k + 3] = Math.round(255 * Math.min(1, a));
+  }
+  g.putImageData(img, 0, 0);
+  return cv;
+}
 function drawSun(s) {
-  const R = S * RFRAC, cx = sunBox.ox + S / 2, cy = sunBox.oy + S / 2, W = Math.max(sunBox.w, sunBox.h, S);
+  const R = S * RFRAC, cx = sunBox.ox + S / 2, cy = sunBox.oy + S / 2;
   sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   sctx.clearRect(0, 0, sunBox.w, sunBox.h);
   const sun = s.sun;
   if (sun[2] > 0.85) return; // behind the viewer
   const l = Math.hypot(sun[0], sun[1]);
   const dx = l > 1e-6 ? -sun[1] / l : 0, dy = l > 1e-6 ? -sun[0] / l : -1;
-  const near = (2 * ringOuter() - 1) * R, depth = 4 * R;  // as far beyond the outer strip as that strip is beyond Earth
-  const edge = (sun[2] > 0 ? 1 : l) * (near + depth) - depth; // slides in behind Earth as the Sun moves behind it
-  const ex = cx + dx * edge, ey = cy + dy * edge, ux = -dy, uy = dx, far = 3 * W;
-  const band = (a, b) => { // the strip between distances a and b beyond the edge, across the whole stage
-    sctx.beginPath();
-    sctx.moveTo(ex + dx * a + ux * far, ey + dy * a + uy * far); sctx.lineTo(ex + dx * a - ux * far, ey + dy * a - uy * far);
-    sctx.lineTo(ex + dx * b - ux * far, ey + dy * b - uy * far); sctx.lineTo(ex + dx * b + ux * far, ey + dy * b + uy * far);
-    sctx.closePath();
-  };
-  const halo = sctx.createLinearGradient(ex - dx * 0.2 * R, ey - dy * 0.2 * R, ex, ey);
-  halo.addColorStop(0, "rgba(255,170,60,0)"); halo.addColorStop(1, "rgba(255,190,90,0.35)");
-  sctx.fillStyle = halo; band(-0.2 * R, 0); sctx.fill();
-  const body = sctx.createLinearGradient(ex, ey, ex + dx * depth, ey + dy * depth); // darker toward the edge, as at the limb
-  body.addColorStop(0, "#f6a845"); body.addColorStop(0.06, "#ffd98e"); body.addColorStop(0.2, "#fff1cf"); body.addColorStop(1, "#fffaf0");
-  sctx.fillStyle = body; band(0, far); sctx.fill();
-  if (!state.focus && sun[2] > -0.3 && l > 0.5) { // label just inside the edge (hidden in focused mode)
-    const lx = ex + dx * 0.06 * R, ly = ey + dy * 0.06 * R;
-    const ox = -dy * R * 0.40, oy = dx * R * 0.40; // slide sideways, clear of the noon label
+  const Rs = SUN_RADIUS * R;
+  const near = (2 * ringOuter() - 1) * R;                    // the near limb, as far beyond the outer strip as that strip is beyond Earth
+  const edge = (sun[2] > 0 ? 1 : l) * (near + Rs) - Rs;      // slides in behind Earth (centred on it when straight behind)
+  const sx = cx + dx * (edge + Rs), sy = cy + dy * (edge + Rs);
+  // glow just beyond the limb
+  const glow = sctx.createRadialGradient(sx, sy, Rs * 0.99, sx, sy, Rs + 0.22 * R);
+  glow.addColorStop(0, "rgba(255,226,160,0.8)"); glow.addColorStop(0.1, "rgba(255,196,100,0.36)");
+  glow.addColorStop(0.35, "rgba(255,170,70,0.1)"); glow.addColorStop(1, "rgba(255,160,60,0)");
+  sctx.fillStyle = glow; sctx.beginPath(); sctx.arc(sx, sy, Rs + 0.22 * R, 0, 2 * Math.PI); sctx.fill();
+  // disc: limb-darkened and reddened toward the edge, I(μ) = 1 − u(1 − μ)
+  const body = sctx.createRadialGradient(sx, sy, 0, sx, sy, Rs);
+  const hot = [255, 251, 238], cool = [240, 150, 52];
+  for (let k = 0; k <= 16; k++) {
+    const r = 1 - Math.pow(1 - k / 16, 2.2), mu = Math.sqrt(Math.max(0, 1 - r * r)), I = 1 - SUN_U * (1 - mu);
+    const t = (I - (1 - SUN_U)) / SUN_U;                     // 1 at the centre, 0 at the limb
+    const c = cool.map((v, i) => Math.round(v + (hot[i] - v) * Math.pow(t, 0.45)));
+    body.addColorStop(r, `rgb(${c[0]},${c[1]},${c[2]})`);
+  }
+  sctx.save();
+  sctx.beginPath(); sctx.arc(sx, sy, Rs, 0, 2 * Math.PI); sctx.clip();
+  sctx.fillStyle = body; sctx.fillRect(sx - Rs, sy - Rs, 2 * Rs, 2 * Rs);
+  // granulation, fading toward the limb where it is foreshortened
+  if (!sunGrain) sunGrain = sunGrainTile();
+  const pat = sctx.createPattern(sunGrain, "repeat");
+  sctx.globalAlpha = 1; sctx.fillStyle = pat; sctx.fillRect(sx - Rs, sy - Rs, 2 * Rs, 2 * Rs);
+  sctx.globalAlpha = 1;
+  const limb = sctx.createRadialGradient(sx, sy, Rs * 0.7, sx, sy, Rs);
+  limb.addColorStop(0, "rgba(210,100,20,0)"); limb.addColorStop(0.9, "rgba(210,100,20,0.06)"); limb.addColorStop(1, "rgba(190,80,15,0.28)");
+  sctx.fillStyle = limb; sctx.fillRect(sx - Rs, sy - Rs, 2 * Rs, 2 * Rs);
+  sctx.restore();
+  if (!state.focus && sun[2] > -0.3 && l > 0.5) { // label just inside the limb, slid sideways clear of the noon label (hidden in focused mode)
+    const side = 0.40 * R, a = Math.asin(Math.min(0.95, side / Rs)), rl = Rs - 0.07 * R;
+    const lx = sx - (dx * Math.cos(a) + dy * Math.sin(a)) * rl, ly = sy - (dy * Math.cos(a) - dx * Math.sin(a)) * rl;
     sctx.font = `650 ${R < 170 ? 9 : 10.5}px "Archivo", Arial, sans-serif`;
-    sctx.fillStyle = "#6b4510"; sctx.textAlign = "center"; sctx.textBaseline = "middle";
-    sctx.fillText("THE SUN", lx + ox, ly + oy);
+    sctx.fillStyle = "#6b3a08"; sctx.textAlign = "center"; sctx.textBaseline = "middle";
+    sctx.fillText("THE SUN", lx, ly);
   }
 }
 
@@ -724,7 +788,7 @@ function drawOverlay(s, A) {
   // Meaningful only while the view looks roughly along the axis; it fades out as the axis tips toward the screen.
   const ringA = Math.max(0, Math.min(1, (Math.abs(axis[2]) - 0.35) / 0.3));
   const moonAt = moonPlace(s, A, cx, cy, R);
-  let captionAngle = null;
+  let captionAngle = null, handsAt = null;
   if (ringA > 0) {
     const uH = ((state.t / 3600000) % 24 + 24) % 24;
     const sg = axis[2] >= 0 ? 1 : -1;
@@ -788,13 +852,16 @@ function drawOverlay(s, A) {
     // Its white marker shows the minutes of the clock time (the city's official time, or UTC).
     const minuteOn = state.show.minuteMark;
     const m1 = r2 + R * RING.mGap, m2 = m1 + R * RING.mWidth, outer = minuteOn ? m2 : r2;
+    const angM = m => -Math.PI / 2 + m / 60 * 2 * Math.PI;
+    const mins = (((refT * 60) % 60) + 60) % 60;
+    // Clock hands, when a style is chosen, replace the city and minute markers (drawn last, by drawHands)
+    if (state.hands !== "none") handsAt = { cx, cy, R, r1, r2, m1, m2, aH: angOf(state.home ? state.home.lon : 0), aM: angM(mins), alpha: ringA };
     if (minuteOn) {
       const mfs = Math.max(8.5, Math.min(11, (m2 - m1) * 0.68)), sparse = (m2 - m1) < 12;
       ctx.fillStyle = "#151d2c"; ctx.strokeStyle = "#223047"; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(cx, cy, m2, 0, Math.PI * 2); ctx.arc(cx, cy, m1, 0, Math.PI * 2, true); ctx.fill();
       ctx.beginPath(); ctx.arc(cx, cy, m2, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath(); ctx.arc(cx, cy, m1, 0, Math.PI * 2); ctx.stroke();
-      const angM = m => -Math.PI / 2 + m / 60 * 2 * Math.PI;
       for (let m = 0; m < 60; m++) {
         const a = angM(m), five = m % 5 === 0, len = (m2 - m1) * (five ? 0.3 : 0.18);
         ctx.strokeStyle = five ? "rgba(201,209,221,0.55)" : "rgba(201,209,221,0.28)"; ctx.lineWidth = 1;
@@ -805,8 +872,8 @@ function drawOverlay(s, A) {
           ctx.fillText(pad2(m), cx + Math.cos(a) * rl, cy + Math.sin(a) * rl);
         }
       }
-      const mins = (((refT * 60) % 60) + 60) % 60, am = angM(mins);
-      const seg = (r0, rx, color, w) => {
+      const am = angM(mins);
+      const seg =(r0, rx, color, w) => {
         ctx.lineCap = "round";
         for (const [c, ww] of [["rgba(11,15,23,0.9)", w + 2.5], [color, w]]) {
           ctx.strokeStyle = c; ctx.lineWidth = ww;
@@ -814,7 +881,7 @@ function drawOverlay(s, A) {
         }
         ctx.lineCap = "butt";
       };
-      seg(m1 - R * 0.006, m2 + R * 0.02, "#ffffff", 2.5);
+      if (!handsAt) seg(m1 - R * 0.006, m2 + R * 0.02, "#ffffff", 2.5);
     }
     if (state.show.utcMark) { // UTC: the meridian where the dial reads UTC (the prime meridian when no clock city is set)
       const Lu = norm180(refLon + 15 * (uH - refT));
@@ -826,7 +893,7 @@ function drawOverlay(s, A) {
       ctx.fillText("UTC", cx + Math.cos(au) * ru, cy + Math.sin(au) * ru);
     }
     // The clock city's meridian: an amber marker across the hour strip, reading its official time
-    if (state.home && state.show.cityMark) hand(state.home.lon, r1 - R * 0.03, r2 + (minuteOn ? R * 0.004 : R * 0.05), "#f2b84b", 2.5);
+    if (state.home && state.show.cityMark && !handsAt) hand(state.home.lon, r1 - R * 0.03, r2 + (minuteOn ? R * 0.004 : R * 0.05), "#f2b84b", 2.5);
     // caption sits opposite the Sun (skipped when the Moon is there)
     const l = Math.hypot(s.sun[0], s.sun[1]);
     captionAngle = Math.atan2(l > 1e-6 ? s.sun[0] / l : 1, l > 1e-6 ? s.sun[1] / l : 0);
@@ -914,12 +981,86 @@ function drawOverlay(s, A) {
     ctx.fill(); ctx.stroke();
   }
 
+  drawHands(handsAt);
+
   if (state.hover && !state.focus) {
     const { x, y } = state.hover;
     ctx.strokeStyle = "#6fa8e6"; ctx.fillStyle = "#6fa8e6"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
   }
+}
+
+// Clock hands. Three styles share one geometry: the hour hand lies along the clock city's meridian (the
+// prime meridian without one), so it reads the city's official hour on the ring and passes through its
+// star; the minute hand is conventional, 0 at the top, clockwise. Both pivot at the dial's centre and
+// fade with the ring. Tips stop at a strip's tick marks so they never cover its numbers.
+// Radii are in globe radii R; line weights scale gently with the dial's size.
+// During fast playback (above 1 h/s, or a year loop) the minute hand would spin several turns a second,
+// so it is left out and only the hour hand is drawn.
+const HANDS = ["none", "meridian", "skeleton", "bezel"];
+const HAND_NAMES = { none: "None", meridian: "Meridian", skeleton: "Skeleton", bezel: "Bezel" };
+function drawHands(h) {
+  if (!h || state.hands === "none" || h.alpha <= 0) return;
+  const { cx, cy, R, r1, r2, m1, m2, aH, aM } = h;
+  const fast = state.mode === "playing" && (state.speed > 3600 || !!(state.loop && state.loop.kind === "year"));
+  const u = Math.max(0.75, Math.min(1.8, R / 245));
+  const AMB = "#f2b84b", IVO = "#ebe7df", INK = "#0b0f17", KEY = "rgba(11,15,23,0.55)";
+  // point at radius r along angle a, offset w across it
+  const at = (a, r, w = 0) => [cx + r * Math.cos(a) - w * Math.sin(a), cy + r * Math.sin(a) + w * Math.cos(a)];
+  const line = (a, ra, rb, color, lw, dash) => {
+    const p = at(a, ra), q = at(a, rb);
+    ctx.setLineDash(dash || []); ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); ctx.setLineDash([]);
+  };
+  const shape = (a, prof) => {   // prof: [r, half-width] from base to tip, mirrored across the hand's axis
+    ctx.beginPath();
+    for (const [r, w] of prof) { const p = at(a, r, w); ctx.lineTo(p[0], p[1]); }
+    for (let i = prof.length - 1; i >= 0; i--) if (prof[i][1] > 0) { const p = at(a, prof[i][0], -prof[i][1]); ctx.lineTo(p[0], p[1]); }
+    ctx.closePath();
+  };
+  const solid = (a, prof, fill, lw) => {
+    shape(a, prof); ctx.fillStyle = fill; ctx.fill();
+    ctx.strokeStyle = INK; ctx.lineWidth = lw; ctx.lineJoin = "round"; ctx.stroke();
+  };
+  const disc = (a, r, rad, fill, stroke, lw) => {
+    const p = at(a, r); ctx.beginPath(); ctx.arc(p[0], p[1], rad, 0, 2 * Math.PI);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); }
+  };
+  const cap = () => { disc(0, 0, Math.max(5, 0.024 * R), INK, IVO, 1.25 * u); disc(0, 0, Math.max(2, 0.0084 * R), AMB); };
+  ctx.save(); ctx.globalAlpha = h.alpha;
+  if (state.hands === "meridian") {
+    // Hairlines over a dark keyline across the globe, pointed tips at the strips' inner ticks, counterweighted tails
+    line(aH, -0.11 * R, r1 - 0.029 * R, KEY, 1.25 * u + 2.75); line(aH, -0.11 * R, r1 - 0.029 * R, AMB, 1.25 * u);
+    solid(aH, [[r1 - 0.038 * R, 0], [r1 - 0.022 * R, 0.0156 * R], [r1 + 0.1 * (r2 - r1), 0.0156 * R], [r1 + 0.36 * (r2 - r1), 0]], AMB, 1.25 * u);
+    disc(aH, -0.11 * R, 0.0108 * R, INK, AMB, 1.25 * u);
+    if (!fast) {
+      line(aM, -0.15 * R, m1 - 0.014 * R, KEY, u + 2.5); line(aM, -0.15 * R, m1 - 0.014 * R, IVO, u);
+      solid(aM, [[m1 - 0.03 * R, 0], [m1 - 0.018 * R, 0.0108 * R], [m1 + 0.12 * (m2 - m1), 0.0108 * R], [m1 + 0.42 * (m2 - m1), 0]], IVO, 1.25 * u);
+      disc(aM, -0.15 * R, 0.012 * R, IVO, INK, 1.25 * u);
+    }
+    cap();
+  } else if (state.hands === "skeleton") {
+    // Open dauphine outlines the globe shows through, a faint centre line, a short solid tail
+    const skel = (a, prof, color, lw, fillA, tail, tw) => {
+      shape(a, prof); ctx.lineJoin = "round";
+      ctx.strokeStyle = KEY; ctx.lineWidth = lw + 3.5; ctx.stroke();
+      ctx.globalAlpha = h.alpha * fillA; ctx.fillStyle = color; ctx.fill(); ctx.globalAlpha = h.alpha;
+      ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.stroke();
+      ctx.globalAlpha = h.alpha * 0.55; line(a, prof[0][0], prof[prof.length - 1][0] - 0.014 * R, color, 0.8 * u); ctx.globalAlpha = h.alpha;
+      line(a, tail, -0.034 * R, KEY, tw + 3.5); line(a, tail, -0.034 * R, color, tw);
+    };
+    skel(aH, [[0.038 * R, 0.0084 * R], [0.62 * R, 0.036 * R], [r1 + 0.32 * (r2 - r1), 0]], AMB, 1.6 * u, 0.10, -0.12 * R, 2.6 * u);
+    if (!fast) skel(aM, [[0.038 * R, 0.006 * R], [0.72 * R, 0.024 * R], [m1 + 0.4 * (m2 - m1), 0]], IVO, 1.4 * u, 0.08, -0.16 * R, 2.2 * u);
+    cap();
+  } else if (state.hands === "bezel") {
+    // Nothing over the globe but a faint dotted meridian; a pointer at the edge of each strip
+    line(aH, 0.034 * R, r1 - 0.034 * R, "rgba(242,184,75,0.45)", 1.1 * u, [2 * u, 6 * u]);
+    solid(aH, [[r1 - 0.04 * R, 0.018 * R], [r1 + 0.3 * (r2 - r1), 0]], AMB, 1.25 * u);
+    if (!fast) solid(aM, [[m2 + 0.045 * R, 0.019 * R], [m2 - 0.12 * (m2 - m1), 0]], IVO, 1.25 * u);
+  }
+  ctx.restore();
 }
 
 // The Moon: a small sphere lit by the Sun as seen from this viewpoint, just outside the ring in its own
@@ -1124,7 +1265,7 @@ ov.addEventListener("keydown", ev => {
 const YEAR_DAYS_PER_SEC = 30; // one year in about 12 s
 const PREFS_KEY = "earthdial.prefs";
 function savePrefs() {
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ view: state.view === "free" ? null : state.view, speed: state.speed, sunStill: state.sunStill, focus: state.focus, zoom: state.zoom, show: state.show })); } catch (e) {}
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ view: state.view === "free" ? null : state.view, speed: state.speed, sunStill: state.sunStill, focus: state.focus, zoom: state.zoom, show: state.show, hands: state.hands })); } catch (e) {}
 }
 function loadPrefs() {
   let p = null; try { p = JSON.parse(localStorage.getItem(PREFS_KEY) || "null"); } catch (e) {}
@@ -1135,6 +1276,7 @@ function loadPrefs() {
   if (typeof p.focus === "boolean") state.focus = p.focus;
   if (typeof p.zoom === "number" && p.zoom >= 0.4 && p.zoom <= 3) state.zoom = p.zoom;
   if (p.show && typeof p.show === "object") for (const k of Object.keys(state.show)) if (typeof p.show[k] === "boolean") state.show[k] = p.show[k];
+  if (HANDS.includes(p.hands)) state.hands = p.hands;
 }
 function syncControls() {
   savePrefs();
@@ -1145,6 +1287,9 @@ function syncControls() {
   press("[data-view]", b => b.dataset.view === state.view);
   press("[data-ov]", b => !!state.show[b.dataset.ov]);
   press("[data-sunmode]", b => (b.dataset.sunmode === "still") === state.sunStill);
+  press("[data-hands]", b => b.dataset.hands === state.hands);
+  const fh = document.getElementById("focus-hands");
+  if (fh) { const t = `Clock hands: ${HAND_NAMES[state.hands]} (H)`; fh.title = t; fh.setAttribute("aria-label", t); }
 }
 function startPlaying() { if (state.mode !== "playing") { state.mode = "playing"; last = performance.now(); requestAnimationFrame(loop); } }
 
@@ -1173,6 +1318,9 @@ document.querySelectorAll("[data-sunmode]").forEach(b => b.addEventListener("cli
 }));
 document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => { state.view = b.dataset.view; syncControls(); draw(); }));
 document.querySelectorAll("[data-ov]").forEach(b => b.addEventListener("click", () => { state.show[b.dataset.ov] = !state.show[b.dataset.ov]; syncControls(); draw(); }));
+document.querySelectorAll("[data-hands]").forEach(b => b.addEventListener("click", () => { state.hands = b.dataset.hands; syncControls(); draw(); }));
+// Cycle the hand styles (the focused view's button, or the H key)
+function cycleHands() { state.hands = HANDS[(HANDS.indexOf(state.hands) + 1) % HANDS.length]; syncControls(); draw(); }
 const when = document.getElementById("when");
 function syncWhen() {
   const d = new Date(state.t - new Date(state.t).getTimezoneOffset() * 60000);
@@ -1302,6 +1450,12 @@ function clockMode() {
 document.getElementById("clock-mode").addEventListener("click", clockMode);
 document.getElementById("focus-clock").addEventListener("click", clockMode);
 document.getElementById("focus-exit").addEventListener("click", () => setFocus(false));
+document.getElementById("focus-hands").addEventListener("click", cycleHands);
+document.addEventListener("keydown", ev => {
+  if ((ev.key !== "h" && ev.key !== "H") || ev.metaKey || ev.ctrlKey || ev.altKey || ev.defaultPrevented) return;
+  const t = ev.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+  cycleHands();
+});
 focusBtn.addEventListener("click", () => setFocus(!state.focus));
 document.addEventListener("keydown", ev => {
   if (ev.key !== "Escape" || ev.defaultPrevented) return;
