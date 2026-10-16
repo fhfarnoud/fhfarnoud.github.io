@@ -428,6 +428,7 @@ function makeA(s) {
   const C = cameraRows(state.view, sa);
   state.lastCam = C;
   const cam = w => [dot(C[0], w), dot(C[1], w), dot(C[2], w)];
+  state.anchorSun = cam(sa.sunV);   // where the view puts the Sun (fixed while the view is held); places the dial
   const f = v => cam([v[0] * c + v[1] * sn, -v[0] * sn + v[1] * c, v[2]]);
   s.sun = f(ll2v(s.subLat, s.subLon)); // the Sun now, carried through the anchored frame
   return [f([1, 0, 0]), f([0, 1, 0]), f([0, 0, 1])]; // columns: images of Earth-fixed basis vectors
@@ -627,14 +628,37 @@ CITIES.forEach(c => {
 // ---------- State ----------
 const state = { mode: "live", t: Date.now(), speed: 86400, loop: null, view: "north", cam: null, lastCam: null, anchorT: null, sunStill: true, show: { utcMark: true, cityMark: true, minuteMark: true, through: false, zones: false, cities: true, lat: false }, hands: "none", hover: null, home: null, focus: false, zoom: 1, preFocus: null };
 let S = 600, dpr = 1, last = performance.now();
-let sunBox = { w: 600, h: 600, ox: 0, oy: 0 }; // the Sun's canvas fills the globe card; the stage sits inside it
+let sunBox = { w: 600, h: 600, ox: 0, oy: 0 }; // the Sun's canvas fills the globe card; the stage sits inside it (ox, oy unshifted)
+let stageShift = { x: 0, y: 0 };
+// The dial slides away from the Sun into any spare room in the card (a tall window in focused mode, say), so more
+// of the Sun shows. It keeps the ring and the Moon (1.47 R) 6 px inside the card and moves at most half an Earth
+// radius. The direction is the anchored one, so the dial holds still while the Sun moves during playback.
+function placeStage() {
+  const a = state.anchorSun; let tx = 0, ty = 0;
+  if (a && a[2] < 0.85) {
+    const l = Math.hypot(a[0], a[1]);
+    if (l > 0.2) {
+      const dx = -a[1] / l, dy = -a[0] / l;                  // toward the Sun on screen
+      const R = S * RFRAC, need = 1.47 * R + 6;
+      const c0x = sunBox.ox + S / 2, c0y = sunBox.oy + S / 2;
+      let t = 0.5 * R;
+      if (dx < -1e-3) t = Math.min(t, (sunBox.w - need - c0x) / -dx); else if (dx > 1e-3) t = Math.min(t, (c0x - need) / dx);
+      if (dy < -1e-3) t = Math.min(t, (sunBox.h - need - c0y) / -dy); else if (dy > 1e-3) t = Math.min(t, (c0y - need) / dy);
+      t = Math.max(0, t); tx = -dx * t; ty = -dy * t;
+    }
+  }
+  if (Math.abs(tx - stageShift.x) > 0.5 || Math.abs(ty - stageShift.y) > 0.5) {
+    stageShift = { x: tx, y: ty };
+    document.getElementById("stage").style.transform = (tx || ty) ? `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px)` : "";
+  }
+}
 
 function resize() {
   const stage = document.getElementById("stage");
   S = stage.clientWidth; dpr = Math.min(window.devicePixelRatio || 1, 2, 4096 / Math.max(S, 1));  // keep canvases within GPU limits when the dial is enlarged
   for (const c of [glCanvas, ov]) { c.width = Math.round(S * dpr); c.height = Math.round(S * dpr); }
   const card = sunCanvas.parentElement, cr = card.getBoundingClientRect(), sr = stage.getBoundingClientRect();
-  sunBox = { w: card.clientWidth, h: card.clientHeight, ox: sr.left - cr.left - card.clientLeft, oy: sr.top - cr.top - card.clientTop };
+  sunBox = { w: card.clientWidth, h: card.clientHeight, ox: sr.left - cr.left - card.clientLeft - stageShift.x, oy: sr.top - cr.top - card.clientTop - stageShift.y };
   sunCanvas.width = Math.round(sunBox.w * dpr); sunCanvas.height = Math.round(sunBox.h * dpr);
   sunGLCanvas.width = sunCanvas.width; sunGLCanvas.height = sunCanvas.height;
   draw();
@@ -643,6 +667,7 @@ function resize() {
 // ---------- Drawing ----------
 function draw() {
   const s = solar(state.t), A = makeA(s);
+  placeStage();
   updateZones(state.t);
   if (gl && texReady === 3) {
     gl.viewport(0, 0, glCanvas.width, glCanvas.height);
@@ -665,9 +690,9 @@ function draw() {
 
 // The Sun, as a large disc whose near limb sits just past the ring (as far beyond the outer strip as that
 // strip is beyond Earth). Its size follows two consistency rules for the picture as drawn, with the Sun's
-// radius x Earth radii and its centre D = d + x from Earth (d = the near limb's distance, about 1.46):
+// radius x Earth radii and its centre D = d + x from Earth (d = the near limb's distance, about 1.54):
 //   * Earth's shadow must be a converging cone that still reaches past the Moon (drawn 1.39 R out):
-//     umbra length D/(x − 1) ≥ 1.39, so x ≤ (d + 1.39)/0.39 ≈ 7.3;
+//     umbra length D/(x − 1) ≥ 1.39, so x ≤ (d + 1.39)/0.39 ≈ 7.5;
 //   * from the Moon the Sun must lie within about 10° of the direction Earth sees, so both are lit alike:
 //     atan(1.39/D) ≤ 10°, so x ≥ 7.9 − d ≈ 6.4.
 // SUN_RADIUS = 7 sits between them. The real Sun's direction still sets all the lighting (parallel rays).
@@ -675,6 +700,7 @@ function draw() {
 // with fibrils, bright active regions, dark filaments, a fuzzy limb, and a red glow with prominences beyond it.
 // Features are mapped onto the sphere, so they foreshorten toward the limb. Without WebGL a plain disc is drawn.
 const SUN_RADIUS = 7;          // in Earth radii R
+const SUN_GAP = 0.08;          // extra distance beyond the spacing rule, in R
 const sunGLCanvas = document.getElementById("sungl");
 let sgl = null, SU = {};
 const SUN_FS = `precision highp float;
@@ -744,7 +770,7 @@ function initSunGL() {
   } catch (e) { sgl = null; }
 }
 function drawSun(s) {
-  const R = S * RFRAC, cx = sunBox.ox + S / 2, cy = sunBox.oy + S / 2;
+  const R = S * RFRAC, cx = sunBox.ox + stageShift.x + S / 2, cy = sunBox.oy + stageShift.y + S / 2;
   sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   sctx.clearRect(0, 0, sunBox.w, sunBox.h);
   if (sgl) { sgl.viewport(0, 0, sunGLCanvas.width, sunGLCanvas.height); sgl.clearColor(0, 0, 0, 0); sgl.clear(sgl.COLOR_BUFFER_BIT); }
@@ -753,7 +779,7 @@ function drawSun(s) {
   const l = Math.hypot(sun[0], sun[1]);
   const dx = l > 1e-6 ? -sun[1] / l : 0, dy = l > 1e-6 ? -sun[0] / l : -1;
   const Rs = SUN_RADIUS * R;
-  const near = (2 * ringOuter() - 1) * R;                    // the near limb, as far beyond the outer strip as that strip is beyond Earth
+  const near = (2 * ringOuter() - 1 + SUN_GAP) * R;          // the near limb: as far beyond the outer strip as that strip is beyond Earth, plus a little
   const edge = (sun[2] > 0 ? 1 : l) * (near + Rs) - Rs;      // slides in behind Earth (centred on it when straight behind)
   const sx = cx + dx * (edge + Rs), sy = cy + dy * (edge + Rs);
   if (sgl) {
