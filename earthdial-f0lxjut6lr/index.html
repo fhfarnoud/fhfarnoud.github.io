@@ -110,7 +110,7 @@ input[type="datetime-local"] { width: 100%; min-height: 40px; padding: 6px 10px;
 .stage { position: relative; z-index: 1; width: 100%; max-width: 700px; aspect-ratio: 1 / 1; }
 .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .stage .msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-family: var(--mono); font-size: 13px; text-align: center; padding: 20px; }
-#sun { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#sun, #sungl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #overlay { cursor: grab; touch-action: none; border-radius: 12px; }
 #overlay:active { cursor: grabbing; }
 .hint { margin: -4px 4px 0; align-self: stretch; font-size: 13px; color: var(--caption); text-wrap: pretty; }
@@ -263,6 +263,7 @@ body.focus #overlay:focus-visible { outline: none; }
         <button type="button" id="focus-exit" aria-label="Leave focused mode (Esc)" title="Leave focused mode (Esc)"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
       </div>
       <button type="button" class="focus-btn" id="focus-btn" aria-pressed="false" title="Focused mode (Esc)" aria-label="Focused mode: show only the dial (Esc)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+      <canvas id="sungl" aria-hidden="true"></canvas>
       <canvas id="sun" aria-hidden="true"></canvas>
       <div class="stage" id="stage">
         <canvas id="gl" aria-hidden="true"></canvas>
@@ -338,7 +339,7 @@ body.focus #overlay:focus-visible { outline: none; }
   <div class="wide gutter">
     <details><summary><h3>Choosing a viewpoint</h3></summary><p>Each view is set by the Sun: from the North Pole the Sun is straight up the page, and the other views are turned from that one. Live, the view keeps up with the Sun, so Earth turns beneath it; when you press Play the view freezes to the ground at that moment and the Sun travels around Earth instead. From the North Pole the rim is the equator and only the northern hemisphere shows; from the South Pole Earth turns clockwise. Orbital north and south look down the normal to Earth's orbital plane from either side, where day and night meet along a straight line. From the Sun you see the whole day side. From the Moon you see the face of Earth turned toward it right now; the lit fraction is Earth's phase as seen from the Moon, the complement of the Moon's phase seen from here. Drag to turn the view anywhere in between. Set Sun to Stays still to keep the Sun in place during playback too. See through Earth draws the far hemisphere as if the planet were glass: from the South Pole you look up through Antarctica at the northern hemisphere, mirror-reversed, with its own day and night.</p></details>
     <details><summary><h3>The shape of the night</h3></summary><p>Day and night meet along a great circle facing the Sun. From over the North Pole it projects to half an ellipse with semi-axes 1 and |sin δ|, where δ is the Sun's declination. At the equinoxes it is a straight diameter. In northern winter it bows toward the Sun and the pole sits in darkness; in summer it bows the other way. Pick Loop → Year to watch it swing: that loop steps one whole day at a time at a fixed clock time, so the continents hold still while the seasons change.</p></details>
-    <details><summary><h3>The Sun's size</h3></summary><p>The Sun is drawn far larger than its true size, as a disc more than twice Earth's width whose near edge sits just past the edge of the frame. Seen from near Earth the real Sun spans only about 0.53° (0.524° to 0.542° over the year), which at true scale would be a speck that could not plausibly light a whole hemisphere. Its light arrives as parallel rays, the same for Earth and the Moon, so the disc is made large enough that its edge curves only gently across the dial. It is darker and redder toward its edge (limb darkening, as on the real Sun) and mottled with granulation. The lighting on the globe and the Moon uses the real Sun's direction.</p></details>
+    <details><summary><h3>The Sun's size</h3></summary><p>The Sun is drawn far larger than its true size, as a disc seven times Earth's width whose near edge sits just past the edge of the frame. Seen from near Earth the real Sun spans only about 0.53° (0.524° to 0.542° over the year), which at true scale would be a speck that could not plausibly light a whole hemisphere. Its size keeps the picture consistent: a Sun this much larger than Earth makes Earth's shadow a converging cone that still reaches past the Moon, as the real one does, and from the Moon the Sun lies within about 10° of the direction seen from Earth, so the two are lit alike. The lighting itself uses the real Sun's direction, as parallel rays. Its surface imitates the Sun in extreme ultraviolet (as NASA's Solar Dynamics Observatory sees it at 304 Å): an orange mottled network with bright active regions, dark filaments, and a ragged edge with prominences.</p></details>
     <details><summary><h3>Official time</h3></summary><p>The thin borders on land outline the real time zones as currently defined, daylight saving included, and pointing anywhere gives the official time there. The ring shows standard time for the 24 nominal zones centered on multiples of 15°, so a place on daylight saving reads one hour ahead of the ring. Each hour mark sits where that hour has just begun, so the ring turns with the Sun: still when the Sun is still, smoothly when it moves. The UTC mark is the prime meridian. When you set a clock city, the ring switches to that city's official time, daylight saving included: the amber mark on its meridian is the hour hand, and the UTC mark moves to where the ring reads UTC. The outer strip is an ordinary minute dial, 0 at the top and one turn an hour; its white marker shows the minutes of the same clock. Each marker can be turned off under Overlays, and turning off the minute marker removes its strip. Under Clock hands you can draw hands instead (Meridian, Skeleton or Bezel; press H to cycle them): the hour hand lies along the clock city's meridian, through its star, and reads its official hour on the ring, and the minute hand is an ordinary one. Above 1 h/s the minute hand is left out, since it would spin several turns a second.</p></details>
   </div>
 </section>
@@ -635,6 +636,7 @@ function resize() {
   const card = sunCanvas.parentElement, cr = card.getBoundingClientRect(), sr = stage.getBoundingClientRect();
   sunBox = { w: card.clientWidth, h: card.clientHeight, ox: sr.left - cr.left - card.clientLeft, oy: sr.top - cr.top - card.clientTop };
   sunCanvas.width = Math.round(sunBox.w * dpr); sunCanvas.height = Math.round(sunBox.h * dpr);
+  sunGLCanvas.width = sunCanvas.width; sunGLCanvas.height = sunCanvas.height;
   draw();
 }
 
@@ -662,48 +664,90 @@ function draw() {
 }
 
 // The Sun, as a large disc whose near limb sits just past the ring (as far beyond the outer strip as that
-// strip is beyond Earth). It is drawn far larger than true scale, and its radius is several Earth radii, so
-// near the dial its limb is gently curved and its light still reads as parallel rays. The disc is shaded by
-// limb darkening, I(μ) = 1 − u(1 − μ) with u = 0.6 (μ = cos of the angle from disc centre to the line of
-// sight), and the limb also reddens. A fine mottled granulation texture covers it, and a soft glow sits
-// just beyond the limb. The direction is the real one; as the Sun goes behind Earth the disc slides in behind it.
-const SUN_RADIUS = 2.2;        // in Earth radii R
-const SUN_U = 0.6;             // limb-darkening coefficient
-let sunGrain = null;           // granulation tile, made once
-function sunGrainTile() {
-  // Tileable cellular noise: bright granules separated by darker lanes, plus a little low-frequency mottling.
-  const N = 256, cells = 72, cv = document.createElement("canvas"); cv.width = N; cv.height = N;
-  const g = cv.getContext("2d"), img = g.createImageData(N, N), px = img.data;
-  let seed = 1;
-  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-  const pts = []; for (let j = 0; j < cells; j++) for (let i = 0; i < cells; i++) pts.push([(i + rnd()) / cells, (j + rnd()) / cells]);
-  const lowN = 6, low = []; for (let k = 0; k < lowN * lowN; k++) low.push(rnd());
-  const lowAt = (x, y) => {   // smooth, tileable value noise on a 6 × 6 lattice
-    const X = x * lowN, Y = y * lowN, i = Math.floor(X), j = Math.floor(Y), fx = X - i, fy = Y - j;
-    const v = (a, b) => low[((b % lowN) + lowN) % lowN * lowN + ((a % lowN) + lowN) % lowN];
-    const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
-    return (v(i, j) * (1 - sx) + v(i + 1, j) * sx) * (1 - sy) + (v(i, j + 1) * (1 - sx) + v(i + 1, j + 1) * sx) * sy;
-  };
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-    const u = (x + 0.5) / N, v = (y + 0.5) / N, ci = Math.floor(u * cells), cj = Math.floor(v * cells);
-    let d1 = 9, d2 = 9;
-    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
-      const ii = (ci + di + cells) % cells, jj = (cj + dj + cells) % cells, p = pts[jj * cells + ii];
-      let ddx = p[0] + (ci + di - ii) / cells - u, ddy = p[1] + (cj + dj - jj) / cells - v;
-      const d = (ddx * ddx + ddy * ddy) * cells * cells;
-      if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
-    }
-    const lane = 1 - Math.min(1, (Math.sqrt(d2) - Math.sqrt(d1)) * 1.6);   // 1 in the dark lanes, 0 in a granule's middle
-    const a = 0.02 + 0.09 * lane * lane * lane + 0.07 * lowAt(u, v);
-    const k = (y * N + x) * 4; px[k] = 170; px[k + 1] = 80; px[k + 2] = 15; px[k + 3] = Math.round(255 * Math.min(1, a));
+// strip is beyond Earth). Its size follows two consistency rules for the picture as drawn, with the Sun's
+// radius x Earth radii and its centre D = d + x from Earth (d = the near limb's distance, about 1.46):
+//   * Earth's shadow must be a converging cone that still reaches past the Moon (drawn 1.39 R out):
+//     umbra length D/(x − 1) ≥ 1.39, so x ≤ (d + 1.39)/0.39 ≈ 7.3;
+//   * from the Moon the Sun must lie within about 10° of the direction Earth sees, so both are lit alike:
+//     atan(1.39/D) ≤ 10°, so x ≥ 7.9 − d ≈ 6.4.
+// SUN_RADIUS = 7 sits between them. The real Sun's direction still sets all the lighting (parallel rays).
+// The surface is a GPU shader after the Sun in extreme ultraviolet (SDO/AIA 304 Å): an orange mottled network
+// with fibrils, bright active regions, dark filaments, a fuzzy limb, and a red glow with prominences beyond it.
+// Features are mapped onto the sphere, so they foreshorten toward the limb. Without WebGL a plain disc is drawn.
+const SUN_RADIUS = 7;          // in Earth radii R
+const sunGLCanvas = document.getElementById("sungl");
+let sgl = null, SU = {};
+const SUN_FS = `precision highp float;
+uniform vec2 uRes; uniform float uDpr; uniform vec2 uC; uniform float uRs; uniform float uR;
+float hash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float noise(vec3 x) {
+  vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash(i), hash(i + vec3(1, 0, 0)), f.x), mix(hash(i + vec3(0, 1, 0)), hash(i + vec3(1, 1, 0)), f.x), f.y),
+             mix(mix(hash(i + vec3(0, 0, 1)), hash(i + vec3(1, 0, 1)), f.x), mix(hash(i + vec3(0, 1, 1)), hash(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}
+float fbm(vec3 p) { float a = 0.5, s = 0.0; for (int k = 0; k < 5; k++) { s += a * noise(p); p = p * 2.03 + vec3(1.7, 9.2, 3.1); a *= 0.5; } return s / 0.97; }
+vec3 palette(float v) {          // dark lanes -> orange -> gold -> near white, after SDO/AIA 304 Å
+  vec3 dark = vec3(0.50, 0.10, 0.01), mid = vec3(0.96, 0.46, 0.09), light = vec3(1.0, 0.70, 0.28), hot = vec3(1.0, 0.96, 0.84);
+  if (v < 0.55) return mix(dark, mid, smoothstep(0.0, 0.55, v));
+  if (v < 0.95) return mix(mid, light, smoothstep(0.55, 0.95, v));
+  return mix(light, hot, smoothstep(0.95, 1.5, v));
+}
+void main() {
+  vec2 px = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uDpr;   // CSS pixels, y down
+  vec2 d = (px - uC) / uRs; float r = length(d);
+  float edgePx = (r - 1.0) * uRs;                                   // distance beyond the limb, CSS px
+  float ang = atan(d.y, d.x), t = ang * uRs;                       // position along the limb, CSS px
+  if (r > 1.0) {
+    float x = edgePx / uR;                                          // in Earth radii
+    if (x > 0.45) { gl_FragColor = vec4(0.0); return; }
+    float fringe = noise(vec3(t / 5.0, edgePx / 9.0, 2.0)) * exp(-edgePx / 5.0);          // spicules
+    float prom = smoothstep(0.66, 0.86, fbm(vec3(t / 40.0, edgePx / 22.0, 5.0))) * exp(-x / 0.045);
+    float g = 0.85 * exp(-x / 0.03) + 0.22 * exp(-x / 0.12) + 0.5 * fringe + 0.9 * prom;
+    g = min(g, 1.0);
+    vec3 c = mix(vec3(0.70, 0.10, 0.01), vec3(1.0, 0.45, 0.08), clamp(fringe + prom + exp(-x / 0.02), 0.0, 1.0));
+    gl_FragColor = vec4(c * g, g);
+    return;
   }
-  g.putImageData(img, 0, 0);
-  return cv;
+  vec3 n = vec3(d.x, d.y, sqrt(max(0.0, 1.0 - r * r)));
+  float k = smoothstep(0.02, 0.35, n.z);                            // fade fine detail where it is foreshortened to stripes
+  vec3 q = n * 150.0;
+  vec3 w = vec3(fbm(q + vec3(0.0, 3.1, 7.4)), fbm(q + vec3(5.2, 1.3, 2.8)), fbm(q * 0.5 + vec3(9.7, 4.6, 0.3)));
+  float m = mix(0.5, fbm(q + 1.4 * w), k);                          // mottled network
+  float fib = mix(0.5, 1.0 - abs(2.0 * noise(q * 2.2 + 2.5 * w) - 1.0), k);   // fibril streaks
+  float v = 0.22 + 0.80 * smoothstep(0.30, 0.78, m) + 0.16 * (fib - 0.5);
+  float act = smoothstep(0.68, 0.84, fbm(n * 3.2 + vec3(11.0)));   // a few bright active regions
+  v += act * (0.25 + 0.75 * smoothstep(0.45, 0.8, m));
+  float fil = (1.0 - smoothstep(0.0, 0.02, abs(fbm(n * 5.0 + vec3(5.0)) - 0.5))) * smoothstep(0.52, 0.64, fbm(n * 1.6 + vec3(2.0)));
+  v *= 1.0 - 0.45 * fil * k;                                        // dark filaments
+  v += 0.25 * smoothstep(-6.0, 0.0, edgePx) * noise(vec3(t / 3.0, edgePx / 3.0, 7.0));   // bright, ragged limb
+  vec3 c = palette(v) * mix(vec3(1.0), vec3(1.0, 0.86, 0.72), smoothstep(0.8, 1.0, r));
+  float a = clamp(-edgePx * uDpr + 0.5, 0.0, 1.0);                  // anti-aliased edge
+  vec3 halo = vec3(0.70, 0.10, 0.01) * 0.85;                        // blends into the glow at the edge
+  gl_FragColor = vec4(c * a + halo * (1.0 - a), 1.0) * mix(0.85, 1.0, a);
+}`;
+function initSunGL() {
+  try {
+    const g = sunGLCanvas.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: false });
+    if (!g) return;
+    const sh = (type, src) => { const o = g.createShader(type); g.shaderSource(o, src); g.compileShader(o);
+      if (!g.getShaderParameter(o, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(o)); return o; };
+    const prog = g.createProgram();
+    g.attachShader(prog, sh(g.VERTEX_SHADER, "attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }"));
+    g.attachShader(prog, sh(g.FRAGMENT_SHADER, SUN_FS));
+    g.linkProgram(prog); if (!g.getProgramParameter(prog, g.LINK_STATUS)) throw new Error(g.getProgramInfoLog(prog));
+    g.useProgram(prog);
+    const buf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, buf);
+    g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), g.STATIC_DRAW);
+    const loc = g.getAttribLocation(prog, "aPos"); g.enableVertexAttribArray(loc); g.vertexAttribPointer(loc, 2, g.FLOAT, false, 0, 0);
+    for (const n of ["uRes", "uDpr", "uC", "uRs", "uR"]) SU[n] = g.getUniformLocation(prog, n);
+    sgl = g;
+  } catch (e) { sgl = null; }
 }
 function drawSun(s) {
   const R = S * RFRAC, cx = sunBox.ox + S / 2, cy = sunBox.oy + S / 2;
   sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   sctx.clearRect(0, 0, sunBox.w, sunBox.h);
+  if (sgl) { sgl.viewport(0, 0, sunGLCanvas.width, sunGLCanvas.height); sgl.clearColor(0, 0, 0, 0); sgl.clear(sgl.COLOR_BUFFER_BIT); }
   const sun = s.sun;
   if (sun[2] > 0.85) return; // behind the viewer
   const l = Math.hypot(sun[0], sun[1]);
@@ -712,38 +756,25 @@ function drawSun(s) {
   const near = (2 * ringOuter() - 1) * R;                    // the near limb, as far beyond the outer strip as that strip is beyond Earth
   const edge = (sun[2] > 0 ? 1 : l) * (near + Rs) - Rs;      // slides in behind Earth (centred on it when straight behind)
   const sx = cx + dx * (edge + Rs), sy = cy + dy * (edge + Rs);
-  // glow just beyond the limb
-  const glow = sctx.createRadialGradient(sx, sy, Rs * 0.99, sx, sy, Rs + 0.22 * R);
-  glow.addColorStop(0, "rgba(255,226,160,0.8)"); glow.addColorStop(0.1, "rgba(255,196,100,0.36)");
-  glow.addColorStop(0.35, "rgba(255,170,70,0.1)"); glow.addColorStop(1, "rgba(255,160,60,0)");
-  sctx.fillStyle = glow; sctx.beginPath(); sctx.arc(sx, sy, Rs + 0.22 * R, 0, 2 * Math.PI); sctx.fill();
-  // disc: limb-darkened and reddened toward the edge, I(μ) = 1 − u(1 − μ)
-  const body = sctx.createRadialGradient(sx, sy, 0, sx, sy, Rs);
-  const hot = [255, 251, 238], cool = [240, 150, 52];
-  for (let k = 0; k <= 16; k++) {
-    const r = 1 - Math.pow(1 - k / 16, 2.2), mu = Math.sqrt(Math.max(0, 1 - r * r)), I = 1 - SUN_U * (1 - mu);
-    const t = (I - (1 - SUN_U)) / SUN_U;                     // 1 at the centre, 0 at the limb
-    const c = cool.map((v, i) => Math.round(v + (hot[i] - v) * Math.pow(t, 0.45)));
-    body.addColorStop(r, `rgb(${c[0]},${c[1]},${c[2]})`);
+  if (sgl) {
+    sgl.uniform2f(SU.uRes, sunGLCanvas.width, sunGLCanvas.height); sgl.uniform1f(SU.uDpr, dpr);
+    sgl.uniform2f(SU.uC, sx, sy); sgl.uniform1f(SU.uRs, Rs); sgl.uniform1f(SU.uR, R);
+    sgl.drawArrays(sgl.TRIANGLE_STRIP, 0, 4);
+  } else {                                                   // no WebGL: a plain limb-darkened disc and glow
+    const glow = sctx.createRadialGradient(sx, sy, Rs * 0.995, sx, sy, Rs + 0.25 * R);
+    glow.addColorStop(0, "rgba(190,40,5,0.8)"); glow.addColorStop(0.2, "rgba(170,30,5,0.3)"); glow.addColorStop(1, "rgba(150,20,0,0)");
+    sctx.fillStyle = glow; sctx.beginPath(); sctx.arc(sx, sy, Rs + 0.25 * R, 0, 2 * Math.PI); sctx.fill();
+    const body = sctx.createRadialGradient(sx, sy, Rs * 0.6, sx, sy, Rs);
+    body.addColorStop(0, "#f7891f"); body.addColorStop(0.9, "#f07a18"); body.addColorStop(1, "#d65a10");
+    sctx.fillStyle = body; sctx.beginPath(); sctx.arc(sx, sy, Rs, 0, 2 * Math.PI); sctx.fill();
   }
-  sctx.save();
-  sctx.beginPath(); sctx.arc(sx, sy, Rs, 0, 2 * Math.PI); sctx.clip();
-  sctx.fillStyle = body; sctx.fillRect(sx - Rs, sy - Rs, 2 * Rs, 2 * Rs);
-  // granulation, fading toward the limb where it is foreshortened
-  if (!sunGrain) sunGrain = sunGrainTile();
-  const pat = sctx.createPattern(sunGrain, "repeat");
-  sctx.globalAlpha = 1; sctx.fillStyle = pat; sctx.fillRect(sx - Rs, sy - Rs, 2 * Rs, 2 * Rs);
-  sctx.globalAlpha = 1;
-  const limb = sctx.createRadialGradient(sx, sy, Rs * 0.7, sx, sy, Rs);
-  limb.addColorStop(0, "rgba(210,100,20,0)"); limb.addColorStop(0.9, "rgba(210,100,20,0.06)"); limb.addColorStop(1, "rgba(190,80,15,0.28)");
-  sctx.fillStyle = limb; sctx.fillRect(sx - Rs, sy - Rs, 2 * Rs, 2 * Rs);
-  sctx.restore();
   if (!state.focus && sun[2] > -0.3 && l > 0.5) { // label just inside the limb, slid sideways clear of the noon label (hidden in focused mode)
     const side = 0.40 * R, a = Math.asin(Math.min(0.95, side / Rs)), rl = Rs - 0.07 * R;
     const lx = sx - (dx * Math.cos(a) + dy * Math.sin(a)) * rl, ly = sy - (dy * Math.cos(a) - dx * Math.sin(a)) * rl;
     sctx.font = `650 ${R < 170 ? 9 : 10.5}px "Archivo", Arial, sans-serif`;
-    sctx.fillStyle = "#6b3a08"; sctx.textAlign = "center"; sctx.textBaseline = "middle";
-    sctx.fillText("THE SUN", lx, ly);
+    sctx.lineJoin = "round"; sctx.lineWidth = 3; sctx.strokeStyle = "rgba(255,214,150,0.85)";
+    sctx.fillStyle = "#5a1d02"; sctx.textAlign = "center"; sctx.textBaseline = "middle";
+    sctx.strokeText("THE SUN", lx, ly); sctx.fillText("THE SUN", lx, ly);
   }
 }
 
@@ -768,9 +799,9 @@ function drawOverlay(s, A) {
   const small = R < 170;
   const axis = applyA(A, [0, 0, 1]);
 
-  // Graticule: parallels and meridians every 30°, the prime meridian a little brighter
+  // Graticule: parallels and meridians every 30°; the prime meridian is a little brighter while the UTC marker is on
   for (const lat of [-60, -30, 0, 30, 60]) polyOnSphere(A, P, k => ll2v(lat, k), -180, 180, 2, "rgba(200,214,232,0.14)", 1);
-  for (let lon = -150; lon <= 180; lon += 30) polyOnSphere(A, P, k => ll2v(k, lon), -90, 90, 2, lon === 0 ? "rgba(200,214,232,0.45)" : "rgba(200,214,232,0.14)", 1);
+  for (let lon = -150; lon <= 180; lon += 30) polyOnSphere(A, P, k => ll2v(k, lon), -90, 90, 2, lon === 0 && state.show.utcMark ? "rgba(200,214,232,0.45)" : "rgba(200,214,232,0.14)", 1);
 
   // Polar circles and tropics, drawn on the sphere and clipped to the visible side
   if (state.show.lat) {
@@ -1513,6 +1544,7 @@ setInterval(() => { if (state.mode === "live") { state.t = Date.now(); draw(); }
 setInterval(() => { if (state.mode === "live") syncWhen(); }, 30000);
 
 // ---------- Boot ----------
+initSunGL();
 try { if (!initGL()) { msg.textContent = "This view needs WebGL, which this browser has turned off."; } }
 catch (e) { msg.textContent = "The globe could not start: " + e.message; }
 const ro = new ResizeObserver(resize); ro.observe(document.getElementById("stage")); ro.observe(document.getElementById("globecard"));
