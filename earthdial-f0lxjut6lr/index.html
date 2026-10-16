@@ -993,7 +993,7 @@ function drawSun(s) {
   const sx = cx + dx * (edge + Rs), sy = cy + dy * (edge + Rs);
   const nx = Math.max(0, Math.min(sunBox.w, sx)), ny = Math.max(0, Math.min(sunBox.h, sy));
   sunGlow(sx, sy, Rs);                                       // its light, filling the space around it
-  if (Math.hypot(sx - nx, sy - ny) > Rs + 0.3 * R) { offPage(cx, cy, sx, sy, R, "THE SUN"); return; }
+  if (Math.hypot(sx - nx, sy - ny) > Rs + 0.3 * R) return;   // off the card: its light shows where it is, no marker
   if (sgl) {
     sgl.uniform2f(SU.uRes, sunGLCanvas.width, sunGLCanvas.height); sgl.uniform1f(SU.uDpr, sdpr);
     sgl.uniform2f(SU.uC, sx, sy); sgl.uniform1f(SU.uRs, Rs); sgl.uniform1f(SU.uR, R);
@@ -1007,17 +1007,6 @@ function drawSun(s) {
     sctx.fillStyle = body; sctx.beginPath(); sctx.arc(sx, sy, Rs, 0, 2 * Math.PI); sctx.fill();
   }
   if (Rs < 4) { sctx.strokeStyle = "rgba(244,184,68,0.55)"; sctx.lineWidth = 1; sctx.beginPath(); sctx.arc(sx, sy, Rs + 5, 0, 2 * Math.PI); sctx.stroke(); }   // a ring around a tiny Sun, so it can be found
-  if (!state.focus && Rs < 60) {                             // a small Sun: its name beside it
-    sctx.font = `650 10.5px "Archivo", Arial, sans-serif`; sctx.textAlign = "center"; sctx.textBaseline = "top";
-    sctx.fillStyle = "#f4b844"; sctx.fillText("THE SUN", sx, sy + Math.max(Rs, 2) + 8);
-  } else if (!state.focus && sun[2] > -0.3 && l > 0.5 && edge < 4 * R) { // label just inside the limb, slid sideways clear of the noon label (hidden in focused mode)
-    const side = 0.40 * R, a = Math.asin(Math.min(0.95, side / Rs)), rl = Rs - 0.07 * R;
-    const lx = sx - (dx * Math.cos(a) + dy * Math.sin(a)) * rl, ly = sy - (dy * Math.cos(a) - dx * Math.sin(a)) * rl;
-    sctx.font = `650 ${R < 170 ? 9 : 10.5}px "Archivo", Arial, sans-serif`;
-    sctx.lineJoin = "round"; sctx.lineWidth = 3; sctx.strokeStyle = "rgba(255,214,150,0.85)";
-    sctx.fillStyle = "#5a1d02"; sctx.textAlign = "center"; sctx.textBaseline = "middle";
-    sctx.strokeText("THE SUN", lx, ly); sctx.fillText("THE SUN", lx, ly);
-  }
 }
 
 // The Sun's light. Its circles of equal light are centred on the Sun's true (scaled) position, so wherever you look the
@@ -1067,7 +1056,7 @@ function sunGlow(sx, sy, Rs) {
 }
 // A body beyond the card (a small card): a glow where its direction leaves the card.
 function offPage(ox, oy, tx, ty, R, name) {
-  const w = sunBox.w, h = sunBox.h, sun = name === "THE SUN";
+  const w = sunBox.w, h = sunBox.h;
   if (ox < 0 || oy < 0 || ox > w || oy > h) { ox = w / 2; oy = h / 2; }   // from the card's centre when the origin is off it
   const dd = Math.hypot(tx - ox, ty - oy) || 1, dx = (tx - ox) / dd, dy = (ty - oy) / dd, cx = ox, cy = oy;
   let t = Infinity;
@@ -1075,11 +1064,10 @@ function offPage(ox, oy, tx, ty, R, name) {
   if (dy > 1e-6) t = Math.min(t, (h - cy) / dy); else if (dy < -1e-6) t = Math.min(t, -cy / dy);
   const u = Math.max(40, Math.min(R, 160)), ex = cx + dx * t, ey = cy + dy * t, gr = 0.75 * u;
   const g = sctx.createRadialGradient(ex, ey, 0, ex, ey, gr);
-  if (sun) { g.addColorStop(0, "rgba(240,120,24,0.55)"); g.addColorStop(0.5, "rgba(190,50,8,0.18)"); g.addColorStop(1, "rgba(150,20,0,0)"); }
-  else { g.addColorStop(0, "rgba(200,205,215,0.30)"); g.addColorStop(1, "rgba(200,205,215,0)"); }
-  if (!sun) { sctx.fillStyle = g; sctx.beginPath(); sctx.arc(ex, ey, gr, 0, 2 * Math.PI); sctx.fill(); }   // no round glow for the Sun: its light here is parallel (sunGlow)
+  g.addColorStop(0, "rgba(200,205,215,0.30)"); g.addColorStop(1, "rgba(200,205,215,0)");
+  sctx.fillStyle = g; sctx.beginPath(); sctx.arc(ex, ey, gr, 0, 2 * Math.PI); sctx.fill();
   if (state.focus) return;
-  const col = sun ? "#f4b844" : "#c9d3e2", lx = ex - dx * 44, ly = ey - dy * 44;   // fixed offsets in px, clear of the chevron
+  const col = "#c9d3e2", lx = ex - dx * 44, ly = ey - dy * 44;   // fixed offsets in px, clear of the chevron
   sctx.textAlign = "center"; sctx.textBaseline = "middle";
   sctx.font = `650 10.5px "Archivo", Arial, sans-serif`; sctx.fillStyle = col;
   sctx.fillText(name, lx, ly - 7);
