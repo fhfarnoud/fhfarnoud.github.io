@@ -150,6 +150,14 @@ body.focus .zoom-menu { opacity: 0.75; }
 .views button { min-height: 44px; padding: 0 8px; border-radius: 10px; border: 1px solid var(--card-bd); background: var(--card); color: var(--seg-fg); font: 500 13.5px/1.15 var(--ui); cursor: pointer; }
 .views button:hover { border-color: #3a4a66; }
 .views button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.views .view-compass { grid-column: 1 / -1; }
+.zoom-btns button[hidden] { display: none; }
+.zoom-btns button[aria-pressed="true"]#focus-compass { color: var(--text); border-color: #6b7fa6; }
+.compass-note { position: absolute; z-index: 6; top: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; width: max-content; max-width: calc(100% - 140px); padding: 5px 12px; border-radius: 999px; border: 1px solid #2a3550; background: rgba(11,15,23,0.72); color: var(--muted); font: 12px/1.3 var(--ui); transition: opacity .6s; pointer-events: none; }
+.compass-note[hidden] { display: none; }
+.compass-note.fade { opacity: 0; }
+.compass-note button { pointer-events: auto; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font: 600 13px/1 var(--ui); cursor: pointer; }
+.compass-note button[hidden] { display: none; }
 .presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .preset { min-height: 40px; border-radius: 10px; border: 1px dashed #3a4a66; background: transparent; color: var(--text); font: 500 13.5px/1 var(--ui); cursor: pointer; }
 .preset:hover { border-style: solid; background: #121a27; }
@@ -215,6 +223,8 @@ footer p { margin: 0; max-width: 110ch; }
 .zoom-btns button[aria-pressed="false"]#focus-moon { opacity: 0.45; }
 .zoom-btns button { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid #2a3550; background: rgba(11,15,23,0.6); color: var(--muted); font: 500 18px/1 var(--ui); cursor: pointer; }
 body.focus .zoom-btns { display: flex; opacity: 0; }
+@media (max-width: 480px) { .zoom-btns { gap: 4px; right: 8px; } .zoom-btns button { width: 32px; height: 32px; } }
+body.focus .compass-note { top: 60px; max-width: calc(100% - 24px); }
 /* Focused mode: a compact animation bar at the bottom, shown with the corner buttons */
 .anim-btns { position: absolute; z-index: 5; bottom: 12px; left: 50%; transform: translateX(-50%); display: none; gap: 4px; padding: 4px; border-radius: 12px; border: 1px solid #2a3550; background: rgba(11,15,23,0.7); transition: opacity .3s; }
 .anim-btns button { height: 32px; min-width: 32px; padding: 0 10px; display: grid; place-items: center; border-radius: 8px; border: 0; background: transparent; color: var(--muted); font: 500 12.5px/1 var(--mono); cursor: pointer; white-space: nowrap; }
@@ -298,11 +308,13 @@ body.focus #overlay:focus-visible { outline: none; }
         <button type="button" id="zoom-in" aria-label="Larger (+)" title="Larger (+)">+</button>
         <button type="button" id="focus-clock" aria-label="Clock mode" title="Clock mode"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.5V8l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
         <button type="button" id="focus-moon" aria-pressed="true" aria-label="Moon: shown (M)" title="Moon: shown (M)"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 2.6a5.6 5.6 0 1 0 2.9 9.9A4.6 4.6 0 0 1 10.5 2.6z" fill="currentColor"/></svg></button>
+        <button type="button" id="focus-compass" aria-pressed="false" aria-label="Compass view" title="Compass view: aligned to real directions" hidden><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 3.2l1.7 4.8L8 12.8 6.3 8z" fill="currentColor"/></svg></button>
         <button type="button" id="focus-hands" aria-label="Clock hands: None (H)" title="Clock hands: None (H)"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 8l4.5 2.2M8 8L5.2 2.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="8" r="1.6" fill="currentColor"/></svg></button>
         <button type="button" id="focus-reset" aria-label="Reset to the view before focused mode" title="Reset view"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 6.2A5 5 0 1 1 3 9.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M2.5 2.8v3.7h3.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button type="button" id="focus-exit" aria-label="Leave focused mode (Esc)" title="Leave focused mode (Esc)"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
       </div>
       <button type="button" class="focus-btn" id="focus-btn" aria-pressed="false" title="Focused mode (Esc)" aria-label="Focused mode: show only the dial (Esc)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+      <div class="compass-note" id="compass-note" hidden><button type="button" id="compass-go">Use the compass</button><span id="compass-msg"></span></div>
       <canvas id="sungl" aria-hidden="true"></canvas>
       <canvas id="sun" aria-hidden="true"></canvas>
       <div class="stage" id="stage"><div class="stage-in" id="stagein">
@@ -337,6 +349,7 @@ body.focus #overlay:focus-visible { outline: none; }
         <button type="button" data-view="orbitS" aria-pressed="false">Orbital south</button>
         <button type="button" data-view="sun" aria-pressed="false">Sun</button>
         <button type="button" data-view="moon" aria-pressed="false">Moon</button>
+        <button type="button" data-view="compass" aria-pressed="false" class="view-compass" hidden title="Turn the globe with the phone: every direction on screen matches the real one">Compass (aligned to you)</button>
       </div>
       <div class="presets">
         <button type="button" class="preset" id="clock-mode" aria-pressed="false" title="Live, Sun still, North Pole at the centre, mirrored so the hours run clockwise, 1 h/s, loop off; cities, city and minute markers">Clock mode</button>
@@ -391,7 +404,7 @@ body.focus #overlay:focus-visible { outline: none; }
 
 <section class="explain" aria-label="How to read it">
   <div class="wide gutter">
-    <details><summary><h3>Choosing a viewpoint</h3></summary><p>Each view is set by the Sun: from the North Pole the Sun is straight up the page, and the other views are turned from that one. Live, the view keeps up with the Sun, so Earth turns beneath it; when you press Play the view freezes to the ground at that moment and the Sun travels around Earth instead. From the North Pole the rim is the equator and only the northern hemisphere shows; from the South Pole Earth turns clockwise. Orbital north and south look down the normal to Earth's orbital plane from either side, where day and night meet along a straight line. From the Sun you see the whole day side. From the Moon you see the face of Earth turned toward it right now; the lit fraction is Earth's phase as seen from the Moon, the complement of the Moon's phase seen from here. Drag to turn the view anywhere in between. Set Sun to Stays still to keep the Sun in place during playback too. Clock mode flips the picture left to right: from above the North Pole, where Earth turns anticlockwise, the hours then run clockwise like a clock's. Only the map is reversed; the lighting is still the real lighting of the side facing you. Sundial clock does it the other way: the view turns so the Sun points at the clock's time, the hour marks hold still with 12 at the top, and the map holds still while the Sun goes round it clockwise as the hour hand, just as a shadow does on a northern sundial (which is why clocks run clockwise). The map creeps a few degrees over the year with the equation of time and turns 15° when daylight saving starts or ends. Each preset is a combination of settings; changing the view or the Sun setting leaves it. The hour ring and clock hands appear only over a pole or the orbit's normal, where they read true; the minute strip, marker and hand are left out while playing faster than 1 h/s.</p></details>
+    <details><summary><h3>Choosing a viewpoint</h3></summary><p>Each view is set by the Sun: from the North Pole the Sun is straight up the page, and the other views are turned from that one. Live, the view keeps up with the Sun, so Earth turns beneath it; when you press Play the view freezes to the ground at that moment and the Sun travels around Earth instead. From the North Pole the rim is the equator and only the northern hemisphere shows; from the South Pole Earth turns clockwise. Orbital north and south look down the normal to Earth's orbital plane from either side, where day and night meet along a straight line. From the Sun you see the whole day side. From the Moon you see the face of Earth turned toward it right now; the lit fraction is Earth's phase as seen from the Moon, the complement of the Moon's phase seen from here. Drag to turn the view anywhere in between. On a phone, Compass turns the view with the phone itself: every direction on screen is then the real one, so lying flat it shows Earth from straight above you with north toward true north, and the sunlight comes from where the Sun really is. Set Sun to Stays still to keep the Sun in place during playback too. Clock mode flips the picture left to right: from above the North Pole, where Earth turns anticlockwise, the hours then run clockwise like a clock's. Only the map is reversed; the lighting is still the real lighting of the side facing you. Sundial clock does it the other way: the view turns so the Sun points at the clock's time, the hour marks hold still with 12 at the top, and the map holds still while the Sun goes round it clockwise as the hour hand, just as a shadow does on a northern sundial (which is why clocks run clockwise). The map creeps a few degrees over the year with the equation of time and turns 15° when daylight saving starts or ends. Each preset is a combination of settings; changing the view or the Sun setting leaves it. The hour ring and clock hands appear only over a pole or the orbit's normal, where they read true; the minute strip, marker and hand are left out while playing faster than 1 h/s.</p></details>
     <details><summary><h3>The shape of the night</h3></summary><p>Day and night meet along a great circle facing the Sun. From over the North Pole it projects to half an ellipse with semi-axes 1 and |sin δ|, where δ is the Sun's declination. At the equinoxes it is a straight diameter. In northern winter it bows toward the Sun and the pole sits in darkness; in summer it bows the other way. Pick Loop → Year to watch it swing: that loop steps one whole day at a time at a fixed clock time, so the continents hold still while the seasons change.</p></details>
     <details><summary><h3>Sizes and distances</h3></summary><p>Earth, the Moon and the Sun are drawn to one scale of size (the Moon 0.27 times Earth's width, the Sun 109 times) and their distances to another, shared by both: at 1× every distance is shortened about 41 times, so that the Moon sits just outside the ring. The Sun is then about 570 Earth radii away, far beyond the frame; what reaches the frame is its light, full at its disc and fading with distance from it, so over the few Earth radii shown it is an almost even warm wash, a little brighter on the Sun's side (the marker at the edge shows its direction). Each body sits in its true direction from Earth; when one is nearly in line with your viewpoint it moves in toward the centre and passes behind Earth, or in front of it. The lighting and the Moon's phase use the real directions, and the Moon shows its real face, nodding by up to about 8° each month (libration). Zooming in (pinch, or Ctrl-scroll) magnifies everything together; the maps of Earth and the Moon stay sharp to about 2–3×. Zooming out relaxes the shortening for both distances together: the Moon keeps its place while Earth shrinks, until at about 1/41× every distance is true; further out, the Sun comes into view as a disc a few pixels across with its glow, since from Earth it spans just half a degree. The zoom button's menu has a zoom slider and two other choices: distances always true, or always shortened (zoom far out and the Sun appears as a big glowing ball beside a small Earth). The corner caption says how much distances are shortened. The Sun's surface imitates the Sun in extreme ultraviolet (as NASA's Solar Dynamics Observatory sees it at 304 Å).</p></details>
     <details><summary><h3>Official time</h3></summary><p>The thin borders on land outline the real time zones as currently defined, daylight saving included, and pointing anywhere gives the official time there. The ring shows local solar time: 12 sits on the meridian directly under the Sun, between Earth and the Sun, and each hour mark 15° further east, so the ring turns with the Sun: still when the Sun is still, smoothly when it moves. Clock time differs from solar time by a place's time zone, by daylight saving, and by the equation of time (up to about 16 minutes), so the clock is shown separately: the amber city marker, or the hour hand, sits where the ring reads the clock city's official time, daylight saving included (UTC without a city). It is therefore turned away from the city's own meridian by that difference: about 1 h 15 min for Charlottesville in summer. The UTC mark sits where the ring reads UTC, close to the prime meridian. The outer strip is an ordinary minute dial, 0 at the top and one turn an hour; its white marker shows the minutes of the same clock. Each marker can be turned off under Overlays, and turning off the minute marker removes its strip. Under Clock hands you can draw hands instead (Meridian, Skeleton or Bezel; press H to cycle them): the hour hand points to the clock city's official hour on the ring, and the minute hand is an ordinary one. Above 1 h/s the minute hand is left out, since it would spin several turns a second.</p></details>
@@ -474,6 +487,10 @@ const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a
 const unit = a => { const n = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / n, a[1] / n, a[2] / n]; };
 function cameraRows(view, s) {
   if (view === "free") return state.cam;
+  if (view === "compass") {                                  // Earth-fixed rows (from the phone), expressed in V
+    const c = Math.cos(s.subLon * D2R), sn = Math.sin(s.subLon * D2R), toV = w => [w[0] * c + w[1] * sn, -w[0] * sn + w[1] * c, w[2]];
+    return compassRows().map(toV);
+  }
   if (view === "south") return [[1, 0, 0], [0, -1, 0], [0, 0, -1]];
   if (view === "orbitN" || view === "orbitS") {
     const e = s.eps * D2R, a = s.ra * D2R, sg = view === "orbitN" ? 1 : -1;
@@ -1614,6 +1631,120 @@ function updatePointer(s, A) {
   box.querySelector(".p-extra").textContent = `solar ${fmtHM(sol)} · Sun ${elev >= 0 ? elev.toFixed(0) + "° up" : (-elev).toFixed(0) + "° below horizon"}`;
 }
 
+// ---------- Compass view ----------
+// The phone's attitude sets the camera, so every direction on screen is parallel to the real one. DeviceOrientation
+// gives alpha, beta, gamma (intrinsic Z-X'-Y''), turning the device frame (x right, y top, z out of the screen) into
+// local East-North-Up: R = Rz(alpha) Rx(beta) Ry(gamma). Laid flat, the globe is seen from straight above you with its
+// north toward real north; held up, you look through the phone at Earth from beyond the horizon in that direction.
+// Compasses read magnetic north; the World Magnetic Model's declination (WMM2025, 5° grid) turns it to true north.
+const COMPASS_OK = typeof DeviceOrientationEvent !== "undefined" && !!(window.matchMedia && matchMedia("(pointer: coarse)").matches);
+const DECL = (() => {                                        // declination, 0.01°, epochs 2025.0 and 2030.0, 37 x 72
+  const b = atob("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"), n = b.length >> 1, a = new Int16Array(n);
+  for (let i = 0; i < n; i++) { const v = b.charCodeAt(2 * i) | (b.charCodeAt(2 * i + 1) << 8); a[i] = v > 32767 ? v - 65536 : v; }
+  return a;
+})();
+function declination(lat, lon, t) {                          // degrees east of true north; interpolated as directions
+  const yr = 1970 + t / 31556952000, u = Math.max(0, Math.min(1.4, (yr - 2025) / 5));
+  const fy = Math.max(0, Math.min(36, (lat + 90) / 5)), i = Math.min(35, Math.floor(fy)), ty = fy - i;
+  const fx = (((lon + 180) / 5) % 72 + 72) % 72, j = Math.floor(fx), tx = fx - j;
+  let cx = 0, sx = 0;
+  for (const [g, wg] of [[0, 1 - u], [1, u]]) for (const [di, wy] of [[0, 1 - ty], [1, ty]]) for (const [dj, wx] of [[0, 1 - tx], [1, tx]]) {
+    const d = DECL[g * 2664 + (i + di) * 72 + (j + dj) % 72] / 100 * D2R, w = wg * wy * wx;
+    cx += w * Math.cos(d); sx += w * Math.sin(d);
+  }
+  return Math.atan2(sx, cx) * R2D;
+}
+const compass = { listening: false, target: null, rows: null, iosOff: null, got: false, geo: null, raf: 0, last: 0, noteT: 0 };
+function compassPlace() {                                    // where you are: your location if allowed, else the clock city, else your time zone's largest city
+  if (compass.geo) return compass.geo;
+  if (state.home) { const v = state.home.v; return { lat: Math.asin(v[2]) * R2D, lon: Math.atan2(v[1], v[0]) * R2D, src: state.home.name }; }
+  const zi = CITYDB.tz.indexOf(userTZ), r = zi >= 0 ? CITYDB.c.find(c => c[6] === zi) : null;
+  return r ? { lat: r[4], lon: r[5], src: r[0] + " (time zone)" } : { lat: 0, lon: 0, src: "0°, 0°" };
+}
+function enuToEF(w, lat, lon) {
+  const p = lat * D2R, l = lon * D2R, sp = Math.sin(p), cp = Math.cos(p), sl = Math.sin(l), cl = Math.cos(l);
+  return [-sl * w[0] - sp * cl * w[1] + cp * cl * w[2], cl * w[0] - sp * sl * w[1] + cp * sl * w[2], cp * w[1] + sp * w[2]];
+}
+function orientRows(alpha, beta, gamma) {                    // camera rows (up, left, toward) in Earth-fixed coordinates
+  const pl = compassPlace(), a = (alpha - declination(pl.lat, pl.lon, Date.now())) * D2R, b = beta * D2R, g = gamma * D2R;
+  const cA = Math.cos(a), sA = Math.sin(a), cB = Math.cos(b), sB = Math.sin(b), cG = Math.cos(g), sG = Math.sin(g);
+  const X = [cA * cG - sA * sB * sG, cG * sA + cA * sB * sG, -cB * sG], Y = [-cB * sA, cA * cB, sB], Z = [cG * sA * sB + cA * sG, sA * sG - cA * cG * sB, cB * cG];
+  let th = 0; try { th = (screen.orientation && typeof screen.orientation.angle === "number" ? screen.orientation.angle : (window.orientation || 0)) * D2R; } catch (e) {}
+  const up = [0, 1, 2].map(k => Math.cos(th) * Y[k] + Math.sin(th) * X[k]), right = [0, 1, 2].map(k => Math.cos(th) * X[k] - Math.sin(th) * Y[k]);
+  return [enuToEF(up, pl.lat, pl.lon), enuToEF(right.map(v => -v), pl.lat, pl.lon), enuToEF(Z, pl.lat, pl.lon)];
+}
+function compassRows() {                                     // before any reading: as if lying flat, its top to the north
+  if (compass.rows) return compass.rows;
+  const pl = compassPlace();
+  return [enuToEF([0, 1, 0], pl.lat, pl.lon), enuToEF([-1, 0, 0], pl.lat, pl.lon), enuToEF([0, 0, 1], pl.lat, pl.lon)];
+}
+function onOrient(ev) {
+  if (ev.alpha == null || ev.beta == null || ev.gamma == null) return;
+  let alpha = ev.alpha;
+  if (typeof ev.webkitCompassHeading === "number" && ev.webkitCompassHeading >= 0) {
+    // iOS: alpha starts from an arbitrary heading; tie it to the compass (the heading of the phone's top is -alpha
+    // whatever the tilt, while the top is not near vertical)
+    if (Math.abs(ev.beta) < 60) { const off = norm180(360 - ev.webkitCompassHeading - ev.alpha); compass.iosOff = compass.iosOff == null ? off : compass.iosOff + 0.1 * norm180(off - compass.iosOff); }
+    if (compass.iosOff == null) return;
+    alpha += compass.iosOff;
+  } else if (ev.type !== "deviceorientationabsolute" && !ev.absolute) return;   // relative only: no north
+  compass.target = orientRows(alpha, ev.beta, ev.gamma);
+  if (!compass.got) { compass.got = true; compassNote(); }
+  if (!compass.raf) { compass.last = performance.now(); compass.raf = requestAnimationFrame(compassTick); }
+}
+function compassTick(now) {                                  // ease toward the reading (about 0.1 s), then stop
+  compass.raf = 0;
+  if (!compass.target || state.view !== "compass") return;
+  const dt = Math.min(0.1, (now - compass.last) / 1000), k = compass.rows ? 1 - Math.exp(-dt / 0.1) : 1; compass.last = now;
+  const cur = compass.rows || compass.target;
+  const mix = cur.map((r, i) => r.map((v, j) => v + k * (compass.target[i][j] - v)));
+  const up = unit(mix[0]), tw = unit(mix[2].map((v, j) => v - dot(mix[2], up) * up[j])), left = cross(tw, up);
+  const moved = !compass.rows || Math.abs(dot(up, compass.target[0]) - 1) + Math.abs(dot(tw, compass.target[2]) - 1) > 1e-7;
+  compass.rows = [up, left, tw];
+  if (state.mode !== "playing") draw();
+  if (moved) compass.raf = requestAnimationFrame(compassTick);
+}
+const compassNoteEl = document.getElementById("compass-note"), compassGo = document.getElementById("compass-go"), compassMsg = document.getElementById("compass-msg");
+function compassNote(text, showGo = false, stay = false) {
+  if (state.view !== "compass") { compassNoteEl.hidden = true; return; }
+  if (text == null) {
+    const pl = compassPlace(), d = declination(pl.lat, pl.lon, Date.now());
+    text = compass.got ? `Aligned to true north (magnetic ${d >= 0 ? "+" : "\u2212"}${Math.abs(d).toFixed(1)}\u00b0) \u00b7 ${pl.src}` : "Waiting for the compass\u2026";
+  }
+  compassGo.hidden = !showGo; compassMsg.textContent = text;
+  compassNoteEl.hidden = false; compassNoteEl.classList.remove("fade");
+  clearTimeout(compass.noteT);
+  if (!stay) compass.noteT = setTimeout(() => compassNoteEl.classList.add("fade"), 5000);
+}
+function compassListen(on) {
+  if (on === compass.listening) return;
+  compass.listening = on;
+  const f = on ? "addEventListener" : "removeEventListener";
+  window[f]("deviceorientationabsolute", onOrient);
+  window[f]("deviceorientation", onOrient);
+  if (!on) { compass.got = false; compass.rows = null; compass.target = null; compass.iosOff = null; }
+}
+function compassStart(gesture) {                             // called whenever the view becomes the compass view
+  if (!COMPASS_OK) { compassNote("No compass here: seen from above you, north up", false, true); return; }
+  const needsAsk = typeof DeviceOrientationEvent.requestPermission === "function";
+  if (needsAsk && !gesture) { compassNote("", true, true); return; }   // iOS: only from a tap
+  const go = () => {
+    compassListen(true); compassNote();
+    setTimeout(() => { if (state.view === "compass" && !compass.got) compassNote("No compass reading: seen from above you, north up", false, true); }, 3000);
+  };
+  if (needsAsk) DeviceOrientationEvent.requestPermission().then(r => { if (r === "granted") go(); else compassNote("Compass not allowed: seen from above you, north up", false, true); }, () => compassNote("", true, true));
+  else go();
+  if (gesture && !compass.geo && navigator.geolocation) navigator.geolocation.getCurrentPosition(p => { compass.geo = { lat: p.coords.latitude, lon: p.coords.longitude, src: "your location" }; compassNote(); draw(); }, () => {}, { maximumAge: 3600000, timeout: 20000 });
+}
+compassGo.addEventListener("click", () => compassStart(true));
+function compassSync() {                                     // keep the sensors on only in the compass view
+  if (state.view === "compass") { if (!compass.listening) compassStart(false); }
+  else { compassListen(false); compassNoteEl.hidden = true; }
+}
+if (navigator.permissions && navigator.geolocation) navigator.permissions.query({ name: "geolocation" }).then(st => {   // already allowed: use it without asking
+  if (st.state === "granted") navigator.geolocation.getCurrentPosition(p => { compass.geo = { lat: p.coords.latitude, lon: p.coords.longitude, src: "your location" }; if (state.view === "compass") { compassNote(); draw(); } }, () => {}, { maximumAge: 3600000, timeout: 20000 });
+}, () => {});
+
 // ---------- Interaction ----------
 function setHover(ev) {
   const r = ov.getBoundingClientRect();
@@ -1657,6 +1788,7 @@ ov.addEventListener("pointermove", ev => {
     drag.moved = true; drag.x = ev.clientX; drag.y = ev.clientY;
     const tiny = S * rfrac < 20 && state.zoomMode !== "relax";   // Earth too small to turn: a drag pans instead
     if (drag.pan || ev.shiftKey || tiny) { if (state.zoom > 1 || state.zoomMode !== "relax") { pan.x += dx; pan.y += dy; resize(); } return; }   // Shift-drag pans
+    if (state.view === "compass") { if (state.zoom > 1) { pan.x += dx; pan.y += dy; resize(); } return; }   // the phone sets the view: a drag only pans
     rotateCam(dx, dy); state.hover = null; draw(); return;
   }
   setHover(ev);
@@ -1682,7 +1814,7 @@ function savePrefs() {
 function loadPrefs() {
   let p = null; try { p = JSON.parse(localStorage.getItem(PREFS_KEY) || "null"); } catch (e) {}
   if (!p || typeof p !== "object") return;
-  if (["north", "south", "orbitN", "orbitS", "sun", "moon"].includes(p.view)) state.view = p.view;
+  if (["north", "south", "orbitN", "orbitS", "sun", "moon"].includes(p.view) || (p.view === "compass" && COMPASS_OK)) state.view = p.view;
   if (SPEEDS.includes(p.speed)) state.speed = p.speed;
   if (typeof p.sunStill === "boolean") state.sunStill = p.sunStill;
   if (["clock", "sundial"].includes(p.preset)) state.preset = p.preset;
@@ -1704,6 +1836,8 @@ function syncControls() {
   press("[data-sunmode]", b => b.dataset.sunmode === (state.sunStill ? "still" : "moves"));
   press(".preset", b => b.id === `${state.preset}-mode`);
   press("[data-hands]", b => b.dataset.hands === state.hands);
+  document.getElementById("focus-compass").setAttribute("aria-pressed", String(state.view === "compass"));
+  compassSync();
   const fm = document.getElementById("focus-moon");
   if (fm) { const t = `Moon: ${state.show.moon ? "shown" : "hidden"} (M)`; fm.title = t; fm.setAttribute("aria-label", t); fm.setAttribute("aria-pressed", String(state.show.moon)); }
   const fh = document.getElementById("focus-hands");
@@ -1752,7 +1886,12 @@ document.querySelectorAll("[data-sunmode]").forEach(b => b.addEventListener("cli
   if (!state.sunStill) state.anchorT = state.t;  // keep the picture where it is; the Sun starts moving from here
   syncControls(); draw();
 }));
-document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => { state.view = b.dataset.view; state.preset = null; syncControls(); draw(); }));
+document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.view; state.view = v; state.preset = null; if (v === "compass") compassStart(true); syncControls(); draw(); }));
+document.getElementById("focus-compass").addEventListener("click", () => {
+  if (state.view === "compass") { state.view = "north"; syncControls(); draw(); return; }
+  state.view = "compass"; state.preset = null; compassStart(true); syncControls(); draw();
+});
+if (COMPASS_OK) { document.querySelector('[data-view="compass"]').hidden = false; document.getElementById("focus-compass").hidden = false; }
 document.querySelectorAll("[data-ov]").forEach(b => b.addEventListener("click", () => { state.show[b.dataset.ov] = !state.show[b.dataset.ov]; syncControls(); draw(); }));
 document.querySelectorAll("[data-hands]").forEach(b => b.addEventListener("click", () => { state.hands = b.dataset.hands; syncControls(); draw(); }));
 // Cycle the hand styles (the focused view's button, or the H key)
@@ -1854,6 +1993,8 @@ loadPrefs();
   try { q = new URLSearchParams(location.search).get("city"); fromUrl = !!q; } catch (e) {}
   if (!q) { try { q = localStorage.getItem("earthdial.city"); } catch (e) {} }
   if (q) { const m = searchCities(q); if (m.length) setHome(m[0], !fromUrl); }
+  let v = null; try { v = new URLSearchParams(location.search).get("view"); } catch (e) {}   // e.g. ?view=compass
+  if (["north", "south", "orbitN", "orbitS", "sun", "moon", "compass"].includes(v)) { state.view = v; state.preset = null; }
 })();
 
 // Focused mode: Esc (outside a text field) or the corner button; the corner button fades in when the mouse moves
