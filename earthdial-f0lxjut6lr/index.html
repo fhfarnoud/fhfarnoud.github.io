@@ -387,6 +387,7 @@ body.focus #overlay:focus-visible { outline: none; }
         <div><dt>Sun overhead at</dt><dd id="g-sub">—</dd></div>
         <div><dt>Sun's declination δ</dt><dd id="g-dec">—</dd></div>
         <div><dt>Around the pole</dt><dd id="g-pole">—</dd></div>
+        <div><dt id="g-daylbl">Day length at the equator</dt><dd id="g-day">—</dd></div>
         <div><dt>Equation of time</dt><dd id="g-eot">—</dd></div>
         <div><dt>Sun's apparent diameter</dt><dd id="g-diam">—</dd></div>
         <div><dt>Moon overhead at</dt><dd id="g-moon">—</dd></div>
@@ -1134,7 +1135,10 @@ function drawOverlay(s, A) {
   ctx.strokeStyle = "#7d97b8"; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
 
-  // Ring: a continuous strip coloured by the light ramp at the equator under each meridian, h = asin(cos δ · cos H).
+  // Ring: a continuous strip coloured by the light ramp along the clock city's parallel (the equator without a city):
+  // under each meridian, h = asin(sin φ sin δ + cos φ cos δ cos H). Seen over the pole the parallel is a circle about
+  // the centre and the ring is its radial projection, so the strip's day is exactly the lit arc of that parallel:
+  // it runs from solar time 12 − H₀/15 to 12 + H₀/15, cos H₀ = −tan φ tan δ, long in summer, short in winter.
   // It reads local (apparent) solar time: mark 12 lies on the Sun's meridian, between Earth and the Sun, and mark k
   // 15°·(k − 12) east of it. It is fixed to the Sun, so it holds still when the Sun does and turns with it.
   // The clock (the clock city's official time, daylight saving included, or UTC without one) is shown by the hour
@@ -1153,8 +1157,8 @@ function drawOverlay(s, A) {
     };
     const r1 = R * RING.r1, r2 = R * RING.r2, rm = (r1 + r2) / 2;   // a narrow band just outside the globe
     const fs = Math.max(9, Math.min(13, (r2 - r1) * 0.72));
-    const cd = Math.cos(s.dec * D2R);
-    const colAt = L => rampColor(Math.asin(cd * Math.cos(norm180(L - s.subLon) * D2R)) * R2D);
+    const phi = state.home ? Math.asin(state.home.v[2]) : 0, sd = Math.sin(s.dec * D2R), cd = Math.cos(s.dec * D2R);
+    const colAt = L => rampColor(Math.asin(Math.max(-1, Math.min(1, Math.sin(phi) * sd + Math.cos(phi) * cd * Math.cos(norm180(L - s.subLon) * D2R)))) * R2D);
     const arcPiece = (La, Lb, ra, rb) => {
       const a0 = angOf(La), a1 = angOf(Lb);
       let d = a1 - a0; while (d <= -Math.PI) d += 2 * Math.PI; while (d > Math.PI) d -= 2 * Math.PI;
@@ -1165,6 +1169,20 @@ function drawOverlay(s, A) {
     const STEP = 2;
     for (let L = -180; L < 180; L += STEP) {      // continuous strip, overlapped slightly so no seams show
       arcPiece(L - 0.3, L + STEP + 0.3, r1, r2); ctx.fillStyle = rgb(colAt(L + STEP / 2)); ctx.fill();
+    }
+    if (state.home) {                             // the city's parallel, and where it meets the terminator, carried out to the ring
+      ctx.save(); ctx.globalAlpha = ringA * 0.7;
+      polyOnSphere(A, P, k => ll2v(phi * R2D, k), -180, 180, 2, "rgba(242,184,75,0.8)", 1, [2, 4]);
+      const cH = -Math.tan(phi) * Math.tan(s.dec * D2R);
+      if (Math.abs(cH) < 1) for (const sgnH of [-1, 1]) {
+        const L = norm180(s.subLon + sgnH * Math.acos(cH) * R2D), v = applyA(A, ll2v(phi * R2D, L));
+        if (v[2] < 0) continue;                    // on the far side
+        const [x0, y0] = P(v), a = angOf(L);
+        ctx.strokeStyle = "rgba(242,184,75,0.8)"; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); ctx.stroke();
+        ctx.setLineDash([]); ctx.fillStyle = "#f2b84b"; ctx.beginPath(); ctx.arc(x0, y0, 2, 0, 2 * Math.PI); ctx.fill();
+      }
+      ctx.restore();
     }
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     // The clock: the city's official time, daylight saving included, or UTC without a city.
@@ -1570,6 +1588,13 @@ function updatePanel(s, A) {
   document.getElementById("g-pole").textContent = Math.abs(s.dec) < 0.05 ? "equinox" : `${s.dec < 0 ? "polar night" : "midnight sun"} above ${edge.toFixed(1)}°N`;
   document.getElementById("g-moon").textContent = `${fmtLat(s.moonDec)}, ${fmtLon(s.moonSubLon)} · ${Math.round(s.elong)}° from Sun`;
   document.getElementById("g-diam").textContent = `${s.sunDiam.toFixed(3)}° · ${s.rAU.toFixed(4)} AU`;
+  {   // sunrise to sunset (upper limb, refraction: h₀ = −0.833°) at the clock city's latitude, or the equator
+    const phi = state.home ? Math.asin(state.home.v[2]) : 0, d = s.dec * D2R;
+    const cH = (Math.sin(-0.833 * D2R) - Math.sin(phi) * Math.sin(d)) / (Math.cos(phi) * Math.cos(d));
+    const hrs = cH >= 1 ? 0 : cH <= -1 ? 24 : 2 * Math.acos(cH) * R2D / 15, hm = Math.round(hrs * 60);
+    document.getElementById("g-daylbl").textContent = state.home ? `Day length in ${state.home.name}` : "Day length at the equator";
+    document.getElementById("g-day").textContent = hrs === 0 ? "polar night" : hrs === 24 ? "midnight sun" : `${Math.floor(hm / 60)} h ${pad2(hm % 60)} min`;
+  }
   document.getElementById("g-eot").textContent = `${s.eot >= 0 ? "+" : "−"}${Math.abs(s.eot).toFixed(1)} min`;
   for (const c of CITIES) {
     const elev = elevOf(s, applyA(A, c.v));
