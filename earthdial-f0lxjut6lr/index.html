@@ -91,6 +91,8 @@ main { padding-block: 0 48px; display: grid; grid-template-columns: minmax(0, 1f
 .btn-play.on, .btn-now.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
 .segrows { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 10px; }
 .seglabel { font-size: 13px; color: var(--muted); }
+.ecl-info { grid-column: 1 / -1; margin: 0; min-height: 0; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.ecl-info:empty { display: none; }
 .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; padding: 3px; border: 1px solid var(--card-bd); border-radius: 12px; background: var(--bg); }
 .seg button { min-height: 38px; border: 0; border-radius: 9px; background: transparent; color: var(--seg-fg); font: 500 13px/1 var(--mono); cursor: pointer; }
 .seg.words button { font: 500 14px/1 var(--ui); }
@@ -98,6 +100,8 @@ main { padding-block: 0 48px; display: grid; grid-template-columns: minmax(0, 1f
 .seg.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .seg.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .seg.five button { font-size: 12px; padding: 0 2px; }
+.seg.six { grid-template-columns: minmax(0, 1.45fr) repeat(5, minmax(0, 1fr)); }
+.seg.six button { font-size: 11px; padding: 0 1px; letter-spacing: -0.02em; white-space: nowrap; }
 .seg.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .seg button:hover { background: #172133; }
 .seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
@@ -153,6 +157,21 @@ body.focus .zoom-menu { opacity: 0.75; }
 .views .view-compass { grid-column: 1 / -1; }
 .zoom-btns button[hidden] { display: none; }
 .zoom-btns button[aria-pressed="true"]#focus-compass { color: var(--text); border-color: #6b7fa6; }
+.skyhit { position: absolute; inset: 0; z-index: 3; display: none; touch-action: none; cursor: grab; }
+body.sky .skyhit { display: block; }
+.sky-hint, body.sky .globe-hint, body.sky #pointer { display: none; }
+body.sky .sky-hint { display: block; }
+body.sky #stage, body.sky #sungl, body.sky .zoom-menu { visibility: hidden; }
+.sky-btns { position: absolute; z-index: 6; top: 12px; left: 12px; display: none; align-items: center; gap: 4px; padding: 4px; border-radius: 12px; border: 1px solid #2a3550; background: rgba(11,15,23,0.7); }
+body.sky .sky-btns { display: flex; }
+.sky-btns button { min-height: 30px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; color: var(--muted); font: 500 12.5px/1 var(--ui); cursor: pointer; }
+.sky-btns button:hover { color: var(--text); }
+.sky-btns button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.sky-btns button[hidden] { display: none; }
+body.sky .zoom-btns button:not(#focus-exit) { display: none; }
+#sky-fov { padding: 0 8px; color: var(--muted); font: 12px var(--mono); }
+.sky-btns .short { display: none; }
+@media (max-width: 480px) { .sky-btns { max-width: calc(100% - 64px); gap: 2px; } .sky-btns button { padding: 0 7px; font-size: 12px; } .sky-btns .long { display: none; } .sky-btns .short { display: inline; } #sky-fov { padding: 0 4px; } }
 .compass-note { position: absolute; z-index: 6; top: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; width: max-content; max-width: calc(100% - 140px); padding: 5px 12px; border-radius: 999px; border: 1px solid #2a3550; background: rgba(11,15,23,0.72); color: var(--muted); font: 12px/1.3 var(--ui); transition: opacity .6s; pointer-events: none; }
 .compass-note[hidden] { display: none; }
 .compass-note.fade { opacity: 0; }
@@ -271,7 +290,8 @@ body.focus #overlay:focus-visible { outline: none; }
     </div>
     <div class="segrows">
       <span class="seglabel" id="lbl-speed">Speed</span>
-      <div class="seg five" role="group" aria-labelledby="lbl-speed">
+      <div class="seg six" role="group" aria-labelledby="lbl-speed">
+        <button type="button" data-speed="60" aria-pressed="false" title="A minute a second: for eclipses">1 min/s</button>
         <button type="button" data-speed="3600" aria-pressed="false">1 h/s</button>
         <button type="button" data-speed="21600" aria-pressed="false">6 h/s</button>
         <button type="button" data-speed="86400" aria-pressed="true">1 d/s</button>
@@ -291,6 +311,12 @@ body.focus #overlay:focus-visible { outline: none; }
       </div>
       <label class="seglabel" for="when">Jump to</label>
       <input type="datetime-local" id="when" step="60">
+      <span class="seglabel" id="lbl-ecl">Eclipses</span>
+      <div class="seg words two" role="group" aria-labelledby="lbl-ecl">
+        <button type="button" id="next-solar" title="The next solar eclipse (Shift: the one before), at its greatest">Next solar</button>
+        <button type="button" id="next-lunar" title="The next lunar eclipse (Shift: the one before), at its greatest">Next lunar</button>
+      </div>
+      <p class="ecl-info" id="ecl-info"></p>
     </div>
   </section>
 
@@ -314,6 +340,15 @@ body.focus #overlay:focus-visible { outline: none; }
         <button type="button" id="focus-exit" aria-label="Leave focused mode (Esc)" title="Leave focused mode (Esc)"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
       </div>
       <button type="button" class="focus-btn" id="focus-btn" aria-pressed="false" title="Focused mode (Esc)" aria-label="Focused mode: show only the dial (Esc)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+      <div class="skyhit" id="skyhit"></div>
+      <div class="sky-btns" id="sky-btns" role="group" aria-label="Look at">
+        <button type="button" id="sky-sun" aria-pressed="false" title="Look at the Sun and follow it (again: zoom in or out)">Sun</button>
+        <button type="button" id="sky-moon" aria-pressed="false" title="Look at the Moon and follow it (again: zoom in or out)">Moon</button>
+        <button type="button" id="sky-up" title="Straight up: the whole sky"><span class="long">Overhead</span><span class="short">Up</span></button>
+        <button type="button" id="sky-here" hidden title="Back to your own place">Here</button>
+        <button type="button" id="sky-phone" aria-pressed="false" hidden title="Aim with the phone"><span class="long">Aim phone</span><span class="short">Aim</span></button>
+        <span id="sky-fov">110°</span>
+      </div>
       <div class="compass-note" id="compass-note" hidden><button type="button" id="compass-go">Use the compass</button><span id="compass-msg"></span></div>
       <canvas id="sungl" aria-hidden="true"></canvas>
       <canvas id="sun" aria-hidden="true"></canvas>
@@ -335,7 +370,8 @@ body.focus #overlay:focus-visible { outline: none; }
         </div>
       </div>
     </div>
-      <p class="hint">Pinch, Ctrl-scroll or the zoom button's slider to zoom; Shift-drag or two fingers to pan; double-click for 1×. Press Esc for a focused view of just the dial. Drag the globe to turn the view freely. Live, the view keeps up with the Sun, so Earth turns beneath it. While playing, the view holds still over the ground and the Sun moves around Earth; set Sun to Stays still to keep it in place instead.</p>
+      <p class="hint sky-hint">Drag to look around; pinch or Ctrl-scroll to zoom (in focused mode, scroll); double-click to look at the Sun or the Moon again. Sun and Moon follow one and, clicked again, zoom in close (or back out); Overhead shows the whole dome. Below the horizon, dashed outlines show where they are. Time controls move the sky.</p>
+      <p class="hint globe-hint">Pinch, Ctrl-scroll or the zoom button's slider to zoom; Shift-drag or two fingers to pan; double-click for 1×. Press Esc for a focused view of just the dial. Drag the globe to turn the view freely. Live, the view keeps up with the Sun, so Earth turns beneath it. While playing, the view holds still over the ground and the Sun moves around Earth; set Sun to Stays still to keep it in place instead.</p>
     <div class="pointer card" id="pointer" aria-live="polite"><span class="eyebrow">Pointer</span><span class="p-idle">Point at the globe for the official time there.</span></div>
   </section>
 
@@ -349,6 +385,7 @@ body.focus #overlay:focus-visible { outline: none; }
         <button type="button" data-view="orbitS" aria-pressed="false">Orbital south</button>
         <button type="button" data-view="sun" aria-pressed="false">Sun</button>
         <button type="button" data-view="moon" aria-pressed="false">Moon</button>
+        <button type="button" data-view="sky" aria-pressed="false" class="view-compass" title="Stand at the place (your location, the clock city, or your time zone's) and look up">Sky from the ground</button>
         <button type="button" data-view="compass" aria-pressed="false" class="view-compass" hidden title="Turn the globe with the phone: every direction on screen matches the real one">Compass (aligned to you)</button>
       </div>
       <div class="presets">
@@ -405,7 +442,7 @@ body.focus #overlay:focus-visible { outline: none; }
 
 <section class="explain" aria-label="How to read it">
   <div class="wide gutter">
-    <details><summary><h3>Choosing a viewpoint</h3></summary><p>Each view is set by the Sun: from the North Pole the Sun is straight up the page, and the other views are turned from that one. Live, the view keeps up with the Sun, so Earth turns beneath it; when you press Play the view freezes to the ground at that moment and the Sun travels around Earth instead. From the North Pole the rim is the equator and only the northern hemisphere shows; from the South Pole Earth turns clockwise. Orbital north and south look down the normal to Earth's orbital plane from either side, where day and night meet along a straight line. From the Sun you see the whole day side. From the Moon you see the face of Earth turned toward it right now; the lit fraction is Earth's phase as seen from the Moon, the complement of the Moon's phase seen from here. Drag to turn the view anywhere in between. On a phone, Compass turns the view with the phone itself: every direction on screen is then the real one, so lying flat it shows Earth from straight above you with north toward true north, and the sunlight comes from where the Sun really is. Set Sun to Stays still to keep the Sun in place during playback too. Clock mode flips the picture left to right: from above the North Pole, where Earth turns anticlockwise, the hours then run clockwise like a clock's. Only the map is reversed; the lighting is still the real lighting of the side facing you. Sundial clock does it the other way: the view turns so the Sun points at the clock's time, the hour marks hold still with 12 at the top, and the map holds still while the Sun goes round it clockwise as the hour hand, just as a shadow does on a northern sundial (which is why clocks run clockwise). The map creeps a few degrees over the year with the equation of time and turns 15° when daylight saving starts or ends. Each preset is a combination of settings; changing the view or the Sun setting leaves it. The hour ring and clock hands appear only over a pole or the orbit's normal, where they read true; the minute strip, marker and hand are left out while playing faster than 1 h/s.</p></details>
+    <details><summary><h3>Choosing a viewpoint</h3></summary><p>Each view is set by the Sun: from the North Pole the Sun is straight up the page, and the other views are turned from that one. Live, the view keeps up with the Sun, so Earth turns beneath it; when you press Play the view freezes to the ground at that moment and the Sun travels around Earth instead. From the North Pole the rim is the equator and only the northern hemisphere shows; from the South Pole Earth turns clockwise. Orbital north and south look down the normal to Earth's orbital plane from either side, where day and night meet along a straight line. From the Sun you see the whole day side. From the Moon you see the face of Earth turned toward it right now; the lit fraction is Earth's phase as seen from the Moon, the complement of the Moon's phase seen from here. Drag to turn the view anywhere in between. Sky from the ground stands you at the place (your location if allowed, else the clock city, else your time zone's largest city) and shows the sky: the Sun and the Moon where they are from there, at their true sizes and with the Moon's phase and tilt as you would see them, the stars and constellations once it is dark. Drag to look around, pinch or scroll to zoom from the whole dome down to a few degrees; Sun and Moon follow either one. Under Eclipses, Next solar and Next lunar jump to the moment of greatest eclipse: on the globe the Moon's shadow crosses Earth (a dark core where it is total, a wide partial shade around), the Moon turns copper in Earth's shadow, and in the sky view you watch from where it is best. On a phone, Compass turns the view with the phone itself: every direction on screen is then the real one, so lying flat it shows Earth from straight above you with north toward true north, and the sunlight comes from where the Sun really is. Set Sun to Stays still to keep the Sun in place during playback too. Clock mode flips the picture left to right: from above the North Pole, where Earth turns anticlockwise, the hours then run clockwise like a clock's. Only the map is reversed; the lighting is still the real lighting of the side facing you. Sundial clock does it the other way: the view turns so the Sun points at the clock's time, the hour marks hold still with 12 at the top, and the map holds still while the Sun goes round it clockwise as the hour hand, just as a shadow does on a northern sundial (which is why clocks run clockwise). The map creeps a few degrees over the year with the equation of time and turns 15° when daylight saving starts or ends. Each preset is a combination of settings; changing the view or the Sun setting leaves it. The hour ring and clock hands appear only over a pole or the orbit's normal, where they read true; the minute strip, marker and hand are left out while playing faster than 1 h/s.</p></details>
     <details><summary><h3>The shape of the night</h3></summary><p>Day and night meet along a great circle facing the Sun. From over the North Pole it projects to half an ellipse with semi-axes 1 and |sin δ|, where δ is the Sun's declination. At the equinoxes it is a straight diameter. In northern winter it bows toward the Sun and the pole sits in darkness; in summer it bows the other way. Pick Loop → Year to watch it swing: that loop steps one whole day at a time at a fixed clock time, so the continents hold still while the seasons change.</p></details>
     <details><summary><h3>Sizes and distances</h3></summary><p>Earth, the Moon and the Sun are drawn to one scale of size (the Moon 0.27 times Earth's width, the Sun 109 times) and their distances to another, shared by both: at 1× every distance is shortened about 34 times, so that seen over a pole the Moon always clears the ring. The Moon is drawn exactly where that puts it, so from a side-on view it passes in front of Earth or behind it. The Sun is then about 690 Earth radii away, far beyond the frame; what reaches the frame is its light, full at its disc and fading with distance from it, so over the few Earth radii shown it is an almost even warm wash, a little brighter on the Sun's side (the marker at the edge shows its direction). Each body sits in its true direction from Earth; when one is nearly in line with your viewpoint it moves in toward the centre and passes behind Earth, or in front of it. The lighting and the Moon's phase use the real directions, and the Moon shows its real face, nodding by up to about 8° each month (libration). Zooming in (pinch, or Ctrl-scroll) magnifies everything together; the maps of Earth and the Moon stay sharp to about 2–3×. Zooming out relaxes the shortening for both distances together: the Moon keeps its place while Earth shrinks, until at about 1/34× every distance is true; further out, the Sun comes into view as a disc a few pixels across with its glow, since from Earth it spans just half a degree. The zoom button's menu has a zoom slider and two other choices: distances always true, or always shortened (zoom far out and the Sun appears as a big glowing ball beside a small Earth). The corner caption says how much distances are shortened. The Sun's surface imitates the Sun in extreme ultraviolet (as NASA's Solar Dynamics Observatory sees it at 304 Å).</p></details>
     <details><summary><h3>Official time</h3></summary><p>The thin borders on land outline the real time zones as currently defined, daylight saving included, and pointing anywhere gives the official time there. The ring shows local solar time: 12 sits on the meridian directly under the Sun, between Earth and the Sun, and each hour mark 15° further east, so the ring turns with the Sun: still when the Sun is still, smoothly when it moves. Clock time differs from solar time by a place's time zone, by daylight saving, and by the equation of time (up to about 16 minutes), so the clock is shown separately: the amber city marker, or the hour hand, sits where the ring reads the clock city's official time, daylight saving included (UTC without a city). It is therefore turned away from the city's own meridian by that difference: about 1 h 15 min for Charlottesville in summer. The UTC mark sits where the ring reads UTC, close to the prime meridian. The outer strip is an ordinary minute dial, 0 at the top and one turn an hour; its white marker shows the minutes of the same clock. Each marker can be turned off under Overlays, and turning off the minute marker removes its strip. Under Clock hands you can draw hands instead (Meridian, Skeleton or Bezel; press H to cycle them): the hour hand points to the clock city's official hour on the ring, and the minute hand is an ordinary one. Above 1 h/s the minute hand is left out, since it would spin several turns a second.</p></details>
@@ -414,7 +451,7 @@ body.focus #overlay:focus-visible { outline: none; }
 
 <footer>
   <div class="wide gutter">
-    <p>Inspired by <a href="https://xkcd.com/1335/" target="_blank" rel="noopener">xkcd #1335, “Now”</a> by Randall Munroe (<a href="https://xkcd.com/license.html" target="_blank" rel="noopener">CC BY-NC 2.5</a>); Earthdial is an independent homage and does not reuse its artwork. Surface imagery: NASA Blue Marble (day) and Black Marble (night lights), public domain. Time-zone boundaries: timezone-boundary-builder 2025b, © OpenStreetMap contributors, ODbL. City list: city-timezones (MIT), from Natural Earth populated places. Official times come from your browser's time-zone database. Solar position from the standard low-precision almanac formulas, good to about 0.01°.</p>
+    <p>Inspired by <a href="https://xkcd.com/1335/" target="_blank" rel="noopener">xkcd #1335, “Now”</a> by Randall Munroe (<a href="https://xkcd.com/license.html" target="_blank" rel="noopener">CC BY-NC 2.5</a>); Earthdial is an independent homage and does not reuse its artwork. Surface imagery: NASA Blue Marble (day) and Black Marble (night lights), public domain. Time-zone boundaries: timezone-boundary-builder 2025b, © OpenStreetMap contributors, ODbL. City list: city-timezones (MIT), from Natural Earth populated places. Official times come from your browser's time-zone database. Sun: VSOP87 (Bretagnon &amp; Francou); Moon: ELP-2000/82 as truncated in Meeus, <i>Astronomical Algorithms</i>; nutation IAU 1980 (tables via PyMeeus). Stars and constellation figures: d3-celestial data (Olaf Frohn, BSD), from Hipparcos. Magnetic declination: World Magnetic Model 2025 (NOAA/BGS).</p>
   </div>
 </footer>
 
@@ -431,36 +468,97 @@ const norm360 = x => ((x % 360) + 360) % 360;
 const norm180 = x => { x = norm360(x); return x > 180 ? x - 360 : x; };
 const pad2 = n => String(n).padStart(2, "0");
 
-// ---------- Astronomy (low-precision almanac) ----------
+// ---------- Ephemeris (apparent geocentric Sun and Moon, of date) ----------
+// Sun: VSOP87D for the Earth (Bretagnon & Francou 1988), truncated; FK5 correction, nutation and aberration as in
+// Meeus, Astronomical Algorithms, ch. 25. Moon: ELP-2000/82 as truncated by Meeus, ch. 47 (about 10" in longitude).
+// Nutation: IAU 1980, 63 terms (Meeus table 22.A). Times: TT = UTC + ΔT (a table of observed ΔT, extrapolated).
+const EPH = {"L":[[[175347045.673,0.0,0.0],[3341656.456,4.66925680417,6283.07584999],[34894.275,4.62610241759,12566.15169998],[3417.571,2.82886579606,3.52311835],[3497.056,2.74411800971,5753.3848849],[3135.896,3.62767041758,77713.77146812],[2676.218,4.41808351397,7860.41939244],[2342.687,6.13516237631,3930.20969622],[1273.166,2.03709655772,529.69096509],[1324.292,0.74246356352,11506.76976979],[901.855,2.04505443513,26.2983198],[1199.167,1.10962944315,1577.34354245],[857.223,3.50849156957,398.14900341],[779.786,1.17882652114,5223.6939198],[990.25,5.23268129594,5884.92684658],[753.141,2.53339053818,5507.55323867],[505.264,4.58292563052,18849.22754997],[492.379,4.20506639861,775.52261132],[356.655,2.91954116867,0.0673103],[284.125,1.89869034186,796.29800682],[242.81,0.34481140906,5486.77784318],[317.087,5.84901952218,11790.62908866],[271.039,0.31488607649,10977.0788047],[206.16,4.80646606059,2544.31441988],[205.385,1.86947813692,5573.14280143],[202.261,2.45767795458,6069.77675455],[126.184,1.0830263021,20.77539549],[155.516,0.83306073807,213.29909544],[115.132,0.64544911683,0.98032107],[102.851,0.63599846727,4694.00295471],[101.724,4.26679821365,7.113547],[99.206,6.20992940258,2146.16541648],[132.212,3.41118275555,2942.46342329],[97.607,0.6810127227,155.42039943],[85.128,1.29870743025,6275.96230299],[74.651,1.75508916159,5088.62883977],[101.895,0.97569221824,15720.83878488],[84.711,3.67080093025,71430.69561813],[73.547,4.67926565481,801.82093112],[73.874,3.50319443167,3154.6870849],[78.756,3.03698313141,12036.46073489],[79.637,1.807913307,17260.15465469],[85.803,5.98322631256,161000.68573767],[56.963,2.78430398043,6286.59896834],[61.148,1.81839811024,7084.89678112],[69.627,0.83297596966,9437.76293489],[56.116,4.38694880779,14143.49524243],[62.449,3.97763880587,8827.39026987],[51.145,0.28306864501,5856.47765912],[55.577,3.47006009062,6279.55273164],[41.036,5.36817351402,8429.24126647],[51.605,1.33282746983,1748.01641307],[51.992,0.18914945834,12139.55350911],[49.0,0.48735065033,1194.44701022],[39.2,6.16832995016,10447.3878396],[35.566,1.77597314691,6812.76681509],[36.77,6.04133859347,10213.28554621],[36.596,2.56955238628,1059.38193019],[33.291,0.59309499459,17789.84561978],[35.954,1.70876111898,2352.86615377],[40.938,2.39850881707,19651.0484811],[30.047,2.73975123935,1349.86740966],[30.412,0.44294464135,83996.84731811],[23.663,0.48473567763,8031.09226306],[23.574,2.06527720049,3340.6124267],[21.089,4.14825464101,951.71840625],[24.738,0.21484762138,3.59042865],[25.352,3.16470953405,4690.47983636],[22.82,5.22197888032,4705.73230754],[21.419,1.42563735525,16730.4636896],[21.891,5.55594302562,553.56940284],[17.481,4.56052900359,135.06508004],[19.925,5.22208471269,12168.00269657],[19.86,5.77470167653,6309.37416979],[20.3,0.37133792946,283.85931887],[14.421,4.19315332546,242.72860397],[16.225,5.98837722564,11769.85369317],[15.077,4.19567181073,6256.77753019],[19.124,3.82219996949,23581.25817732],[18.888,5.38626880969,149854.40013481],[14.346,3.72355084422,38.02767264],[17.898,2.21490735647,13367.97263111],[12.054,2.62229588349,955.59974161],[11.287,0.17739328092,4164.31198961],[13.971,4.40138139996,6681.2248534],[13.621,1.88934471407,7632.94325965],[12.503,1.13052412208,5.52292431],[10.498,5.35909518669,1592.59601363],[9.803,0.99947478995,11371.70468976],[9.22,4.57138609781,4292.33083295],[10.327,6.19982566125,6438.49624943],[12.003,1.003514567,632.78373931],[10.827,0.32734520222,103.09277422],[8.356,4.53902685948,25132.30339997],[10.005,6.0291496328,5746.2713379],[8.409,3.29946744189,7234.79425624],[8.006,5.82145271907,28.44918747],[10.523,0.93871805506,11926.25441367],[7.686,3.12142363172,7238.6755916],[9.378,2.62414241032,5760.4984319],[8.127,6.11228001785,4732.03062734],[9.232,0.48343968736,522.57741809],[9.802,5.24413991147,27511.46787354],[7.871,0.99590177926,5643.17856368],[8.123,6.2705301365,426.59819088],[9.048,5.33686335897,6386.16862421],[8.62,4.16538210888,7058.59846132],[6.297,4.71724819317,6836.64525283],[7.575,3.97382858911,11499.65622279],[7.756,2.95729056763,23013.53953959],[7.314,0.60652505806,11513.88331679],[5.955,2.87641047971,6283.14316029],[6.534,5.79072926033,18073.70493865],[7.188,3.99831508699,74.78159857],[7.346,4.38582365437,316.39186966],[5.413,5.39199024641,419.48464388],[5.127,2.36062848786,10973.55568635],[7.056,0.32258441903,263.08392337],[6.625,3.66475158672,17298.18232733],[6.762,5.91132535899,90955.5516945],[5.547,2.45152597661,12352.85260454],[5.958,3.32051344676,6283.00853969],[6.153,1.45823331144,233141.31440436],[6.123,1.07494905258,19804.82729158],[5.188,4.06503864016,6208.29425142],[5.307,0.38217636096,31441.67756976]],[[628331966747.491,0.0,0.0],[206058.863,2.67823455584,6283.07584999],[4303.43,2.63512650414,12566.15169998],[425.264,1.59046980729,3.52311835],[108.977,2.96618001993,1577.34354245],[93.478,2.59212835365,18849.22754997],[119.261,5.79557487799,26.2983198],[72.122,1.13846158196,529.69096509],[67.768,1.87472304791,398.14900341],[67.327,4.40918235168,5507.55323867],[59.027,2.8879703846,5223.6939198],[55.976,2.17471680261,155.42039943]],[[52918.87,0.0,0.0],[8719.837,1.07209665242,6283.07584999]],[],[],[]],"B":[[[279.62,3.19870156017,84334.66158131],[101.643,5.42248619256,5507.55323867],[80.445,3.88013204458,5223.6939198],[43.806,3.70444689758,2352.86615377],[31.933,4.00026369781,1577.34354245],[22.724,3.9847383156,1047.74731175],[16.392,3.56456119782,5856.47765912],[18.141,4.98367470263,6283.07584999],[14.443,3.70275614914,9437.76293489],[14.304,3.41117857525,10213.28554621],[11.246,4.8282069053,14143.49524243],[10.9,2.08574562327,6812.76681509],[9.714,3.47303947752,4694.00295471],[10.367,4.05663927946,71092.88135493],[8.775,4.44016515669,5753.3848849],[8.366,4.9925151218,7084.89678112],[6.921,4.32559054073,6275.96230299],[9.145,1.14182646613,6620.89011319],[7.194,3.60193205752,529.69096509],[7.698,5.55425745881,167621.57585086],[5.285,2.48446991566,4705.73230754],[5.208,6.24992674537,18073.70493865],[5.579,4.41023653738,7860.41939244]],[],[],[],[]],"R":[[[100013988.799,0.0,0.0],[1670699.626,3.09846350771,6283.07584999],[13956.023,3.0552460962,12566.15169998],[3083.72,5.19846674381,77713.77146812],[1628.461,1.17387749012,5753.3848849],[1575.568,2.84685245825,7860.41939244],[924.799,5.45292234084,11506.76976979],[542.444,4.56409149777,3930.20969622],[472.11,3.66100022149,5884.92684658],[328.78,5.89983646482,5223.6939198],[345.983,0.96368617687,5507.55323867],[306.784,0.29867139512,5573.14280143],[174.844,3.01193636534,18849.22754997],[243.189,4.27349536153,11790.62908866],[211.829,5.84714540314,1577.34354245],[185.752,5.02194447178,10977.0788047],[109.835,5.05510636285,5486.77784318],[98.316,0.88681311277,6069.77675455],[86.499,5.68959778254,15720.83878488],[85.825,1.27083733351,161000.68573767],[62.916,0.92177108832,529.69096509],[57.056,2.01374292014,83996.84731811],[64.903,0.27250613787,17260.15465469],[49.384,3.24501240359,2544.31441988],[55.736,5.24159798933,71430.69561813],[42.515,6.01110242003,6275.96230299],[46.963,2.57805070386,775.52261132],[38.968,5.36071738169,4694.00295471],[44.661,5.53715807302,9437.76293489],[35.66,1.67468058995,12036.46073489],[31.921,0.18368229781,5088.62883977],[31.846,1.77775642085,398.14900341],[33.193,0.24370300098,7084.89678112],[38.245,2.39255343974,8827.39026987],[28.464,1.21344868176,6286.59896834],[37.49,0.82952922332,19651.0484811],[36.957,4.90107591914,12139.55350911],[34.537,1.84270693282,2942.46342329],[26.275,4.58896850401,10447.3878396],[24.596,3.78660875483,8429.24126647],[23.587,0.26866117066,796.29800682],[27.793,1.89934330904,6279.55273164],[23.927,4.99598548138,5856.47765912],[20.349,4.65267995431,2146.16541648],[23.287,2.80783650928,14143.49524243],[22.103,1.95004702988,3154.6870849],[19.506,5.38227371393,2352.86615377],[17.958,0.19871379385,6812.76681509],[17.174,4.43315560735,10213.28554621],[16.19,5.23160507859,17789.84561978],[17.314,6.15200787916,16730.4636896],[13.814,5.18962074032,8031.09226306],[18.833,0.67306674027,149854.40013481],[18.331,2.25348733734,23581.25817732],[13.641,3.68516118804,4705.73230754],[13.139,0.65289581324,13367.97263111],[10.414,4.33285688538,11769.85369317],[9.978,4.20126336355,6309.37416979],[10.169,1.59390681369,4690.47983636],[7.564,2.6256059739,6256.77753019],[9.661,3.6758679122,27511.46787354],[6.743,0.56270332741,3340.6124267],[8.743,6.06359123461,1748.01641307],[7.786,3.67371235637,12168.00269657],[6.633,5.66149277792,11371.70468976],[7.712,0.31242577789,7632.94325965],[6.592,3.13576266188,801.82093112],[7.46,5.64757188143,11926.25441367],[6.933,2.923845864,6681.2248534],[6.802,1.4232980642,23013.53953959],[6.115,5.13393615454,1194.44701022],[6.477,2.64986648492,19804.82729158],[5.233,4.62434053374,6438.49624943],[6.147,3.02863936662,233141.31440436],[5.314,2.40716580847,11499.65622279],[5.128,5.3239896569,11513.88331679],[5.519,2.09089154502,17298.18232733],[5.625,4.34052903053,90955.5516945],[5.337,5.09957905104,31441.67756976]],[[103018.608,1.10748969588,6283.07584999],[1721.238,1.06442301418,12566.15169998],[702.215,3.14159265359,0.0]],[[4359.385,5.78455133738,6283.07584999]],[],[],[]],"mLR":[[0,0,1,0,6288774,-20905355],[2,0,-1,0,1274027,-3699111],[2,0,0,0,658314,-2955968],[0,0,2,0,213618,-569925],[0,1,0,0,-185116,48888],[0,0,0,2,-114332,-3149],[2,0,-2,0,58793,246158],[2,-1,-1,0,57066,-152138],[2,0,1,0,53322,-170733],[2,-1,0,0,45758,-204586],[0,1,-1,0,-40923,-129620],[1,0,0,0,-34720,108743],[0,1,1,0,-30383,104755],[2,0,0,-2,15327,10321],[0,0,1,2,-12528,0],[0,0,1,-2,10980,79661],[4,0,-1,0,10675,-34782],[0,0,3,0,10034,-23210],[4,0,-2,0,8548,-21636],[2,1,-1,0,-7888,24208],[2,1,0,0,-6766,30824],[1,0,-1,0,-5163,-8379],[1,1,0,0,4987,-16675],[2,-1,1,0,4036,-12831],[2,0,2,0,3994,-10445],[4,0,0,0,3861,-11650],[2,0,-3,0,3665,14403],[0,1,-2,0,-2689,-7003],[2,0,-1,2,-2602,0],[2,-1,-2,0,2390,10056],[1,0,1,0,-2348,6322],[2,-2,0,0,2236,-9884],[0,1,2,0,-2120,5751],[0,2,0,0,-2069,0],[2,-2,-1,0,2048,-4950],[2,0,1,-2,-1773,4130],[2,0,0,2,-1595,0],[4,-1,-1,0,1215,-3958],[0,0,2,2,-1110,0],[3,0,-1,0,-892,3258],[2,1,1,0,-810,2616],[4,-1,-2,0,759,-1897],[0,2,-1,0,-713,-2117],[2,2,-1,0,-700,2354],[2,1,-2,0,691,0],[2,-1,0,-2,596,0],[4,0,1,0,549,-1423],[0,0,4,0,537,-1117],[4,-1,0,0,520,-1571],[1,0,-2,0,-487,-1739],[2,1,0,-2,-399,0],[0,0,2,-2,-381,-4421],[1,1,1,0,351,0],[3,0,-2,0,-340,0],[4,0,-3,0,330,0],[2,-1,2,0,327,0],[0,2,1,0,-323,1165],[1,1,-1,0,299,0],[2,0,3,0,294,0],[2,0,-1,-2,0,8752]],"mB":[[0,0,0,1,5128122],[0,0,1,1,280602],[0,0,1,-1,277693],[2,0,0,-1,173237],[2,0,-1,1,55413],[2,0,-1,-1,46271],[2,0,0,1,32573],[0,0,2,1,17198],[2,0,1,-1,9266],[0,0,2,-1,8822],[2,-1,0,-1,8216],[2,0,-2,-1,4324],[2,0,1,1,4200],[2,1,0,-1,-3359],[2,-1,-1,1,2463],[2,-1,0,1,2211],[2,-1,-1,-1,2065],[0,1,-1,-1,-1870],[4,0,-1,-1,1828],[0,1,0,1,-1794],[0,0,0,3,-1749],[0,1,-1,1,-1565],[1,0,0,1,-1491],[0,1,1,1,-1475],[0,1,1,-1,-1410],[0,1,0,-1,-1344],[1,0,0,-1,-1335],[0,0,3,1,1107],[4,0,0,-1,1021],[4,0,-1,1,833],[0,0,1,-3,777],[4,0,-2,1,671],[2,0,0,-3,607],[2,0,2,-1,596],[2,-1,1,-1,491],[2,0,-2,1,-451],[0,0,3,-1,439],[2,0,2,1,422],[2,0,-3,-1,421],[2,1,-1,1,-366],[2,1,0,1,-351],[4,0,0,1,331],[2,-1,1,1,315],[2,-2,0,-1,302],[0,0,1,3,-283],[2,1,1,-1,-229],[1,1,0,-1,223],[1,1,0,1,223],[0,1,-2,-1,-220],[2,1,-1,-1,-220],[1,0,1,1,-185],[2,-1,-2,-1,181],[0,1,2,1,-177],[4,0,-2,-1,176],[4,-1,-1,-1,166],[1,0,1,-1,-164],[4,0,1,-1,132],[1,0,-1,-1,-119],[4,-1,0,-1,115],[2,-2,0,1,107]],"nutArg":[[0,0,0,0,1],[-2,0,0,2,2],[0,0,0,2,2],[0,0,0,0,2],[0,1,0,0,0],[0,0,1,0,0],[-2,1,0,2,2],[0,0,0,2,1],[0,0,1,2,2],[-2,-1,0,2,2],[-2,0,1,0,0],[-2,0,0,2,1],[0,0,-1,2,2],[2,0,0,0,0],[0,0,1,0,1],[2,0,-1,2,2],[0,0,-1,0,1],[0,0,1,2,1],[-2,0,2,0,0],[0,0,-2,2,1],[2,0,0,2,2],[0,0,2,2,2],[0,0,2,0,0],[-2,0,1,2,2],[0,0,0,2,0],[-2,0,0,2,0],[0,0,-1,2,1],[0,2,0,0,0],[2,0,-1,0,1],[-2,2,0,2,2],[0,1,0,0,1],[-2,0,1,0,1],[0,-1,0,0,1],[0,0,2,-2,0],[2,0,-1,2,1],[2,0,1,2,2],[0,1,0,2,2],[-2,1,1,0,0],[0,-1,0,2,2],[2,0,0,2,1],[2,0,1,0,0],[-2,0,2,2,2],[-2,0,1,2,1],[2,0,-2,0,1],[2,0,0,0,1],[0,-1,1,0,0],[-2,-1,0,2,1],[-2,0,0,0,1],[0,0,2,2,1],[-2,0,2,0,1],[-2,1,0,2,1],[0,0,1,-2,0],[-1,0,1,0,0],[-2,1,0,0,0],[1,0,0,0,0],[0,0,1,2,0],[0,0,-2,2,2],[-1,-1,1,0,0],[0,1,1,0,0],[0,-1,1,2,2],[2,-1,-1,2,2],[0,0,3,2,2],[2,-1,0,2,2]],"nutSin":[[-171996.0,-174.2],[-13187.0,-1.6],[-2274.0,-0.2],[2062.0,0.2],[1426.0,-3.4],[712.0,0.1],[-517.0,1.2],[-386.0,-0.4],[-301.0,0.0],[217.0,-0.5],[-158.0,0.0],[129.0,0.1],[123.0,0.0],[63.0,0.0],[63.0,0.1],[-59.0,0.0],[-58.0,-0.1],[-51.0,0.0],[48.0,0.0],[46.0,0.0],[-38.0,0.0],[-31.0,0.0],[29.0,0.0],[29.0,0.0],[26.0,0.0],[-22.0,0.0],[21.0,0.0],[17.0,-0.1],[16.0,0.0],[-16.0,0.1],[-15.0,0.0],[-13.0,0.0],[-12.0,0.0],[11.0,0.0],[-10.0,0.0],[-8.0,0.0],[7.0,0.0],[-7.0,0.0],[-7.0,0.0],[-7.0,0.0],[6.0,0.0],[6.0,0.0],[6.0,0.0],[-6.0,0.0],[-6.0,0.0],[5.0,0.0],[-5.0,0.0],[-5.0,0.0],[-5.0,0.0],[4.0,0.0],[4.0,0.0],[4.0,0.0],[-4.0,0.0],[-4.0,0.0],[-4.0,0.0],[3.0,0.0],[-3.0,0.0],[-3.0,0.0],[-3.0,0.0],[-3.0,0.0],[-3.0,0.0],[-3.0,0.0],[-3.0,0.0]],"nutCos":[[92025.0,8.9],[5736.0,-3.1],[977.0,-0.5],[-895.0,0.5],[54.0,-0.1],[-7.0,0.0],[224.0,-0.6],[200.0,0.0],[129.0,-0.1],[-95.0,0.3],[0.0,0.0],[-70.0,0.0],[-53.0,0.0],[0.0,0.0],[-33.0,0.0],[26.0,0.0],[32.0,0.0],[27.0,0.0],[0.0,0.0],[-24.0,0.0],[16.0,0.0],[13.0,0.0],[0.0,0.0],[-12.0,0.0],[0.0,0.0],[0.0,0.0],[-10.0,0.0],[0.0,0.0],[-8.0,0.0],[7.0,0.0],[9.0,0.0],[7.0,0.0],[6.0,0.0],[0.0,0.0],[5.0,0.0],[3.0,0.0],[-3.0,0.0],[0.0,0.0],[3.0,0.0],[3.0,0.0],[0.0,0.0],[-3.0,0.0],[-3.0,0.0],[3.0,0.0],[3.0,0.0],[0.0,0.0],[3.0,0.0],[3.0,0.0],[3.0,0.0]]};
+const DT_TABLE = [   // ΔT in seconds, every 5 years from 1900 (observed), then 2026
+  -2.79, 3.86, 10.46, 17.2, 21.16, 23.62, 24.02, 23.93, 24.33, 26.77, 29.15, 31.07, 33.15, 35.73, 40.18, 45.48,
+  50.54, 54.34, 56.86, 60.78, 63.83, 64.69, 66.07, 67.64, 69.36, 69.2];
+function deltaT(year) {
+  if (year >= 1900 && year <= 2025) { const f = (year - 1900) / 5, i = Math.min(24, Math.floor(f)); return DT_TABLE[i] + (DT_TABLE[i + 1] - DT_TABLE[i]) * (f - i); }
+  if (year > 2025 && year <= 2050) return 69.2 + 0.1 * (year - 2025);                  // nearly flat lately
+  if (year > 2050 && year < 2150) return -20 + 32 * ((year - 1820) / 100) ** 2 - 0.5628 * (2150 - year);   // Espenak & Meeus
+  const u = (year - 1820) / 100; return -20 + 32 * u * u;                                // long-term parabola
+}
+function vsop(series, tau) {
+  let s = 0, tp = 1;
+  for (const terms of series) { let a = 0; for (const [A, B, C] of terms) a += A * Math.cos(B + C * tau); s += a * tp; tp *= tau; }
+  return s * 1e-8;
+}
+const nrm = x => ((x % 360) + 360) % 360;
+function ephem(ms) {
+  const jdUT = ms / 86400000 + 2440587.5, year = 2000 + (jdUT - 2451545) / 365.25;
+  const jde = jdUT + deltaT(year) / 86400, T = (jde - 2451545) / 36525, tau = T / 10, DR = Math.PI / 180;
+  // nutation and obliquity (Meeus ch. 22)
+  const nD = 297.85036 + T * (445267.11148 + T * (-0.0019142 + T / 189474)), nM = 357.52772 + T * (35999.05034 + T * (-0.0001603 - T / 300000));
+  const nMp = 134.96298 + T * (477198.867398 + T * (0.0086972 + T / 56250)), nF = 93.27191 + T * (483202.017538 + T * (-0.0036825 + T / 327270));
+  const nO = 125.04452 + T * (-1934.136261 + T * (0.0020708 + T / 450000)), args = [nD, nM, nMp, nF, nO];
+  let dpsi = 0, deps = 0;
+  for (let i = 0; i < EPH.nutArg.length; i++) {
+    const r = EPH.nutArg[i], a = (r[0] * args[0] + r[1] * args[1] + r[2] * args[2] + r[3] * args[3] + r[4] * args[4]) * DR;
+    dpsi += (EPH.nutSin[i][0] + EPH.nutSin[i][1] * T) * Math.sin(a);
+    const c = EPH.nutCos[i]; if (c) deps += (c[0] + c[1] * T) * Math.cos(a);   // the last terms have no obliquity part
+  }
+  dpsi /= 36000000; deps /= 36000000;                                   // 0.0001" -> degrees
+  const eps0 = 23.43929111 - T * (46.815 + T * (0.00059 - T * 0.001813)) / 3600, eps = eps0 + deps;
+  // the Sun (Meeus ch. 25, higher accuracy)
+  const L = vsop(EPH.L, tau) / DR, B = vsop(EPH.B, tau) / DR, R = vsop(EPH.R, tau);
+  let sl = nrm(L + 180), sb = -B;
+  const Lp = (sl - 1.397 * T - 0.00031 * T * T) * DR;
+  sl += -0.09033 / 3600; sb += 0.03916 / 3600 * (Math.cos(Lp) - Math.sin(Lp));
+  sl = nrm(sl + dpsi - 20.4898 / 3600 / R);
+  // the Moon (Meeus ch. 47)
+  const Lm = 218.3164477 + T * (481267.88123421 + T * (-0.0015786 + T * (1 / 538841 - T / 65194000)));
+  const D = 297.8501921 + T * (445267.1114034 + T * (-0.0018819 + T * (1 / 545868 - T / 113065000)));
+  const M = 357.5291092 + T * (35999.0502909 + T * (-0.0001536 + T / 24490000));
+  const Mp = 134.9633964 + T * (477198.8675055 + T * (0.0087414 + T * (1 / 69699 - T / 14712000)));
+  const F = 93.272095 + T * (483202.0175233 + T * (-0.0036539 + T * (-1 / 3526000 + T / 863310000)));
+  const A1 = 119.75 + 131.849 * T, A2 = 53.09 + 479264.29 * T, A3 = 313.45 + 481266.484 * T, E = 1 - T * (0.002516 + 0.0000074 * T);
+  let Sl = 0, Sr = 0, Sb = 0;
+  for (const [d, m, mp, f, cl, cr] of EPH.mLR) {
+    const a = (d * D + m * M + mp * Mp + f * F) * DR, e = m === 0 ? 1 : Math.abs(m) === 1 ? E : E * E;
+    Sl += cl * e * Math.sin(a); Sr += cr * e * Math.cos(a);
+  }
+  for (const [d, m, mp, f, cb] of EPH.mB) {
+    const a = (d * D + m * M + mp * Mp + f * F) * DR, e = m === 0 ? 1 : Math.abs(m) === 1 ? E : E * E;
+    Sb += cb * e * Math.sin(a);
+  }
+  Sl += 3958 * Math.sin(A1 * DR) + 1962 * Math.sin((Lm - F) * DR) + 318 * Math.sin(A2 * DR);
+  Sb += -2235 * Math.sin(Lm * DR) + 382 * Math.sin(A3 * DR) + 175 * Math.sin((A1 - F) * DR) + 175 * Math.sin((A1 + F) * DR)
+      + 127 * Math.sin((Lm - Mp) * DR) - 115 * Math.sin((Lm + Mp) * DR);
+  const ml = nrm(Lm + Sl / 1e6 + dpsi), mb = Sb / 1e6, mdist = 385000.56 + Sr / 1000;
+  // sidereal time (Meeus 12.4, with UT) and the equation of the equinoxes
+  const d0 = jdUT - 2451545, Tu = d0 / 36525;
+  const gmst = nrm(280.46061837 + 360.98564736629 * d0 + Tu * Tu * (0.000387933 - Tu / 38710000));
+  const gast = nrm(gmst + dpsi * Math.cos(eps * DR));
+  // the Sun's mean longitude (for the equation of time, Meeus 28.3)
+  const L0 = nrm(280.4664567 + tau * (360007.6982779 + tau * (0.03032028 + tau * (1 / 49931 - tau * (1 / 15300 + tau / 2000000)))));
+  return { jdUT, jde, T, dpsi, deps, eps, sunLam: sl, sunBet: sb, sunR: R, moonLam: ml, moonBet: mb, moonKm: mdist, gmst, gast, L0, Lm, Om: nO };
+}
+// ecliptic (λ, β) of date -> equatorial (α, δ) of date, degrees
+function ecl2eq(lam, bet, eps) {
+  const DR = Math.PI / 180, l = lam * DR, b = bet * DR, e = eps * DR;
+  const ra = Math.atan2(Math.sin(l) * Math.cos(e) - Math.tan(b) * Math.sin(e), Math.cos(l)) / DR;
+  const dec = Math.asin(Math.sin(b) * Math.cos(e) + Math.cos(b) * Math.sin(e) * Math.sin(l)) / DR;
+  return [((ra % 360) + 360) % 360, dec];
+}
+if (typeof module !== "undefined") module.exports = { ephem, ecl2eq, deltaT };
+
+// ---------- Astronomy ----------
+// Apparent geocentric positions of date (ephem above: VSOP87 Sun, ELP/Meeus Moon, IAU 1980 nutation, ΔT). Earth-fixed
+// coordinates are turned from the equator of date by the apparent sidereal time.
 function solar(ms) {
-  const d = ms / 86400000 + 2440587.5 - 2451545.0;
-  const g = norm360(357.529 + 0.98560028 * d) * D2R;
-  const q = norm360(280.459 + 0.98564736 * d);
-  const lam = norm360(q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g));
-  const eps = 23.439 - 0.00000036 * d;
-  const gmst = norm360(280.46061837 + 360.98564736629 * d);
-  const l = lam * D2R, e = eps * D2R;
-  const ra = norm360(Math.atan2(Math.cos(e) * Math.sin(l), Math.cos(l)) * R2D);
-  const dec = Math.asin(Math.sin(e) * Math.sin(l)) * R2D;
-  const eot = norm180(q - ra) * 4; // minutes
+  const E = ephem(ms), T = E.T, eps = E.eps, e = eps * D2R, lam = E.sunLam;
+  const [ra, dec] = ecl2eq(E.sunLam, E.sunBet, eps);
+  const gmst = E.gast;                                                   // apparent Greenwich sidereal time
+  const eot = norm180(E.L0 - 0.0057183 - ra + E.dpsi * Math.cos(e)) * 4; // minutes (Meeus 28.3)
   const subLon = norm180(ra - gmst);
-  const dr = dec * D2R;
-  const rAU = 1.00014 - 0.01671 * Math.cos(g) - 0.00014 * Math.cos(2 * g);
+  const dr = dec * D2R, rAU = E.sunR;
   const sunDiam = 2 * Math.asin(695700 / (rAU * 149597870.7)) * R2D;
-  // Moon: low-precision geocentric ecliptic position (Astronomical Almanac, ~0.3°)
-  const T = d / 36525, S_ = x => Math.sin(x * D2R);
-  const mLam = 218.32 + 481267.881 * T + 6.29 * S_(134.9 + 477198.85 * T) - 1.27 * S_(259.2 - 413335.38 * T)
-             + 0.66 * S_(235.7 + 890534.23 * T) + 0.21 * S_(269.9 + 954397.70 * T)
-             - 0.19 * S_(357.5 + 35999.05 * T) - 0.11 * S_(186.6 + 966404.05 * T);
-  const C_ = x => Math.cos(x * D2R);
-  const mPar = 0.9508 + 0.0518 * C_(134.9 + 477198.85 * T) + 0.0095 * C_(259.2 - 413335.38 * T)
-             + 0.0078 * C_(235.7 + 890534.23 * T) + 0.0028 * C_(269.9 + 954397.70 * T);   // horizontal parallax, degrees
-  const moonDist = 1 / Math.sin(mPar * D2R), sunDist = rAU * 149597870.7 / 6371;            // in Earth radii
-  const mBet = 5.13 * S_(93.3 + 483202.03 * T) + 0.28 * S_(228.2 + 960400.87 * T)
-             - 0.28 * S_(318.3 + 6003.18 * T) - 0.17 * S_(217.6 - 407332.20 * T);
-  const cb = Math.cos(mBet * D2R), sb = Math.sin(mBet * D2R), cl = Math.cos(mLam * D2R), sl = Math.sin(mLam * D2R);
-  const mx = cb * cl, my = cb * sl * Math.cos(e) - sb * Math.sin(e), mz = cb * sl * Math.sin(e) + sb * Math.cos(e);
-  const moonRA = norm360(Math.atan2(my, mx) * R2D), moonDec = Math.asin(mz) * R2D;
+  const moonDist = E.moonKm / 6378.14, sunDist = rAU * 149597870.7 / 6371;   // in Earth radii
+  const [moonRA, moonDec] = ecl2eq(E.moonLam, E.moonBet, eps);
   // direction (RA α, dec δ) in the Sun-fixed frame V: [cos δ cos(α − α☉), cos δ sin(α − α☉), sin δ]
   const toV = (a, dd) => { const da = (a - ra) * D2R, c = Math.cos(dd * D2R); return [c * Math.cos(da), c * Math.sin(da), Math.sin(dd * D2R)]; };
   const mV = toV(moonRA, moonDec), sV = [Math.cos(dr), 0, Math.sin(dr)];   // the Moon's and the Sun's directions in V
@@ -469,7 +567,7 @@ function solar(ms) {
   // prime meridian at angle L′ − Ω along its equator from the equator's ascending node (Ω + 180°), so longitude 0
   // faces Earth's mean direction and the real direction wanders by the optical librations (up to ~8°).
   // Expressed in Earth-fixed coordinates (ecliptic -> equatorial -> turned by −GMST), like everything A maps.
-  const Om = (125.04452 - 1934.136261 * T) * D2R, Lm = (218.3164477 + 481267.88123421 * T) * D2R, In = 1.54242 * D2R;
+  const Om = E.Om * D2R, Lm = E.Lm * D2R, In = 1.54242 * D2R;
   const ecl2ef = v => { const y = v[1] * Math.cos(e) - v[2] * Math.sin(e), z = v[1] * Math.sin(e) + v[2] * Math.cos(e), gg = gmst * D2R;
     return [v[0] * Math.cos(gg) + y * Math.sin(gg), -v[0] * Math.sin(gg) + y * Math.cos(gg), z]; };
   const mPole = [Math.sin(In) * Math.cos(Om + Math.PI / 2), Math.sin(In) * Math.sin(Om + Math.PI / 2), Math.cos(In)];
@@ -480,6 +578,32 @@ function solar(ms) {
   const moonEast = [moonPole[1] * moonPM[2] - moonPole[2] * moonPM[1], moonPole[2] * moonPM[0] - moonPole[0] * moonPM[2], moonPole[0] * moonPM[1] - moonPole[1] * moonPM[0]];
   return { lam, eps, gmst, ra, dec, eot, subLon, subLat: dec, rAU, sunDiam, sunV: [Math.cos(dr), 0, Math.sin(dr)],
            moonV: toV(moonRA, moonDec), moonRA, moonDec, moonSubLon: norm180(moonRA - gmst), elong, moonDist, sunDist, moonPole, moonPM, moonEast };
+}
+
+// Seen from a place on Earth (geodetic latitude φ, longitude λ, height h km; WGS84): topocentric directions in local
+// East-North-Up, altitude and azimuth (from north, through east). The Moon's parallax (up to ~1°) is what makes an
+// eclipse total in one town and partial in the next. Refraction (Saemundsson) lifts what is near the horizon.
+const WGS_A = 6378.137, WGS_B = 6356.752314;
+function observerEF(lat, lon, h = 0) {                     // km, Earth-fixed
+  const p = lat * D2R, u = Math.atan(WGS_B / WGS_A * Math.tan(p));
+  const rs = WGS_B / WGS_A * Math.sin(u) + h / WGS_A * Math.sin(p), rc = Math.cos(u) + h / WGS_A * Math.cos(p);
+  return [WGS_A * rc * Math.cos(lon * D2R), WGS_A * rc * Math.sin(lon * D2R), WGS_A * rs];
+}
+function efToENU(v, lat, lon) {
+  const p = lat * D2R, l = lon * D2R, sp = Math.sin(p), cp = Math.cos(p), sl = Math.sin(l), cl = Math.cos(l);
+  return [-sl * v[0] + cl * v[1], -sp * cl * v[0] - sp * sl * v[1] + cp * v[2], cp * cl * v[0] + cp * sl * v[1] + sp * v[2]];
+}
+const refract = h => h < -1.5 ? 0 : 1.02 / Math.tan((h + 10.3 / (h + 5.11)) * D2R) / 60;   // degrees, true -> apparent
+function topo(s, lat, lon, h = 0) {
+  const O = observerEF(lat, lon, h), AU = 149597870.7;
+  const body = (dec, sublon, km) => {
+    const g = ll2v(dec, sublon), v = [g[0] * km - O[0], g[1] * km - O[1], g[2] * km - O[2]], d = Math.hypot(v[0], v[1], v[2]);
+    const enu = efToENU(v.map(x => x / d), lat, lon), alt0 = Math.asin(Math.max(-1, Math.min(1, enu[2]))) * R2D;
+    return { enu, ef: v.map(x => x / d), dist: d, alt0, alt: alt0 + refract(alt0), az: norm360(Math.atan2(enu[0], enu[1]) * R2D) };
+  };
+  const sun = body(s.dec, s.subLon, s.rAU * AU), moon = body(s.moonDec, s.moonSubLon, s.moonDist * 6378.14);
+  sun.diam = 2 * Math.asin(695700 / sun.dist) * R2D; moon.diam = 2 * Math.asin(1737.4 / moon.dist) * R2D;
+  return { sun, moon, sep: Math.acos(Math.max(-1, Math.min(1, dot(sun.ef, moon.ef)))) * R2D };
 }
 
 // Sun-fixed frame V: z = Earth's axis, x = equatorial direction of the Sun's meridian, y = z × x.
@@ -621,11 +745,26 @@ const FS_HEAD = `#extension GL_OES_standard_derivatives : enable
 const FS = `precision highp float;
 varying vec2 vPos;
 uniform mat3 uM; uniform vec3 uSun; uniform vec2 uSunScr; uniform float uZoneOn;
+uniform vec3 uMoonP; uniform float uSunD;   // the Moon's centre and the Sun's distance, true, in Earth radii (view frame)
 uniform sampler2D uDay, uNight, uZone, uLut;
 const float PI = 3.141592653589793;
 vec4 lut(vec2 t){ float i = floor(texture2D(uZone, t).r * 255.0 + 0.5); return texture2D(uLut, vec2((i + 0.5) / 128.0, 0.5)); }
 // a border only between two land zones whose official offsets differ (open-ocean nautical zones get no lines)
 float edgeTo(vec2 t, vec4 l){ vec4 n = lut(t); return step(0.002, abs(n.g - l.g)) * step(n.b, 0.5); }
+// The fraction of the Sun's disc seen from the surface point v that the Moon leaves uncovered (1 outside an eclipse)
+float sunShow(vec3 v){
+  vec3 dS = uSun * uSunD - v; float lS = length(dS); dS /= lS;
+  vec3 dM = uMoonP - v; float lM = length(dM); dM /= lM;
+  if (dot(dS, dM) < 0.9995) return 1.0;
+  float rs = asin(109.08 / lS), rm = asin(0.27240 / lM), d = 2.0 * asin(min(1.0, 0.5 * length(dS - dM)));
+  if (d >= rs + rm) return 1.0;
+  if (d <= rm - rs) return 0.0;
+  if (d <= rs - rm) return 1.0 - rm * rm / (rs * rs);
+  float a = rs * rs * acos(clamp((d * d + rs * rs - rm * rm) / (2.0 * d * rs), -1.0, 1.0))
+          + rm * rm * acos(clamp((d * d + rm * rm - rs * rs) / (2.0 * d * rm), -1.0, 1.0))
+          - 0.5 * sqrt(max(0.0, (-d + rs + rm) * (d + rs - rm) * (d - rs + rm) * (d + rs + rm)));
+  return clamp(1.0 - a / (PI * rs * rs), 0.0, 1.0);
+}
 void main(){
   vec2 p = vPos; float r2 = dot(p, p);
   if (r2 > 1.0) {
@@ -668,6 +807,7 @@ void main(){
   vec3 horizonC = dark + day * vec3(0.20, 0.23, 0.30);
   vec3 dayC = day * 1.12;
   vec3 col = h > 0.0 ? mix(horizonC, dayC, dayT) : mix(nightC, horizonC, tw);
+  if (h > -1.0) col = mix(dark, col, pow(sunShow(v), 0.8));   // in the Moon's shadow: dimmed with the Sun's disc, dark in totality
   float glow = exp(-pow((h + 3.0) / 7.0, 2.0)) * 0.09;
   col = col * (1.0 - glow) + vec3(0.949, 0.722, 0.294) * glow;
   float dayMix = max(dayT, 0.0);
@@ -696,7 +836,7 @@ function initGL() {
   const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(prog, "aPos"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  for (const n of ["uM", "uScale", "uSun", "uSunScr", "uZoneOn"]) U[n] = gl.getUniformLocation(prog, n);
+  for (const n of ["uM", "uScale", "uSun", "uSunScr", "uZoneOn", "uMoonP", "uSunD"]) U[n] = gl.getUniformLocation(prog, n);
   ["uDay", "uNight", "uZone", "uLut"].forEach((n, i) => gl.uniform1i(gl.getUniformLocation(prog, n), i));
   gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
   const mf = deriv ? "mip" : gl.LINEAR;
@@ -740,7 +880,7 @@ let moonMap = null; const MW = 2048, MH = 1024;
   const cx = c.getContext("2d", { willReadFrequently: true }); cx.drawImage(img, 0, 0, MW, MH);
   const d = cx.getImageData(0, 0, MW, MH).data, m = new Uint8Array(MW * MH);
   for (let i = 0; i < m.length; i++) m[i] = d[i * 4];
-  moonMap = m; moonKey = ""; draw();
+  moonMap = m; MOON_SPACE.key = MOON_SKY.key = ""; draw();
 }; img.src = MOON_SRC; })();
 
 function updateZones(t) {
@@ -863,6 +1003,7 @@ function draw() {
   distPlan(s);
   placeStage();
   updateZones(state.t);
+  if (state.view === "sky") { drawSky(s); updatePanel(s, A); return; }
   if (gl && texReady === 3) {
     gl.viewport(0, 0, glCanvas.width, glCanvas.height);
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
@@ -874,6 +1015,8 @@ function draw() {
     const sl = Math.hypot(s.sun[0], s.sun[1]);
     gl.uniform2f(U.uSunScr, sl > 1e-3 ? -s.sun[1] / sl * Math.min(1, sl * 3) : 0, sl > 1e-3 ? s.sun[0] / sl * Math.min(1, sl * 3) : 0);
     gl.uniform1f(U.uZoneOn, state.show.zones ? 1 : 0);
+    const mc = applyA(A, ll2v(s.moonDec, s.moonSubLon)).map(v => v * s.moonDist);
+    gl.uniform3f(U.uMoonP, mc[0], mc[1], mc[2]); gl.uniform1f(U.uSunD, s.rAU * 149597870.7 / 6378.14);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
   drawSun(s);
@@ -1445,9 +1588,7 @@ function drawHands(h) {
 
 // The Moon: a sphere at its true size (0.273 R) lit by the Sun as seen from this viewpoint, just outside the ring
 // in its own direction (see RFRAC). Lambert falloff sin(h)^0.45 and a sharp terminator (no atmosphere), so its phase is the real one.
-const moonCan = document.createElement("canvas"), mctx = moonCan.getContext("2d");
 const MOONPAL = { night: [22, 26, 34], hor: [70, 72, 78], day: [222, 218, 208] };
-let moonKey = "";
 function moonPlace(s, A, cx, cy, R) {
   const m = applyA(A, ll2v(s.moonDec, s.moonSubLon));
   if (state.view === "moon" && m[2] > 0.99) return null;         // the viewpoint is the Moon itself
@@ -1466,28 +1607,19 @@ function moonPlace(s, A, cx, cy, R) {
     return { off: true, angle, cx: cx + ox, cy: cy + oy, tx: X, ty: Y };
   return { x: X, y: Y, rm, angle, A, g: sctx, ...(m[2] < 0 ? ghost : {}) };   // partly behind Earth, or past the stage: on the card's canvas
 }
-function drawMoon(s, at, R, small) {
-  const { x, y } = at, g = at.g || ctx;
-  const rm = at.rm;
-  if (at.off) { offPage(at.cx, at.cy, at.tx, at.ty, R, "THE MOON"); return at.angle; }
-  if (at.gx != null && rm >= 2) {                                // behind Earth: outline the hidden part over the globe
-    ctx.save(); ctx.beginPath(); ctx.arc(at.ecx, at.ecy, at.eR, 0, Math.PI * 2); ctx.clip();
-    ctx.setLineDash([3, 3]); ctx.strokeStyle = "rgba(201,211,226,0.5)"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(at.gx, at.gy, rm, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
-  }
-  if (at.hidden) return at.angle;
-  if (rm < 1) {                                                  // too small to see: a ring marks where it is, not its size
-    g.strokeStyle = "rgba(201,211,226,0.8)"; g.lineWidth = 1; g.beginPath(); g.arc(x, y, 4, 0, Math.PI * 2); g.stroke();
-    if (plan.moonPx >= 24) { g.font = `400 11px ${MONO}`; g.fillStyle = "#c9d3e2"; g.textAlign = "center"; g.textBaseline = "top"; g.fillText("Moon", x, y + 8); }
-    return at.angle;
-  }
-  const N = Math.max(8, Math.ceil(2 * rm * (g === ctx ? dpr : sdpr)));
-  const sv = s.sun, P = applyA(at.A, s.moonPole), Q = applyA(at.A, s.moonPM), E = applyA(at.A, s.moonEast);   // its axes on screen
-  const key = [N, ...sv, ...P, ...Q, ...E].map(v => Math.round(v * 2000)).join(",") + (moonMap ? "t" : "");
-  if (key !== moonKey) {                                          // redraw only when the picture of the Moon changes
-    moonKey = key;
-    if (moonCan.width !== N) { moonCan.width = N; moonCan.height = N; }
-    const img = mctx.createImageData(N, N), px = img.data;
+// The Moon's picture, N x N: lit by the Sun from direction sv, its pole P, prime meridian Q and east E, all in the
+// picture's frame (up, left, toward the viewer). Cached per use while nothing changes.
+const MOON_SPACE = { key: "" }, MOON_SKY = { key: "" };
+// ecl (near full Moon): Earth's centre seen from the Moon's centre, in Moon radii, and the Sun's angular radius there;
+// each point's sunlight is the part of the Sun's disc that Earth (its radius +2% for the atmosphere) leaves showing, and
+// in Earth's umbra the Moon is lit only by sunlight bent through Earth's atmosphere: dim copper.
+function moonImage(c, N, sv, P, Q, E, ecl = null) {
+  if (!c.can) { c.can = document.createElement("canvas"); c.ctx = c.can.getContext("2d"); }
+  const key = [N, ...sv, ...P, ...Q, ...E, ...(ecl ? ecl.ec.map(v => v / 50) : [])].map(v => Math.round(v * 2000)).join(",") + (moonMap ? "t" : "");
+  if (key === c.key) return c.can;
+  c.key = key;
+  if (c.can.width !== N) { c.can.width = N; c.can.height = N; }
+    const img = c.ctx.createImageData(N, N), px = img.data;
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
       const X = (i + 0.5) / N * 2 - 1, Y = (j + 0.5) / N * 2 - 1, r2 = X * X + Y * Y, k = (j * N + i) * 4;
       const a = Math.min(1, Math.max(0, (1 - Math.sqrt(r2)) * N / 2 + 0.5));
@@ -1505,10 +1637,40 @@ function drawMoon(s, at, R, small) {
       const col = h > 0 ? mixc(MOONPAL.hor, MOONPAL.day, Math.pow(Math.sin(h * D2R), 0.45))
                         : mixc(MOONPAL.night, MOONPAL.hor, ss(-1.2, 1.2, h));
       const f = h > 0 ? 0.42 + 0.8 * alb : 0.7 + 0.5 * alb;          // the maria and highlands, faint on the night side
-      px[k] = Math.min(255, col[0] * f); px[k + 1] = Math.min(255, col[1] * f); px[k + 2] = Math.min(255, col[2] * f); px[k + 3] = Math.round(a * 255);
+      let r = col[0] * f, gg = col[1] * f, bb = col[2] * f;
+      if (ecl && h > -1) {
+        const ex = ecl.ec[0] - n0, ey = ecl.ec[1] - n1, ez = ecl.ec[2] - z, le = Math.hypot(ex, ey, ez);
+        const re = Math.asin(Math.min(1, 3.6712 * 1.02 / le)), ch = Math.hypot(ex / le - sv[0], ey / le - sv[1], ez / le - sv[2]);
+        const vis = sunShowing(ecl.rs, re, 2 * Math.asin(Math.min(1, ch / 2)));
+        if (vis < 1) {
+          const depth = Math.min(1, Math.max(0, (re - ecl.rs - 2 * Math.asin(Math.min(1, ch / 2))) / (re - ecl.rs)));
+          const cu = (0.3 + 0.7 * alb) * (0.55 - 0.35 * depth), cw = Math.pow(vis, 0.7);
+          r = r * cw + 168 * cu * (1 - cw); gg = gg * cw + 70 * cu * (1 - cw); bb = bb * cw + 38 * cu * (1 - cw);
+        }
+      }
+      px[k] = Math.min(255, r); px[k + 1] = Math.min(255, gg); px[k + 2] = Math.min(255, bb); px[k + 3] = Math.round(a * 255);
     }
-    mctx.putImageData(img, 0, 0);
+    c.ctx.putImageData(img, 0, 0);
+  return c.can;
+}
+function drawMoon(s, at, R, small) {
+  const { x, y } = at, g = at.g || ctx;
+  const rm = at.rm;
+  if (at.off) { offPage(at.cx, at.cy, at.tx, at.ty, R, "THE MOON"); return at.angle; }
+  if (at.gx != null && rm >= 2) {                                // behind Earth: outline the hidden part over the globe
+    ctx.save(); ctx.beginPath(); ctx.arc(at.ecx, at.ecy, at.eR, 0, Math.PI * 2); ctx.clip();
+    ctx.setLineDash([3, 3]); ctx.strokeStyle = "rgba(201,211,226,0.5)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(at.gx, at.gy, rm, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
+  if (at.hidden) return at.angle;
+  if (rm < 1) {                                                  // too small to see: a ring marks where it is, not its size
+    g.strokeStyle = "rgba(201,211,226,0.8)"; g.lineWidth = 1; g.beginPath(); g.arc(x, y, 4, 0, Math.PI * 2); g.stroke();
+    if (plan.moonPx >= 24) { g.font = `400 11px ${MONO}`; g.fillStyle = "#c9d3e2"; g.textAlign = "center"; g.textBaseline = "top"; g.fillText("Moon", x, y + 8); }
+    return at.angle;
+  }
+  const N = Math.max(8, Math.ceil(2 * rm * (g === ctx ? dpr : sdpr)));
+  const sv = s.sun, P = applyA(at.A, s.moonPole), Q = applyA(at.A, s.moonPM), E = applyA(at.A, s.moonEast);   // its axes on screen
+  const moonCan = moonImage(MOON_SPACE, N, sv, P, Q, E, moonEcl(s, v => applyA(at.A, v)));
   g.drawImage(moonCan, x - rm, y - rm, 2 * rm, 2 * rm);
   g.strokeStyle = "#5a6478"; g.lineWidth = 1;
   g.beginPath(); g.arc(x, y, rm + 0.5, 0, Math.PI * 2); g.stroke();
@@ -1540,8 +1702,8 @@ const fmtLon = x => `${Math.abs(x).toFixed(1)}°${x >= 0 ? "E" : "W"}`;
 const fmtHM = h => { h = ((h % 24) + 24) % 24; let H = Math.floor(h), M = Math.round((h - H) * 60); if (M === 60) { H = (H + 1) % 24; M = 0; } return `${pad2(H)}:${pad2(M)}`; };
 const localFmt = new Intl.DateTimeFormat(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
-const SPEED_LABEL = { 3600: "1 h/s", 21600: "6 h/s", 86400: "1 d/s", 604800: "1 w/s", 2629746: "1 mo/s" };
-const SPEEDS = [3600, 21600, 86400, 604800, 2629746];
+const SPEED_LABEL = { 60: "1 min/s", 3600: "1 h/s", 21600: "6 h/s", 86400: "1 d/s", 604800: "1 w/s", 2629746: "1 mo/s" };
+const SPEEDS = [60, 3600, 21600, 86400, 604800, 2629746];
 // At 1 w/s and 1 mo/s (and in the year loop) time advances in whole sidereal days: Earth's spin relative to the
 // stars is paused, so the Sun goes round Earth once a year and the clock time drifts 3 min 56 s earlier each day.
 const STROBE = 604800, SIDEREAL_MS = 86164.0905e3, YEAR_SIDEREAL = 366.2422;
@@ -1687,6 +1849,7 @@ function declination(lat, lon, t) {                          // degrees east of 
   }
   return Math.atan2(sx, cx) * R2D;
 }
+const compassActive = () => state.view === "compass" || (state.view === "sky" && sky.compass);
 const compass = { listening: false, target: null, rows: null, iosOff: null, got: false, geo: null, raf: 0, last: 0, noteT: 0 };
 function compassPlace() {                                    // where you are: your location if allowed, else the clock city, else your time zone's largest city
   if (compass.geo) return compass.geo;
@@ -1727,7 +1890,7 @@ function onOrient(ev) {
 }
 function compassTick(now) {                                  // ease toward the reading (about 0.1 s), then stop
   compass.raf = 0;
-  if (!compass.target || state.view !== "compass") return;
+  if (!compass.target || !compassActive()) return;
   const dt = Math.min(0.1, (now - compass.last) / 1000), k = compass.rows ? 1 - Math.exp(-dt / 0.1) : 1; compass.last = now;
   const cur = compass.rows || compass.target;
   const mix = cur.map((r, i) => r.map((v, j) => v + k * (compass.target[i][j] - v)));
@@ -1739,7 +1902,7 @@ function compassTick(now) {                                  // ease toward the 
 }
 const compassNoteEl = document.getElementById("compass-note"), compassGo = document.getElementById("compass-go"), compassMsg = document.getElementById("compass-msg");
 function compassNote(text, showGo = false, stay = false) {
-  if (state.view !== "compass") { compassNoteEl.hidden = true; return; }
+  if (!compassActive()) { compassNoteEl.hidden = true; return; }
   if (text == null) {
     const pl = compassPlace(), d = declination(pl.lat, pl.lon, Date.now());
     text = compass.got ? `Aligned to true north (magnetic ${d >= 0 ? "+" : "\u2212"}${Math.abs(d).toFixed(1)}\u00b0) \u00b7 ${pl.src}` : "Waiting for the compass\u2026";
@@ -1771,12 +1934,341 @@ function compassStart(gesture) {                             // called whenever 
 }
 compassGo.addEventListener("click", () => compassStart(true));
 function compassSync() {                                     // keep the sensors on only in the compass view
-  if (state.view === "compass") { if (!compass.listening) compassStart(false); }
+  if (compassActive()) { if (!compass.listening) compassStart(false); }
   else { compassListen(false); compassNoteEl.hidden = true; }
 }
 if (navigator.permissions && navigator.geolocation) navigator.permissions.query({ name: "geolocation" }).then(st => {   // already allowed: use it without asking
   if (st.state === "granted") navigator.geolocation.getCurrentPosition(p => { compass.geo = { lat: p.coords.latitude, lon: p.coords.longitude, src: "your location" }; if (state.view === "compass") { compassNote(); draw(); } }, () => {}, { maximumAge: 3600000, timeout: 20000 });
 }, () => {});
+
+// ---------- Sky view: standing at a place on Earth, looking up ----------
+// The sky from the place (your location, else the clock city, else your time zone's largest city), in a stereographic
+// projection about the direction you look: wide it is the whole dome, narrow a telescope. Sun and Moon are topocentric,
+// at their true angular sizes, refracted near the horizon; the Moon is lit and turned as seen from there. When the Moon
+// covers the Sun, the sky darkens with the fraction of the Sun's disc still showing, and the corona and stars come out.
+// Stars: Hipparcos to magnitude 6 (d3-celestial data), J2000 carried to the date by general precession.
+const SKY_STARS = (() => {
+  const b = atob("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UCfZNL39QS6cR73+lDgtPL1LFz/Px71MqUP8z7332ESd/71F3EQXBL00xEt7ML0tpE8A173+JFL7E71SzliIar0tgF7o9b0InXF5S71Aonlkmr0B2IjFmr06k5JA6b0o6phzw70typv4vr1KwJxmEL0vPa8Lb70MHbL7470WFLP1rb37Mbk3OL0hO9C+Rr1Amt5B+L38s9+KPr0xJOHNxb1ECOuQUb0BP+vU9r0wY+916L0fkfVt171DHPiwY70NfPuVOL0Fsf3LUL1SGArjVL39FQwqHb0GswxJWr398h+J/L38ZCZC8L0u/SeV/71HzDGS3b0uWzqly70BtEF+6705BkSWnb1MXkutwr0fFlrMEb1Qf1xytb36PWAhxb35OWKrwr374mOqxL1SJGav9706xWc3tL3+DWnEp71CJnxZPb0Rm37cr70DxoTV0b0A8ZFdh70Jy5kaoL0WBaSpN71Rc7YOH71B4ryLIr1Ix8JJO7363sn46L0WLsqRA70AI8zf5L38W9QzIr3/we8Yob0KGfgV+70Dx/jL+L0TVvmQVL1Uv/mLLb38IvrHer0MJQFHWr3/mwGcGb00IAZatr0YpAYs3b0kiQh04b39agylG70jvwxvW738MhKvX73+RRXlxL013ReZoL1OIBg3I70aEBmHRr38QyUt7r0JajM1LL05+UXoE703ZVOssL04Zl/ZWr0sh2bSK71Q7W/11L3+oHA0Mb0BzXNrU706dYeSCb0AL4xe8707s5EdD70RTZkVz738sac4ib0G0ae6Lb02EaipB70CUqyIrr3/A7Jtu70Iw7Ry373/6LrVA70qxsFIM70uWM9g4b094s+HFL001N1zCL0A7+XuwL00RegE8L0AlOh7vb0eMOvKPr3/sfdlUL0yff9WTr0YSgAYVr4UUAQnSb76wAsq8r4AkxEV4r4Rjhj8G74BXh9YGb4YIiUZRr79Ny69E74OBjD+Fb4QuDPStL4RkEUft74bTk362b49hVFJMb4u/lGvQ74zIVnE474nCVo6J75HRGgQwb73b2/Usr5O6G9J1r5HjHZUnL784nkkF74UHn/gC74v94X17b4rVosO474cbJoYRr4r0r7uzr43ycJUp74vcsTA1L45jMn+M77528lOCb40ZM02Fb41ndgINL4DQtlmQL42vuOMIb41TuymLr4xG+2X3L4Z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"), n = b.length / 6, v = new Float32Array(3 * n), mag = new Float32Array(n), col = new Array(n);
+  const bvRGB = bv => bv < 0 ? [170, 191, 255] : bv < 0.4 ? mixc([214, 224, 255], [255, 250, 242], bv / 0.4) : bv < 0.9 ? mixc([255, 250, 242], [255, 226, 186], (bv - 0.4) / 0.5) : mixc([255, 226, 186], [255, 190, 140], Math.min(1, (bv - 0.9) / 0.7));
+  for (let i = 0; i < n; i++) {
+    const o = 6 * i, ra = (b.charCodeAt(o) | b.charCodeAt(o + 1) << 8) / 65535 * 360, s16 = b.charCodeAt(o + 2) | b.charCodeAt(o + 3) << 8;
+    const dec = (s16 > 32767 ? s16 - 65536 : s16) / 360, m = b.charCodeAt(o + 4) / 25 - 2, c = b.charCodeAt(o + 5), bv = (c > 127 ? c - 256 : c) / 50;
+    const w = ll2v(dec, ra); v[3 * i] = w[0]; v[3 * i + 1] = w[1]; v[3 * i + 2] = w[2]; mag[i] = m; col[i] = bvRGB(bv).join(",");
+  }
+  return { n, v, mag, col };
+})();
+const SKY_LINES = [[[[30.97,42.33],[17.43,35.62],[9.83,30.86],[2.1,29.09]],[[14.3,23.42],[11.83,24.27],[9.64,29.31],[9.83,30.86],[9.22,33.72],[354.53,43.27],[345.48,42.33]],[[354.53,43.27],[355.1,44.33],[354.39,46.46]],[[17.43,35.62],[14.19,38.5],[12.45,41.08],[17.38,47.24],[24.5,48.63]],[[355.1,44.33],[356.51,46.42]]],[[[142.31,-35.95],[156.79,-31.07],[164.18,-37.14]]],[[[221.97,-79.04],[245.09,-78.7],[250.77,-77.52],[248.36,-78.9]]],[[[311.92,-9.5],[313.16,-8.98],[322.89,-5.57],[331.45,-0.32],[335.41,-1.39],[337.21,-0.02],[338.84,-0.12],[343.15,-7.58],[349.48,-9.18],[347.36,-21.17]],[[322.89,-5.57],[331.61,-13.87]],[[331.45,-0.32],[334.21,-7.78]],[[337.21,-0.02],[336.32,1.38]],[[350.74,-20.1],[349.48,-9.18],[355.44,-17.82]]],[[[296.56,10.61],[297.7,8.87],[298.83,6.41],[302.83,-0.82],[298.12,1.01],[291.37,3.11],[286.35,13.86],[297.7,8.87],[291.37,3.11],[286.56,-4.88]]],[[[261.35,-56.38],[262.77,-60.68],[252.45,-59.04],[254.66,-55.99],[254.9,-53.16],[262.96,-49.88],[261.32,-55.53]]],[[[42.5,27.26],[31.79,23.46],[28.66,20.81],[28.38,19.29]]],[[[89.88,44.95],[79.17,46.0],[76.63,41.23],[74.25,33.17],[81.57,28.61],[89.93,37.21],[89.88,44.95],[89.88,54.28],[79.17,46.0],[75.49,43.82],[75.62,41.08]]],[[[206.82,17.46],[208.67,18.4],[213.92,19.18],[217.96,30.37],[218.02,38.31],[225.49,40.39],[228.88,33.31],[221.25,27.07],[213.92,19.18],[220.29,13.73]],[[218.02,38.31],[214.1,46.09],[213.37,51.79],[216.3,51.85],[214.1,46.09]]],[[[67.71,-44.95],[70.14,-41.86],[70.51,-37.14],[76.1,-35.48]]],[[[74.32,53.75],[75.85,60.44],[73.51,66.34],[57.59,71.33],[57.38,65.53],[52.27,59.94]],[[73.51,66.34],[94.71,69.32],[105.02,76.98]]],[[[134.62,11.86],[131.17,18.15],[130.82,21.47],[131.67,28.77]],[[131.17,18.15],[124.13,9.19]]],[[[194.0,38.31],[188.44,41.36]]],[[[95.67,-17.96],[101.29,-16.72],[105.76,-23.83],[107.1,-26.39],[105.43,-27.93],[104.66,-28.97],[95.08,-30.06]],[[111.02,-29.3],[107.1,-26.39]],[[101.29,-16.72],[104.03,-17.05],[105.94,-15.63],[103.55,-12.04],[104.03,-17.05]]],[[[114.83,5.22],[111.79,8.29]]],[[[304.41,-12.51],[305.25,-14.78],[307.22,-17.81],[311.52,-25.27],[312.96,-26.92],[321.67,-22.41],[326.76,-16.13],[325.02,-16.66],[320.56,-16.83],[316.49,-17.23],[304.41,-12.51]]],[[[99.44,-43.2],[95.99,-52.7],[138.3,-69.72],[153.43,-70.04],[160.74,-64.39],[158.01,-61.69],[154.27,-61.33],[139.27,-59.28],[125.63,-59.51],[119.19,-52.98],[122.38,-47.34],[131.18,-54.71],[139.27,-59.28]],[[160.74,-64.39],[166.64,-62.42],[167.14,-61.95],[168.15,-60.32],[167.15,-58.98],[163.37,-58.85],[158.01,-61.69]]],[[[28.6,63.67],[21.45,60.24],[14.18,60.72],[10.13,56.54],[2.29,59.15]]],[[[170.25,-54.49],[182.09,-50.72],[187.01,-50.23],[190.38,-48.96],[204.97,-53.47],[208.88,-47.29],[207.4,-42.47],[207.38,-41.69],[211.67,-36.37],[218.88,-42.16],[224.79,-42.1]],[[207.38,-41.69],[200.15,-36.71]],[[219.9,-60.84],[204.97,-53.47],[210.96,-60.37]],[[187.01,-50.23],[182.91,-52.37],[172.94,-59.44]]],[[[307.4,62.99],[311.32,61.84],[319.64,62.59],[325.88,58.78],[333.76,57.04],[332.71,58.2],[337.29,58.42],[342.42,66.2],[354.84,77.63],[322.17,70.56],[319.64,62.59]],[[322.17,70.56],[342.42,66.2]]],[[[40.83,3.24],[38.97,5.59],[37.04,8.46],[41.24,10.11],[44.93,8.91],[45.57,4.09],[40.83,3.24],[39.87,0.33],[34.84,-2.98],[27.87,-10.34],[26.02,-15.94],[10.9,-17.99],[4.86,-8.82],[17.15,-10.18],[21.01,-8.18],[27.87,-10.34]]],[[[124.63,-76.92],[158.87,-78.61],[161.32,-80.47],[184.59,-79.31],[179.91,-78.22],[158.87,-78.61]]],[[[229.38,-58.8],[220.63,-64.98],[230.84,-59.32]]],[[[95.53,-33.44],[87.74,-35.77],[84.91,-34.07],[82.8,-35.47]],[[87.74,-35.77],[89.79,-42.82]]],[[[197.5,17.53],[197.97,27.88],[186.73,28.27]]],[[[284.68,-37.11],[286.6,-37.06],[287.37,-37.9],[287.51,-39.34],[287.09,-40.5],[285.78,-42.1],[282.4,-43.43],[278.38,-42.31]]],[[[233.23,31.36],[231.96,29.11],[233.67,26.71],[235.69,26.3],[237.4,26.07],[239.4,26.88],[240.36,29.85]]],[[[182.1,-24.73],[182.53,-22.62],[183.95,-17.54],[187.47,-16.52],[188.6,-23.4],[182.53,-22.62]]],[[[174.17,-9.8],[171.15,-10.86],[169.84,-14.78],[164.94,-18.3],[167.91,-22.83],[170.84,-18.78],[171.22,-17.68],[176.19,-18.35],[179.0,-17.15]],[[169.84,-14.78],[171.22,-17.68]]],[[[191.93,-59.69],[183.79,-58.75]],[[186.65,-63.1],[187.79,-57.11]]],[[[318.23,30.23],[311.55,33.97],[305.56,40.26],[296.24,45.13],[292.43,51.73],[289.28,53.37]],[[310.36,45.28],[305.56,40.26],[299.08,35.08],[292.68,27.96]]],[[[308.3,11.3],[309.39,14.6],[309.91,15.91],[311.66,16.12],[310.86,15.07],[309.39,14.6]]],[[[64.01,-51.49],[68.5,-55.05],[83.41,-62.49],[86.19,-65.74],[88.53,-63.09],[83.41,-62.49],[76.38,-57.47],[68.5,-55.05]]],[[[268.38,56.87],[269.15,51.49],[262.61,52.3],[263.07,55.17],[268.38,56.87],[288.14,67.66],[275.19,71.34],[257.2,65.71],[246.0,61.51],[240.47,58.57],[231.23,58.97],[211.1,64.38],[188.37,69.79],[172.85,69.33]],[[275.19,71.34],[275.26,72.73]],[[288.14,67.66],[297.04,70.27]]],[[[318.96,5.25],[318.62,10.01],[317.59,10.13]]],[[[76.96,-5.09],[71.38,-3.25],[69.08,-3.35],[62.97,-6.84],[59.51,-13.51],[56.54,-12.1],[55.81,-9.76],[53.23,-9.46],[44.11,-8.9],[41.03,-13.86],[41.28,-18.57],[45.6,-23.62],[49.88,-21.76],[53.45,-21.63],[56.71,-23.25],[68.89,-30.56],[66.01,-34.02],[64.47,-33.8],[57.36,-36.2],[54.27,-40.27],[49.98,-43.07],[44.57,-40.3],[40.17,-39.86],[36.75,-47.7],[34.13,-51.51],[28.99,-51.61],[24.43,-57.24]]],[[[48.02,-28.99],[42.27,-32.41],[31.12,-29.3]]],[[[93.72,22.51],[95.74,22.51],[100.98,25.13],[107.78,30.25],[113.65,31.89],[116.33,28.03],[113.98,26.9],[110.03,21.98],[106.03,20.57],[99.43,16.4],[101.32,12.9]],[[110.03,21.98],[109.52,16.54]]],[[[345.22,-52.75],[342.14,-51.32],[340.67,-46.88],[337.44,-43.75],[332.06,-46.96],[340.67,-46.88]],[[337.32,-43.5],[333.9,-41.35],[331.53,-39.54],[328.48,-37.36]]],[[[245.48,19.15],[247.56,21.49],[250.32,31.6],[250.72,38.92],[248.53,42.44],[244.94,46.31],[242.19,44.93],[238.17,42.45]],[[250.32,31.6],[255.07,30.93]],[[250.72,38.92],[258.76,36.81]],[[269.06,37.25],[260.92,37.15],[258.76,36.81],[255.07,30.93],[258.76,24.84],[266.61,27.72],[269.44,29.25],[271.89,28.76]],[[258.66,14.39],[247.56,21.49]]],[[[63.5,-42.29],[40.64,-50.8],[39.35,-52.54],[40.17,-54.55],[45.9,-59.74],[44.7,-64.07]]],[[[131.69,6.42],[132.11,5.84],[130.81,3.4],[129.69,3.34],[129.41,5.7],[131.69,6.42],[133.85,5.95],[138.59,2.31],[144.96,-1.14],[141.9,-8.66],[147.87,-14.85],[152.65,-12.35],[156.52,-16.84],[162.41,-16.19],[173.25,-31.86],[178.23,-33.91],[199.73,-23.17],[211.59,-26.68],[222.57,-27.96]]],[[[6.44,-77.25],[56.81,-74.24],[39.9,-68.27],[35.44,-68.66],[28.73,-67.65],[29.69,-61.57]]],[[[309.39,-47.29],[311.01,-51.92],[313.7,-58.45],[329.48,-54.99],[319.97,-53.45],[309.39,-47.29]]],[[[335.89,52.23],[337.82,50.28],[337.38,47.71],[335.26,46.54],[337.62,43.12],[340.13,44.28],[337.38,47.71],[336.13,49.48],[335.89,52.23]],[[337.62,43.12],[333.47,39.71],[333.99,37.75]]],[[[152.09,11.97],[151.83,16.76],[154.99,19.84],[168.53,20.52],[177.26,14.57],[168.56,15.43],[152.09,11.97]],[[154.99,19.84],[154.17,23.42],[148.19,26.01],[146.46,23.77]]],[[[151.86,35.24],[156.48,33.8],[163.33,34.21],[156.97,36.71],[151.86,35.24],[143.56,36.4]]],[[[91.54,-14.94],[89.1,-14.17],[86.74,-14.82],[83.18,-17.82],[78.23,-16.21],[76.37,-22.37],[82.06,-20.76],[86.12,-22.45],[87.83,-20.88]],[[78.31,-12.94],[78.23,-16.21],[79.89,-13.18]]],[[[226.02,-25.28],[222.72,-16.04],[229.25,-9.38],[233.88,-14.79],[234.26,-28.14],[234.66,-29.78]],[[222.72,-16.04],[233.88,-14.79]]],[[[237.74,-33.63],[234.94,-34.41],[230.45,-36.26],[230.34,-40.65],[224.63,-43.13],[220.48,-47.39],[228.07,-52.1],[229.63,-47.88],[230.67,-44.69],[233.79,-41.17],[240.03,-38.4],[241.65,-36.8]],[[230.34,-40.65],[233.79,-41.17]]],[[[94.91,59.01],[104.32,58.42],[111.68,49.21],[125.71,43.19],[135.16,41.78],[139.71,36.8],[140.26,34.39]]],[[[281.19,37.61],[281.09,39.61],[279.23,38.78],[281.19,37.61],[283.63,36.9],[284.74,32.69],[282.52,33.36],[281.19,37.61]]],[[[92.56,-74.75],[82.97,-76.34],[73.8,-74.94],[75.68,-71.31]]],[[[312.49,-33.78],[312.12,-43.99],[320.19,-40.81],[319.48,-32.17],[315.32,-32.26],[312.49,-33.78]]],[[[115.31,-9.55],[122.15,-2.98],[107.97,-0.49],[97.2,-7.03],[93.71,-6.27]],[[107.97,-0.49],[101.97,2.41],[95.94,4.59],[98.23,7.33],[100.24,9.9]]],[[[176.4,-66.73],[184.39,-67.96],[189.3,-69.14],[191.57,-68.11],[195.57,-71.55],[188.12,-72.13],[189.3,-69.14]]],[[[241.62,-45.17],[246.8,-47.55],[244.96,-50.16],[240.8,-49.23],[241.62,-45.17]]],[[[216.73,-83.67],[341.51,-81.38],[325.37,-77.39],[216.73,-83.67]]],[[[269.76,-9.77],[266.97,2.71],[265.87,4.57],[263.73,12.56],[254.42,9.38],[247.73,1.98],[243.59,-3.69],[244.58,-4.69],[249.29,-10.57],[257.59,-15.72]],[[254.42,9.38],[249.29,-10.57],[247.78,-16.61],[246.76,-18.46],[246.03,-20.04],[246.4,-23.45]],[[265.87,4.57],[257.59,-15.72],[260.5,-25.0],[261.84,-29.87]]],[[[91.89,14.77],[88.6,20.28],[90.98,20.14],[92.98,14.21],[90.6,9.65],[88.79,7.41],[81.28,6.35],[73.72,10.15]],[[74.64,1.71],[73.56,2.44],[72.8,5.61],[72.46,6.96],[72.65,8.9],[73.72,10.15],[74.09,13.51],[76.14,15.4],[77.42,15.6]],[[78.63,-8.2],[81.12,-2.4],[83.0,-0.3],[81.28,6.35],[83.78,9.93],[88.79,7.41],[85.19,-1.94],[86.94,-9.67]],[[85.19,-1.94],[84.05,-1.2],[83.0,-0.3]]],[[[306.41,-56.74],[311.24,-66.2],[302.18,-66.18],[283.05,-62.19],[275.81,-61.49],[272.15,-63.67],[266.43,-64.72],[280.76,-71.43],[300.15,-72.91],[311.24,-66.2],[321.61,-65.37]]],[[[332.5,33.18],[340.75,30.22],[345.94,28.08],[2.1,29.09],[3.31,15.18],[346.19,15.21],[341.67,12.17],[340.37,10.83],[332.55,6.2],[326.05,9.88]],[[346.19,15.21],[345.94,28.08],[342.5,24.6],[341.63,23.57],[331.75,25.35],[326.16,25.64]]],[[[56.08,32.29],[58.53,31.88],[59.74,35.79],[59.46,40.01],[56.3,42.58],[55.73,47.79],[54.12,48.19],[51.08,49.86],[46.2,53.51],[42.67,55.9],[43.56,52.76],[47.27,49.61],[47.37,44.86],[47.04,40.96],[47.82,39.61],[46.29,38.84],[44.69,39.66],[44.92,41.03],[47.04,40.96]],[[61.65,50.35],[63.72,48.41],[62.17,47.71],[55.73,47.79]],[[47.27,49.61],[41.05,49.23],[25.92,50.69]]],[[[6.57,-42.31],[16.52,-46.72],[22.09,-43.32],[22.81,-49.07],[17.1,-55.25],[16.52,-46.72],[2.35,-45.75],[6.57,-42.31]]],[[[102.05,-61.94],[87.46,-56.17],[86.82,-51.07]]],[[[18.44,24.58],[17.92,30.09],[19.87,27.26],[18.44,24.58],[17.86,21.03],[22.87,15.35],[26.35,9.16],[30.51,2.76],[28.39,3.19],[25.36,5.49],[22.55,6.14],[18.43,7.58],[15.74,7.89],[12.17,7.59],[359.83,6.86],[354.99,5.63],[351.99,6.38],[350.09,5.38],[349.29,3.28],[351.73,1.26],[355.51,1.78],[356.6,3.49],[354.99,5.63]],[[349.29,3.28],[345.97,3.82]]],[[[340.16,-27.04],[344.41,-29.62],[343.99,-32.54],[343.13,-32.88],[337.88,-32.35],[332.1,-32.99],[326.24,-33.03],[326.93,-30.9],[332.1,-32.99],[340.16,-27.04]]],[[[99.44,-43.2],[109.29,-37.1],[113.85,-28.37],[114.71,-26.8],[117.32,-24.86],[119.21,-22.88],[121.89,-24.3],[120.9,-40.0],[122.38,-47.34]],[[117.32,-24.86],[117.02,-25.94],[115.95,-28.95],[113.85,-28.37]]],[[[120.9,-40.0],[130.03,-35.31],[130.9,-33.19],[132.63,-27.71]]],[[[63.61,-62.47],[64.12,-59.3],[59.69,-61.4],[56.05,-64.81],[63.61,-62.47]]],[[[295.02,18.01],[296.85,18.53],[299.69,19.49]],[[295.26,17.48],[296.85,18.53]]],[[[274.41,-36.76],[276.04,-34.38],[275.25,-29.83],[276.99,-25.42],[273.44,-21.06]],[[290.66,-44.46],[290.97,-40.62],[285.65,-29.88],[281.41,-26.99],[276.99,-25.42]],[[298.82,-41.87],[299.93,-35.28],[298.96,-26.3],[294.18,-24.88],[291.32,-24.51],[288.89,-25.26],[283.82,-26.3],[281.41,-26.99],[275.25,-29.83],[271.45,-30.42],[276.04,-34.38],[285.65,-29.88],[286.74,-27.67],[283.82,-26.3],[286.17,-21.74],[287.44,-21.02],[289.41,-18.95],[290.42,-17.85],[290.43,-15.96]],[[286.17,-21.74],[284.43,-21.11],[283.54,-22.74],[283.82,-26.3]]],[[[239.71,-26.11],[240.08,-22.62],[241.36,-19.81]],[[240.08,-22.62],[245.3,-25.59],[247.35,-26.43],[248.97,-28.22],[252.54,-34.29],[252.97,-38.05],[253.65,-42.36],[258.04,-43.24],[264.33,-43.0],[266.9,-40.13],[265.62,-39.03],[263.4,-37.1]]],[[[14.65,-29.36],[357.23,-28.13],[349.71,-32.53],[353.24,-37.82]]],[[[278.8,-8.24],[281.79,-4.75],[280.57,-9.05],[277.3,-14.57],[278.8,-8.24]]],[[[236.55,15.42],[235.39,19.67],[237.18,18.14],[239.11,15.66],[236.55,15.42],[233.7,10.54],[236.07,6.43],[237.7,4.48],[243.59,-3.69]]],[[[257.59,-15.72],[264.4,-15.4],[269.76,-9.77],[270.77,-8.18],[275.33,-2.9],[284.05,4.2]]],[[[151.98,-0.37],[148.13,-8.11],[157.37,-2.74],[157.57,-0.64]]],[[[84.41,21.14],[68.98,16.51],[67.17,15.87],[64.95,15.63],[65.73,17.54],[67.15,19.18],[81.57,28.61]],[[64.95,15.63],[60.17,12.49],[51.79,9.73],[60.79,5.99]],[[51.79,9.73],[51.2,9.03],[54.22,0.4]]],[[[272.81,-45.95],[276.74,-45.97],[277.21,-49.07]]],[[[28.27,29.58],[32.39,34.99],[34.33,33.85],[28.27,29.58]]],[[[252.17,-69.03],[238.79,-63.43],[229.73,-68.68],[252.17,-69.03]]],[[[334.63,-60.26],[349.36,-58.24],[7.89,-62.96],[5.02,-64.87],[359.98,-65.58],[336.83,-64.97],[334.63,-60.26]]],[[[183.86,57.03],[165.93,61.75],[165.46,56.38],[178.46,53.69],[183.86,57.03],[193.51,55.96],[200.98,54.93],[206.89,49.31]],[[178.46,53.69],[176.51,47.78],[169.62,33.09],[169.55,31.53]],[[176.51,47.78],[167.42,44.5],[155.58,41.5]],[[167.42,44.5],[154.27,42.91]],[[165.93,61.75],[142.88,63.06],[127.57,60.72],[147.75,59.04],[165.46,56.38]],[[165.46,56.38],[148.03,54.06],[143.21,51.68],[134.8,48.04]],[[135.91,47.16],[143.21,51.68]]],[[[236.01,77.79],[244.38,75.76],[230.18,71.83],[222.68,74.16],[236.01,77.79],[251.49,82.04],[263.05,86.59],[37.95,89.26]]],[[[131.18,-54.71],[140.53,-55.01],[149.22,-54.57],[161.69,-49.42],[153.68,-42.12],[142.68,-40.47],[137.0,-43.43],[122.38,-47.34]]],[[[176.46,6.53],[177.67,1.76],[184.98,-0.67],[190.42,-1.45],[197.49,-5.54],[201.3,-11.16],[214.0,-6.0],[220.77,-5.66]],[[195.54,10.96],[193.9,3.4],[190.42,-1.45]],[[197.49,-5.54],[203.67,-0.6],[210.41,1.54],[221.56,1.89]]],[[[135.61,-66.4],[126.43,-66.14],[121.98,-68.62],[109.21,-67.96],[107.19,-70.5],[121.98,-68.62],[135.61,-66.4]]],[[[289.05,21.39],[292.18,24.66],[298.37,24.08],[300.28,27.75],[303.94,27.81]]]];                      // constellation figures: polylines of [RA, Dec] (J2000)
+const sky = { az: 180, alt: 40, fov: 110, follow: null, compass: false, last: null, place: null };
+const skyPlace = () => sky.place || compassPlace();          // an eclipse jump watches from where it is best, until "Here"
+const SKY_FOV = [0.8, 220];
+// J2000 equatorial -> local East-North-Up now: precession (in ecliptic longitude), then sidereal time, then the place
+function skyMatrix(s, lat, lon) {
+  const T = (state.t / 86400000 + 2440587.5 - 2451545) / 36525, p = (5029.0966 * T + 1.11113 * T * T) / 3600 * D2R;
+  const e0 = 23.4392911 * D2R, e1 = s.eps * D2R, g = s.gmst * D2R;
+  return w => {
+    let x = w[0], y = w[1] * Math.cos(e0) + w[2] * Math.sin(e0), z = -w[1] * Math.sin(e0) + w[2] * Math.cos(e0);   // to the J2000 ecliptic
+    [x, y] = [x * Math.cos(p) - y * Math.sin(p), x * Math.sin(p) + y * Math.cos(p)];                            // precession
+    [y, z] = [y * Math.cos(e1) - z * Math.sin(e1), y * Math.sin(e1) + z * Math.cos(e1)];                        // equator of date
+    const ef = [x * Math.cos(g) + y * Math.sin(g), -x * Math.sin(g) + y * Math.cos(g), z];                       // Earth-fixed
+    return efToENU(ef, lat, lon);
+  };
+}
+const azAltENU = (az, alt) => [Math.sin(az * D2R) * Math.cos(alt * D2R), Math.cos(az * D2R) * Math.cos(alt * D2R), Math.sin(alt * D2R)];
+function skyFrame(W, H, c, u) {
+  if (!c) { c = azAltENU(sky.az, sky.alt); u = [-Math.sin(sky.az * D2R) * Math.sin(sky.alt * D2R), -Math.cos(sky.az * D2R) * Math.sin(sky.alt * D2R), Math.cos(sky.alt * D2R)]; }
+  return { c, u, r: cross(c, u), f: (Math.max(W, H) / 2) / (2 * Math.tan(sky.fov * D2R / 4)), cx: W / 2, cy: H / 2 };
+}
+const skyProj = (F, d) => { const cz = dot(d, F.c); if (cz < -0.97) return null; const k = 2 / (1 + cz); return [F.cx + k * dot(d, F.r) * F.f, F.cy - k * dot(d, F.u) * F.f, k]; };
+function skyUnproj(F, px, py) {
+  const x = (px - F.cx) / F.f, y = (F.cy - py) / F.f, q = x * x + y * y, ct = (4 - q) / (4 + q), k = 4 / (4 + q);
+  return [0, 1, 2].map(i => ct * F.c[i] + k * (x * F.r[i] + y * F.u[i]));
+}
+// The fraction of the Sun's disc not covered by the Moon (radii and separation in the same angular units)
+function sunShowing(rs, rm, d) {
+  if (d >= rs + rm) return 1;
+  if (d <= rm - rs) return 0;
+  if (d <= rs - rm) return 1 - (rm * rm) / (rs * rs);
+  const a = rs * rs * Math.acos((d * d + rs * rs - rm * rm) / (2 * d * rs)) + rm * rm * Math.acos((d * d + rm * rm - rs * rs) / (2 * d * rm))
+          - 0.5 * Math.sqrt(Math.max(0, (-d + rs + rm) * (d + rs - rm) * (d - rs + rm) * (d + rs + rm)));
+  return Math.max(0, 1 - a / (Math.PI * rs * rs));
+}
+// The sky's colour in direction d (ENU): blue by day, twilight at low Sun (warm toward it), night; dimmed in an eclipse
+function skyLight(L) {   // the light state, from the Sun's apparent altitude hs, its direction, and the fraction showing E
+  const hs = L.hs, E = L.E, ecl = Math.pow(E, 0.45);
+  const Zday = [52, 112, 200], Ztw = [30, 44, 92], Znight = [11, 15, 23];
+  let Z = hs > 0 ? mixc(Ztw, Zday, ss(-2, 14, hs)) : mixc(Znight, Ztw, ss(-18, -2, hs));
+  let Hz = hs > 0 ? mixc([96, 104, 140], [178, 204, 232], ss(-1, 14, hs)) : mixc([18, 24, 38], [96, 104, 140], ss(-16, -1, hs));
+  if (hs > -4 && E < 1) { Z = mixc([14, 20, 40], Z, ecl); Hz = mixc([40, 40, 60], Hz, ecl); }
+  return { Z, Hz, day: ss(-6, 4, hs) * ecl, warm: Math.exp(-(((hs - 1) / 7) ** 2)), ring: ss(-4, 2, hs) * Math.pow(1 - E, 3) };
+}
+function skyColour(d, L) {
+  const a = Math.max(0, Math.asin(Math.max(-1, Math.min(1, d[2]))) * R2D);   // below the horizon: as at it (the ground covers it)
+  const g = Math.acos(Math.max(-1, Math.min(1, dot(d, L.sd)))) * R2D;
+  const hz = Math.exp(-a / 18), low = Math.exp(-a / 6);
+  let c = mixc(L.Z, L.Hz, hz);
+  const daz = Math.cos(Math.atan2(d[0], d[1]) - L.saz), toward = 0.3 + 0.7 * Math.max(0, daz) ** 2;
+  if (L.warm > 0.01) c = mixc(c, [244, 150, 92], L.warm * low * toward * 0.85);                               // sunrise, sunset
+  if (L.warm > 0.01) c = mixc(c, [190, 130, 160], L.warm * Math.exp(-a / 14) * (1 - toward) * 0.35);         // the pink belt opposite
+  if (L.ring > 0.01) c = mixc(c, [236, 150, 96], L.ring * low * 0.8);                                       // totality: sunset all round
+  const glare = L.day * (L.near * 0.85 * Math.exp(-g / 2.5) + 0.38 * Math.exp(-g / 12) + 0.12 * Math.exp(-g / 40));   // the near glare fades in a close-up, as through a filter
+  return [Math.min(255, c[0] + 255 * glare), Math.min(255, c[1] + 246 * glare), Math.min(255, c[2] + 228 * glare)];
+}
+let skyBg = null;
+function drawSky(s) {
+  const W = sunBox.w, H = sunBox.h, g = sctx;
+  g.setTransform(sdpr, 0, 0, sdpr, 0, 0); g.clearRect(0, 0, W, H);
+  const pl = skyPlace(), o = topo(s, pl.lat, pl.lon), toE = skyMatrix(s, pl.lat, pl.lon);
+  const app = b => azAltENU(b.az, b.alt);                       // apparent (refracted) directions
+  const sunD = app(o.sun), moonD = app(o.moon);
+  let F;
+  if (sky.compass && compass.rows) {                            // the phone sets the look: out of its back, its top up
+    const R = compass.rows.map(w => efToENU(w, pl.lat, pl.lon)), c = R[2].map(v => -v);
+    F = skyFrame(W, H, c, R[0]);
+    sky.az = norm360(Math.atan2(c[0], c[1]) * R2D); sky.alt = Math.asin(Math.max(-1, Math.min(1, c[2]))) * R2D;
+  } else {
+    if (sky.follow) { const b = o[sky.follow]; sky.az = b.az; sky.alt = Math.max(-89.9, Math.min(89.9, b.alt)); }
+    F = skyFrame(W, H);
+  }
+  const E = sunShowing(o.sun.diam / 2, o.moon.diam / 2, o.sep);
+  const near = ss(4, 40, sky.fov), L = { hs: o.sun.alt, sd: sunD, saz: o.sun.az * D2R, E, near, ...skyLight({ hs: o.sun.alt, E }) };
+  if (near < 1) L.day *= 0.25 + 0.75 * near;
+  // the sky: a coarse grid of exact colours, smoothed up to the card
+  const gw = 112, gh = Math.max(8, Math.round(gw * H / W));
+  if (!skyBg || skyBg.width !== gw || skyBg.height !== gh) { skyBg = document.createElement("canvas"); skyBg.width = gw; skyBg.height = gh; }
+  const bctx = skyBg.getContext("2d"), img = bctx.createImageData(gw, gh), px = img.data;
+  for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+    const d = skyUnproj(F, (i + 0.5) / gw * W, (j + 0.5) / gh * H), c = skyColour(d, L) || L.Z, k = (j * gw + i) * 4;
+    px[k] = c[0]; px[k + 1] = c[1]; px[k + 2] = c[2]; px[k + 3] = 255;
+  }
+  bctx.putImageData(img, 0, 0);
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high"; g.drawImage(skyBg, 0, 0, W, H);
+  // stars and constellation figures, as the sky darkens
+  const dark = Math.max(1 - ss(-16, -3, o.sun.alt), o.sun.alt > -4 ? Math.pow(1 - E, 8) * 0.3 : 0);   // in totality only the brightest
+  if (dark > 0.02) {
+    if (sky.fov > 2) {
+      g.strokeStyle = `rgba(150,170,210,${(0.16 * dark).toFixed(3)})`; g.lineWidth = 0.8; g.beginPath();
+      for (const fig of SKY_LINES) for (const seg of fig) {
+        let prev = null;
+        for (const [ra, dec] of seg) {
+          const d = toE(ll2v(dec, ra)), q = d[2] > -0.05 ? skyProj(F, d) : null;
+          if (q && prev && Math.hypot(q[0] - prev[0], q[1] - prev[1]) < W) { g.moveTo(prev[0], prev[1]); g.lineTo(q[0], q[1]); }
+          prev = q;
+        }
+      }
+      g.stroke();
+    }
+    const mLim = Math.min(6, 3.2 + 2.6 * dark + (sky.fov < 40 ? 0.8 : 0)), big = sky.fov < 30 ? 1.25 : 1;
+    for (let i = 0; i < SKY_STARS.n; i++) {
+      const m = SKY_STARS.mag[i]; if (m > mLim) break;              // brightest first
+      const d = toE([SKY_STARS.v[3 * i], SKY_STARS.v[3 * i + 1], SKY_STARS.v[3 * i + 2]]); if (d[2] < -0.01) continue;
+      const q = skyProj(F, d); if (!q || q[0] < -4 || q[1] < -4 || q[0] > W + 4 || q[1] > H + 4) continue;
+      const alt = Math.asin(d[2]) * R2D, a = Math.min(1, (mLim - m) / 2.2 + 0.15) * dark * ss(-0.5, 6, alt);
+      if (a < 0.03) continue;
+      g.fillStyle = `rgba(${SKY_STARS.col[i]},${a.toFixed(3)})`;
+      g.beginPath(); g.arc(q[0], q[1], Math.max(0.55, (1.9 - 0.3 * m) * big), 0, 2 * Math.PI); g.fill();
+    }
+  }
+  // the Sun
+  const sq = skyProj(F, sunD), sunR = sq ? Math.max(1.4, o.sun.diam / 2 * D2R * F.f * sq[2]) : 0;
+  if (sq) {
+    if (E < 0.02) {                                               // the corona, as the last of the Sun goes
+      const ca = 1 - ss(0, 0.015, E), cR = Math.max(sunR * 4.5, 16), cg = g.createRadialGradient(sq[0], sq[1], sunR, sq[0], sq[1], cR);
+      cg.addColorStop(0, `rgba(236,240,255,${(0.9 * ca).toFixed(3)})`); cg.addColorStop(0.15, `rgba(220,228,250,${(0.45 * ca).toFixed(3)})`);
+      cg.addColorStop(0.45, `rgba(200,212,240,${(0.12 * ca).toFixed(3)})`); cg.addColorStop(1, "rgba(200,212,240,0)");
+      g.fillStyle = cg; g.beginPath(); g.arc(sq[0], sq[1], cR, 0, 2 * Math.PI); g.fill();
+      g.save(); g.globalAlpha = 0.22 * ca;                           // a few streamers
+      for (let k = 0; k < 9; k++) {
+        const an = k * 0.7 + 0.35 * Math.sin(k * 2.3), len = sunR * (2.2 + 1.6 * ((k * 37) % 7) / 7), w0 = sunR * 0.35;
+        const lg = g.createLinearGradient(sq[0], sq[1], sq[0] + Math.cos(an) * len, sq[1] + Math.sin(an) * len);
+        lg.addColorStop(0, "rgba(235,240,255,0.9)"); lg.addColorStop(1, "rgba(235,240,255,0)");
+        g.fillStyle = lg; g.beginPath(); g.moveTo(sq[0] - Math.sin(an) * w0, sq[1] + Math.cos(an) * w0);
+        g.lineTo(sq[0] + Math.cos(an) * len, sq[1] + Math.sin(an) * len); g.lineTo(sq[0] + Math.sin(an) * w0, sq[1] - Math.cos(an) * w0); g.fill();
+      }
+      g.restore();
+    }
+    const dg = g.createRadialGradient(sq[0], sq[1], 0, sq[0], sq[1], sunR);   // limb-darkened disc, near white
+    dg.addColorStop(0, "#fffdf7"); dg.addColorStop(0.7, "#fff6e2"); dg.addColorStop(0.95, "#ffe2a8"); dg.addColorStop(1, "#ffd28a");
+    g.fillStyle = dg; g.beginPath(); g.arc(sq[0], sq[1], sunR, 0, 2 * Math.PI); g.fill();
+  }
+  // the Moon: lit and turned as seen from here, behind the air in front of it
+  const mq = skyProj(F, moonD), moonR = mq ? Math.max(1.2, o.moon.diam / 2 * D2R * F.f * mq[2]) : 0;
+  if (mq && mq[0] > -moonR && mq[1] > -moonR && mq[0] < W + moonR && mq[1] < H + moonR) {
+    const d2 = skyUnproj(F, mq[0], mq[1] - 1), upE = unit(d2.map((v, i) => v - moonD[i] * dot(d2, moonD)));
+    const up = enuToEF(upE, pl.lat, pl.lon), tw = o.moon.ef.map(v => -v), lf = cross(tw, up), rows = [up, lf, tw];
+    const cam = v => rows.map(r => dot(r, v));
+    const sm = unit([0, 1, 2].map(i => o.sun.ef[i] * o.sun.dist - o.moon.ef[i] * o.moon.dist));
+    const N = Math.min(640, Math.max(8, Math.ceil(2 * moonR * sdpr)));
+    const im = moonImage(MOON_SKY, N, cam(sm), cam(s.moonPole), cam(s.moonPM), cam(s.moonEast), moonEcl(s, cam));
+    const air = skyColour(moonD, L) || L.Z;
+    g.save(); g.beginPath(); g.arc(mq[0], mq[1], moonR, 0, 2 * Math.PI); g.clip();
+    g.fillStyle = rgb(air.map(v => Math.round(v * 0.35))); g.fillRect(mq[0] - moonR, mq[1] - moonR, 2 * moonR, 2 * moonR);
+    g.globalCompositeOperation = "screen"; g.drawImage(im, mq[0] - moonR, mq[1] - moonR, 2 * moonR, 2 * moonR);
+    g.restore();
+  }
+  // the ground: below the horizon, which this projection draws as a circle (or a line when you look along it)
+  const nz = F.c[2] || 1e-6, ccx = F.cx + 2 * F.r[2] / nz * F.f, ccy = F.cy - 2 * F.u[2] / nz * F.f, crr = 2 / Math.abs(nz) * F.f;
+  const groundPath = () => { g.beginPath(); if (nz > 0) { g.rect(-10, -10, W + 20, H + 20); g.arc(ccx, ccy, crr, 0, 2 * Math.PI); } else g.arc(ccx, ccy, crr, 0, 2 * Math.PI); };
+  const gc = mixc([7, 9, 13], [30, 36, 34], 0.55 * L.day);
+  g.save(); groundPath(); g.fillStyle = rgb(gc); g.fill("evenodd"); g.restore();
+  g.strokeStyle = "rgba(201,211,226,0.35)"; g.lineWidth = 1; g.beginPath(); g.arc(ccx, ccy, crr, 0, 2 * Math.PI); g.stroke();
+  // what is below the horizon: dashed outlines
+  g.save(); groundPath(); g.clip("evenodd"); g.setLineDash([3, 3]); g.strokeStyle = "rgba(201,211,226,0.55)"; g.lineWidth = 1;
+  if (sq && o.sun.alt < o.sun.diam) { g.beginPath(); g.arc(sq[0], sq[1], Math.max(5, sunR), 0, 2 * Math.PI); g.stroke(); }
+  if (mq && o.moon.alt < o.moon.diam) { g.beginPath(); g.arc(mq[0], mq[1], Math.max(5, moonR), 0, 2 * Math.PI); g.stroke(); }
+  g.restore();
+  // altitude circles and the compass points
+  g.strokeStyle = "rgba(201,211,226,0.10)"; g.lineWidth = 1;
+  for (const alt of [30, 60]) { g.beginPath(); let pen = false; for (let az = 0; az <= 360; az += 3) { const q = skyProj(F, azAltENU(az, alt)); if (q) { if (pen) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); pen = true; } else pen = false; } g.stroke(); }
+  g.font = `600 12px ${MONO}`; g.textAlign = "center"; g.textBaseline = "middle";
+  ["N", "NE", "E", "SE", "S", "SW", "W", "NW"].forEach((nm, k) => {
+    const q = skyProj(F, azAltENU(k * 45, -Math.min(2.5, sky.fov / 40))); if (!q || q[0] < 0 || q[0] > W || q[1] < 0 || q[1] > H) return;
+    g.fillStyle = k % 2 ? "rgba(201,211,226,0.45)" : "rgba(242,184,75,0.85)"; g.fillText(nm, q[0], q[1] + 8);
+  });
+  // labels for small discs
+  g.font = `400 11px ${MONO}`; g.textBaseline = "top";
+  if (sq && sunR < 8) { g.fillStyle = "rgba(255,226,170,0.9)"; g.fillText("Sun", sq[0], sq[1] + Math.max(sunR, 5) + 6); }
+  if (mq && moonR < 8) { g.fillStyle = "rgba(201,211,226,0.9)"; g.fillText("Moon", mq[0], mq[1] + Math.max(moonR, 5) + 6); }
+  sky.last = { o, E, pl, F };
+  // caption
+  const cmp = az => ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"][Math.round(az / 22.5) % 16];
+  const where = b => `${Math.abs(b.alt).toFixed(0)}° ${b.alt >= 0 ? "up" : "down"}, ${cmp(b.az)}`;
+  const lit = Math.round(50 * (1 + dot(o.moon.ef.map(v => -v), unit([0, 1, 2].map(i => o.sun.ef[i] * o.sun.dist - o.moon.ef[i] * o.moon.dist)))));
+  const eclTxt = E < 0.999 && o.sun.alt > -1 ? ` · eclipse: ${E <= 0 ? "total" : Math.round(100 * (1 - E)) + "% of the Sun covered"}` : "";
+  const txt = `Sky from ${pl.src} · Sun ${where(o.sun)} · Moon ${where(o.moon)}, ${lit}% lit${eclTxt}`;
+  if (!state.focus) {
+    g.font = `400 11px ${MONO}`; g.textAlign = "left"; g.textBaseline = "alphabetic"; g.lineJoin = "round";
+    g.lineWidth = 3; g.strokeStyle = "rgba(11,15,23,0.85)"; g.strokeText(txt, 18, H - 16); g.fillStyle = "#c9d3e2"; g.fillText(txt, 18, H - 16);
+  }
+  document.getElementById("sky-fov").textContent = sky.fov >= 10 ? `${Math.round(sky.fov)}°` : `${sky.fov.toFixed(1)}°`;
+}
+// Aim: the Sun if it is up, else the Moon, else straight up
+function skyAim(which) {
+  sky.compass = false;
+  const s = solar(state.t), pl = skyPlace(), o = topo(s, pl.lat, pl.lon);
+  const pick = which || (o.sun.alt > -1 ? "sun" : o.moon.alt > 0 ? "moon" : "up");
+  if (pick === "up") { sky.follow = null; sky.az = 180; sky.alt = 89.9; sky.fov = 170; }
+  else { sky.follow = pick; if (sky.fov > 120) sky.fov = 100; }
+}
+function skyZoomBy(k) { sky.fov = Math.max(SKY_FOV[0], Math.min(SKY_FOV[1], sky.fov / k)); draw(); }
+{
+  const hit = document.getElementById("skyhit"), pts = new Map(); let drag = null, pinch = null;
+  const spread = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  hit.addEventListener("pointerdown", ev => {
+    pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); try { hit.setPointerCapture(ev.pointerId); } catch (e) {}
+    if (pts.size === 2) { drag = null; pinch = { d: spread(), fov: sky.fov }; } else drag = { x: ev.clientX, y: ev.clientY };
+  });
+  hit.addEventListener("pointermove", ev => {
+    if (!pts.has(ev.pointerId)) return; pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (pinch && pts.size === 2) { const d = spread(); if (d > 10) { sky.fov = Math.max(SKY_FOV[0], Math.min(SKY_FOV[1], pinch.fov * pinch.d / d)); draw(); } return; }
+    if (!drag || sky.compass) return;
+    const F = skyFrame(sunBox.w, sunBox.h), k = R2D / F.f, dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+    drag = { x: ev.clientX, y: ev.clientY }; if (sky.follow) { sky.follow = null; syncSkyBtns(); }
+    sky.az = norm360(sky.az - dx * k / Math.max(0.2, Math.cos(sky.alt * D2R))); sky.alt = Math.max(-89.9, Math.min(89.9, sky.alt + dy * k));
+    draw();
+  });
+  const end = ev => { pts.delete(ev.pointerId); if (pts.size < 2) pinch = null; if (!pts.size) drag = null; };
+  hit.addEventListener("pointerup", end); hit.addEventListener("pointercancel", end);
+  hit.addEventListener("dblclick", ev => { ev.preventDefault(); skyAim(); draw(); });
+  const btn = (id, f) => document.getElementById(id).addEventListener("click", ev => { f(); draw(); syncSkyBtns(); ev.currentTarget.blur(); });
+  btn("sky-sun", () => { if (sky.follow === "sun" && !sky.compass) sky.fov = sky.fov > 8 ? 3 : 70; skyAim("sun"); });
+  btn("sky-moon", () => { if (sky.follow === "moon" && !sky.compass) sky.fov = sky.fov > 8 ? 3 : 70; skyAim("moon"); });
+  btn("sky-up", () => skyAim("up"));
+  btn("sky-here", () => { sky.place = null; skyAim(); });
+  btn("sky-phone", () => { sky.compass = !sky.compass; sky.follow = null; if (sky.compass) compassStart(true); else compassSync(); });
+}
+function syncSkyBtns() {
+  document.getElementById("sky-here").hidden = !sky.place;
+  document.getElementById("sky-sun").setAttribute("aria-pressed", String(sky.follow === "sun" && !sky.compass));
+  document.getElementById("sky-moon").setAttribute("aria-pressed", String(sky.follow === "moon" && !sky.compass));
+  document.getElementById("sky-phone").setAttribute("aria-pressed", String(sky.compass));
+}
+
+// ---------- Eclipses ----------
+// Earth's shadow on the Moon, near full Moon (see moonImage); null otherwise. toPic: Earth-fixed -> the picture's frame.
+function moonEcl(s, toPic) {
+  const mg = ll2v(s.moonDec, s.moonSubLon), sg = ll2v(s.dec, s.subLon);
+  if (dot(mg, sg) > -0.985) return null;                           // more than ~10° from opposition: no shadow can reach it
+  const km = s.moonDist * 6378.14;
+  return { ec: toPic(mg.map(v => -v * km / 1737.4)), rs: Math.asin(695700 / (s.rAU * 149597870.7)) };
+}
+// Geocentric circumstances at time t: σ the Sun-Moon separation (solar) or Moon-antisun (lunar), and the limits
+function eclGeo(t) {
+  const s = solar(t), mg = ll2v(s.moonDec, s.moonSubLon), sg = ll2v(s.dec, s.subLon), km = s.moonDist * 6378.14, sk = s.rAU * 149597870.7;
+  const ang = (a, b) => 2 * Math.asin(Math.min(1, Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) / 2)) * R2D;
+  const pm = Math.asin(6378.14 / km) * R2D, ps = Math.asin(6378.14 / sk) * R2D, sm = Math.asin(1737.4 / km) * R2D, ssun = Math.asin(695700 / sk) * R2D;
+  return { s, mg, sg, km, sk, sigS: ang(mg, sg), sigL: ang(mg, sg.map(v => -v)), pm, ps, sm, ssun };
+}
+// The next eclipse of a kind after t (dir -1: the one before): conjunction (solar) or opposition (lunar), checked against
+// the shadow limits, then the moment of least separation (greatest eclipse).
+function findEclipse(t, kind, dir = 1) {
+  const target = kind === "solar" ? 0 : 180;
+  const phase = tt => { const E = ephem(tt); return norm360(E.moonLam - E.sunLam); };   // 0 at new Moon, 180 at full
+  let t0 = t + dir * 2 * 3600e3;
+  for (let n = 0; n < 40; n++) {
+    let tt = t0 + dir * (((dir > 0 ? target - phase(t0) : phase(t0) - target) % 360 + 360) % 360) / 12.19 * 86400e3;
+    for (let k = 0; k < 6; k++) tt += norm180(target - phase(tt)) / 12.19 * 86400e3;
+    let a = tt - 0.3 * 864e5, b = tt + 0.3 * 864e5;                  // least separation, by golden section
+    const sig = x => kind === "solar" ? eclGeo(x).sigS : eclGeo(x).sigL;
+    for (let k = 0; k < 40; k++) { const m1 = b - (b - a) * 0.618, m2 = a + (b - a) * 0.618; if (sig(m1) < sig(m2)) b = m2; else a = m1; }
+    const tg = (a + b) / 2, G = eclGeo(tg);
+    if (kind === "solar" && G.sigS < G.pm - G.ps + G.sm + G.ssun) return solarInfo(tg, G);
+    if (kind === "lunar") {
+      const f2 = 1.02 * (G.pm + G.ps - G.ssun);                        // the umbra's radius (Danjon); penumbral-only eclipses are skipped
+      if (G.sigL < f2 + G.sm) return { kind, t: tg, type: G.sigL < f2 - G.sm ? "total" : "partial", sub: [G.s.moonDec, G.s.moonSubLon] };
+    }
+    t0 = tt + dir * 2 * 86400e3;
+  }
+  return null;
+}
+// Where the Moon's shadow axis meets Earth at greatest eclipse, the type there, and how long totality lasts there
+function solarInfo(tg, G) {
+  const M = G.mg.map(v => v * G.km / 6378.14), S = G.sg.map(v => v * G.sk / 6378.14), a = unit(M.map((v, i) => v - S[i]));
+  const ma = dot(M, a), disc = ma * ma - dot(M, M) + 1;
+  let p, central = disc > 0;
+  if (central) { const tq = -ma - Math.sqrt(disc); p = M.map((v, i) => v + tq * a[i]); }
+  else p = unit(M.map((v, i) => v - ma * a[i]));
+  const lat = Math.asin(Math.max(-1, Math.min(1, p[2]))) * R2D, lon = Math.atan2(p[1], p[0]) * R2D;
+  let type = "partial", dur = 0;
+  if (central) {
+    const o = topo(solar(tg), lat, lon); type = o.moon.diam > o.sun.diam ? "total" : "annular";
+    for (let k = -900; k <= 900; k++) { const q = topo(solar(tg + k * 1000), lat, lon), lim = Math.abs(q.moon.diam - q.sun.diam) / 2; if (q.sep < lim) dur++; }
+  }
+  return { kind: "solar", t: tg, type, lat, lon, dur };
+}
+function nearestCity(lat, lon) {
+  let best = null, bd = 1e9; const v = ll2v(lat, lon);
+  for (let i = 0; i < Math.min(CITYDB.c.length, 4000); i++) { const r = CITYDB.c[i], d = 1 - dot(v, ll2v(r[4], r[5])); if (d < bd) { bd = d; best = r; } }
+  const km = 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(bd / 2)));
+  return { name: best ? best[0] : "", country: best ? best[3] : "", km };
+}
+function jumpEclipse(kind, dir = 1) {
+  const e = findEclipse(state.t, kind, dir), info = document.getElementById("ecl-info");
+  if (!e) { info.textContent = "None found within three years."; return; }
+  state.mode = "paused"; state.loop = null; state.t = e.t; state.anchorT = e.t; state.strobe = null; state.speed = kind === "solar" ? 60 : 3600;
+  const day = new Date(e.t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const hm = new Date(e.t).toISOString().slice(11, 16);
+  const [la, lo] = kind === "solar" ? [e.lat, e.lon] : e.sub, near = nearestCity(la, lo);
+  const fmtLL = (a, o) => `${Math.abs(a).toFixed(1)}°${a >= 0 ? "N" : "S"}, ${Math.abs(o).toFixed(1)}°${o >= 0 ? "E" : "W"}`;
+  const nm = near.km < 40 ? `${near.name} (${near.country})` : near.km < 400 ? `${Math.round(near.km / 10) * 10} km from ${near.name} (${near.country})` : `at ${fmtLL(la, lo)}`;
+  const what = `${e.type[0].toUpperCase() + e.type.slice(1)} ${kind} eclipse`;
+  info.textContent = kind === "solar"
+    ? `${what}, ${day}, greatest at ${hm} UTC${e.type !== "partial" ? `, ${nm}` : ""}${e.dur ? ` · ${Math.floor(e.dur / 60)} min ${pad2(e.dur % 60)} s there` : ""}`
+    : `${what}, ${day}, greatest at ${hm} UTC · Moon overhead ${nm}`;
+  if (state.view === "sky") {                                         // watch it from where it is best
+    sky.place = { lat: la, lon: lo, src: near.km < 40 ? near.name : near.km < 400 ? `near ${near.name}` : fmtLL(la, lo) };
+    skyAim(kind === "solar" ? "sun" : "moon"); sky.fov = kind === "solar" ? 3 : 4;
+  } else if (kind === "solar") {                                      // look at the shadow from the side, clear of the Moon
+    const s = solar(e.t), n = ll2v(la, lo), sd = ll2v(s.dec, s.subLon);
+    let w = n.map((v, i) => v - dot(n, sd) * sd[i]); if (Math.hypot(...w) < 0.2) w = cross(sd, [0, 0, 1]);
+    w = unit(w); const tw = unit(n.map((v, i) => v * Math.cos(0.75) + w[i] * Math.sin(0.75)));
+    const up = unit([0, 0, 1].map((v, i) => v - tw[2] * tw[i])), c = Math.cos(s.subLon * D2R), sn = Math.sin(s.subLon * D2R);
+    const toV = q => [q[0] * c + q[1] * sn, -q[0] * sn + q[1] * c, q[2]];
+    state.view = "free"; state.preset = null; state.cam = [toV(up), toV(cross(tw, up)), toV(tw)];
+  } else if (!["north", "south", "orbitN", "orbitS"].includes(state.view)) { state.view = "north"; state.preset = null; }
+  syncWhen(); syncControls(); draw();
+}
+document.getElementById("next-solar").addEventListener("click", ev => jumpEclipse("solar", ev.shiftKey ? -1 : 1));
+document.getElementById("next-lunar").addEventListener("click", ev => jumpEclipse("lunar", ev.shiftKey ? -1 : 1));
 
 // ---------- Interaction ----------
 function setHover(ev) {
@@ -1847,7 +2339,7 @@ function savePrefs() {
 function loadPrefs() {
   let p = null; try { p = JSON.parse(localStorage.getItem(PREFS_KEY) || "null"); } catch (e) {}
   if (!p || typeof p !== "object") return;
-  if (["north", "south", "orbitN", "orbitS", "sun", "moon"].includes(p.view) || (p.view === "compass" && COMPASS_OK)) state.view = p.view;
+  if (["north", "south", "orbitN", "orbitS", "sun", "moon", "sky"].includes(p.view) || (p.view === "compass" && COMPASS_OK)) state.view = p.view;
   if (SPEEDS.includes(p.speed)) state.speed = p.speed;
   if (typeof p.sunStill === "boolean") state.sunStill = p.sunStill;
   if (["clock", "sundial"].includes(p.preset)) state.preset = p.preset;
@@ -1870,6 +2362,7 @@ function syncControls() {
   press(".preset", b => b.id === `${state.preset}-mode`);
   press("[data-hands]", b => b.dataset.hands === state.hands);
   document.getElementById("focus-compass").setAttribute("aria-pressed", String(state.view === "compass"));
+  document.body.classList.toggle("sky", state.view === "sky"); syncSkyBtns();
   compassSync();
   const fm = document.getElementById("focus-moon");
   if (fm) { const t = `Moon: ${state.show.moon ? "shown" : "hidden"} (M)`; fm.title = t; fm.setAttribute("aria-label", t); fm.setAttribute("aria-pressed", String(state.show.moon)); }
@@ -1909,7 +2402,7 @@ document.querySelectorAll("[data-loop]").forEach(b => b.addEventListener("click"
   const v = b.dataset.loop;
   state.strobe = null;
   if (v === "day") { state.loop = { kind: "day", start: state.t, span: 86400000 }; state.speed = 3600; startPlaying(); }
-  else if (v === "year") { state.loop = { kind: "year", start: state.t }; if (!isStrobe()) state.speed = SPEEDS[4]; startPlaying(); }
+  else if (v === "year") { state.loop = { kind: "year", start: state.t }; if (!isStrobe()) state.speed = 2629746; startPlaying(); }
   else state.loop = null;
   syncControls(); draw();
 }));
@@ -1919,12 +2412,12 @@ document.querySelectorAll("[data-sunmode]").forEach(b => b.addEventListener("cli
   if (!state.sunStill) state.anchorT = state.t;  // keep the picture where it is; the Sun starts moving from here
   syncControls(); draw();
 }));
-document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.view; state.view = v; state.preset = null; if (v === "compass") compassStart(true); syncControls(); draw(); }));
+document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => { const v = b.dataset.view; if (v === "sky" && state.view !== "sky") skyAim(); state.view = v; state.preset = null; if (v === "compass") compassStart(true); syncControls(); draw(); }));
 document.getElementById("focus-compass").addEventListener("click", () => {
   if (state.view === "compass") { state.view = "north"; syncControls(); draw(); return; }
   state.view = "compass"; state.preset = null; compassStart(true); syncControls(); draw();
 });
-if (COMPASS_OK) { document.querySelector('[data-view="compass"]').hidden = false; document.getElementById("focus-compass").hidden = false; }
+if (COMPASS_OK) { document.querySelector('[data-view="compass"]').hidden = false; document.getElementById("focus-compass").hidden = false; document.getElementById("sky-phone").hidden = false; }
 document.querySelectorAll("[data-ov]").forEach(b => b.addEventListener("click", () => { state.show[b.dataset.ov] = !state.show[b.dataset.ov]; syncControls(); draw(); }));
 document.querySelectorAll("[data-hands]").forEach(b => b.addEventListener("click", () => { state.hands = b.dataset.hands; syncControls(); draw(); }));
 // Cycle the hand styles (the focused view's button, or the H key)
@@ -2027,7 +2520,8 @@ loadPrefs();
   if (!q) { try { q = localStorage.getItem("earthdial.city"); } catch (e) {} }
   if (q) { const m = searchCities(q); if (m.length) setHome(m[0], !fromUrl); }
   let v = null; try { v = new URLSearchParams(location.search).get("view"); } catch (e) {}   // e.g. ?view=compass
-  if (["north", "south", "orbitN", "orbitS", "sun", "moon", "compass"].includes(v)) { state.view = v; state.preset = null; }
+  if (["north", "south", "orbitN", "orbitS", "sun", "moon", "compass", "sky"].includes(v)) { state.view = v; state.preset = null; }
+  if (state.view === "sky") skyAim();
 })();
 
 // Focused mode: Esc (outside a text field) or the corner button; the corner button fades in when the mouse moves
@@ -2092,6 +2586,7 @@ document.addEventListener("keydown", ev => {
 // Zoom about a point (client coordinates): the scene point under it stays under it. Re-rendered once per frame.
 let zoomRAF = 0;
 function zoomAt(z, cxp, cyp, dxp = 0, dyp = 0) {
+  if (state.view === "sky") { skyZoomBy(z / state.zoom); return; }
   cancelAnimationFrame(glide);
   z = Math.max(zMin(), Math.min(ZMAX, z));
   const st = document.getElementById("stage").getBoundingClientRect(), C0x = st.left + st.width / 2, C0y = st.top + st.height / 2;
@@ -2102,7 +2597,7 @@ function zoomAt(z, cxp, cyp, dxp = 0, dyp = 0) {
   if (!zoomRAF) zoomRAF = requestAnimationFrame(() => { zoomRAF = 0; savePrefs(); resize(); });
 }
 function setZoom(z) { zoomAt(z); }
-function resetZoom() { cancelAnimationFrame(glide); pan = { x: 0, y: 0 }; state.zoom = 1; savePrefs(); resize(); }
+function resetZoom() { if (state.view === "sky") { skyAim(); draw(); return; } cancelAnimationFrame(glide); pan = { x: 0, y: 0 }; state.zoom = 1; savePrefs(); resize(); }
 const zStep = () => state.zoom < 1 ? 1.35 : 1.12;   // bigger steps on the long way out
 document.getElementById("zoom-in").addEventListener("click", () => setZoom(state.zoom * zStep()));
 document.getElementById("zoom-out").addEventListener("click", () => setZoom(state.zoom / zStep()));
