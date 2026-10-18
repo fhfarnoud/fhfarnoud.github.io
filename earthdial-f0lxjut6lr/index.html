@@ -407,7 +407,7 @@ body.focus #overlay:focus-visible { outline: none; }
   <div class="wide gutter">
     <details><summary><h3>Choosing a viewpoint</h3></summary><p>Each view is set by the Sun: from the North Pole the Sun is straight up the page, and the other views are turned from that one. Live, the view keeps up with the Sun, so Earth turns beneath it; when you press Play the view freezes to the ground at that moment and the Sun travels around Earth instead. From the North Pole the rim is the equator and only the northern hemisphere shows; from the South Pole Earth turns clockwise. Orbital north and south look down the normal to Earth's orbital plane from either side, where day and night meet along a straight line. From the Sun you see the whole day side. From the Moon you see the face of Earth turned toward it right now; the lit fraction is Earth's phase as seen from the Moon, the complement of the Moon's phase seen from here. Drag to turn the view anywhere in between. On a phone, Compass turns the view with the phone itself: every direction on screen is then the real one, so lying flat it shows Earth from straight above you with north toward true north, and the sunlight comes from where the Sun really is. Set Sun to Stays still to keep the Sun in place during playback too. Clock mode flips the picture left to right: from above the North Pole, where Earth turns anticlockwise, the hours then run clockwise like a clock's. Only the map is reversed; the lighting is still the real lighting of the side facing you. Sundial clock does it the other way: the view turns so the Sun points at the clock's time, the hour marks hold still with 12 at the top, and the map holds still while the Sun goes round it clockwise as the hour hand, just as a shadow does on a northern sundial (which is why clocks run clockwise). The map creeps a few degrees over the year with the equation of time and turns 15° when daylight saving starts or ends. Each preset is a combination of settings; changing the view or the Sun setting leaves it. The hour ring and clock hands appear only over a pole or the orbit's normal, where they read true; the minute strip, marker and hand are left out while playing faster than 1 h/s.</p></details>
     <details><summary><h3>The shape of the night</h3></summary><p>Day and night meet along a great circle facing the Sun. From over the North Pole it projects to half an ellipse with semi-axes 1 and |sin δ|, where δ is the Sun's declination. At the equinoxes it is a straight diameter. In northern winter it bows toward the Sun and the pole sits in darkness; in summer it bows the other way. Pick Loop → Year to watch it swing: that loop steps one whole day at a time at a fixed clock time, so the continents hold still while the seasons change.</p></details>
-    <details><summary><h3>Sizes and distances</h3></summary><p>Earth, the Moon and the Sun are drawn to one scale of size (the Moon 0.27 times Earth's width, the Sun 109 times) and their distances to another, shared by both: at 1× every distance is shortened about 41 times, so that the Moon sits just outside the ring. The Sun is then about 570 Earth radii away, far beyond the frame; what reaches the frame is its light, full at its disc and fading with distance from it, so over the few Earth radii shown it is an almost even warm wash, a little brighter on the Sun's side (the marker at the edge shows its direction). Each body sits in its true direction from Earth; when one is nearly in line with your viewpoint it moves in toward the centre and passes behind Earth, or in front of it. The lighting and the Moon's phase use the real directions, and the Moon shows its real face, nodding by up to about 8° each month (libration). Zooming in (pinch, or Ctrl-scroll) magnifies everything together; the maps of Earth and the Moon stay sharp to about 2–3×. Zooming out relaxes the shortening for both distances together: the Moon keeps its place while Earth shrinks, until at about 1/41× every distance is true; further out, the Sun comes into view as a disc a few pixels across with its glow, since from Earth it spans just half a degree. The zoom button's menu has a zoom slider and two other choices: distances always true, or always shortened (zoom far out and the Sun appears as a big glowing ball beside a small Earth). The corner caption says how much distances are shortened. The Sun's surface imitates the Sun in extreme ultraviolet (as NASA's Solar Dynamics Observatory sees it at 304 Å).</p></details>
+    <details><summary><h3>Sizes and distances</h3></summary><p>Earth, the Moon and the Sun are drawn to one scale of size (the Moon 0.27 times Earth's width, the Sun 109 times) and their distances to another, shared by both: at 1× every distance is shortened about 34 times, so that seen over a pole the Moon always clears the ring. The Moon is drawn exactly where that puts it, so from a side-on view it passes in front of Earth or behind it. The Sun is then about 690 Earth radii away, far beyond the frame; what reaches the frame is its light, full at its disc and fading with distance from it, so over the few Earth radii shown it is an almost even warm wash, a little brighter on the Sun's side (the marker at the edge shows its direction). Each body sits in its true direction from Earth; when one is nearly in line with your viewpoint it moves in toward the centre and passes behind Earth, or in front of it. The lighting and the Moon's phase use the real directions, and the Moon shows its real face, nodding by up to about 8° each month (libration). Zooming in (pinch, or Ctrl-scroll) magnifies everything together; the maps of Earth and the Moon stay sharp to about 2–3×. Zooming out relaxes the shortening for both distances together: the Moon keeps its place while Earth shrinks, until at about 1/34× every distance is true; further out, the Sun comes into view as a disc a few pixels across with its glow, since from Earth it spans just half a degree. The zoom button's menu has a zoom slider and two other choices: distances always true, or always shortened (zoom far out and the Sun appears as a big glowing ball beside a small Earth). The corner caption says how much distances are shortened. The Sun's surface imitates the Sun in extreme ultraviolet (as NASA's Solar Dynamics Observatory sees it at 304 Å).</p></details>
     <details><summary><h3>Official time</h3></summary><p>The thin borders on land outline the real time zones as currently defined, daylight saving included, and pointing anywhere gives the official time there. The ring shows local solar time: 12 sits on the meridian directly under the Sun, between Earth and the Sun, and each hour mark 15° further east, so the ring turns with the Sun: still when the Sun is still, smoothly when it moves. Clock time differs from solar time by a place's time zone, by daylight saving, and by the equation of time (up to about 16 minutes), so the clock is shown separately: the amber city marker, or the hour hand, sits where the ring reads the clock city's official time, daylight saving included (UTC without a city). It is therefore turned away from the city's own meridian by that difference: about 1 h 15 min for Charlottesville in summer. The UTC mark sits where the ring reads UTC, close to the prime meridian. The outer strip is an ordinary minute dial, 0 at the top and one turn an hour; its white marker shows the minutes of the same clock. Each marker can be turned off under Overlays, and turning off the minute marker removes its strip. Under Clock hands you can draw hands instead (Meridian, Skeleton or Bezel; press H to cycle them): the hour hand points to the clock city's official hour on the ring, and the minute hand is an ordinary one. Above 1 h/s the minute hand is left out, since it would spin several turns a second.</p></details>
   </div>
 </section>
@@ -585,17 +585,17 @@ let rfrac = RFRAC;   // Earth's radius as a fraction of the stage canvas: RFRAC 
 // the Sun just outside the Moon's shell. So every view is an exact (orthographic) picture of one 3D arrangement:
 // near the line of sight a body moves in front of or behind Earth, up to a cap on its distance.
 const TRUE_R = { sun: 695700 / 6371, moon: 1737.4 / 6371 };
-const MOON_CAP = 6, SUN_CAP = 640;
+const SUN_CAP = 640, MOON_LMIN = Math.cos(29.5 * D2R);   // the Moon's declination stays within ±28.7° (±29.5° with margin)
 // One scale for sizes (true) and one for distances, shared by the Moon and the Sun: every distance is shortened by the
-// same factor k. At 1x k ≈ 41, chosen so the Moon sits just outside the ring; the Sun (109 R) is then about 570 R away,
+// same factor k. At 1x k ≈ 34, chosen so the Moon clears the ring over a pole; the Sun (109 R) is then about 690 R away,
 // far off the card, and reaches it only as light. Zooming out (the default regime) relaxes k: the Moon keeps its place
-// on screen while Earth shrinks, so k falls in step with the zoom until it is 1 (all true) at zA ≈ 1/41x.
+// on screen while Earth shrinks, so k falls in step with the zoom until it is 1 (all true) at zA ≈ 1/34x.
 // "Always true" fixes k = 1; "Always shortened" fixes k at its 1x value. Each body sits on its true direction; Dm, Ds
 // are its base distances in R (stretched near the line of sight, see moonPlace and drawSun).
 let plan = { Dm: 1.5, Ds: 573, mTrue: 60, sTrue: 23500, zB: 1e-4, zA: 0.025, k: 41, moonPx: 280 };
 function distPlan(s) {
   const z = Math.min(1, state.zoom), R0 = S * RFRAC;
-  const shell0 = RING_MAX + TRUE_R.moon + 0.04, mTrue = s.moonDist * 6378.14 / 6371, sTrue = s.sunDist;
+  const shell0 = (RING_MAX + TRUE_R.moon + 0.04) / MOON_LMIN, mTrue = s.moonDist * 6378.14 / 6371, sTrue = s.sunDist;
   const k0 = mTrue / shell0, zA = 1 / k0;
   const k = state.zoomMode === "true" ? 1 : state.zoomMode === "short" ? k0 : Math.max(1, k0 * z);
   const Dm = mTrue / k, Ds = sTrue / k;
@@ -606,7 +606,7 @@ function distPlan(s) {
   return plan;
 }
 const zMin = () => Math.max(1e-6, plan.zB * 0.6);   // farthest they go, in R: they slide toward the centre within about 15° and 10° of the line of sight
-const moonShell = () => plan.Dm;                                    // the Moon's base distance, R (just outside the ring at 1x)
+const moonShell = () => plan.Dm;                                    // the Moon's distance, R (clear of the ring over a pole at 1x)
 const sunNear = () => plan.Ds - TRUE_R.sun;                         // the Sun's near edge, R
 let gl = null, U = {}, texReady = 0, lutTex = null, lutKey = "", aniso = null;
 let zoneIdx = null; // Uint8Array 4096x2048 of zone indices (0 = unknown)
@@ -1451,23 +1451,31 @@ let moonKey = "";
 function moonPlace(s, A, cx, cy, R) {
   const m = applyA(A, ll2v(s.moonDec, s.moonSubLon));
   if (m[2] > 0.9) return null;                                   // the viewpoint is the Moon
-  // On its true direction at distance D = max(Dm, min(cap, Dm/l)), cap = max(MOON_CAP, Dm): at 1x it sits just outside the
-  // ring unless it is near the line of sight; once its distance is true (zoomed out) it is an exact projection
-  const l = Math.hypot(m[0], m[1]), Dm = moonShell(), D = Math.max(Dm, Math.min(Math.max(MOON_CAP, Dm), Dm / Math.max(l, 1e-6)));
+  // An exact projection of the Moon on its true direction at distance Dm: it goes round Earth on its (projected) orbit,
+  // in front of Earth or behind it as the view has it. At 1x Dm is set so that seen over a pole (declination up to
+  // ±29.5°) or the orbit's normal it always clears the ring, moving in and out a little with its declination.
+  const l = Math.hypot(m[0], m[1]), D = moonShell();
   const rm = TRUE_R.moon * R, x = cx - m[1] * D * R, y = cy - m[0] * D * R, off = D * l;
   const angle = l > 1e-6 ? Math.atan2(y - cy, x - cx) : -Math.PI / 2;
-  if (m[2] < 0 && off < 1 - TRUE_R.moon) return null;            // wholly behind Earth
+  const ghost = { gx: x, gy: y, ecx: cx, ecy: cy, eR: R };          // where it is behind Earth: a faint dashed outline over the globe
+  if (m[2] < 0 && off < 1 - TRUE_R.moon) return { x, y, rm, angle, hidden: true, ...ghost };   // wholly behind Earth
   const inStage = x - rm > 0 && x + rm < S && y - rm > 0 && y + rm < S;
   if ((m[2] >= 0 || off > 1 + TRUE_R.moon) && inStage) return { x, y, rm, angle, A };
   const ox = sunBox.ox + stageShift.x, oy = sunBox.oy + stageShift.y, X = x + ox, Y = y + oy;
   if (X + rm < 0 || X - rm > sunBox.w || Y + rm < 0 || Y - rm > sunBox.h)   // beyond a small card: a pointer
     return { off: true, angle, cx: cx + ox, cy: cy + oy, tx: X, ty: Y };
-  return { x: X, y: Y, rm, angle, A, g: sctx };                  // partly behind Earth, or past the stage: on the card's canvas
+  return { x: X, y: Y, rm, angle, A, g: sctx, ...(m[2] < 0 ? ghost : {}) };   // partly behind Earth, or past the stage: on the card's canvas
 }
 function drawMoon(s, at, R, small) {
   const { x, y } = at, g = at.g || ctx;
   const rm = at.rm;
   if (at.off) { offPage(at.cx, at.cy, at.tx, at.ty, R, "THE MOON"); return at.angle; }
+  if (at.gx != null && rm >= 2) {                                // behind Earth: outline the hidden part over the globe
+    ctx.save(); ctx.beginPath(); ctx.arc(at.ecx, at.ecy, at.eR, 0, Math.PI * 2); ctx.clip();
+    ctx.setLineDash([3, 3]); ctx.strokeStyle = "rgba(201,211,226,0.5)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(at.gx, at.gy, rm, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
+  if (at.hidden) return at.angle;
   if (rm < 1) {                                                  // too small to see: a ring marks where it is, not its size
     g.strokeStyle = "rgba(201,211,226,0.8)"; g.lineWidth = 1; g.beginPath(); g.arc(x, y, 4, 0, Math.PI * 2); g.stroke();
     if (plan.moonPx >= 24) { g.font = `400 11px ${MONO}`; g.fillStyle = "#c9d3e2"; g.textAlign = "center"; g.textBaseline = "top"; g.fillText("Moon", x, y + 8); }
