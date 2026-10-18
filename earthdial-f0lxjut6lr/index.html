@@ -2069,7 +2069,11 @@ function drawSky(s) {
     }
   }
   // the Sun
-  const sq = skyProj(F, sunD), sunR = sq ? Math.max(1.4, o.sun.diam / 2 * D2R * F.f * sq[2]) : 0;
+  // Sun and Moon at true angular size; when that is under 7 px (a wide view) both are drawn larger by one factor, so
+  // they keep their sizes relative to each other (about equal, as seen from Earth) and the caption says so
+  const sq = skyProj(F, sunD), mq = skyProj(F, moonD);
+  const sunR0 = o.sun.diam / 2 * D2R * F.f * (sq ? sq[2] : 1), moonR0 = o.moon.diam / 2 * D2R * F.f * (mq ? mq[2] : 1);
+  const enl = Math.max(1, 7 / Math.min(sunR0, moonR0)), sunR = sq ? sunR0 * enl : 0;
   if (sq) {
     if (E < 0.02) {                                               // the corona, as the last of the Sun goes
       const ca = 1 - ss(0, 0.015, E), cR = Math.max(sunR * 4.5, 16), cg = g.createRadialGradient(sq[0], sq[1], sunR, sq[0], sq[1], cR);
@@ -2091,7 +2095,7 @@ function drawSky(s) {
     g.fillStyle = dg; g.beginPath(); g.arc(sq[0], sq[1], sunR, 0, 2 * Math.PI); g.fill();
   }
   // the Moon: lit and turned as seen from here, behind the air in front of it
-  const mq = skyProj(F, moonD), moonR = mq ? Math.max(1.2, o.moon.diam / 2 * D2R * F.f * mq[2]) : 0;
+  const moonR = mq ? moonR0 * enl : 0;
   if (mq && mq[0] > -moonR && mq[1] > -moonR && mq[0] < W + moonR && mq[1] < H + moonR) {
     const d2 = skyUnproj(F, mq[0], mq[1] - 1), upE = unit(d2.map((v, i) => v - moonD[i] * dot(d2, moonD)));
     const up = enuToEF(upE, pl.lat, pl.lon), tw = o.moon.ef.map(v => -v), lf = cross(tw, up), rows = [up, lf, tw];
@@ -2104,6 +2108,12 @@ function drawSky(s) {
     g.fillStyle = rgb(air.map(v => Math.round(v * 0.35))); g.fillRect(mq[0] - moonR, mq[1] - moonR, 2 * moonR, 2 * moonR);
     g.globalCompositeOperation = "screen"; g.drawImage(im, mq[0] - moonR, mq[1] - moonR, 2 * moonR, 2 * moonR);
     g.restore();
+    const litM = 0.5 * (1 + dot(o.moon.ef.map(v => -v), sm)), ga = 0.22 * litM * (1 - L.day);   // moonlight in the air around it
+    if (ga > 0.01) {
+      const mg = g.createRadialGradient(mq[0], mq[1], moonR, mq[0], mq[1], moonR * 5);
+      mg.addColorStop(0, `rgba(220,226,240,${ga.toFixed(3)})`); mg.addColorStop(1, "rgba(220,226,240,0)");
+      g.fillStyle = mg; g.beginPath(); g.arc(mq[0], mq[1], moonR * 5, 0, 2 * Math.PI); g.fill();
+    }
   }
   // the ground: below the horizon, which this projection draws as a circle (or a line when you look along it)
   const nz = F.c[2] || 1e-6, ccx = F.cx + 2 * F.r[2] / nz * F.f, ccy = F.cy - 2 * F.u[2] / nz * F.f, crr = 2 / Math.abs(nz) * F.f;
@@ -2126,15 +2136,15 @@ function drawSky(s) {
   });
   // labels for small discs
   g.font = `400 11px ${MONO}`; g.textBaseline = "top";
-  if (sq && sunR < 8) { g.fillStyle = "rgba(255,226,170,0.9)"; g.fillText("Sun", sq[0], sq[1] + Math.max(sunR, 5) + 6); }
-  if (mq && moonR < 8) { g.fillStyle = "rgba(201,211,226,0.9)"; g.fillText("Moon", mq[0], mq[1] + Math.max(moonR, 5) + 6); }
+  if (sq && sunR < 12) { g.fillStyle = "rgba(255,226,170,0.9)"; g.fillText("Sun", sq[0], sq[1] + Math.max(sunR, 5) + 6); }
+  if (mq && moonR < 12) { g.fillStyle = "rgba(201,211,226,0.9)"; g.fillText("Moon", mq[0], mq[1] + Math.max(moonR, 5) + 6); }
   sky.last = { o, E, pl, F };
   // caption
   const cmp = az => ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"][Math.round(az / 22.5) % 16];
   const where = b => `${Math.abs(b.alt).toFixed(0)}° ${b.alt >= 0 ? "up" : "down"}, ${cmp(b.az)}`;
   const lit = Math.round(50 * (1 + dot(o.moon.ef.map(v => -v), unit([0, 1, 2].map(i => o.sun.ef[i] * o.sun.dist - o.moon.ef[i] * o.moon.dist)))));
   const eclTxt = E < 0.999 && o.sun.alt > -1 ? ` · eclipse: ${E <= 0 ? "total" : Math.round(100 * (1 - E)) + "% of the Sun covered"}` : "";
-  const txt = `Sky from ${pl.src} · Sun ${where(o.sun)} · Moon ${where(o.moon)}, ${lit}% lit${eclTxt}`;
+  const txt = `Sky from ${pl.src} · Sun ${where(o.sun)} · Moon ${where(o.moon)}, ${lit}% lit${eclTxt}${enl > 1.05 ? ` · Sun and Moon drawn ${enl < 10 ? enl.toFixed(1) : Math.round(enl)}× size` : ""}`;
   if (!state.focus) {
     g.font = `400 11px ${MONO}`; g.textAlign = "left"; g.textBaseline = "alphabetic"; g.lineJoin = "round";
     g.lineWidth = 3; g.strokeStyle = "rgba(11,15,23,0.85)"; g.strokeText(txt, 18, H - 16); g.fillStyle = "#c9d3e2"; g.fillText(txt, 18, H - 16);
