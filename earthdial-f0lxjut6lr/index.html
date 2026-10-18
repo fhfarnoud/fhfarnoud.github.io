@@ -1450,7 +1450,7 @@ const MOONPAL = { night: [22, 26, 34], hor: [70, 72, 78], day: [222, 218, 208] }
 let moonKey = "";
 function moonPlace(s, A, cx, cy, R) {
   const m = applyA(A, ll2v(s.moonDec, s.moonSubLon));
-  if (m[2] > 0.9) return null;                                   // the viewpoint is the Moon
+  if (state.view === "moon" && m[2] > 0.99) return null;         // the viewpoint is the Moon itself
   // An exact projection of the Moon on its true direction at distance Dm: it goes round Earth on its (projected) orbit,
   // in front of Earth or behind it as the view has it. At 1x Dm is set so that seen over a pole (declination up to
   // ±29.5°) or the orbit's normal it always clears the ring, moving in and out a little with its declination.
