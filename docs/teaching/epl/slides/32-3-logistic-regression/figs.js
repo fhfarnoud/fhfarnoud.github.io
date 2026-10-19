@@ -43,8 +43,20 @@ function lnK(v, base = '\\ln 3') {
 
 // The 32 days of rain (Sec. 6.3.2). Plot coordinates r are humidity / 10;
 // every displayed x value is humidity in percent, and beta = b / 10.
-const DX = [5, 6, 7, 8, 9], DN = [10, 4, 4, 4, 10], DR = [1, 1, 2, 3, 9];
+const DX = [5, 6, 7, 8, 9], DN = [10, 4, 4, 4, 10], DR = [0, 1, 2, 3, 8];
 const loss32 = (b, g) => DX.reduce((s, x, k) => s - DR[k] * lnsig(b * x + g) - (DN[k] - DR[k]) * lnsig(-(b * x + g)), 0);
+// Newton solve for the two maximum-likelihood parameters in plotting units.
+let MLE_B = 1, MLE_G = -7;
+for (let j = 0; j < 20; j++) {
+  let db = 0, dg = 0, hbb = 0, hbg = 0, hgg = 0;
+  DX.forEach((x, k) => {
+    const q = sigm(MLE_B * x + MLE_G), e = DN[k] * q - DR[k], h = DN[k] * q * (1 - q);
+    db += e * x; dg += e; hbb += h * x * x; hbg += h * x; hgg += h;
+  });
+  const det = hbb * hgg - hbg * hbg;
+  const stepB = (hgg * db - hbg * dg) / det, stepG = (hbb * dg - hbg * db) / det;
+  MLE_B -= stepB; MLE_G -= stepG;
+}
 // Gradient descent on the summed loss from theta = 0. In displayed parameters,
 // beta has step 1/32000 and gamma step 1/320. This is rho = 1/320 in (b,g).
 // The second run centers humidity at 70 (r = 7).
@@ -60,7 +72,39 @@ function gdRun(T, shift = 0, rho = 1 / 320) {
   return { B, G, L };
 }
 const GD = gdRun(10000);
-const LMIN = loss32(LN3, -7 * LN3) / 32;      // 0.4304, the empirical conditional entropy
+const LMIN = loss32(MLE_B, MLE_G) / 32;
+
+// SGD on the same 32 days, with centered humidity u = x - 70. Keep the first
+// three selected days explicit so the dry/rainy/dry effects can be compared;
+// shuffle the remaining days reproducibly, then run a second shuffled epoch.
+const SGD_BASE = DX.flatMap((x, k) => [
+  ...Array.from({ length: DN[k] - DR[k] }, (_, j) => ({ x, y: 0, j, count: DN[k] - DR[k] })),
+  ...Array.from({ length: DR[k] }, (_, j) => ({ x, y: 1, j, count: DR[k] }))
+]);
+function shuffleDays(days, seed) {
+  const out = days.slice(), rand = mulberry32(seed);
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+const SGD_DAYS = (() => {
+  const rest = SGD_BASE.slice();
+  const first = [[5, 0], [9, 1], [9, 0]].map(([x, y]) =>
+    rest.splice(rest.findIndex(d => d.x === x && d.y === y), 1)[0]);
+  return first.concat(shuffleDays(rest, 61015), shuffleDays(SGD_BASE, 61016));
+})();
+const SGD = (() => {
+  const B = [0], G = [0], L = [loss32(0, 0) / 32];
+  for (const d of SGD_DAYS) {
+    const t = B.length - 1, u = (d.x - 7), err = d.y - sigm(B[t] * u + G[t]);
+    B.push(B[t] + err * u / 5);  // beta step 1/500 with u in percentage points
+    G.push(G[t] + err / 5);      // gamma step 1/5
+    L.push(loss32(B[t + 1], G[t + 1] - 7 * B[t + 1]) / 32);
+  }
+  return { B, G, L };
+})();
 
 // The four separable days (Sec. 6.3.5): displayed u = -20,-10,10,20;
 // the plot coordinates and model use u / 10, so displayed beta = b / 10.
@@ -686,6 +730,28 @@ FIGS.days = {
   }
 };
 
+// Empirical rain fractions at the five recorded humidities and the fitted model.
+// Fractions are points because the data specify no empirical probability between them.
+FIGS.empfit = {
+  duration: 900, size: [550, 430],
+  draw(g) {
+    const P = g.plot(D11);
+    humAxes(P);
+    P.label('ex', HUM, [7, -0.2], 't', { dy: 26, color: '#444' });
+    P.label('ey', '$p(y=1\\mid x)$', [4.3, 1.25], 'l', { dx: 8, dy: -10, color: '#444' });
+    stroke(P, fpath(P, x => sigm(MLE_B * x + MLE_G), 4.3, 9.95), { color: 'pred' });
+    DX.forEach((x, k) => {
+      const fraction = DR[k] / DN[k];
+      P.dot([x, fraction], { r: 7, color: 'teal' });
+      P.label('e' + k, String(fraction), [x, fraction], 'b', { dy: -10, color: 'teal' });
+    });
+    g.el('circle', { cx: 85, cy: 25, r: 6, fill: C.teal });
+    g.text([98, 31], 'observed rainy fraction', { anchor: 'start', size: 15, color: C.teal });
+    g.line([302, 25], [332, 25], { color: C.pred, w: 3 });
+    g.text([344, 31], 'fitted sigmoid', { anchor: 'start', size: 15, color: C.pred });
+  }
+};
+
 // ---------------------------------------------------------------- slide 12: the cost of a day
 const NB = box2d(66, 28, 450, 300, 0, 1.05, 0, 4.8);
 FIGS.nll = {
@@ -694,15 +760,15 @@ FIGS.nll = {
     const P = g.plot(NB);
     P.axes({ grid: false, xt: [0.5, 1], yt: [1, 2, 3, 4], names: ['$q$', '$\\ln(1/q)$'] });
     stroke(P, fpath(P, q => -Math.log(q), 0.005, 1, 300), { color: 'rose' });
-    // at the closing state the two extreme points also name the day they price; the
-    // q = 0.9 label then has two lines and sits on a short leader above its point
+    // At the closing state, mark each possible label's cost at 90% humidity.
     const ex = p.ex > 0.5;
-    for (const [q, k, anc, dx, dy, day] of [[0.9, 'a', 'b', 0, -12, 'a rainy day at 90%'], [0.5, 'b', 'tr', -8, 8, ''], [0.1, 'c', 'l', 14, 0, 'a dry day at 90%']]) {
+    const rain90 = sigm(MLE_B * 9 + MLE_G);
+    for (const [q, k, anc, dx, dy, day] of [[rain90, 'a', 'b', 0, -12, 'a rainy day at 90%'], [0.5, 'b', 'tr', -8, 8, ''], [1 - rain90, 'c', 'l', 14, 0, 'a dry day at 90%']]) {
       const y = -Math.log(q), up = ex && k === 'a' ? 34 : 0, op = p.ex;
       P.line([q, 0], [q, y], { color: 'rose', w: 1.2, dash: '4 4', opacity: 0.6 * op });
       if (up) g.line([P.X(q), P.Y(y) - 8], [P.X(q), P.Y(y) - up + 2], { color: 'rose', w: 1.2 });
       P.dot([q, y], { r: 6.5, color: 'rose', opacity: op });
-      const s = `$q=${q}$: ${f3(y)}` + (day ? (k === 'a' ? '<br>' : ', ') + day : '');
+      const s = `$q=${f3(q)}$: ${f3(y)}` + (day ? (k === 'a' ? '<br>' : ', ') + day : '');
       P.label('v' + k, s, [q, y], anc, { dx, dy: dy - up, color: 'rose', opacity: op });
     }
   }
@@ -749,6 +815,56 @@ FIGS.gd = {
     Q.label('lv', f3(GD.L[t]), at, 'bl', { dx: 8, dy: -8, color: 'rose' });
     const sec = g.root.closest('section'), out = sec && sec.querySelector('.v-t');
     if (out && out.textContent !== thou(t)) out.textContent = thou(t);
+  }
+};
+
+// One selected day's stochastic-gradient step. The left panel uses the same
+// dimensions and rain dots as slide 30; the right panel tracks full-data loss.
+const SGR = box2d(690, 34, 430, 200, 0, 64, 0.33, 0.8);
+FIGS.sgd = {
+  duration: 850, size: [1200, 292],
+  draw(g, p) {
+    const t = Math.max(0, Math.min(SGD_DAYS.length, Math.round(p.st ?? 0)));
+    const P = g.plot(GL);
+    humAxes(P);
+    P.label('lx', HUM, [7, -0.2], 't', { dy: 26, color: '#444' });
+    P.label('ly', '$p_{\\btheta^{(t)}}(y=1\\mid x)$', [4.3, 1.25], 'l', { dx: 8, dy: -10, color: '#444' });
+    dayDots(P, DX, DN, DR, 5);
+    const curve = (k, x) => sigm(SGD.B[k] * (x - 7) + SGD.G[k]);
+    if (t) {
+      const d = SGD_DAYS[t - 1], before = curve(t - 1, d.x), after = curve(t, d.x);
+      stroke(P, fpath(P, x => curve(t - 1, x), 4.3, 9.95), { color: 'pred', w: 2.5, dash: '7 5', opacity: 0.48 });
+      P.line([d.x, d.y], [d.x, before], { color: d.y ? 'teal' : 'brown', w: 1.5, dash: '4 5', opacity: 0.7 });
+      P.line([d.x, before], [d.x, after], { color: d.y ? 'teal' : 'brown', w: 3.5 });
+      const ax = P.X(d.x), tip = P.Y(after), base = tip - Math.sign(tip - P.Y(before)) * 9;
+      P.g.el('path', { d: `M${ax},${tip} L${ax - 5},${base} L${ax + 5},${base} Z`,
+        fill: C[d.y ? 'teal' : 'brown'], stroke: '#fff', 'stroke-width': 1 });
+      const row = Math.floor(d.j / 5), inRow = Math.min(5, d.count - row * 5);
+      const cx = ax + (d.j % 5 - (inRow - 1) / 2) * 12.4;
+      const cy = P.Y(d.y) - (d.y ? 1 : -1) * row * 12.4;
+      P.g.el('circle', { cx, cy, r: 11, fill: 'none', stroke: C[d.y ? 'teal' : 'brown'], 'stroke-width': 3 });
+      P.label('sel', `step ${t}: ${d.y ? 'rainy' : 'dry'} day at ${d.x * 10}%`, [9.95, 1.25], 'br',
+        { dx: -8, dy: -12, color: d.y ? 'teal' : 'brown' });
+      P.label('effect', `at ${d.x * 10}%: ${f2(before)} → ${f2(after)}`, [9.95, 1.25], 'br',
+        { dx: -8, dy: 16, color: 'pred' });
+    }
+    stroke(P, fpath(P, x => curve(t, x), 4.3, 9.95), { color: 'pred', w: 3 });
+    if (!t) P.label('sel', 'start: 0.5 everywhere', [9.95, 1.25], 'br',
+      { dx: -8, dy: -12, color: 'pred' });
+
+    const Q = g.plot(SGR);
+    Q.axes({ grid: false, ox: 0, oy: 0.33, xt: [0, 16, 32, 48, 64], yt: [0.4, 0.5, 0.6, 0.7, 0.8], names: ['', ''] });
+    Q.label('rx', 'SGD step $t$', [32, 0.33], 't', { dy: 28, color: '#444' });
+    Q.label('ry', 'loss per day', [0, 0.8], 'br', { dx: -10, dy: 0, color: '#444' });
+    Q.line([0, LMIN], [64, LMIN], { color: 'mle', w: 2, dash: true });
+    Q.label('min', 'ML minimum', [63, LMIN], 'tr', { dy: 4, color: 'mle' });
+    const pts = Array.from({ length: t + 1 }, (_, k) => Q.px([k, SGD.L[k]]));
+    stroke(Q, pathOf(pts), { color: 'rose', w: 3 });
+    Q.dot([t, SGD.L[t]], { r: 6.5, color: 'rose' });
+    Q.label('lv', f3(SGD.L[t]), [t, SGD.L[t]], t > 48 ? 'br' : 'bl',
+      { dx: t > 48 ? -8 : 8, dy: -8, color: 'rose' });
+    const sec = g.root.closest('section'), out = sec && sec.querySelector('.v-sgd');
+    if (out && out.textContent !== String(t)) out.textContent = String(t);
   }
 };
 
@@ -995,30 +1111,7 @@ FIGS.pipe = {
   }
 };
 
-// ---------------------------------------------------------------- slide 15: entropy and relative entropy; b2 shows the fitted model's bar
-const KB = box2d(80, 46, 400, 360, 0.4, 3.6, 0, 0.8);
-FIGS.kl = {
-  duration: 900, size: [580, 460],
-  draw(g, p) {
-    const P = g.plot(KB), D0 = GD.L[0] - LMIN;
-    P.axes({ grid: false, ox: 0.4, xt: [], yt: [0.2, 0.4, 0.6, 0.8], names: ['', ''] });
-    P.label('yl', 'loss per day (nats)', [0.4, 0.8], 'l', { dx: 10, dy: -14, color: '#444' });
-    const bar = (x, lo, hi, col) => P.rect([x - 0.25, lo], [x + 0.25, hi], { color: col, fo: 0.55, stroke: C[col], 'stroke-width': 1.5 });
-    const X0 = 1, X1 = 2.8;
-    const b2 = p.b2 ?? 1;
-    bar(X0, 0, LMIN, 'mle'); bar(X0, LMIN, GD.L[0], 'rose');
-    g.group({ opacity: b2 }, () => bar(X1, 0, LMIN, 'mle'));
-    P.label('n0', '$\\btheta=\\bzero$', [X0, 0], 't', { dy: 8, color: '#333' });
-    P.label('n1', '$\\hat\\btheta$', [X1, 0], 't', { dy: 8, color: '#333', opacity: b2 });
-    P.label('e0', `$H$ ${f3(LMIN)}`, [X0 + 0.25, LMIN / 2], 'l', { dx: 8, color: 'mle' });
-    P.label('e1', `$H$ ${f3(LMIN)}`, [X1 + 0.25, LMIN / 2], 'l', { dx: 8, color: 'mle', opacity: b2 });
-    P.label('d0', `$D$ ${f3(D0)}`, [X0 + 0.25, LMIN + D0 / 2], 'l', { dx: 8, color: 'rose' });
-    P.label('d1', '$D$ 0', [X1 + 0.25, LMIN], 'l', { dx: 8, color: 'rose', opacity: b2 });
-    P.label('t0', `total ${f3(GD.L[0])}`, [X0, GD.L[0]], 'b', { dy: -6, color: '#333' });
-  }
-};
-
-// ---------------------------------------------------------------- slide 33: perplexity
+// ---------------------------------------------------------------- slide 42: perplexity
 // The model of the softmax exercise, logits (ln 2, 0, 0).  hi marks the observed token, snow, and
 // its cost in bits; u shows the uniform choice among 2^bits tokens that costs the same.
 const PPL = box2d(56, 56, 230, 250, 0.4, 3.6, 0, 1), PPU = box2d(350, 56, 230, 250, 0.4, 4.6, 0, 1);
@@ -1026,12 +1119,12 @@ FIGS.ppl = {
   duration: 900, size: [600, 420],
   draw(g, p) {
     const q = softmax([LN2, 0, 0]), bits = -Math.log2(q[1]), K = Math.round(2 ** bits), hi = p.hi ?? 0, u = p.u ?? 0;
-    barPanel(g, PPL, TOK, q, { key: 'm', base: 0, yt: [0, 0.5, 1], title: 'model: $p(w_t=k\\mid w_{1:t-1})$', lab: v => fmt(v, 3) });
+    barPanel(g, PPL, TOK, q, { key: 'm', base: 0, yt: [0, 0.5, 1], title: 'three-token model', lab: v => fmt(v, 3) });
     const P = g.plot(PPL);
     P.rect([2 - 0.36, 0], [2 + 0.36, q[1]], { color: 'none', stroke: C.ink, 'stroke-width': 3, fill: 'none', opacity: hi });
     P.label('cost', `observed: snow<br>$-\\log_2 ${fmt(q[1], 3)}=${fmt(bits, 3)}$ bits`, [2, 0], 't', { dy: 36, color: 'ink', opacity: hi });
-    barPanel(g, PPU, ['', '', '', ''], new Array(K).fill(1 / K), { key: 'u', base: 0, yt: [0, 0.5, 1], title: `${K} equally likely tokens`, lab: v => fmt(v, 3), opacity: u });
-    g.label('pp', `same cost:<br>perplexity $2^{${fmt(bits, 3)}}=${K}$`, [PPU.x0 + PPU.W / 2, PPU.y0 + PPU.H], 't', { dy: 36, color: 'pred', opacity: u });
+    barPanel(g, PPU, ['', '', '', ''], new Array(K).fill(1 / K), { key: 'u', base: 0, yt: [0, 0.5, 1], title: 'uniform comparison', lab: v => fmt(v, 3), opacity: u });
+    g.label('pp', `same ${fmt(bits, 3)}-bit loss:<br>perplexity $2^{${fmt(bits, 3)}}=${K}$`, [PPU.x0 + PPU.W / 2, PPU.y0 + PPU.H], 't', { dy: 36, color: 'pred', opacity: u });
   }
 };
 
@@ -1059,10 +1152,10 @@ function contourD(P, f, levels, nx = 260, ny = 220) {
   }
   return out;
 }
-const CLEV = [0.432, 0.44, 0.46, 0.5, 0.56, 0.64, 0.75, 0.9];
+const CLEV = [0.417, 0.42, 0.43, 0.46, 0.5, 0.56, 0.64, 0.75];
 const CX = box2d(70, 24, 420, 280, -0.5, 2.4, -17, 1.2), CU = box2d(700, 24, 420, 280, -0.5, 2.4, -1.3, 1.3);
 const stepsTo = run => { for (let t = 0; t < run.L.length; t++) if (run.L[t] <= LMIN + 0.001) return t; return run.L.length - 1; };
-const RUNX = gdRun(4000), RUNU = gdRun(200, 7), NX = stepsTo(RUNX), NU = stepsTo(RUNU);
+const RUNX = gdRun(5000), RUNU = gdRun(200, 7), NX = stepsTo(RUNX), NU = stepsTo(RUNU);
 let CONT = null;
 FIGS.cont = {
   size: [1200, 360],

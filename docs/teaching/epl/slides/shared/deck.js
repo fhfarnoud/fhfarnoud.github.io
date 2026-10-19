@@ -611,6 +611,61 @@ function balance(sec) {
   });
   if (hidden) sec.style.display = '';
 }
+// A viewer that reads the deck again after each edit (localtools) keeps the
+// window, and with it the spacing each slide was given: a slide read back as
+// it was takes that spacing again without being measured (measuring every
+// slide is most of the time a 44-slide deck takes to draw). A slide is
+// compared by its markup without the viewer's source stamps (data-lt-*,
+// data-src*), which move with any edit above them, with its images' sizes
+// (an image still loading gives a key of its own, measured again once it has
+// loaded), and under the page's styles, root classes and loaded fonts, so a
+// change to a stylesheet measures every slide.
+function balanceAll(secs, add) {
+  const hash = t => {
+    let a = 0x811c9dc5, b = 0x9e3779b9;
+    for (let i = 0; i < t.length; i++) {
+      const c = t.charCodeAt(i);
+      a = Math.imul(a ^ c, 0x01000193); b = Math.imul(b ^ c, 0x5bd1e995) ^ (b >>> 15);
+    }
+    return (a >>> 0).toString(36) + '.' + (b >>> 0).toString(36) + '.' + t.length;
+  };
+  const was = window.__deckBalance || new Map(), now = add ? was : new Map(), measured = [];
+  const ctx = hash([...document.querySelectorAll('style')].map(s => s.textContent).join('\n') + '\n' +
+    [...document.querySelectorAll('link[rel="stylesheet"]')].map(l => l.href).join('\n') + '\n' +
+    document.documentElement.className + '\n' + document.fonts.status + ' ' +
+    [...document.fonts].filter(f => f.status === 'loaded').length);
+  secs.forEach(sec => {
+    const els = [sec, ...sec.querySelectorAll('*')];
+    const imgs = [...sec.querySelectorAll('img')].map(i => i.complete ? i.naturalWidth + 'x' + i.naturalHeight : '?').join(',');
+    const key = ctx + ':' + imgs + ':' + hash(sec.outerHTML.replace(/ data-(?:lt-[\w-]+|src(?:-[\w-]+)?)="[^"]*"/g, ''));
+    let set = was.get(key);
+    if (set) set.forEach(([i, v]) => { if (v == null) els[i].removeAttribute('style'); else els[i].setAttribute('style', v); });
+    else {
+      const before = els.map(e => e.getAttribute('style'));
+      balance(sec);
+      set = [];
+      els.forEach((e, i) => { const v = e.getAttribute('style'); if (v !== before[i]) set.push([i, v]); });
+      measured.push({ sec, els, before, key });
+    }
+    now.set(key, set);
+  });
+  window.__deckBalance = now;
+  return measured;
+}
+// Slides are not laid out before they are balanced (reveal hides them), so
+// the fonts their text needs may only start loading as balance measures
+// them, after document.fonts.ready has resolved. The slides measured then
+// are put back and measured again once those fonts are in.
+async function balanceDeck(secs) {
+  const measured = balanceAll(secs);
+  if (!measured.length || document.fonts.status !== 'loading') return;
+  await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 3000))]);
+  measured.forEach(m => {
+    m.els.forEach((e, i) => { const v = m.before[i]; if (v == null) e.removeAttribute('style'); else e.setAttribute('style', v); });
+    window.__deckBalance.delete(m.key);
+  });
+  balanceAll(measured.map(m => m.sec), true);
+}
 function spread(box) {
   // a display formula sits in auto-render's inline wrapper; its margins are on the inner block
   const kids = [...box.children].map(k => k.tagName === 'SPAN' && k.querySelector(':scope > .katex-display') || k)
@@ -835,8 +890,8 @@ function rows(body) {
 // build step and then after each.  Play (or N) speaks the current state, takes
 // the next step when it ends, and goes on into the next slide while that one is
 // narrated too, except after a passage marked <say wait>, which holds until the
-// reader takes the next step; pause, seek within the state and speed (remembered in this
-// browser) are on the bar, a paused player stays paused on whatever state you
+// reader takes the next step; pause (or space while it runs), seek within the state and
+// speed (remembered in this browser) are on the bar, a paused player stays paused on whatever state you
 // move to, and N or Escape stops it.  A state rendered by
 // shared/narrate.py plays its audio file (narration/manifest.json, keyed by the
 // SHA-1 of the text, played from memory so seeking works on any server); any
@@ -964,7 +1019,7 @@ function wireToolbar() {
     narrGroup.classList.toggle('off', !has && !on);
     play.disabled = !has && !on;
     play.innerHTML = on && !paused && !waiting ? ICON.pause : ICON.play;
-    play.title = waiting ? 'Continue to the next step' : on ? (paused ? 'Resume' : 'Pause') : 'Play narration (N)';
+    play.title = waiting ? 'Continue to the next step (space)' : on ? (paused ? 'Resume (space)' : 'Pause (space)') : 'Play narration (N)';
     play.classList.toggle('waiting', waiting);
     const dr = sec && sec.querySelector(':scope > .drawer');
     derivBtn.disabled = !dr;
@@ -1142,6 +1197,7 @@ function wireToolbar() {
     else if (e.key === 't' || e.key === 'T') toggleTranscript();
     else if (e.key === 'Escape' && Reveal.getCurrentSlide()?.classList.contains('trans-open')) toggleTranscript();
     else if (e.key === 'Escape' && on) stop();
+    else if (e.key === ' ' && on) playPause();   // while the narration runs, space pauses and resumes it
     else return;
     e.preventDefault(); e.stopPropagation();
   }, true);
@@ -1152,13 +1208,32 @@ function wireToolbar() {
   });
   Reveal.on('ready', () => { refresh(); wake(); });
 }
+// A viewer that reads the deck again after each edit (localtools) keeps the
+// window: each formula's typeset markup is kept by its source and display
+// mode, and a formula met again is set from it rather than typeset again. A
+// deck that defines a macro inside a formula (\def, \newcommand, ...) is
+// typeset as written, since a later formula may depend on the definition.
+function typesetSlides(root, opts) {
+  if (/\\(?:[gex]?def|global|let|(?:re)?newcommand|providecommand)\b/.test(root.textContent)) {
+    renderMathInElement(root, opts); return;
+  }
+  const kept = window.__deckTex || new Map(), now = new Map(), render = katex.render;
+  katex.render = (tex, el, o) => {
+    const key = (o && o.displayMode ? 'D' : 'i') + tex;
+    let html = kept.get(key);
+    if (html == null) html = katex.renderToString(tex, o);
+    now.set(key, html);
+    el.innerHTML = html;
+  };
+  try { renderMathInElement(root, opts); } finally { katex.render = render; window.__deckTex = now; }
+}
 async function startDeck(opts = {}) {
   expandSlides(document.querySelector('.slides'));
   if (PRINT) document.documentElement.classList.add('deck-print');
   document.querySelectorAll('.slides > section').forEach((sec, i) => { sec.dataset.n = i + 1; });
   NSLIDES = document.querySelectorAll('.slides > section').length;
   // \htmlClass tags symbols that a figure moves (the exponents on 22-4's Exp(theta) slide)
-  renderMathInElement(document.querySelector('.slides'), { macros: MACROS, throwOnError: false,
+  typesetSlides(document.querySelector('.slides'), { macros: MACROS, throwOnError: false,
     trust: ctx => ctx.command === '\\htmlClass',
     delimiters: [{ left: '\\[', right: '\\]', display: true }, { left: '$', right: '$', display: false }] });
   document.querySelectorAll('svg.bells').forEach(bells);
@@ -1169,7 +1244,7 @@ async function startDeck(opts = {}) {
   document.querySelectorAll('.fig[data-fig]').forEach(root => { FIGS[root.dataset.fig].init(root); show(root); });
   if (!PRINT) wireKnobs();
   await document.fonts.ready;
-  document.querySelectorAll('.slides > section').forEach(balance);
+  await balanceDeck([...document.querySelectorAll('.slides > section')]);
   wireDrawers();
   wireToolbar();
 

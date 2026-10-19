@@ -180,169 +180,179 @@
         { phrase: 'multiplies the odds by the exponential of the coefficient', to: 'exp' }]
     ],
     25: [
-      [{ phrase: 'which happens exactly when the linear part is nonnegative', to: 'ge' },
-        { phrase: 'separated by the hyperplane where the linear part is zero', to: 'hyp' },
-        { phrase: 'its boundary is the solid line', to: 'label:h5' },
-        { phrase: 'with beta drawn from a point on it', to: 'label:beta' }],
-      [{ phrase: 'the linear part equals u, which is a hyperplane parallel to the boundary', to: 'lev' },
-        { phrase: 'at a distance of u divided by the length of beta', to: 'dist' },
-        { phrase: 'The dashed lines on the right are the level sets', to: 'label:hc' }],
-      [{ phrase: 'doubling both beta and gamma keeps the boundary in place', selector: 'column > p:nth-of-type(3)' }],
-      [{ phrase: 'The level sets move in, each to half its distance from the boundary', to: 'label:hc' },
-        { phrase: 'beta, drawn to scale, is twice as long', to: 'label:beta' },
-        { phrase: 'changes only how sharply the probability changes across it', selector: 'alertblock' },
-        { phrase: 'The slider under the plot scales beta and gamma together', selector: 'knob > span:first-child' }]
+      [{ phrase: 'The solid line', to: 'label:h5' },
+        { phrase: 'the side beta points toward', to: 'label:beta' },
+        { phrase: 'the boundary is a hyperplane', to: 'hyp' }],
+      [{ phrase: '0.25', to: 'label:hb' },
+        { phrase: '0.75', to: 'label:hc' },
+        { phrase: 'each a hyperplane parallel to the decision boundary', to: 'lev' },
+        { phrase: 'signed distance u divided by the length of beta', to: 'dist' }],
+      [{ phrase: 'double both beta and gamma', selector: 'column > p:nth-of-type(3)' }],
+      [{ phrase: 'The boundary stays put', to: 'label:h5' },
+        { phrase: 'inversely proportional to the length of beta', to: 'dist' },
+        { phrase: 'The 0.25 and 0.75 lines move toward the boundary', to: 'label:hb label:hc' },
+        { phrase: 'Try the slider', selector: 'knob > span:first-child' }]
     ],
     26: [
-      [{ phrase: 'each rainy day contributes the log of one over the model\'s probability of rain', to: 'h1' },
-        { phrase: 'each dry day the log of one over one minus that probability', to: 'h0' },
-        { phrase: 'The value under the formula is the negative log-likelihood of the curve on the right', selector: 'column > p.llval' }],
-      [{ phrase: 'Use the sliders under the plot to search for it', selector: 'knob > span:first-child' },
-        { phrase: 'watching its value under the formula', selector: 'column > p.llval' }],
-      [{ phrase: 'The minimum is the rain model', selector: 'column > p.llval' }]
+      [{ phrase: 'A rainy day contributes the log of one over its predicted probability of rain', to: 'h1' },
+        { phrase: 'a dry day contributes the same expression using its predicted probability of no rain', to: 'h0' },
+        { phrase: 'The current negative log-likelihood appears above the plot', selector: '.llval' }],
+      [{ phrase: 'Use the sliders', selector: 'knob > span:first-child' },
+        { phrase: 'negative log-likelihood above the plot', selector: '.llval' },
+        { phrase: 'checking the box under the plot', selector: 'toggle' }],
+      [{ phrase: 'The revealed curve', to: 'label:hy' },
+        { phrase: 'At each recorded humidity, the fraction of rainy days', to: 'label:hy' },
+        { phrase: 'The sigmoid follows these fractions', to: 'label:hy' }]
     ],
     27: [
-      [{ phrase: 'Call the negative log-likelihood the loss L', to: 'nllx' },
-        { phrase: 'Append a one to the input', to: 'xt' },
-        { phrase: 'collect beta and gamma into theta', to: 'th' },
-        { phrase: 'a sum over the days of the input', to: 'in' },
-        { phrase: 'weighted by the error, the label minus the predicted probability', to: 'err' }],
-      [{ phrase: 'There the error is the label minus a linear prediction', to: 'lserr' },
-        { phrase: 'here the label minus the predicted probability', to: 'lrerr' }],
-      [{ phrase: 'the predicted probability passes through the sigmoid', to: 'sg' },
-        { phrase: 'the equations are nonlinear in theta', to: 'eq' },
-        { phrase: 'each step moves theta a small distance against the gradient', to: 'gd' }]
+      [{ phrase: 'The empirical rain probability is the fraction of rainy days', to: 'label:e0 label:e1 label:e2 label:e3 label:e4' },
+        { phrase: 'At fifty percent humidity, none of the ten days was rainy', to: 'label:e0' },
+        { phrase: 'The teal points show all five fractions', to: 'label:e0 label:e1 label:e2 label:e3 label:e4' },
+        { phrase: 'the purple sigmoid shows the model\'s prediction', to: 'label:ey' }],
+      [{ phrase: 'minimize their KL divergence', to: 'kl-fit' }],
+      [{ phrase: 'Cross-entropy equals the entropy', to: 'ce-fit' },
+        { phrase: 'negative log-likelihood', to: 'ce-fit' }]
     ],
     28: [
-      [{ phrase: 'with a step for beta one hundredth of gamma\'s', selector: ':scope > p:nth-of-type(1)' },
-        { phrase: 'On the left are the days and the current curve, flat at the start', to: 'label:lr' },
-        { phrase: 'On the right is the loss per day against the number of steps', to: 'label:ry' },
-        { phrase: 'predict where the curve will settle', selector: ':scope > p:nth-of-type(2)' }],
-      [{ phrase: 'beta and gamma are still small', to: 'label:lr' },
-        { phrase: 'the loss has fallen by about a tenth of its starting value', to: 'label:lv' }],
-      [{ phrase: 'grow beta and gamma', to: 'label:lr' },
-        { phrase: 'the loss falls to about two thirds of its starting value', to: 'label:lv' }],
-      [{ phrase: 'the curve approaches the rain model of slide twenty-six', to: 'rm' },
-        { phrase: 'the dashed line', to: 'label:fl' }]
+      [{ phrase: 'the probability the model assigned to the label that actually occurred', to: 'cost' },
+        { phrase: 'that assigned probability is q', to: 'label:bx' },
+        { phrase: 'as q approaches zero, the cost rises sharply', to: 'label:by' }],
+      [{ phrase: 'If the day was rainy, its cost is about 0.152 nats', to: 'label:va' },
+        { phrase: 'If it was dry, its cost is about 1.961 nats', to: 'label:vc' }]
     ],
-    29: [[
-      { phrase: 'On the left, with the raw humidity', to: 'label:tt0' },
-      { phrase: 'changing beta moves the midpoint, so gamma has to change with it', selector: ':scope > p:nth-of-type(2)' },
-      { phrase: 'On the right, with humidity measured from its middle value', to: 'label:tt1' }
-    ]],
-    30: [[
-      { phrase: 'Both routes end in the same form of posterior', to: 'post' },
-      { phrase: 'LDA estimates far more numbers', selector: '.cards .altcard:nth-child(1)' },
-      { phrase: 'Logistic regression does not model how the inputs of each class are distributed', selector: '.cards .altcard:nth-child(2)' }
-    ]],
-    31: [
-      [{ phrase: 'Each day adds one term', to: 'term' },
-        { phrase: 'the negative log-likelihood', to: 'nll' },
-        { phrase: 'the logarithm of one over the probability the model gave to what actually happened', to: 'cost' },
-        { phrase: 'On the right is that cost', to: 'label:by' },
-        { phrase: 'as a function of the probability', to: 'label:bx' }],
-      [{ phrase: 'Put all of a distribution\'s mass on the observed label', to: 'pi' },
-        { phrase: 'the model\'s Bernoulli distribution', to: 'qi' },
-        { phrase: 'their cross-entropy is exactly this term', to: 'ce' }],
-      [{ phrase: 'A rainy day then costs almost nothing', to: 'label:va' },
-        { phrase: 'a dry day, which the model thought unlikely, costs many times as much', to: 'label:vc' }]
+    29: [
+      [{ phrase: 'Call the negative log-likelihood L', to: 'nllx' },
+        { phrase: 'Append a one to each input', to: 'xt' },
+        { phrase: 'collect beta and gamma in theta', to: 'th' },
+        { phrase: 'each extended input', to: 'in' },
+        { phrase: 'label minus predicted probability', to: 'err' }],
+      [{ phrase: 'Least squares uses the observed value minus a linear prediction', to: 'lserr' },
+        { phrase: 'logistic regression uses the label minus the predicted probability', to: 'lrerr' }],
+      [{ phrase: 'does not give linear equations or a closed-form estimate', to: 'eq' },
+        { phrase: 'the sigmoid depends on theta', to: 'sg' },
+        { phrase: 'We therefore use gradient descent', to: 'gd' }]
     ],
+    30: [
+      [{ phrase: 'The curve on the left is flat at one half', to: 'label:lr' },
+        { phrase: 'beta\'s numerical step size is one hundredth of gamma\'s', selector: ':scope > p:nth-of-type(1)' },
+        { phrase: 'The right panel plots average loss', to: 'label:ry' },
+        { phrase: 'Where do you expect the curve and loss to settle', selector: ':scope > p:nth-of-type(2)' }],
+      [{ phrase: 'the probability curve tilts upward', to: 'label:lr' },
+        { phrase: 'The loss has fallen only a little', to: 'label:lv' }],
+      [{ phrase: 'the curve steepens', to: 'label:lr' },
+        { phrase: 'the loss falls further', to: 'label:lv' }],
+      [{ phrase: 'the curve approaches the maximum-likelihood fit', to: 'rm' },
+        { phrase: 'the dashed minimum', to: 'label:fl' }]
+    ],
+    31: [[
+      { phrase: 'The left panel uses humidity in percent', to: 'label:tt0' },
+      { phrase: 'changing beta moves the curve\'s midpoint', selector: ':scope > p:nth-of-type(2)' },
+      { phrase: 'The right panel uses humidity centered at seventy percent', to: 'label:tt1' }
+    ]],
     32: [
-      [{ phrase: 'replaced by the observed label frequencies at its humidity', to: 'ce' },
-        { phrase: 'the entropy of the observed labels', to: 'h' },
-        { phrase: 'the relative entropy from them to the model', to: 'd' },
-        { phrase: 'the lower part of the bar is the entropy', to: 'label:e0' },
-        { phrase: 'the upper part the relative entropy', to: 'label:d0' }],
-      [{ phrase: 'The entropy part is fixed by the data', to: 'h' },
-        { phrase: 'Only the relative entropy depends on theta', to: 'd' },
-        { phrase: 'as the second bar shows', to: 'label:d1' }]
+      [{ phrase: 'one training day at a time', selector: ':scope > p:nth-of-type(1)' },
+        { phrase: 'The right panel shows the loss', to: 'label:ry' }],
+      [{ phrase: 'selected day was dry at fifty percent humidity', to: 'label:sel' },
+        { phrase: 'The solid curve moves down', to: 'label:effect' },
+        { phrase: 'The dashed curve', selector: ':scope > p:nth-of-type(1)' }],
+      [{ phrase: 'selected day is rainy at ninety percent humidity', to: 'label:sel' },
+        { phrase: 'raises the curve there', to: 'label:effect' }],
+      [{ phrase: 'a dry day at ninety percent humidity', to: 'label:sel' },
+        { phrase: 'loss over all days rises', to: 'label:lv' }],
+      [{ phrase: 'first thirty-two selected days', selector: '.knobs' },
+        { phrase: 'maximum-likelihood fit', to: 'label:min' }]
     ],
-    33: null,
-    34: [
-      [{ phrase: 'each class gets its own linear score, called its logit', to: 'z' },
-        { phrase: 'exponentiate each one', to: 'num' },
-        { phrase: 'divide by the total', to: 'den' },
-        { phrase: 'On the right are three logits', to: 'label:lt' },
-        { phrase: 'and the probabilities they produce', to: 'label:pt' },
-        { phrase: 'The sliders change the three logits', selector: '.knobs' }],
-      [{ phrase: 'Adding the same constant to all of them', to: 'label:lt' },
-        { phrase: 'the probabilities on the right stay where they were', to: 'label:pt' }],
-      [{ phrase: 'leaves the sigmoid of the difference of the two logits', to: 'sd' },
-        { phrase: 'whose coefficients are the difference of the two classes\' coefficients', to: 'bd' }]
-    ],
+    33: [[
+      { phrase: 'Both models give the probability of class one as a sigmoid of a linear score', to: 'post' },
+      { phrase: 'LDA estimates five thousand two hundred fifty-one parameters', selector: '.cards .altcard:nth-child(1)' },
+      { phrase: 'Logistic regression estimates only one hundred one parameters', selector: '.cards .altcard:nth-child(2)' }
+    ]],
+    34: null,
     35: [
-      [{ phrase: 'each class\'s logit is one coordinate or zero', to: 'lg' },
-        { phrase: 'class one wins where the first coordinate is the largest of the three logits', to: 'label:k1' },
-        { phrase: 'class two where the second is', to: 'label:k2' },
-        { phrase: 'class three where both coordinates are negative', to: 'label:k3' }],
-      [{ phrase: 'the diagonal where the two coordinates are equal', to: 'label:b12' },
-        { phrase: 'the vertical axis below the origin', to: 'label:b13' },
-        { phrase: 'the horizontal axis to its left', to: 'label:b23' }],
-      [{ phrase: 'The marked point', to: 'label:pt' },
-        { phrase: 'Its probabilities', to: 'label:pq' },
-        { phrase: 'as its region says', to: 'label:k1' }],
-      [{ phrase: 'two classes tie where the difference of their logits is zero', to: 'tie' }]
+      [{ phrase: 'linear score, called a logit', to: 'z' },
+        { phrase: 'the bars on the left are the logits', to: 'label:lt' },
+        { phrase: 'the bars on the right are the resulting probabilities', to: 'label:pt' },
+        { phrase: 'exponentiates each logit', to: 'num' },
+        { phrase: 'divides by their sum', to: 'den' },
+        { phrase: 'Use the sliders', selector: '.knobs' }],
+      [{ phrase: 'add the same constant to all three logits', to: 'label:lt' },
+        { phrase: 'the probabilities remain unchanged', to: 'label:pt' }],
+      [{ phrase: 'The probability of class two becomes the sigmoid of the logit difference', to: 'sd' },
+        { phrase: 'beta and gamma equal to the differences', to: 'bd' }]
     ],
     36: [
-      [{ phrase: 'the negative log of the probability the model gave to the observed class', to: 'nl' }],
-      [{ phrase: 'Its gradient has the same shape as for two classes', selector: '.cards .altcard:nth-child(1)' },
-        { phrase: 'each example contributes minus its input', to: 'in' },
-        { phrase: 'times an error', to: 'err' }],
-      [{ phrase: 'the indicator of that class', to: 'i2' },
-        { phrase: 'minus the sigmoid of the difference of logits', to: 'p2' },
-        { phrase: 'the gradient is that of logistic regression', selector: '.cards .altcard:nth-child(1)' }]
+      [{ phrase: 'The logits are x one, x two, and zero', to: 'lg' },
+        { phrase: 'Class three wins', to: 'label:k3' }],
+      [{ phrase: 'The diagonal', to: 'label:b12' },
+        { phrase: 'The negative coordinate axes', to: 'label:b13 label:b23' }],
+      [{ phrase: 'At the marked input', to: 'label:pt' },
+        { phrase: 'probabilities one half, one third, and one sixth', to: 'label:pq' }],
+      [{ phrase: 'tie on a hyperplane', to: 'tie' }]
     ],
-    37: [[]],
+    37: [
+      [{ phrase: 'negative log probability of each example\'s observed class', to: 'nl' }],
+      [{ phrase: 'The two cards show the same pattern', selector: '.cards' },
+        { phrase: 'error times extended input', to: 'err in' }],
+      [{ phrase: 'the probability of class two is the sigmoid', to: 'p2' },
+        { phrase: 'The class-two error and gradient', to: 'i2' }]
+    ],
+    38: [
+      [{ phrase: 'Next-token prediction is a classification problem', to: 'kv' },
+        { phrase: 'The text so far is “Tomorrow it will.”', to: 'label:net' },
+        { phrase: 'a feature vector', to: 'label:phi' },
+        { phrase: 'one linear logit', to: 'z' },
+        { phrase: 'predicted probabilities for the next token', to: 'label:ql' }],
+      [{ phrase: 'one row of weights and one offset for every vocabulary token', selector: 'column > p:nth-of-type(3)' },
+        { phrase: 'ten million ten thousand parameters', to: 'count' }]
+    ],
     39: [
-      [{ phrase: 'a classification with one class per token of the vocabulary', to: 'kv' },
-        { phrase: 'a network, with its embeddings and layers', to: 'label:net' },
-        { phrase: 'turns the context into a vector of features', to: 'label:phi' },
-        { phrase: 'one logit per token, each a linear function of the features', to: 'z' },
-        { phrase: 'the list of next-token probabilities of chapter one', to: 'label:ql' }],
-      [{ phrase: 'The last layer alone is large', to: 'count' },
-        { phrase: 'one row of weights for every token of the vocabulary', selector: 'column > p:nth-of-type(3)' }]
+      [{ phrase: 'fitting the last layer\'s weights and offsets is softmax regression', to: 'label:sr' },
+        { phrase: 'the feature vector with a one appended', to: 'phit' },
+        { phrase: 'the error for token k', to: 'grad' },
+        { phrase: 'gradient descent learns the features and the last layer together', to: 'label:net' }],
+      [{ phrase: 'one linear logit per token', to: 'label:lin' },
+        { phrase: 'applies softmax', to: 'label:smx' },
+        { phrase: 'the network producing the features', to: 'label:phi' }]
     ],
-    40: [
-      [{ phrase: 'fitting the last layer is exactly softmax regression', to: 'label:sr' },
-        { phrase: 'with the feature vector, extended by a one', to: 'phit' },
-        { phrase: 'the same gradient, error times input, now summed over the positions of a text', to: 'grad' },
-        { phrase: 'The network learns them together with the last layer', to: 'label:net' }],
-      [{ phrase: 'logits that are linear in the features', to: 'label:lin' },
-        { phrase: 'a softmax', to: 'label:smx' },
-        { phrase: 'What the rest of the network contributes is the features themselves', to: 'label:phi' }]
-    ],
+    40: [[]],
     41: [
-      [{ phrase: 'it is a cross-entropy', selector: 'column > p:nth-of-type(1)' },
-        { phrase: 'On the right is the model of the softmax exercise', to: 'label:mt' }],
-      [{ phrase: 'the average loss is measured in bits per token', to: 'bits' },
-        { phrase: 'Raising two to this average gives the perplexity', to: 'ppl' },
-        { phrase: 'this model pays the cost marked under its bars', to: 'label:cost' }],
-      [{ phrase: 'has a perplexity equal to the vocabulary size', to: 'v' },
-        { phrase: 'a uniform choice among the tokens on the right', to: 'label:ut' },
-        { phrase: 'its perplexity on that word is the number of those tokens', to: 'label:pp' }]
+      [],
+      [{ phrase: 'the probabilities are one half for rain and one quarter each for snow and clear', selector: '.solrow:nth-of-type(1)' }],
+      [{ phrase: 'Its loss is log four', selector: 'p.solrow:nth-of-type(2)' }],
+      [{ phrase: 'The probabilities stay one half, one quarter, one quarter', selector: 'p.solrow:nth-of-type(3)' }]
     ],
     42: [
-      [{ phrase: 'divide the logits by a temperature first', to: 'ptk' },
-        { phrase: 'At temperature one nothing changes', to: 't1' },
-        { phrase: 'does a lower temperature spread the probability more evenly, or concentrate it', selector: 'column > p:nth-of-type(1)' }],
-      [{ phrase: 'the largest one gains: the distribution sharpens', selector: '.swap > table:nth-child(2) tbody tr:nth-child(2)' },
-        { phrase: 'all the probability goes to the token with the largest logit', selector: 'column > p:nth-of-type(2)' }],
-      [{ phrase: 'the distribution flattens toward uniform', selector: '.swap > table:nth-child(3) tbody tr:nth-child(3)' },
-        { phrase: 'the ranking of the tokens is the same at every temperature', selector: 'column > p:nth-of-type(3)' }]
+      [{ phrase: 'the same cross-entropy used for the rain labels', selector: 'column > p:nth-of-type(1)' },
+        { phrase: 'The bars on the left', to: 'label:mt' }],
+      [{ phrase: 'average loss is measured in bits per token', to: 'bits' },
+        { phrase: 'perplexity is two raised to that average', to: 'ppl' },
+        { phrase: 'Its loss is two bits', to: 'label:cost' }],
+      [{ phrase: 'The right panel is a hypothetical uniform comparison', to: 'label:ut' },
+        { phrase: 'The actual model still has only three tokens', to: 'label:mt' },
+        { phrase: 'Perplexity is the exponentiated loss', to: 'label:pp' },
+        { phrase: 'for a uniform ten-thousand-token model, this gives ten thousand', to: 'v' }]
     ],
-    43: [[
-      { phrase: 'Generative classifiers model each class\'s inputs', selector: '.sumrow:nth-child(1)' },
-      { phrase: 'Logistic regression models that posterior directly', selector: '.sumrow:nth-child(2)' },
-      { phrase: 'learns it by minimizing the cross-entropy loss', selector: '.sumrow:nth-child(3)' },
-      { phrase: 'With many classes the sigmoid becomes the softmax', selector: '.sumrow:nth-child(4)' },
-      { phrase: 'The last slide lists sections of the notes', selector: '.fbody > p:nth-of-type(1)' },
-      { phrase: 'Next come language models', selector: '.fbody > p:nth-of-type(2)' }
-    ]],
+    43: [
+      [{ phrase: 'dividing every logit by T before softmax', to: 'ptk' },
+        { phrase: 'At T equal to one', to: 't1' },
+        { phrase: 'do the probabilities spread out or concentrate on the leading token', selector: 'column > p:nth-of-type(1)' }],
+      [{ phrase: 'Rain, the leading token, rises from 0.5 to about 0.667', selector: '.swap > table:nth-child(2) tbody tr:nth-child(2)' },
+        { phrase: 'As temperature approaches zero', selector: 'column > p:nth-of-type(2)' }],
+      [{ phrase: 'Rain falls to about 0.414', selector: '.swap > table:nth-child(3) tbody tr:nth-child(3)' },
+        { phrase: 'the distribution approaches uniform', selector: 'column > p:nth-of-type(3)' }]
+    ],
     44: [[
-      { phrase: 'Maximum likelihood for LDA and naive Bayes', selector: 'ol.reading li:nth-child(1)' },
-      { phrase: 'The exponential-family section', selector: 'ol.reading li:nth-child(2)' },
-      { phrase: 'The loss-function section', selector: 'ol.reading li:nth-child(3)' },
-      { phrase: 'The section on discrete features is optional', selector: 'ol.reading li:nth-child(4)' }
+      { phrase: 'Generative classifiers model inputs within each class', selector: '.sumrow:nth-child(1)' },
+      { phrase: 'logistic regression models directly', selector: '.sumrow:nth-child(2)' },
+      { phrase: 'Maximum likelihood minimizes cross-entropy', selector: '.sumrow:nth-child(3)' },
+      { phrase: 'For several classes, softmax', selector: '.sumrow:nth-child(4)' },
+      { phrase: 'The next lecture builds language models', selector: '.fbody > p:nth-of-type(2)' }
+    ]],
+    45: [[
+      { phrase: 'Section 6.2.4', selector: 'ol.reading li:nth-child(1)' },
+      { phrase: 'Section 6.2.6', selector: 'ol.reading li:nth-child(2)' },
+      { phrase: 'Section 6.4', selector: 'ol.reading li:nth-child(3)' },
+      { phrase: 'Section 6.2.5', selector: 'ol.reading li:nth-child(4)' }
     ]]
   };
 
