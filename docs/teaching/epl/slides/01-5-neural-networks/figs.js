@@ -942,29 +942,51 @@ FIGS.wdFig = {
   }
 };
 
-// ---------------------------------------------------------------- slide 43: double descent (schematic)
-FIGS.ddesc = {
-  size: [560, 420],
-  draw(g, p) {
-    const B = box2d(60, 40, 460, 290, 0, 10, 0, 1), P = g.plot(B), T = 4;
-    frameAxes(P, { key: 'dd' });
-    g.label('xn', sm('model size (parameters)', 20), [B.X(5), B.Y(0) + 30], 'c', { color: '#444' });
-    g.label('yn', sm('error', 20), [B.X(0) - 8, B.Y(1) - 18], 'l', { color: '#444' });
-    P.rect([T - 0.6, 0], [T + 0.6, 1], { color: C.rose, 'fill-opacity': 0.08 });
-    const test = m => (m < T ? 0.33 + 0.22 * (m / 1.8 - 1) ** 2 : 0.12 + 0.539 * Math.exp(-(m - T) / 1.4)) + 0.22 * Math.exp(-(((m - T) / 0.5) ** 2));
-    const train = m => m < T ? 0.5 * (1 - m / T) ** 1.5 : 0;
-    P.curve(train, { color: C.prior, w: 3, from: 0.2, to: 10 });
-    P.curve(test, { color: C.rose, w: 3.5, from: 0.2, to: 10, n: 400 });
-    P.label('te', sm('test error'), [8.6, test(8.6)], 'b', { dy: -8, color: C.rose });
-    P.label('tr', sm('training error'), [2.2, train(2.2)], 'tr', { dx: -8, dy: 8, color: C.prior });
-    P.label('it', sm('interpolation<br>threshold'), [T + 0.65, 0.97], 'tl', { color: C.rose });
-    P.label('cl', sm('classical regime'), [1.8, 0.92], 'c', { color: '#555' });
-    P.label('mo', sm('large models'), [8.6, 0.6], 'c', { color: '#555' });
-    g.label('cite', sm('schematic, after Nakkiran et al., ICLR 2020', 16), [520, 404], 'r', { color: '#666' });
-  }
-};
+// ---------------------------------------------------------------- slides 43 and 44: double descent, computed
+// data.js ddesc (deck_numbers.py, after chat_files/part4-deck-scripts/double_descent_random_features.py):
+// median test error against the number p of random ReLU features, least squares (minimum norm) and ridge
+// (lambda = 0.1), n = 20 points; fits: one draw each at p = 10, 20, 4000 (its test error the median one).
+// o.inset adds the three fitted curves under the plot.  st: 1 the least-squares curve, 2 also ridge.
+const DD = DATA.ddesc, LG = Math.log10;
+function ddFig(inset) {
+  return {
+    size: [600, inset ? 540 : 400],
+    draw(g, p) {
+      const st = p.st ?? 2, B = box2d(70, 34, 470, 270, LG(2), LG(4000), 0, 0.9), P = g.plot(B);
+      frameAxes(P, { ox: LG(2), oy: 0, xt: [LG(2), 1, 2, 3], xf: v => String(Math.round(10 ** v)), yt: [0.2, 0.4, 0.6, 0.8], key: 'dd' });
+      g.label('xn', sm('number of random features $p$ (log scale)', 19), [B.X(LG(90)), B.Y(0) + 38], 'c', { color: '#444' });
+      g.label('yn', sm('median test error', 19), [B.X(LG(2)) - 6, B.Y(0.9) - 18], 'l', { color: '#444' });
+      P.line([LG(20), 0], [LG(20), 0.9], { stroke: '#999', 'stroke-dasharray': '6 5', 'stroke-width': 1.5 });
+      P.label('nl', sm('$p=n=20$', 17), [LG(20), 0.9], 'tl', { dx: 6, dy: -2, color: '#666' });
+      const line = (ys, col, op, w) => g.group({ opacity: op }, () => {
+        P.path(DD.p.map((q, i) => [LG(q), Math.min(ys[i], 0.9)]), { stroke: col, 'stroke-width': w, 'stroke-linejoin': 'round' });
+        DD.p.forEach((q, i) => P.dot([LG(q), Math.min(ys[i], 0.9)], { r: 3.2, color: col, outline: false }));
+      });
+      line(DD.mse0, C.rose, clamp(st), 3);
+      line(DD.mse1, C.prior, clamp(st - 1), 3);
+      P.label('l0', sm('least squares, minimum norm', 17), [LG(4000), DD.mse0[DD.mse0.length - 1]], 'tl', { dx: -190, dy: 8, color: C.rose, opacity: clamp(st) });
+      P.label('l1', sm('ridge, $\\lambda=0.1$', 17), [LG(150), DD.mse1[DD.p.indexOf(150)]], 'b', { dy: -10, color: C.prior, opacity: clamp(st - 1) });
+      if (!inset) return;
+      const io = p.fits ?? 1;
+      [['10', 'p = 10'], ['20', 'p = 20'], ['4000', 'p = 4000']].forEach(([k, name], j) => {
+        const Q = g.plot(box2d(40 + j * 190, 392, 175, 112, 0, 1, -2.6, 2.6));
+        g.group({ opacity: io }, () => {
+          g.el('rect', { x: Q.B.x0, y: Q.B.y0, width: Q.B.W, height: Q.B.H, fill: '#fafafa', stroke: '#bbb', 'stroke-width': 1 });
+          Q.curve(x => Math.sin(2 * Math.PI * x), { color: C.mle, w: 1.5, dash: '4 4', from: 0, to: 1 });
+          const ys = DD.fits[k];
+          Q.path(ys.map((v, i) => [i / 200, clamp(v, -2.6, 2.6)]), { stroke: C.rose, 'stroke-width': 2 });
+          DD.x.forEach((x, i) => Q.dot([x, DD.y[i]], { r: 2.6, color: 'ink', outline: false }));
+        });
+        g.label('ft' + j, sm(name, 16), [Q.B.x0 + 87, Q.B.y0 - 4], 'b', { color: '#333', opacity: io });
+      });
+      g.label('fc', sm('one fit each: the network (rose), $\\sin 2\\pi x$ (dashed), the 20 points', 15), [40, 512], 'tl', { color: '#555', opacity: io });
+    }
+  };
+}
+FIGS.ddcurve = ddFig(true);
+FIGS.ddridge = ddFig(false);
 
-// ---------------------------------------------------------------- slides 44 and 45: calibration
+// ---------------------------------------------------------------- slides 45 and 46: calibration
 FIGS.calib = {
   size: [480, 470],
   draw(g, p) {

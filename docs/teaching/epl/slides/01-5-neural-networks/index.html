@@ -47,7 +47,9 @@ section:has(.mark-w12.visible) table.vals .w12, section:has(.mark-w12.shown) tab
 .reveal .step-slide .fbody p { margin-bottom: 10px; }
 .spiral-slide .fbody { font-size: 24px; }
 .tight-slide .fbody { font-size: 24px; }
-.dd-right { flex: none; width: 410px; display: flex; flex-direction: column; align-items: center; }
+.dd-right { flex: none; width: 500px; display: flex; flex-direction: column; align-items: center; }
+.dd-slide .fbody { font-size: 23px; }
+.reveal .dd-slide .fbody p { margin-bottom: 12px; }
 .reveal .tight-slide .fbody p { margin-bottom: 8px; }
 .reveal .tight-slide .fbody .katex-display { margin: 6px 0; }
 .tight-slide .block .bb.small, .tight-slide .alertblock .bb { font-size: 22px; }
@@ -823,14 +825,14 @@ section:has(.mark-w12.visible) table.vals .w12, section:has(.mark-w12.shown) tab
 </section>
 
 <!-- 40 -->
-<section>
+<section class="tight-slide">
   <h2>Initialization</h2>
   <column>
     <p class="opener">Gradient descent needs a starting point, and the scale of the starting weights decides whether signals survive many layers.</p>
     <p><b>Symmetry:</b> units with equal weights compute equal values and receive equal gradients, so every update keeps them equal. Weights start random.</p>
     <p>With independent weights of mean 0 and variance $\sigma^2$, independent of $\bh$ (Ch. 4, the variance of a sum):</p>
-    \[\htmlClass{dk1}{\Var(z_j)=\Var\Big(\sum_{i=1}^nW_{ji}h_i\Big)=n\sigma^2\,\E[h_i^2]}.\]
-    <p>A linear layer keeps the scale with $\sigma^2=1/n$. <span class="dk2">ReLU halves $\E[h^2]$</span>, so ReLU layers need $\sigma^2=2/n$.</p>
+    \[\htmlClass{dk1}{\Var(z_j)=\Var\Big(\sum_{i=1}^nW_{ji}h_i\Big)=n\sigma^2\,\E[h_i^2]},\]
+    <p>where $n$ is the number of inputs to unit $j$, the width of the layer below. A linear layer keeps the scale with $\sigma^2=1/n$. <span class="dk2">ReLU halves $\E[h^2]$</span>, so ReLU layers need $\sigma^2=2/n$.</p>
   </column>
   <fig name="init" init="a=1"></fig>
   <knob param="a" min="0.5" max="4" step="0.05">$n\sigma^2$</knob>
@@ -842,7 +844,7 @@ section:has(.mark-w12.visible) table.vals .w12, section:has(.mark-w12.shown) tab
     <p>The figure: the plan's simulation, an input of 1,000 standard normal vectors in $\bbR^{100}$ and 10 ReLU layers of width 100 without offsets, one draw of the weights. Scaling every weight by $c$ scales layer $l$'s activations by $c^l$, so one draw gives every $n\sigma^2$.</p>
   </drawer>
   <narration>
-    <say>Where should gradient descent start? Not with equal weights: units with the same incoming weights compute the same value and receive the same gradient, so they would stay identical forever. So the weights start random, and the question is how large they should be. A pre-activation is a sum of n products of weights and inputs, so by the variance of a sum its variance is n times the weight variance times the mean square input. On the right, ten ReLU layers of width one hundred with n sigma squared equal to one: the activations shrink layer after layer.</say>
+    <say>Where should gradient descent start? Not with equal weights: units with the same incoming weights compute the same value and receive the same gradient, so they would stay identical forever. So the weights start random, and the question is how large they should be. A pre-activation is a sum of n products of weights and inputs, where n is the number of inputs to the unit, the width of the layer below, so by the variance of a sum its variance is n times the weight variance times the mean square input. On the right, ten ReLU layers of width one hundred with n sigma squared equal to one: the activations shrink layer after layer.</say>
     <say>ReLU sets half of its inputs to zero, which halves the mean square. Doubling the weight variance makes up for it, and the activations keep their scale through all ten layers.</say>
     <say>Doubling the variance once more, the activations grow by the same factor at every layer and explode. Training a deep network starts from weights that keep the scale; the slider varies n sigma squared.</say>
   </narration>
@@ -853,17 +855,17 @@ section:has(.mark-w12.visible) table.vals .w12, section:has(.mark-w12.shown) tab
   <h2>Networks can memorize</h2>
   <column>
     <p class="opener">A network trained this way can fit its training data too well: with enough parameters, exactly, noise included.</p>
-    <p>A regression on 8 noisy XOR points: training against validation loss for 2-2-1 (9 parameters) and 2-8-1 (33 parameters) networks.</p>
-    <p>The training loss keeps falling; the validation loss reaches a minimum, then rises.</p>
-    <alertblock pause title="The bias and variance trade-off of Ch. 5">More parameters lower the bias and raise the variance: past the minimum, the network fits the noise of its training data.</alertblock>
+    <p>A regression on 8 noisy XOR points, 2-2-1 (9 parameters) and 2-8-1 (33 parameters) networks: training and validation loss against training epochs.</p>
+    <p>The 33-parameter network still ends with lower validation loss than the 9-parameter one, which sits near the interpolation threshold (9 parameters, 8 points): size alone does not decide overfitting (slide 43).</p>
+    <alertblock pause title="Training past the minimum fits the noise">As the epochs go on, the training loss keeps falling while the validation loss rises: the network is fitting the noise of its 8 training points.</alertblock>
   </column>
   <div class="fig" style="width:470px">
     <img src="img/overfitting_2_2_1.svg" alt="Training and validation loss of a 2-2-1 network" style="width:470px;display:block">
     <img src="img/overfitting_2_8_1.svg" alt="Training and validation loss of a 2-8-1 network" style="width:470px;display:block;margin-top:8px">
   </div>
   <narration>
-    <say>With enough parameters, a network can fit its training data exactly, noise included. The curves come from a regression on eight noisy XOR points, for a network with two hidden units and one with eight. The training loss keeps falling toward zero, while the loss on held-out validation points reaches a minimum and then rises: the network has started to fit the noise.</say>
-    <say>This is the bias and variance trade-off of Chapter 5, for a network. More parameters let the fit follow the data more closely, which lowers the bias and raises the variance.</say>
+    <say>With enough parameters, a network can fit its training data exactly, noise included. The curves come from a regression on eight noisy XOR points, for a network with two hidden units and one with eight, and both plots follow training over time: the horizontal axis counts epochs. In each, the training loss keeps falling toward zero, while the loss on held-out validation points reaches a minimum and then rises. The larger network still ends with the lower validation loss: the smaller one, with about as many parameters as there are points, is the one that suffers most, a first sign of the surprise two slides on.</say>
+    <say>Past the minimum, each extra epoch fits the noise of the training points better and new points worse. This is the bias and variance trade-off of Chapter 5, now unfolding over training time, and it is why early stopping keeps the weights from the minimum.</say>
   </narration>
 </section>
 
@@ -889,35 +891,56 @@ section:has(.mark-w12.visible) table.vals .w12, section:has(.mark-w12.shown) tab
 </section>
 
 <!-- 43 -->
-<section>
+<section class="dd-slide">
   <h2>Double descent</h2>
-  <div class="row" style="height:100%">
-    <column>
-      <p class="opener">Very large networks bring a surprise to the bias and variance picture of Chapter 5.</p>
-      <p>Test error falls, rises near the size that just fits the training data (the interpolation threshold), and falls again.</p>
-      <p pause data-fragment-index="0">The same XOR regression with very wide hidden layers and early stopping (below right): validation error flattens, and never comes back up.</p>
-      <alertblock pause data-fragment-index="1" title="With early stopping, you can safely start big">Very large networks need not overfit: larger models trained longer keep improving, the scaling laws of lecture 3.</alertblock>
-    </column>
-    <div class="dd-right">
-      <fig name="ddesc" style="zoom:0.72"></fig>
-      <img pause data-fragment-index="0" src="img/overfitting_diagnose.svg" alt="Loss at early stopping against network width" style="width:380px;display:block;margin:6px auto 0">
-    </div>
-  </div>
+  <column>
+    <p class="opener">Very large networks bring a surprise to the bias and variance picture of Chapter 5.</p>
+    <p>Fit $n=20$ noisy points of $\sin 2\pi x$ with a network whose first layer is random and fixed, $\phi_j(x)=\relu\big(s_j(x-c_j)\big)$, $j=1,\dots,p$. Least squares fits the output weights, the minimum-norm ones when the data do not determine them.</p>
+    <p>The median test error falls to 0.13 ($p=8$), peaks at 0.81 near $p=n$, where the network can nearly fit the 20 noisy points, and falls again, to 0.31 at $p=4000$: <b>double descent</b> (Belkin, Hsu, Ma and Mandal, <i>PNAS</i> 2019).</p>
+    <p pause="fits=1">Past the threshold, of the many weight vectors that fit the data, the minimum-norm one swings less as $p$ grows.</p>
+  </column>
+  <fig name="ddcurve" init="st=1 fits=0"></fig>
   <narration>
-    <say>The classical picture says that past some size, more parameters mean more overfitting. Large networks behave differently. In this schematic, after Nakkiran and coauthors, the test error first follows the classical curve, peaks near the size at which the network can just fit the training data exactly, and then falls again as the network keeps growing.</say>
-    <say>The same XOR regression, run with very wide networks and early stopping, shows what happens in practice. The validation error falls with width and then flattens; it never comes back up.</say>
-    <say>So with early stopping, a large network is a safe place to start. The relation between model size, data and error returns in the third lecture of this part, as scaling laws.</say>
+    <say>The classical picture says that past some size, more parameters mean more overfitting. Large networks behave differently. Here a network with one hidden layer of random, fixed ReLU units is fitted to twenty noisy points of a sine wave, and only its output weights are learned, by least squares. The curve on the right is the median test error against the number p of hidden units, the random features, on a logarithmic axis. It first falls, as in Chapter 5. It then rises to a peak once there are about as many units as points, where the network can nearly fit every noisy point. Beyond that it falls again. This shape is called double descent.</say>
+    <say>The three small panels show why. Below the threshold, the fit cannot pass through the noisy points and stays close to the wave. At the threshold, the network has just enough units to chase the noise, and the weights that nearly fit the points swing wildly between them. Far past it, many weight vectors fit the points exactly, and least squares picks the one of smallest norm, whose swings between the points are much gentler. The more units, the gentler that choice.</say>
   </narration>
 </section>
 
 <!-- 44 -->
+<section class="dd-slide">
+  <h2>Double descent and regularization</h2>
+  <div class="row" style="height:100%">
+    <column>
+      <p class="opener">The peak belongs to the unregularized fit; the regularizers of this part remove it.</p>
+      <p pause="st=2" data-fragment-index="0"><b>Ridge</b>, $\lambda=0.1$ (Ch. 5): no peak. The best error, 0.060, is near $p=100$, and even $p=4000$, at 0.096, beats every unregularized small model.</p>
+      <p pause data-fragment-index="1"><b>Early stopping</b>: an XOR regression on 30 points with very wide hidden layers, trained with early stopping (below right), shows no peak either.</p>
+      <p pause data-fragment-index="2">Deep networks show double descent too (Nakkiran et al., ICLR 2020).</p>
+      <alertblock pause data-fragment-index="3" title="Start big and regularize">With ridge or early stopping the peak disappears, and wide models do as well as small ones or better.</alertblock>
+    </column>
+    <div class="dd-right">
+      <fig name="ddridge" init="st=1" style="zoom:0.82"></fig>
+      <img pause data-fragment-index="1" src="img/overfitting_diagnose.svg" alt="Loss at early stopping against network width" style="width:330px;display:block;margin:8px auto 0">
+    </div>
+  </div>
+  <narration>
+    <say>The peak of double descent belongs to the unregularized fit, which must pass through the noisy points as soon as it can. Regularization removes it. The curve on the right is again the median test error of minimum-norm least squares against the number of random features.</say>
+    <say>Ridge regression, the penalty on the squared length of the weights from Chapter 5, adds the blue curve. It has no peak: near the threshold the penalty keeps the weights from swinging to fit the noise, and far past it the error stays low. Even the largest network, with ridge, beats every small unregularized one.</say>
+    <say>Early stopping acts the same way. The Intro to ML course trained XOR regressions with very wide hidden layers and stopped each at its best validation loss. The validation error falls with width and then flattens; it never comes back up.</say>
+    <say>The effect is not special to random features: Nakkiran and coauthors found the same double descent in deep networks.</say>
+    <say>So start big and regularize: with a penalty or early stopping, wide models do as well as small ones or better. The relation between model size, data and error returns in the third lecture of this part, as scaling laws.</say>
+  </narration>
+</section>
+
+<!-- 45 -->
 <section>
   <h2>Calibration</h2>
   <column>
     <p>Are a network's probabilities trustworthy? A classifier is <b>calibrated</b> if among its predictions made with confidence 0.8, about 80% are right, and so for every confidence.</p>
     <p>Toy: 100 predictions at confidence 0.5, 45 right; 100 at 0.9, 60 right.</p>
-    <p pause="st=2">Expected calibration error, the gap averaged over the predictions:</p>
-    \[\mathrm{ECE}=\tfrac{100}{200}\,|0.45-0.5|+\tfrac{100}{200}\,|0.6-0.9|=0.175.\]
+    <div pause="st=2">
+      <p>Expected calibration error, the gap averaged over the predictions:</p>
+      \[\mathrm{ECE}=\tfrac{100}{200}\,|0.45-0.5|+\tfrac{100}{200}\,|0.6-0.9|=0.175.\]
+    </div>
   </column>
   <fig name="calib" init="st=1"></fig>
   <narration>
@@ -926,7 +949,7 @@ section:has(.mark-w12.visible) table.vals .w12, section:has(.mark-w12.shown) tab
   </narration>
 </section>
 
-<!-- 45 -->
+<!-- 46 -->
 <section>
   <h2>Maximum likelihood rewards calibration</h2>
   <column>
@@ -947,7 +970,7 @@ section:has(.mark-w12.visible) table.vals .w12, section:has(.mark-w12.shown) tab
   </narration>
 </section>
 
-<!-- 46 -->
+<!-- 47 -->
 <section>
   <h2>Summary</h2>
   <div class="fbody" style="top:100px">
