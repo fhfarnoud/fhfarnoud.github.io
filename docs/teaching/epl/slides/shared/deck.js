@@ -474,6 +474,175 @@ class Plot {
     g.label('by', ny, [B.X(ox) + 8, B.Y(B.yhi) - 14], 'l', la);
   }
 }
+// ---------------------------------------------------------------- network diagrams and computation graphs
+// Two drawings in a scene's pixel coordinates, for the neural-network decks (Part 4): g.net, a
+// layered network, and g.cgraph, a computation graph.  Both reveal their values stage by stage: an
+// item given stage k shows once o.stage >= k and fades in while o.stage runs from k - 1 to k, so a
+// build step that sets { stage: 2 } prints the second stage (o.stage left out shows everything).
+// Node roles (the Part 4 colour roles): an input is white with an ink outline, a hidden node amber,
+// an output green; 'plain' is a light grey node for anything else.
+const NETROLE = { in: ['#fff', C.ink, 1], hid: [C.postC, '#8f5f00', 0.3], out: [C.like, '#005c1e', 0.22],
+  plain: ['#f1f1f1', '#777', 1] };
+const stageOp = (o, k) => k == null ? 1 : clamp((o.stage ?? Infinity) - k + 1);
+const sizedLab = (s, fs) => s == null || s === '' ? s : `<span style="font-size:${fs}px">${s}</span>`;
+// A label beside the segment p -> q, t of the way along it: side 1 above it (below with -1), off px
+// clear of it; "above" is up the screen, or left of a nearly vertical segment.
+function besideEdge(g, key, s, [x1, y1], [x2, y2], t, side, off, st) {
+  const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
+  let nx = dy / len, ny = -dx / len;
+  if (Math.abs(dx) < 0.25 * len ? nx > 0 : ny > 0) { nx = -nx; ny = -ny; }
+  nx *= side; ny *= side;
+  const x = x1 + dx * t + nx * off, y = y1 + dy * t + ny * off;
+  g.label(key, s, [x, y], Math.abs(ny) >= Math.abs(nx) ? (ny < 0 ? 'b' : 't') : (nx < 0 ? 'r' : 'l'), st);
+}
+// g.net(o): a layered network, circular nodes in columns and an arrow from every node to every node
+// of the next layer.
+//   o.layers     the layer sizes, input first: [2, 2, 1]
+//   o.box        [x, y, w, h] in pixels: the columns spread across w, each column centred in h,
+//                nodes at most o.gap (3.2 r) apart; o.at(l, i) -> [x, y] places them by hand instead
+//   o.r          node radius (24); o.fs label size in px (20); o.key a prefix for the label keys,
+//                so that two networks share a figure; o.opacity fades the whole drawing
+//   o.label(l, i)   the text in node i of layer l ($...$ is KaTeX), or null
+//   o.node(l, i)    { role, r, fill, stroke, fo, opacity, dash, cross } for one node: role 'in',
+//                'hid', 'out' or 'plain' (default: first layer in, last out, the rest hid); cross
+//                strikes the node out (a dropped unit)
+//   o.edges      'all' (the default), 'none', or [[l, i, j], ...] from node i of layer l to node j of
+//                layer l + 1; o.edge(l, i, j) -> { color, w, dash, opacity, hide } for one of them;
+//                o.arrows false draws plain lines
+//   o.weight(l, i, j)  a label for that edge (a string, or { s, color, t, side, stage }), placed
+//                o.wpos (0.5) of the way along it and above it (side -1: below)
+//   o.bias(l, i)    the unit's offset label, on its input side (see below)
+//   o.values     [{ l, i, s, at, color, stage, dx, dy }]: a value in node i of layer l (at 'c') or
+//                beside it ('r', 'l', 't', 'b'), shown from its stage on
+// Returns { at(l, i), ends(l, i, j) } for marks drawn on top.
+Scene.prototype.net = function (o) {
+  const L = o.layers, r = o.r ?? 24, fs = o.fs ?? 20, key = o.key ?? 'net', K = o.opacity ?? 1;
+  const [bx, by, bw, bh] = o.box || [0, 0, this.W, this.H], gap = o.gap ?? 3.2 * r;
+  const at = o.at || ((l, i) => {
+    const n = L[l], s = n > 1 ? Math.min(gap, (bh - 2 * r) / (n - 1)) : 0;
+    return [L.length > 1 ? bx + r + (bw - 2 * r) * l / (L.length - 1) : bx + bw / 2, by + bh / 2 + (i - (n - 1) / 2) * s];
+  });
+  const ov = (l, i) => (o.node && o.node(l, i)) || {};
+  const R = (l, i) => ov(l, i).r ?? r;
+  const roleOf = (l, i) => ov(l, i).role || (l === 0 ? 'in' : l === L.length - 1 ? 'out' : 'hid');
+  const edges = Array.isArray(o.edges) ? o.edges : o.edges === 'none' ? [] : L.slice(0, -1).flatMap((n, l) =>
+    [...Array(n).keys()].flatMap(i => [...Array(L[l + 1]).keys()].map(j => [l, i, j])));
+  const ends = (l, i, j) => {
+    const [x1, y1] = at(l, i), [x2, y2] = at(l + 1, j), d = Math.hypot(x2 - x1, y2 - y1) || 1;
+    const a = R(l, i) / d, b = (R(l + 1, j) + 1.5) / d;
+    return [[x1 + (x2 - x1) * a, y1 + (y2 - y1) * a], [x2 - (x2 - x1) * b, y2 - (y2 - y1) * b]];
+  };
+  this.group(K !== 1 ? { opacity: K } : {}, () => {
+    for (const [l, i, j] of edges) {
+      const e = (o.edge && o.edge(l, i, j)) || {};
+      if (e.hide) continue;
+      const [p, q] = ends(l, i, j), col = colorOf(e.color || o.edgeColor || '#777'), op = e.opacity ?? 1;
+      this.el('line', { x1: p[0], y1: p[1], x2: q[0], y2: q[1], stroke: col, 'stroke-width': e.w ?? o.edgeW ?? 2,
+        opacity: op, 'stroke-dasharray': e.dash ? (e.dash === true ? '6 5' : e.dash) : null });
+      if (o.arrows !== false) this.el('path', { d: arrowHeadD(p[0], p[1], q[0], q[1], o.head ?? 10), fill: col, opacity: op });
+    }
+    L.forEach((n, l) => { for (let i = 0; i < n; i++) {
+      const [x, y] = at(l, i), v = ov(l, i), [fill, stroke, fo] = NETROLE[roleOf(l, i)], rr = R(l, i), op = v.opacity ?? 1;
+      this.el('circle', { cx: x, cy: y, r: rr, fill: colorOf(v.fill || fill), 'fill-opacity': v.fo ?? fo,
+        stroke: colorOf(v.stroke || stroke), 'stroke-width': 2, opacity: op, 'stroke-dasharray': v.dash ? '5 4' : null });
+      if (v.cross) { const c = rr * 0.72;
+        this.el('path', { d: `M${x - c},${y - c}L${x + c},${y + c}M${x + c},${y - c}L${x - c},${y + c}`, stroke: C.post,
+          'stroke-width': 3, 'stroke-linecap': 'round', opacity: op }); }
+    } });
+  });
+  L.forEach((n, l) => { for (let i = 0; i < n; i++) {
+    const s = o.label && o.label(l, i);
+    if (s != null && s !== '') this.label(`${key}n${l}-${i}`, sizedLab(s, fs), at(l, i), 'c', { opacity: K * (ov(l, i).opacity ?? 1) });
+  } });
+  if (o.weight) for (const [l, i, j] of edges) {
+    let w = o.weight(l, i, j);
+    if (w == null || w === '') continue;
+    if (typeof w !== 'object') w = { s: w };
+    const [p, q] = ends(l, i, j);
+    besideEdge(this, `${key}w${l}-${i}-${j}`, sizedLab(w.s, w.fs ?? fs), p, q, w.t ?? o.wpos ?? 0.5, w.side ?? 1, w.off ?? 3,
+      { color: w.color || '#333', opacity: K * stageOp(o, w.stage) });
+  }
+  (o.values || []).forEach((v, k) => {
+    const [x, y] = at(v.l, v.i), rr = R(v.l, v.i), a = v.at || 'c';
+    const pos = { c: [x, y, 'c'], r: [x + rr + 6, y, 'l'], l: [x - rr - 6, y, 'r'], t: [x, y - rr - 4, 'b'], b: [x, y + rr + 4, 't'] }[a];
+    this.label(`${key}v${k}`, sizedLab(v.s, v.fs ?? fs), [pos[0] + (v.dx || 0), pos[1] + (v.dy || 0)], pos[2],
+      { color: v.color || C.ink, opacity: K * stageOp(o, v.stage) });
+  });
+  // o.bias(l, i): a unit's offset (a string, or { s, at, color, stage, fs, dx, dy }), on the input side of
+  // its node: to its left, upper left or lower left, or else above or below it, never to its right (house
+  // rule). Without `at` ('l', 'la', 'lb', 't', 'b') it takes the first of these with no edge of the node
+  // within 30 degrees of its direction (upper left when none is clear).
+  if (o.bias) L.forEach((n, l) => { for (let i = 0; i < n; i++) {
+    let v = o.bias(l, i);
+    if (v == null || v === '') continue;
+    if (typeof v !== 'object') v = { s: v };
+    const [x, y] = at(l, i), rr = R(l, i);
+    const dirs = edges.filter(([k, s, j]) => (k === l - 1 && j === i) || (k === l && s === i)).map(([k, s, j]) => {
+      const [ox, oy] = k === l ? at(l + 1, j) : at(k, s);
+      return Math.atan2(y - oy, ox - x) * 180 / Math.PI;
+    });
+    const clear = deg => dirs.every(a => { const d = Math.abs(((a - deg) % 360 + 540) % 360 - 180); return d >= 30; });
+    const a = v.at || [['l', 180], ['la', 145], ['lb', 215], ['t', 90], ['b', 270]].find(([, deg]) => clear(deg))?.[0] || 'la';
+    const pos = { l: [x - rr - 6, y, 'r'], la: [x - rr * 0.72, y - rr * 0.72, 'br'], lb: [x - rr * 0.72, y + rr * 0.72, 'tr'],
+      t: [x, y - rr - 4, 'b'], b: [x, y + rr + 4, 't'] }[a];
+    this.label(`${key}b${l}-${i}`, sizedLab(v.s, v.fs ?? fs), [pos[0] + (v.dx || 0), pos[1] + (v.dy || 0)], pos[2],
+      { color: v.color || '#333', opacity: K * stageOp(o, v.stage) });
+  } });
+  return { at, ends };
+};
+// g.cgraph(o): a computation graph in the style of the Intro to ML backpropagation slides, each
+// edge carrying its forward value above it in blue and its backward message below it in rose.
+//   o.nodes   { id: { at: [x, y], kind, label, w, h, r, opacity } }: kind 'op' (a circle: +, ×, −),
+//             'fn' (a larger circle: ReLU, σ, (·)²), 'data' (a box: an input or the target), 'param'
+//             (a box: a parameter); boxes are w (64) by h (30) px
+//   o.edges   [{ from, to, fwd, bwd, fs, bs, pos, bpos, side, opacity }]: an arrow from node `from` to
+//             node `to` (or to a point [x, y]: the output); fwd shows from stage fs on, bwd from stage
+//             bs on, at pos (0.5) and bpos (pos) of the way along the edge; side -1 puts the forward
+//             value below and the message above
+//   o.r       op radius (19); o.fs label size in px (18); o.off the labels' distance from their edge
+//             in px (5); o.key, o.opacity as for g.net
+// Returns { at(id) }.
+Scene.prototype.cgraph = function (o) {
+  const N = o.nodes, r0 = o.r ?? 19, fs = o.fs ?? 18, key = o.key ?? 'cg', K = o.opacity ?? 1, off = o.off ?? 5;
+  const box = n => n.kind === 'data' || n.kind === 'param';
+  const rad = n => n.r ?? (n.kind === 'fn' ? Math.round(r0 * 1.45) : r0);
+  const pt = a => typeof a === 'string' ? N[a].at : a;
+  // where the segment from the centre of node a toward point b leaves the node, pad px further on
+  const clip = (a, b, pad) => {
+    const [x, y] = pt(a);
+    if (typeof a !== 'string') return [x, y];
+    const n = N[a], dx = b[0] - x, dy = b[1] - y, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+    const t = box(n) ? Math.min((n.w ?? 64) / 2 / Math.max(Math.abs(ux), 1e-9), (n.h ?? 30) / 2 / Math.max(Math.abs(uy), 1e-9)) : rad(n);
+    return [x + ux * (t + pad), y + uy * (t + pad)];
+  };
+  const segs = o.edges.map(e => [clip(e.from, pt(e.to), 0), clip(e.to, pt(e.from), 1.5)]);
+  this.group(K !== 1 ? { opacity: K } : {}, () => {
+    o.edges.forEach((e, k) => {
+      const [p, q] = segs[k], col = colorOf(e.color || '#555'), op = e.opacity ?? 1;
+      this.el('line', { x1: p[0], y1: p[1], x2: q[0], y2: q[1], stroke: col, 'stroke-width': e.w ?? 2, opacity: op });
+      this.el('path', { d: arrowHeadD(p[0], p[1], q[0], q[1], 10), fill: col, opacity: op });
+    });
+    for (const id in N) {
+      const n = N[id], [x, y] = n.at, op = n.opacity ?? 1;
+      if (box(n)) {
+        const w = n.w ?? 64, h = n.h ?? 30, param = n.kind === 'param';
+        this.el('rect', { x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 6, fill: param ? '#fbf1cf' : '#f1f1f1',
+          stroke: param ? '#9c7a14' : '#777', 'stroke-width': 1.5, opacity: op });
+      } else this.el('circle', { cx: x, cy: y, r: rad(n), fill: n.kind === 'fn' ? '#f1f1f1' : '#fff',
+        stroke: colorOf(n.stroke || C.ink), 'stroke-width': n.stroke ? 3 : 2, opacity: op });
+    }
+  });
+  for (const id in N) {
+    const n = N[id];
+    if (n.label != null && n.label !== '') this.label(`${key}n-${id}`, sizedLab(n.label, n.fs ?? (box(n) ? fs : fs + 2)), n.at, 'c', { opacity: K * (n.opacity ?? 1) });
+  }
+  o.edges.forEach((e, k) => {
+    const [p, q] = segs[k], side = e.side ?? 1, t = e.pos ?? 0.5;
+    if (e.fwd != null && e.fwd !== '') besideEdge(this, `${key}f${k}`, sizedLab(e.fwd, fs), p, q, t, side, off, { color: C.prior, opacity: K * stageOp(o, e.fs) });
+    if (e.bwd != null && e.bwd !== '') besideEdge(this, `${key}b${k}`, sizedLab(e.bwd, fs), p, q, e.bpos ?? t, -side, off, { color: C.rose, opacity: K * stageOp(o, e.bs) });
+  });
+  return { at: id => N[id].at };
+};
 // A figure written as { size, draw }: the engine's init and render for it.
 function sceneFig(f) {
   f.init = root => { root._scene = new Scene(root, f.size[0], f.size[1]); };

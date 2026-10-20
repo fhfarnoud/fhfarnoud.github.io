@@ -1,0 +1,981 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Neural Networks</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<link rel="stylesheet" href="../shared/deck.css">
+<style>
+/* Deck-local layout */
+.reveal .fbody p { margin-bottom: 18px; }
+.reveal .fbody .katex-display { margin: 12px 0; }
+.cards { display: flex; gap: 22px; margin: 0 0 14px; }
+.cards .altcard { flex: 1 1 0; min-width: 0; }
+.altcard .al .katex { text-transform: none; }
+.altcard .katex-display { margin: 6px 0; }
+.ctr { text-align: center; margin: 2px 0 0; }
+/* the opening slide's needs, each tagged with its part in the map's branch colour */
+ul.needs { list-style: none; padding: 0; margin: 0 0 12px; }
+ul.needs li { display: flex; align-items: flex-start; gap: 14px; margin: 0 0 14px; }
+.partno { flex: none; display: inline-block; width: 30px; height: 30px; border-radius: 50%; color: #fff; font-size: 18px; font-weight: 700;
+  text-align: center; line-height: 30px; margin-top: 2px; }
+/* log-scale and stepped sliders show their value in a readout the figure writes */
+.knobs input[data-param="m"] + output, .knobs input[data-param="le"] + output { display: none; }
+.knobs .ro { font-variant-numeric: tabular-nums; }
+.knobs .ro b { font-weight: normal; display: inline-block; min-width: 2.6em; }
+table.vals.tight { font-size: 23px; margin: 4px 0 12px; }
+table.vals.tight th, table.vals.tight td { padding: 3px 10px; }
+table.vals.xs { font-size: 21px; }
+table.vals.xs th, table.vals.xs td { padding: 2px 8px; }
+table.vals .hl { background: #fbe9ef; }
+section:has(.mark-w12.visible) table.vals .w12, section:has(.mark-w12.shown) table.vals .w12 { background: #fbe9ef; }
+.solrow { margin: 0 0 10px; }
+.flushleft .katex-display, .flushleft .katex-display > .katex { text-align: left; }
+.flushleft .katex-display { margin-left: 20px; }
+.row > div:not(.col):not(.fig) { width: min-content; }
+.row > div:not(.col):not(.fig) > .knobs { flex-wrap: wrap; row-gap: 4px; }
+.loss-table td, .loss-table th { text-align: left !important; }
+.sumrow { margin-bottom: 30px; }
+.fe-history .fbody { font-size: 21px; }
+.fe-history .quote { background: #f6f6f6; border: 1.5px solid #999; border-radius: 6px; padding: 10px 14px; font-size: 20px; line-height: 1.3; }
+.fe-history .quote .src { text-align: right; margin-top: 6px; color: #444; }
+.fe-history .whynow p { margin: 4px 0 0; }
+.fe-history .alertblock .bb.small, .fe-history .alertblock .bt { font-size: 20px; }
+.fe-eng .fbody { font-size: 23px; }
+.reveal .step-slide .fbody p { margin-bottom: 10px; }
+.spiral-slide .fbody { font-size: 24px; }
+.tight-slide .fbody { font-size: 24px; }
+.dd-right { flex: none; width: 410px; display: flex; flex-direction: column; align-items: center; }
+.reveal .tight-slide .fbody p { margin-bottom: 8px; }
+.reveal .tight-slide .fbody .katex-display { margin: 6px 0; }
+.tight-slide .block .bb.small, .tight-slide .alertblock .bb { font-size: 22px; }
+.reveal .spiral-slide .fbody p { margin-bottom: 10px; }
+.step-slide .fbody { font-size: 25px; }
+.reveal .fe-eng .fbody p { margin-bottom: 10px; }
+.fe-eng .alertblock .bt, .fe-eng .alertblock .bb.small { font-size: 21px; }
+.cite { font-size: 18px; color: #555; }
+/* Beamer uses Computer Modern's sans-serif bold for Latin vector letters. */
+.reveal .katex .mathbf { font-family: KaTeX_SansSerif; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1 -->
+<section class="frame">
+  <svg class="bells" width="1280" height="720"></svg>
+  <div class="titlebox">
+    <div class="t">Neural Networks</div>
+    <div class="st">Part 4: Where does the “intelligence” in a language model actually come from?</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Probabilistic Machine Learning</div>
+    <div class="i">University of Virginia<br>Farzad Farnoud</div>
+    <div class="d">Fall 2026</div>
+  </div>
+  <narration>
+    <say>Neural networks are the functions inside a language model. This lecture builds them from pieces the course already has: linear models, maximum likelihood and the chain rule. By the end, each part of training a network, from its gradients to its starting weights, will turn out to be an idea from an earlier chapter.</say>
+  </narration>
+</section>
+
+<!-- 2 -->
+<section>
+  <h2>Softmax regression on learned features</h2>
+  <column>
+    <p>We have seen count-based Markov models for predicting the next word hit the complexity wall quickly.</p>
+    <p>A language model instead computes a feature vector $\bphi(w_{1:t-1})$ based on previous words $w_{1:t-1}$ using a neural network and at the end uses softmax regression on it to produce the distribution of the next word $w_t$.</p>
+    <p><alert>Question:</alert> How does a network compute features, and how are they learned?</p>
+    <div pause>
+      <p>Answering it needs:</p>
+      <ul class="needs">
+        <li><span class="partno" style="background:#2354A8">1</span><span>functions that build their own features;</span></li>
+        <li><span class="partno" style="background:#008000">2</span><span>a way to compute gradients through them;</span></li>
+        <li><span class="partno" style="background:#B30000">3</span><span>training that generalizes.</span></li>
+      </ul>
+    </div>
+    <p pause>Every piece uses tools from earlier chapters: maximum likelihood, the chain rule, the variance of a sum, priors.</p>
+  </column>
+  <fig name="pipe0"></fig>
+  <narration>
+    <say>A language model predicts the next token with softmax regression, as we saw at the end of the linear classification lecture. The figure shows where that last layer gets its input: a neural network turns the context into a feature vector. So the question is how a network computes those features, and how it learns them from text.</say>
+    <say>Answering it takes three things, one for each part of this lecture. First, functions that build their own features from the input. Second, a way to compute the gradient of the loss with respect to weights buried deep inside such a function. Third, training that gives a network that works on new data, not only on the examples it was fitted to.</say>
+    <say>Each of these rests on a tool from an earlier chapter. The losses are negative log-likelihoods, the gradients come from the chain rule, a good starting point comes from the variance of a sum, and regularization is a prior. Models change quickly; these fundamentals do not.</say>
+  </narration>
+</section>
+
+<!-- 3 -->
+<section class="frame" data-slide="map">
+  <ol class="toc" hidden>
+    <li data-map-num="1"><a href="#/sec-feat">Features, layers, and networks</a></li>
+    <li data-map-num="2"><a href="#/sec-bp">Backpropagation</a></li>
+    <li data-map-num="3"><a href="#/sec-train">Training that works</a></li>
+  </ol>
+  <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
+  <notes>The mind map of the deck. Entering pulls back from the opening slides to the whole map.</notes>
+  <narration>
+    <say>This lecture has three parts. The first builds networks: why linear models fall short, how hidden layers with nonlinear activations fix that, and how a network computes its output. The second computes a network's gradients by backpropagation. The third trains networks so that they work on new data.</say>
+  </narration>
+</section>
+
+<!-- 4 -->
+<section id="sec-feat" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=all b=0 t=2" class="mapfig"></fig>
+  <notes>The map zooms into the first branch.</notes>
+  <narration>
+    <say>Let's start with features, layers, and networks.</say>
+  </narration>
+</section>
+
+<!-- 5 -->
+<section class="fe-eng">
+  <h2>Feature engineering</h2>
+  <column>
+    <p>A simple model can only use the representation it is given. <b>Feature engineering</b> chooses features $\bphi(\bx)$ by hand so that it works.</p>
+    <p>Example: one-second waves $\bx\in\bbR^{64}$ at 2 cycles per second (class 0) or 3 (class 1), random phase, noise standard deviation 0.7; 200 training waves per class.</p>
+    <p pause="st=1">Logistic regression on two raw samples, $(x_{17},x_{30})$: 53.5% right on its training waves, 48.2% on 2,000 new ones.</p>
+    <p pause="st=2">The same model on $\bphi(\bx)=(|X_2|,|X_3|)$, the Fourier amplitudes at 2 and 3 cycles per second: 100% on training and new waves. Its line lies close to $|X_3|=|X_2|$.</p>
+    <p pause>Even all 64 raw samples give only 66% on training and 52% on new waves: a wave and its negative are equally likely, so both classes average to zero.</p>
+    <alertblock pause title="A good feature keeps what separates the classes and discards the rest" class="small">The Fourier amplitude keeps the frequency and ignores the phase, the nuisance here.</alertblock>
+  </column>
+  <fig name="waves" init="st=0"></fig>
+  <drawer>
+    <p class="dk1">With the samples $x_k$ at times $t_k=k/64$, $k=0,\dots,63$, the amplitude at $f$ cycles per second is</p>
+    \[\htmlClass{dk1}{|X_f|=\frac{2}{64}\,\Big|\sum_{k=0}^{63}x_k\,e^{-2\pi i f t_k}\Big|},\]
+    <p class="dk1">which is about 1 for a wave of frequency $f$ and amplitude 1, whatever its phase, and near 0 for a wave of the other frequency (the noise adds a little).</p>
+    <p class="dk2">A wave $\sin(2\pi ft+\varphi)$ with $\varphi$ uniform on $[0,2\pi)$ has mean $\E[\sin(2\pi ft+\varphi)]=0$ at every $t$, in both classes. A linear score $\bw^T\bx+b$ then has the same mean in both classes; only its spread can differ, and a single threshold on it barely uses that.</p>
+  </drawer>
+  <narration>
+    <say>Before networks learned their own features, people chose them by hand. A simple model such as logistic regression can only use the representation it is given; feature engineering picks a representation in which the simple model works. In the example, each input is one second of a noisy wave, sampled sixty-four times. Class zero oscillates twice per second and class one three times, and each wave starts at a random point of its cycle. The panels show two waves of each class.</say>
+    <say>First, fit logistic regression to two of the raw samples of each wave. The left panel shows these two samples for a hundred training waves of each class, and <point to="label:rwl">the solid line is where the fitted model gives probability one half</point>. The classes form one cloud, and the line splits it about evenly: on new waves the model does no better than a coin.</say>
+    <say>Now fit the same model to two other numbers computed from each wave: the amplitude of its component at two cycles per second, and at three. In the right panel the classes sit in opposite corners, and <point to="label:ftl">the fitted line</point>, which runs close to the diagonal where the two amplitudes are equal, separates them: the model is right on every training wave and every new one. Only the representation changed.</say>
+    <say>Giving the model all sixty-four raw samples does not rescue it. With a random phase, a wave and its negative are equally likely, so every sample averages to zero in both classes, and no weighted sum of the samples tells the classes apart.</say>
+    <say>The amplitude keeps the frequency, which separates the classes, and discards the phase, which only varies from wave to wave. Choosing it took knowing what the classes have in common. The rest of this lecture is about learning features from the data instead.</say>
+  </narration>
+</section>
+
+<!-- 6 -->
+<section class="fe-history">
+  <h2>Hand-designed features, and learned ones</h2>
+  <div class="fbody">
+    <span pause="st=2"></span>
+    <fig name="timeline" init="st=1"></fig>
+    <p class="caption" style="margin:0 0 8px">Above the axis, hand-designed features; below it, learned ones (to scale). Fields: <svg class="icon" data-icon="field-speech" width="24" height="18" style="vertical-align:-3px"></svg> speech, <svg class="icon" data-icon="field-image" width="24" height="18" style="vertical-align:-3px"></svg> images, <svg class="icon" data-icon="field-text" width="24" height="18" style="vertical-align:-3px"></svg> text; no icon: a general method.</p>
+    <div class="row" style="height:auto;gap:22px">
+      <div class="col">
+        <div class="quote" pause>“Such feature engineering is important but labor-intensive and highlights the weakness of current learning algorithms: their inability to extract and organize the discriminative information from the data.”
+          <div class="src">Bengio, Courville and Vincent (2013)</div></div>
+      </div>
+      <div class="col">
+        <div class="whynow" pause><b>Why now (around 2010)</b>
+          <p><b>Data:</b> ImageNet (2009); its challenge set has 1.2 million labelled images in 1000 classes.</p>
+          <p><b>Compute:</b> GPUs (2009, Raina et al.); AlexNet (2012), “between five and six days to train on two GTX 580 3GB GPUs”.</p>
+          <p><b>Training methods:</b> ReLU (2010), dropout (2012).</p></div>
+      </div>
+      <div class="col">
+        <alertblock pause title="In 2012 learned features overtook hand-designed ones in image classification" class="small">ILSVRC-2012, sorting photographs into 1000 categories: an ensemble of convolutional networks reached 15.3% top-5 error against 26.2% for the second-best entry, which averaged classifiers on Fisher vectors of hand-designed, densely sampled features.</alertblock>
+      </div>
+    </div>
+  </div>
+  <narration>
+    <say>For decades, features were designed by hand, a separate design for each kind of data; the small icons mark the field of each item. In speech, mel-frequency cepstral coefficients came out best among the representations Davis and Mermelstein compared in 1980. In vision, Lowe's SIFT, first published in 1999 and in full in 2004, describes image patches in a way that is invariant to image scale and rotation, and HOG describes them by histograms of gradient directions, fed to a linear support vector machine. For text, the features were counts of words and n-grams, as in the language models of Section 1.3.</say>
+    <say>Learned features are almost as old. In 1986, Rumelhart, Hinton and Williams showed that with backpropagation, internal hidden units which are not part of the input or output come to represent important features of the task domain. Convolutional networks then read handwritten digits directly from pixels. In 2009 graphics processors made training deep networks far faster, in 2010 Nair and Hinton showed that rectified linear units improve such networks, though the rectifier itself is older, and in 2012 AlexNet put the pieces together.</say>
+    <say>Bengio, Courville and Vincent's survey puts the cost of the old approach plainly: designing features by hand is laborious, and it was needed because learning algorithms could not yet find the discriminative information themselves. LeCun and coauthors had made the same case in 1998: hand-crafted feature extraction can be advantageously replaced by carefully designed learning machines that operate directly on pixel images.</say>
+    <say>So learned features were not new in 2012; what changed around 2010 was data and compute. ImageNet, published in 2009, supplied over a million labelled images; graphics processors trained AlexNet in under a week; ReLU units sped up training and dropout, introduced in 2012, reduced overfitting. Sutton later drew the general lesson, that general methods that leverage computation are ultimately the most effective, and by a large margin; the third lecture of this part returns to it as scaling laws.</say>
+    <say>The result was decisive in image classification. In the 2012 ImageNet challenge, which sorts photographs into a thousand categories, an ensemble of convolutional networks made far fewer top-five errors, predictions whose five highest-ranked categories miss the true one, than the second-best entry, which was built on hand-designed features.</say>
+  </narration>
+</section>
+
+<!-- 7 -->
+<section>
+  <h2>Two challenges: XOR</h2>
+  <column>
+    <table class="vals tight">
+      <thead><tr><th>$x_1$</th><th>$x_2$</th><th>$\mathrm{XOR}(x_1,x_2)$</th></tr></thead>
+      <tbody><tr><td>0</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>1</td></tr><tr><td>1</td><td>0</td><td>1</td></tr><tr><td>1</td><td>1</td><td>0</td></tr></tbody>
+    </table>
+    <p>Find $w_1,w_2,b$ with $f(x_1,x_2)=w_1x_1+w_2x_2+b=\mathrm{XOR}(x_1,x_2)$ at all four points.</p>
+    <div pause>
+      \[(0,0):\ b=0,\quad(0,1):\ w_2+b=1,\quad(1,0):\ w_1+b=1.\]
+    </div>
+    <p pause="fail=1">So $w_1=w_2=1$, $b=0$, and then $f(1,1)=2\ne0$.</p>
+    <alertblock pause title="No linear function computes XOR">Three of the points fix $w_1$, $w_2$ and $b$; the fourth is then wrong.</alertblock>
+  </column>
+  <fig name="xor" init="fail=0"></fig>
+  <narration>
+    <say wait>We begin with two problems that a linear model cannot solve. The first is XOR: its output is one when exactly one of the two inputs is one. On the right, the two inputs with output one are teal and the two with output zero are brown. Can a linear function of the two inputs reproduce this table? Try to find its weights and its offset before going on.</say>
+    <say>Each input gives one equation in the three unknowns. The input with both coordinates zero involves only the offset, and each input with a single coordinate equal to one involves the offset and one weight.</say>
+    <say>These three equations fix all three unknowns: no offset, and both weights equal to one. The fourth input then gets the wrong value, marked on the right.</say>
+    <say>No choice of weights and offset satisfies all four equations, so no linear function computes XOR.</say>
+  </narration>
+</section>
+
+<!-- 8 -->
+<section>
+  <h2>Two challenges: the ellipse</h2>
+  <column>
+    <p>Class 1 inside the ellipse $x_1^2+x_1x_2+x_2^2&lt;3$ (13 points), class 0 outside (12 points).</p>
+    <p>A linear threshold classifier predicts class 1 where</p>
+    \[w_1x_1+w_2x_2+b&gt;0,\]
+    <p>one side of a line. Here $(w_1,w_2)=(\cos\theta,\sin\theta)$.</p>
+    <p pause="th=45 b=1">However the line is turned and shifted, the count never reaches 0.</p>
+    <alertblock pause title="A line cannot enclose a region">The class-1 points sit in the middle of the class-0 points, so every half-plane that contains them all contains class-0 points too.</alertblock>
+  </column>
+  <fig name="ellLine" init="th=90 b=1"></fig>
+  <knob param="th" min="0" max="359" step="1" digits="0">$\theta$ (degrees)</knob>
+  <knob param="b" min="-3" max="3" step="0.05">$b$</knob>
+  <narration>
+    <say wait>The second problem classifies points by whether they lie inside a tilted ellipse: teal points inside are class one, brown points outside are class zero. A linear threshold classifier predicts class one on one side of a line, the shaded side, and class zero on the other. Rings mark the points it gets wrong. Use the sliders to turn and shift the line, and try to get every point right before going on.</say>
+    <say>A better line still leaves several points ringed, and no line gets them all. The class-one points sit in the middle, with class-zero points beyond them in every direction.</say>
+    <say>One side of a line is a half-plane, and a half-plane cannot contain the middle of a region without also containing the points beyond it in some direction. A linear classifier cannot separate a region bounded by a curve.</say>
+  </narration>
+</section>
+
+<!-- 9 -->
+<section>
+  <h2>Transform the features: XOR</h2>
+  <column>
+    <p>Compute new features first, then combine them linearly:</p>
+    \[h_1=x_1+x_2,\qquad h_2=x_1x_2,\qquad \hat y=h_1-2h_2.\]
+    <table class="vals tight">
+      <thead><tr><th>$x_1$</th><th>$x_2$</th><th>$h_1$</th><th>$h_2$</th><th>$\hat y$</th></tr></thead>
+      <tbody><tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+      <tr><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td></tr><tr><td>1</td><td>1</td><td>2</td><td>1</td><td>0</td></tr></tbody>
+    </table>
+    <p>$\hat y=\mathrm{XOR}(x_1,x_2)$ at every point.</p>
+    <p pause="lv=1">In the $(h_1,h_2)$ plane $\hat y$ is linear: class 0 lies on its level line $\hat y=0$, class 1 on $\hat y=1$.</p>
+  </column>
+  <fig name="xorFeat" init="lv=0"></fig>
+  <narration>
+    <say>Both problems can be solved by computing new features first and then combining them linearly. For XOR, take the sum and the product of the two inputs. In the network on the right, each hidden node computes one of these features, and the output adds the first and subtracts twice the second. The table checks the four inputs: the output matches XOR at each of them.</say>
+    <say>The lower plot shows the four inputs in the plane of the new features. The two inputs of class one land on the same point. The dashed lines are where the output equals zero and where it equals one: both class-zero points lie on the first and the class-one point on the second. In the new coordinates a linear function computes XOR, which no linear function of the original inputs could do.</say>
+  </narration>
+</section>
+
+<!-- 10 -->
+<section>
+  <h2>Transform the features: the ellipse</h2>
+  <column>
+    <p>Three features of degree two:</p>
+    \[\bh=(h_1,h_2,h_3)=(x_1^2,\ x_1x_2,\ x_2^2).\]
+    <p>The boundary $x_1^2+x_1x_2+x_2^2=3$ becomes the plane</p>
+    \[h_1+h_2+h_3=3,\]
+    <p>linear in $\bh$: as in 32-3, quadratic features turn QDA's curved boundary into a linear one in a higher dimension.</p>
+    <p pause="az=-26.565 el=-24.095">Seen along the plane, the classes lie on its two sides. The hidden layer, 3 features for 2 inputs, is wider than the input.</p>
+  </column>
+  <fig name="ell3d" init="az=-32 el=24"></fig>
+  <knob param="az" min="-180" max="180" step="1" digits="0">azimuth</knob>
+  <knob param="el" min="-30" max="80" step="1" digits="0">elevation</knob>
+  <narration>
+    <say>For the ellipse, take the three products of degree two: the two squares and the cross term. The curved boundary is then the sum of the new features, so in the new coordinates it is a plane. On the right are the twenty-five points in this three-dimensional feature space, with the plane. This is the same move as in linear classification, where quadratic features turned the curved QDA boundary into a linear rule.</say>
+    <say>Turn the view until we look along the plane. It becomes a line, with every teal point on one side and every brown point on the other: in the new space a linear classifier separates the classes. Here the hidden layer has three features for two inputs; a layer of features can be wider than its input. The sliders turn the view.</say>
+  </narration>
+</section>
+
+<!-- 11 -->
+<section>
+  <h2>Learning the transformation: linear layers</h2>
+  <column>
+    <p>We saw hand-designed features enabled classification. Can we make this automatic instead?</p>
+    <p>Idea: Add a layer that learns the features, then combine them via another. The simplest choice is linear for both:</p>
+    \[\bh=\bA\bx+\bc,\qquad\hat y=\bw^T\bh+d.\]
+    <p>Substituting,</p>
+    \[\hat y=\bw^T(\bA\bx+\bc)+d=(\bw^T\bA)\bx+(\bw^T\bc+d),\]
+    <p>a linear function of $\bx$, for any number of hidden units.</p>
+    <p pause>Any number of layers: $\bW_3(\bW_2(\bW_1\bx))=(\bW_3\bW_2\bW_1)\bx$, one matrix.</p>
+    <alertblock pause title="Linear layers collapse into one">Without a nonlinearity, a deep network computes the same functions as a single linear layer.</alertblock>
+  </column>
+  <fig name="collapse"></fig>
+  <narration>
+    <say>Hand-picked features worked, but we want the network to learn them. The simplest learnable features are linear: each hidden unit is a weighted sum of the inputs plus an offset, which together form a matrix A and a vector c. Substituting the hidden layer into the output gives one weight vector times the input plus one offset. The expanded and the compact views on the right are the same network, and both compute a linear function of the input.</say>
+    <say>More layers do not help either. A linear layer applied to the output of a linear layer is again linear, because the product of the weight matrices is a single matrix.</say>
+    <say>So stacking linear layers collapses into one linear model, however wide or deep the stack. Something nonlinear has to sit between the layers.</say>
+  </narration>
+</section>
+
+<!-- 12 -->
+<section>
+  <h2>The fix: an activation function</h2>
+  <column>
+    <p>A neuron applies a nonlinear <b>activation</b> $g$ to its weighted sum:</p>
+    \[z=\bw^T\bx+b,\qquad a=g(z).\]
+    <p>With $g$ between the layers, $\hat y=\bw^Tg(\bA\bx+\bc)+d$ no longer collapses. ReLU is a hinge: zero, then a straight line.</p>
+    <p pause><b>Practice:</b> $\bx=(2,-1)$, $\bw=(3,2)$, $b=-4$. Find $z$, $\relu(z)$ and $\sigma(z)$.</p>
+    <p pause="pr=1">$z=6-2-4=0$, so $\relu(z)=0$ and $\sigma(z)=0.5$.</p>
+  </column>
+  <fig name="act" init="pr=0"></fig>
+  <narration>
+    <say>The fix is a nonlinear function applied to each unit's weighted sum. A neuron computes the weighted sum z and passes it through an activation function g. With g between the layers, the output can no longer be rewritten as one linear function of the input. The two common choices are below the neuron: ReLU, zero for negative z and the identity for positive z, which is a hinge; and the sigmoid, which squashes z into the interval between zero and one.</say>
+    <say wait>Compute the output of one neuron with these inputs, weights and offset, first with ReLU and then with the sigmoid, before going on.</say>
+    <say>The weighted sum lands exactly on the corner of the hinge, where ReLU is zero. The sigmoid there is at its midpoint, halfway between zero and one.</say>
+  </narration>
+</section>
+
+<!-- 13 -->
+<section>
+  <h2>ReLU solves XOR</h2>
+  <column>
+    <p>Two ReLU units and a linear output:</p>
+    \[\begin{aligned}h_1&amp;=\relu(2x_1+2x_2-1),\\ h_2&amp;=\relu(2x_1+2x_2-3),\\ \hat y&amp;=h_1-3h_2.\end{aligned}\]
+    <table class="vals tight" pause>
+      <thead><tr><th>$x_1$</th><th>$x_2$</th><th>$h_1$</th><th>$h_2$</th><th>$\hat y$</th></tr></thead>
+      <tbody><tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td></tr>
+      <tr><td>1</td><td>0</td><td>1</td><td>0</td><td>1</td></tr><tr><td>1</td><td>1</td><td>3</td><td>1</td><td>0</td></tr></tbody>
+    </table>
+  </column>
+  <fig name="reluXor"></fig>
+  <narration>
+    <say>With ReLU units the network computes XOR from weights alone, with no hand-made product. The network on the right has two ReLU units with the same weights on both inputs and different offsets. Each unit is zero until the sum of the inputs passes its threshold; the dashed lines in the lower plot mark where each one turns on.</say>
+    <say>The table follows the four inputs. At the origin both units are off. With one input on, only the first unit is on, and its value passes straight to the output. With both inputs on, both units are on, and the second, with its negative weight, cancels the first. Two hinges at different thresholds produce the XOR pattern.</say>
+  </narration>
+</section>
+
+<!-- 14 -->
+<section>
+  <h2>The multilayer perceptron</h2>
+  <column>
+    <block title="Multilayer perceptron (MLP)">
+      $\bh^{(0)}=\bx$, and for each layer $l=1,\dots,L$,
+      \[\bh^{(l)}=g\big(\bW^{(l)}\bh^{(l-1)}+\bb^{(l)}\big).\]
+    </block>
+    <p>The superscript $(l)$ labels the layer; it is not a power. Layers are counted without the input: the network on the right has 3.</p>
+    <p pause>Layer $l$ has $n_{\text{out}}(n_{\text{in}}+1)$ parameters, a weight per connection and an offset per unit. A 3-4-2 network has $4\cdot4+2\cdot5=26$.</p>
+  </column>
+  <fig name="mlp"></fig>
+  <narration>
+    <say>Stacking such layers gives the multilayer perceptron. Each layer multiplies the previous layer's vector by a weight matrix, adds an offset vector, and applies the activation to each entry. The superscript in parentheses says which layer a quantity belongs to. In the network on the right every unit feeds every unit of the next layer, and the layers counted are the two hidden layers and the output layer; the input is not counted.</say>
+    <say>Each layer has one weight for every connection and one offset for every unit it computes. So a layer with n in inputs and n out units has n out times n in plus one parameters. For three inputs, four hidden units and two outputs, the two layers' counts add up to the total shown.</say>
+  </narration>
+</section>
+
+<!-- 15 -->
+<section>
+  <h2>Your turn: count the parameters</h2>
+  <column>
+    <p>A fully connected network maps 5 inputs through two hidden layers of 10 units each to 3 outputs: 5-10-10-3.</p>
+    <ol class="parts">
+      <li>(a) How many parameters does each layer have?</li>
+      <li>(b) How many does the network have?</li>
+    </ol>
+  </column>
+  <fig name="count" init="st=0"></fig>
+  <narration>
+    <say wait>Let's practise counting parameters with the rule of the previous slide. A network takes five inputs through two hidden layers of ten units each to three outputs. First count the weights and offsets of each layer, then add them up for the whole network, before going on.</say>
+  </narration>
+</section>
+
+<!-- 16 -->
+<section>
+  <h2>Your turn: count the parameters</h2>
+  <column>
+    <p>The 5-10-10-3 network. (a) Parameters per layer. (b) The total.</p>
+    <div pause="st=1">
+      <span class="structure">Solution</span>
+      <p class="solrow">(a) Layer 1: $10\cdot(5+1)=60$.</p>
+    </div>
+    <p pause="st=2" class="solrow">Layer 2: $10\cdot(10+1)=110$.</p>
+    <p pause="st=3" class="solrow">Layer 3: $3\cdot(10+1)=33$.</p>
+    <p pause class="solrow">(b) $60+110+33=203$ parameters.</p>
+  </column>
+  <fig name="count" init="st=0"></fig>
+  <narration>
+    <say>Let's work through the count one layer at a time.</say>
+    <say>The first layer has ten units, and each has a weight for each of the five inputs and one offset.</say>
+    <say>The second layer also has ten units, each reading the ten units before it, plus an offset.</say>
+    <say>The output layer has three units, each with ten weights and an offset.</say>
+    <say>The network's total is the sum of the three layers, and most of it sits in the two hidden layers.</say>
+  </narration>
+</section>
+
+<!-- 17 -->
+<section>
+  <h2>The forward pass</h2>
+  <column>
+    <p>Bipolar XOR, targets $\pm1$; ReLU units, linear output:</p>
+    \[\bW=\begin{pmatrix}2&amp;2\\2&amp;2\end{pmatrix},\ \bb=\begin{pmatrix}-1\\-3\end{pmatrix},\ \bw=\begin{pmatrix}2\\-6\end{pmatrix},\ d=-1.\]
+    <p>Input $\bx=(0,1)$, target $+1$.</p>
+    <p pause="st=1"><b>1.</b> $\bz=\bW\bx+\bb=(2-1,\ 2-3)=(1,-1)$.</p>
+    <p pause="st=2"><b>2.</b> $\bh=\relu(\bz)=(1,0)$: the second unit is off.</p>
+    <p pause="st=3"><b>3.</b> $\hat y=\bw^T\bh+d=2-1=1$, the target.</p>
+  </column>
+  <fig name="fwd" init="st=0"></fig>
+  <narration>
+    <say>With the weights given, computing the output is the forward pass. Here is a network for XOR with targets plus and minus one, the bipolar version: two ReLU units and a linear output. The weights are printed on the edges and the offsets beside the units. Let's follow one input through it, layer by layer.</say>
+    <say>First, each hidden unit computes its weighted sum plus offset, its pre-activation. The two pre-activations appear beside the units on the right, and as the vector z in the pipeline below.</say>
+    <say>Second, ReLU keeps the positive pre-activation and sets the negative one to zero. The second unit is off for this input: it passes nothing on, and its output weight plays no part.</say>
+    <say>Third, the output unit combines the hidden values with its weights and offset, and the result matches the target. The pipeline below is the same computation as a chain of simple operations, which is how the next part of the lecture treats it.</say>
+  </narration>
+</section>
+
+<!-- 18 -->
+<section>
+  <h2>Your turn: trace the input (1, 1)</h2>
+  <column>
+    <p>The network of slide 17, with input $\bx=(1,1)$ and target $-1$.</p>
+    <ol class="parts">
+      <li>(a) The pre-activations $\bz$.</li>
+      <li>(b) The hidden values $\bh$.</li>
+      <li>(c) The output $\hat y$. Does it match the target?</li>
+    </ol>
+  </column>
+  <fig name="trace" init="st=0"></fig>
+  <narration>
+    <say wait>Let's practise the forward pass on the same network. The input has both coordinates equal to one, and its target is minus one. Find the pre-activations of the two hidden units, then their ReLU outputs, then the network's output, and check it against the target, before going on.</say>
+  </narration>
+</section>
+
+<!-- 19 -->
+<section>
+  <h2>Your turn: trace the input (1, 1)</h2>
+  <div class="fbody">
+    <p>Input $\bx=(1,1)$, target $-1$. (a) $\bz$. (b) $\bh$. (c) $\hat y$.</p>
+    <div pause>
+      <span class="structure">Solution</span>
+      <p class="solrow">(a) $\bz=(2+2-1,\ 2+2-3)=(3,1)$.</p>
+    </div>
+    <p pause class="solrow">(b) $\bh=\relu(\bz)=(3,1)$: both units are on.</p>
+    <p pause class="solrow">(c) $\hat y=2\cdot3-6\cdot1-1=-1$, the target.</p>
+    <div pause><fig name="contrib"></fig>
+      <p class="caption">What each unit adds over the unit square: teal positive, brown negative; the black line is $\hat y=0$.</p></div>
+  </div>
+  <narration>
+    <say>Let's go through the three steps.</say>
+    <say>Both pre-activations are positive this time.</say>
+    <say>So both units are on, and ReLU passes the pre-activations through unchanged.</say>
+    <say>The second unit's large negative weight outweighs the first, and the output matches the target.</say>
+    <say>The pictures show what each unit adds over the whole unit square, each with half of the output offset. The first unit adds a ramp that rises past one diagonal line; the second subtracts a steeper ramp past another. Their sum, on the right, is positive in a band between two lines and negative outside it, and the black line, where the output is zero, separates the two classes.</say>
+  </narration>
+</section>
+
+<!-- 20 -->
+<section>
+  <h2>Many hinges make any curve</h2>
+  <column>
+    <p>Let's see how ReLU can produce non-linearity in 1D.</p>
+    <p>Each ReLU unit adds a hinge:</p>
+    \[\hat y(x)=d+\sum_{j=1}^k v_j\,\relu\big(x-t_j\big).\]
+    <p>With the hinges fixed at $t_j=\frac{j-1}k$, least squares fits $d$ and the $v_j$ to a smooth bump.</p>
+    <p pause="m=1">More units, more hinges, a closer fit:</p>
+    <span pause="m=2"></span>
+    <alertblock pause="m=3" title="Universal approximation (stated without proof)">One hidden layer with enough units approximates any continuous function on a bounded set as closely as wanted.</alertblock>
+  </column>
+  <fig name="hinge" init="m=0"></fig>
+  <knob param="m" min="0" max="4" step="1"><span>units</span> <span class="ro">$k=$ <b class="v-k"></b></span></knob>
+  <narration>
+    <say>How much can one hidden layer of ReLU units do? Each unit contributes a hinge: zero up to a point, then a straight line. The output adds the hinges with weights, so the network computes a function made of straight pieces. On the right, the dashed curve is a smooth bump, and the green curve is the best fit by least squares with one unit; <point to="label:hk">the ticks at the bottom mark where the hinges bend</point>.</say>
+    <say>With two units the fit gains a corner in the middle and follows the rise and fall of the bump.</say>
+    <say>With four units the largest error, shown above the plot, has shrunk again.</say>
+    <say>With eight the two curves are hard to tell apart. This is the universal approximation theorem: with enough units, one hidden layer approximates any continuous function on a bounded set as closely as we want. The theorem does not say how many units are needed, or how to find their weights. Try the slider.</say>
+  </narration>
+</section>
+
+<!-- 21 -->
+<section>
+  <h2>Output layers, distributions and losses</h2>
+  <p class="opener">The hidden layers build the features; the output layer and the loss decide what the network predicts and how it is scored.</p>
+  <p>The output layer computes the parameters of a distribution for $y$ given $\bx$; the loss is that distribution's negative log-likelihood, so training is maximum likelihood.</p>
+  <table class="vals tight loss-table" style="font-size:22px">
+    <thead><tr><th>task</th><th>output layer</th><th>distribution of $y\mid\bx$</th><th>loss: its negative log-likelihood</th></tr></thead>
+    <tbody>
+      <tr class="hl-reg"><td>regression</td><td>identity, $\hat y=z$</td><td>$\cN(\hat y,\sigma^2)$ (Ch. 5)</td><td>squared error $(y-\hat y)^2$, up to scale and a constant</td></tr>
+      <tr class="hl-two"><td>two classes</td><td>sigmoid, $p=\sigma(z)$</td><td>$\ber(p)$ (32-3)</td><td>cross-entropy</td></tr>
+      <tr class="hl-kc"><td>$K$ classes</td><td>softmax, $\bp=\mathrm{softmax}(\bz)$</td><td>categorical$(\bp)$ (32-3)</td><td>cross-entropy</td></tr>
+    </tbody>
+  </table>
+  <p>Here $z$ (or $\bz$) is the output layer's linear function of the last hidden layer $\bh^{(L)}$.</p>
+  <alertblock pause title="A network classifier is softmax regression on learned features">Its last layer is softmax regression with inputs $\bh^{(L)}$; the hidden layers compute those features, and maximum likelihood fits both.</alertblock>
+  <narration>
+    <say>What a network outputs, and how it is scored, depends on the task, and each choice comes from a distribution we have met. The output layer computes the parameters of a distribution for the label given the input, and the loss is that distribution's negative log-likelihood. <point to="reg">For regression the output is the mean of a Gaussian</point>, whose negative log-likelihood is, up to scale and a constant, the squared error of least squares. <point to="two">For two classes, a sigmoid output is the probability of class one in a Bernoulli distribution</point>, and its negative log-likelihood is the cross-entropy of logistic regression. <point to="kc">For K classes, a softmax output gives the probabilities of a categorical distribution</point>, with the same loss.</say>
+    <say>So a network classifier is softmax regression whose inputs are the last hidden layer's values. The hidden layers compute the features and the last layer classifies with them; training fits both at once, by maximum likelihood.</say>
+  </narration>
+</section>
+
+<!-- 22 -->
+<section>
+  <h2>The ellipse with 2, 3 and 4 hidden units</h2>
+  <p class="opener">Non-linear neurons work for our ellipse example as they did for XOR.</p>
+  <p>500 points uniform on $[-3,3]^2$, labelled by the ellipse; one hidden layer of ReLU units, sigmoid output, cross-entropy loss. Two units give a wedge; three and four close it into a polygon around the ellipse.</p>
+  <fig name="ellFit" init="nz=0" style="margin:0 auto"></fig>
+  <p pause="nz=1">With 20% of the labels flipped at random, the best possible accuracy on new data is 80%: the irreducible error of Ch. 5. The network reaches 79% on its training data.</p>
+  <narration>
+    <say>Here are networks with two, three and four ReLU units fitted to the ellipse data by maximum likelihood, with a sigmoid output. The shading is the predicted probability of class one, the black line is where it equals one half, and the dotted curve is the true ellipse. The boundary is made of straight pieces that bend where a hidden unit turns on or off: two units give a wedge open at both ends, while three and four close it into a polygon, and with four the polygon hugs the ellipse.</say>
+    <say>In the last panel, some of the labels were flipped at random. Even the true ellipse then misclassifies those points, so on new data no classifier can be expected to beat the fraction of labels left unflipped. This is the irreducible error of Chapter 5, and the network comes close to that ceiling on its training data.</say>
+  </narration>
+</section>
+
+<!-- 23 -->
+<section class="spiral-slide">
+  <h2>Stacking layers: two spirals</h2>
+  <column>
+    <p class="opener">One hidden layer drew a polygon around the ellipse; stacking a second layer lets a small network draw far more intricate regions.</p>
+    <p>Two interleaved spirals, 200 points per class. A <span style="white-space:nowrap">2-16-16-1</span> network: two hidden layers of 16 ReLU units, a sigmoid output, the cross-entropy loss; $16\cdot3+16\cdot17+1\cdot17=337$ parameters.</p>
+    <p pause="st=1" class="solrow">Fitted by gradient descent from random weights: 66% right after 300 steps,</p>
+    <p pause="st=2" class="solrow">91% after 1,000,</p>
+    <p pause="st=3" class="solrow">and 100% of the training points after 5,000.</p>
+    <p pause><alert>Question:</alert> Stacking layers creates powerful networks, but how do we learn their parameters?</p>
+  </column>
+  <fig name="spiral" init="st=0"></fig>
+  <narration>
+    <say>One hidden layer could only draw a polygon around the ellipse. Stacking layers does much more. The data here are two interleaved spirals, teal and brown, and the network, drawn small on the left, has two hidden layers of ReLU units and a sigmoid output, a few hundred parameters in all. On the right, the shading is the network's predicted probability of class one, and the black line is where it equals one half. With random starting weights, the boundary is a few unrelated straight pieces.</say>
+    <say>Gradient descent on the cross-entropy starts to bend the boundary. After a few hundred steps, it separates the outer arms of the spirals, but not yet the centre.</say>
+    <say>A little later, the boundary follows the inner turns as well, and most points are classified correctly.</say>
+    <say>After a few thousand steps, the boundary winds between the two spirals and every training point is on its own side. The second layer combines the first layer's straight pieces into curves that one layer of this size could not draw.</say>
+    <say>Each step of that training needed the derivative of the loss with respect to every one of the parameters, most of them buried in the hidden layers. Computing those derivatives efficiently is the subject of the next part: backpropagation.</say>
+  </narration>
+</section>
+
+<!-- 24 -->
+<section id="sec-bp" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=0 b=1 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Part 1 done: the map pulls back and enters backpropagation.</notes>
+  <narration>
+    <say>That completes the first part. A network computes features with layers of weighted sums and nonlinear activations, and its output layer gives the parameters of a distribution whose negative log-likelihood is the loss.</say>
+    <say>Training it needs the derivative of the loss with respect to every weight, including the ones buried in the early layers. The second part computes them.</say>
+  </narration>
+</section>
+
+<!-- 25 -->
+<section>
+  <h2>The problem: the weights are buried</h2>
+  <column>
+    <p class="opener">To fit these networks by maximum likelihood, gradient descent needs the derivative of the loss with respect to every weight, including those buried in early layers.</p>
+    <p>A 2-2-1 ReLU network, one example $\bx=(1,2)$, $y=1$, and the squared loss $\cL=(\hat y-y)^2$:</p>
+    \[\begin{aligned}z_i&amp;=w_{i1}x_1+w_{i2}x_2+b_i,\quad h_i=\relu(z_i),\\ \hat y&amp;=v_1h_1+v_2h_2+d.\end{aligned}\]
+    <p>Here that is $\partial\cL/\partial\theta$ for nine parameters. A first-layer weight acts on $\cL$ only through $z_i$, $h_i$ and $\hat y$.</p>
+    <table class="vals tight xs" pause>
+      <thead><tr><th>$w_{11}$</th><th>$w_{12}$</th><th>$w_{21}$</th><th>$w_{22}$</th><th>$b_1$</th><th>$b_2$</th><th>$v_1$</th><th>$v_2$</th><th>$d$</th></tr></thead>
+      <tbody><tr><td>2</td><td>1</td><td>1</td><td>−1</td><td>−1</td><td>0</td><td>1</td><td>2</td><td>0</td></tr></tbody>
+    </table>
+  </column>
+  <fig name="buried"></fig>
+  <narration>
+    <say>To train a network by gradient descent we need the derivative of the loss with respect to each of its parameters. Take the small network on the right, with two inputs, two ReLU units and one output, a single example, and the squared loss. The output weights and the output offset act on the loss directly, but a first-layer weight acts only through a hidden unit's pre-activation, its ReLU and the output. We want a way to compute such derivatives without deriving a separate formula for each weight.</say>
+    <say>The parameters take the values in the table. The next slides build a way to compute all nine derivatives by hand, and slide thirty-one carries it out on these numbers.</say>
+  </narration>
+</section>
+
+<!-- 26 -->
+<section class="tight-slide">
+  <h2>Partial derivatives</h2>
+  <column>
+    <p class="opener">Backpropagation starts from one question: how much does a small change in an input change the output?</p>
+    <p>Nudge the inputs of $z=f(u,v)$:</p>
+    \[\Delta z\approx\frac{\partial z}{\partial u}\Delta u+\frac{\partial z}{\partial v}\Delta v.\]
+    <p>A <b>partial derivative</b>, such as $\partial z/\partial u$, shows the impact of a small change in one input on the output, with the other inputs held fixed.</p>
+    <p pause="st=2">For $z=uv$ at $u=5$, $v=1$: $\partial z/\partial u=v=1$ and $\partial z/\partial v=u=5$, so $\Delta z\approx1\cdot\Delta u+5\cdot\Delta v$.</p>
+    <p pause>To raise $z$ fastest for a step of a given size, move each input in proportion to its partial derivative: $\Delta u=1\cdot\eta$, $\Delta v=5\cdot\eta$ give $\Delta z\approx26\,\eta$.</p>
+    <p pause>To lower a loss, flip the sign: $\Delta\theta=-\eta\,\partial\cL/\partial\theta$, gradient descent.</p>
+  </column>
+  <fig name="impact" init="st=1"></fig>
+  <narration>
+    <say>Start with a function of two inputs. A partial derivative says how much a small change in one input moves the output while the other input stays fixed, so nudging both inputs changes the output by approximately the sum of each partial derivative times its nudge. In the diagram, a product of two inputs, the values flow forward above the edges.</say>
+    <say>For a product, each input's partial derivative is the value of the other input. They appear below the edges in rose: here a change in v moves the output five times as much as the same change in u.</say>
+    <say>Which nudge of a given size raises the output the most? The one that moves each input in proportion to its partial derivative, so the input with the larger partial derivative moves more.</say>
+    <say>To lower a loss instead, move each parameter against its partial derivative. That is gradient descent, and what it needs is the partial derivative of the loss with respect to every parameter.</say>
+  </narration>
+</section>
+
+<!-- 27 -->
+<section>
+  <h2>Building blocks 1 to 3</h2>
+  <p class="opener">A network is built from a few simple operations, and each passes partial derivatives back by its own rule.</p>
+  <fig name="blocksA" init="st=1"></fig>
+  <span pause="st=2"></span>
+  <span pause="st=3"></span>
+  <narration>
+    <say>A network is built from a handful of simple operations, and each has a fixed rule for its local partial derivatives. Each row shows one block in general and on an example. Values flow forward above the edges, and backward messages travel back below them, starting from one at the output. A backward message is the partial derivative of the output, and later of the loss, with respect to the value on its edge. An addition passes the message unchanged to both of its inputs.</say>
+    <say>A multiplication sends each input the value of the other input, as for the product on the previous slide.</say>
+    <say>A negation flips the sign of the message.</say>
+  </narration>
+</section>
+
+<!-- 28 -->
+<section>
+  <h2>Building blocks 4 to 6</h2>
+  <p class="opener">Three more blocks, the nonlinear ones, complete the set a network needs.</p>
+  <fig name="blocksB" init="st=1"></fig>
+  <span pause="st=2"></span>
+  <span pause="st=3"></span>
+  <span pause="st=4"></span>
+  <narration>
+    <say>Three more blocks. ReLU acts as a gate: when its input is positive it passes the message on unchanged, and when its input is negative or zero it blocks it and sends zero back.</say>
+    <say>The sigmoid scales the message by its output times one minus its output. This scale is largest at an input of zero, where the output is one half, and shrinks toward zero as the input grows in either direction.</say>
+    <say>Squaring scales the message by twice its input: the larger the input, the more a change in it moves the output.</say>
+    <say>So far every message started as one at the output. If a block receives some other message c, every message it sends back is multiplied by c, because each change it causes in its output is felt c times over further on.</say>
+  </narration>
+</section>
+
+<!-- 29 -->
+<section class="tight-slide">
+  <h2>Chaining blocks</h2>
+  <column>
+    <p class="opener">With the six blocks in hand, the next question is how blocks in a row combine their local partial derivatives.</p>
+    <p>Pass the message back through one block after another, multiplying by each block's local partial derivative.</p>
+    <span pause="st=1"></span>
+    <p pause="st=2">Linear: $\dfrac{dz}{du}=\dfrac{dz}{dv}\dfrac{dv}{du}=2\cdot3=6$. Check: $z=6u$.</p>
+    <span pause="st=3"></span>
+    <p pause="st=4">Nonlinear: $\dfrac{dz}{du}=(-1)(2u)=-6$ at $u=3$. Check: $z=-u^2$.</p>
+    <alertblock pause title="Chaining blocks is the chain rule">Multiplying the local partial derivatives along the path gives the derivative of the output with respect to the start of the path.</alertblock>
+  </column>
+  <fig name="chain" init="st=0"></fig>
+  <narration>
+    <say>Now combine blocks. Two multiplications by constants in a row: first by three, then by two. The message starts as one at the output.</say>
+    <say>The second block multiplies the message by its own local partial derivative, so the message reaching v is twice the starting one.</say>
+    <say>The first block multiplies it again, and the message reaching u is the product of the two local partial derivatives. Indeed the output is six times u.</say>
+    <say>The same works for nonlinear blocks. Square u, then negate. The negation flips the sign of the message on its way to s.</say>
+    <say>The squaring block then scales it by twice the value of u, which gives the derivative of minus u squared at this point.</say>
+    <say>Multiplying local partial derivatives along the path is exactly the chain rule of calculus. Backpropagation is the chain rule, computed one block at a time from the output back toward the inputs.</say>
+  </narration>
+</section>
+
+<!-- 30 -->
+<section class="tight-slide">
+  <h2>Branching, and the backpropagation rule</h2>
+  <column>
+    <p class="opener">Graphs also branch, and a block's message must travel back along every one of its inputs.</p>
+    <p>First $v=a+b$, then $z=uv$, with $u=5$, $a=3$, $b=1$: forward, $v=4$ and $z=20$.</p>
+    <p pause="st=2">At $\times$, the message 1 goes back to $u$ multiplied by $v$, giving 4, and to $v$ multiplied by $u$, giving 5.</p>
+    <p pause="st=3">At $+$ the message 5 passes to both $a$ and $b$. Check: $z=u(a+b)$, so $\frac{\partial z}{\partial u}=a+b=4$ and $\frac{\partial z}{\partial a}=\frac{\partial z}{\partial b}=u=5$.</p>
+    <block pause title="The backpropagation rule">Start with the message 1 at the output. At each block, multiply the incoming message by the block's local partial derivative and pass it to the block's inputs.</block>
+  </column>
+  <fig name="branch" init="st=1"></fig>
+  <narration>
+    <say>A graph can branch. Here a sum feeds one input of a product, and the other input comes straight in. The forward pass computes the sum and then the product.</say>
+    <say>Backward, the product sends its incoming message to each of its inputs, multiplied by the value of the other input.</say>
+    <say>The sum passes its message unchanged to both of its inputs. The check by calculus agrees with every message.</say>
+    <say>This gives the backpropagation rule. Start with a message of one at the output; at each block, multiply the incoming message by the block's local partial derivative and send it on to the block's inputs. The message that reaches each input is the derivative of the output with respect to it.</say>
+  </narration>
+</section>
+
+<!-- 31 -->
+<section>
+  <h2>Backpropagation in the full network</h2>
+  <p class="opener" style="margin-bottom:4px;font-size:22px">The blocks and the two rules are all that the 2-2-1 network of slide 25 needs; here it is as a computation graph, with $\bx=(1,2)$, $y=1$, $\cL=(\hat y-y)^2$.</p>
+  <fig name="full" init="st=1"></fig>
+  <span pause="st=2"></span>
+  <span pause="st=3"></span>
+  <span pause="st=4"></span>
+  <narration>
+    <say>Here is the whole network of the example as a computation graph, built from the blocks we have met: products of weights and inputs, additions of offsets, the ReLU gates, the output, and the squared error against the label. The forward pass has filled in every value above the edges, ending with the loss.</say>
+    <say>Backward, the message starts as one at the loss. The squaring block scales it by twice the error, and the additions pass it on to the output offset and to both products of the output layer. Each output weight's message is that message times its unit's hidden value, so the weight of the inactive unit gets nothing.</say>
+    <say>The same products send messages to the hidden values: each gets the message times its output weight. Then the ReLU gates act. The first unit is on and passes its message through; the second is off and blocks it.</say>
+    <say>Last, the first layer. The additions pass each unit's message to its offset and to its two products, and each product sends its weight the message times the input. The first unit's parameters get nonzero messages, and the second unit's get zero, because its gate is closed. These nine messages are the gradient.</say>
+  </narration>
+</section>
+
+<!-- 32 -->
+<section>
+  <h2>The same computation in matrix form</h2>
+  <column>
+    <p class="opener">For a whole layer at once, the same messages take a compact matrix form.</p>
+    <p>With $\bz^{(l)}=\bW^{(l)}\bh^{(l-1)}+\bb^{(l)}$ and $\bh^{(l)}=g(\bz^{(l)})$, let $\bdelta^{(l)}=\partial\cL/\partial\bz^{(l)}$, the messages at layer $l$'s pre-activations. Then</p>
+    \[\begin{aligned}\htmlClass{dk1}{\bdelta^{(l)}}&amp;\htmlClass{dk1}{{}=\big(\bW^{(l+1)T}\bdelta^{(l+1)}\big)\odot g'(\bz^{(l)})},\\ \htmlClass{dk2}{\nabla_{\bW^{(l)}}\cL}&amp;\htmlClass{dk2}{{}=\bdelta^{(l)}\,\bh^{(l-1)T}},\qquad \nabla_{\bb^{(l)}}\cL=\bdelta^{(l)},\end{aligned}\]
+    <p>where $\odot$ multiplies two vectors entry by entry, $(\mathbf a\odot\mathbf b)_j=a_jb_j$.</p>
+    <p pause>Error times input at every layer, as for logistic regression (32-3, slide 29). A softmax output with the cross-entropy has the output error $\htmlClass{dk3}{\bdelta^{(L)}=\bp-\be_y}$.</p>
+  </column>
+  <column>
+    <block pause title="Check on slide 31's numbers" class="small">
+      Output layer $\hat y=\bw^T\bh^{(1)}+d$, $\bw=(v_1,v_2)$:
+      \[\begin{aligned}\delta^{(2)}&amp;=2(\hat y-y)=4,\\ \nabla_{\bw}\cL&amp;=\delta^{(2)}\bh^{(1)}=4\,(3,0)=(12,0),\\ \bdelta^{(1)}&amp;=(\bw\,\delta^{(2)})\odot g'(\bz^{(1)})\\&amp;=(4,8)\odot(1,0)=(4,0),\\ \nabla_{\bW^{(1)}}\cL&amp;=\bdelta^{(1)}\bx^T=\begin{pmatrix}4&amp;8\\0&amp;0\end{pmatrix},\\ \nabla_{\bb^{(1)}}\cL&amp;=(4,0).\end{aligned}\]
+    </block>
+  </column>
+  <drawer>
+    <p class="dk1">Unit $i$ of layer $l$ feeds every unit $j$ of layer $l+1$ through $z^{(l+1)}_j=\sum_iW^{(l+1)}_{ji}h^{(l)}_i+b^{(l+1)}_j$. By the chain rule its value receives the sum of their messages,</p>
+    \[\htmlClass{dk1}{\frac{\partial\cL}{\partial h^{(l)}_i}=\sum_j\delta^{(l+1)}_jW^{(l+1)}_{ji}=\big(\bW^{(l+1)T}\bdelta^{(l+1)}\big)_i,}\]
+    <p class="dk1">and the activation scales it by its slope: $\delta^{(l)}_i=\frac{\partial\cL}{\partial h^{(l)}_i}\,g'(z^{(l)}_i)$. For ReLU, $g'$ is 1 for a unit that is on and 0 for one that is off.</p>
+    <p class="dk2">$W^{(l)}_{ij}$ enters only $z^{(l)}_i$, with coefficient $h^{(l-1)}_j$, so $\partial\cL/\partial W^{(l)}_{ij}=\delta^{(l)}_ih^{(l-1)}_j$, the entries of $\bdelta^{(l)}\bh^{(l-1)T}$; $b^{(l)}_i$ enters with coefficient 1.</p>
+    <p class="dk3">For the softmax with the cross-entropy, $-\ln p_y=-z_y+\ln\sum_ke^{z_k}$, so $\partial(-\ln p_y)/\partial z_k=p_k-\mathbb 1[k=y]$ (32-3, slide 37).</p>
+  </drawer>
+  <narration>
+    <say>The block-by-block computation has a compact form for whole layers. Call delta the vector of messages arriving at a layer's pre-activations. One layer back, the messages are multiplied by the transposed weight matrix, which adds up the messages from every unit a hidden value feeds, and then, entry by entry, by the activation's slope. The elementwise product multiplies each unit's backward message by that unit's local derivative, which for ReLU passes it, a one, or blocks it, a zero: the ReLU block of slide twenty-eight applied to a whole layer. A layer's weight gradient is its delta times the layer's input, transposed, and its offset gradient is delta itself.</say>
+    <say>This is the error times input form of logistic regression, now at every layer. With a softmax output and the cross-entropy loss, the output error is the vector of predicted probabilities minus the indicator of the observed class.</say>
+    <say>The check uses the numbers of the full graph. The output error is twice the prediction error. Multiplying it by the output weights and the ReLU slopes gives the first layer's deltas, and their outer product with the input reproduces the nine messages of the graph.</say>
+  </narration>
+</section>
+
+<!-- 33 -->
+<section id="sec-train" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=1 b=2 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Part 2 done: the map pulls back and enters training.</notes>
+  <narration>
+    <say>That completes backpropagation: the chain rule, run backward one block at a time, gives every parameter's derivative, in the form error times input at every layer.</say>
+    <say>The third part turns these gradients into training that works: the step size, minibatches, the starting weights, and the fixes for a network that memorizes its data.</say>
+  </narration>
+</section>
+
+<!-- 34 -->
+<section class="step-slide">
+  <h2>One gradient step</h2>
+  <column>
+    <p class="opener">With every partial derivative in hand, one gradient-descent step updates all nine parameters.</p>
+    <block title="Gradient descent" class="small">$\theta\leftarrow\theta-\eta\,\dfrac{\partial\cL}{\partial\theta}$ for every parameter $\theta$, step size $\eta$.</block>
+    <p>Slide 31's gradient, in the order $w_{11},w_{12},w_{21},w_{22},b_1,b_2,v_1,v_2,d$: $\nabla\cL=(4,8,0,0,4,0,12,0,4)$, and $\|\nabla\cL\|^2=256$.</p>
+    <p>To first order, $\Delta\cL\approx-\eta\|\nabla\cL\|^2$: $-2.56$ at $\eta=0.01$.</p>
+    <p pause class="solrow">$\eta=0.01$: the loss goes from 4 to 1.93.</p>
+    <p pause="le=-1" class="solrow">$\eta=0.1$: 2.31; the step overshoots.</p>
+    <p pause="le=0" class="solrow">$\eta=1$: 25. Both ReLUs are off, and only $d$ still receives a gradient.</p>
+  </column>
+  <fig name="step" init="le=-2"></fig>
+  <knob param="le" min="-3" max="0" step="0.01"><span>$\eta$ (log scale)</span> <span class="ro">$\eta=$ <b class="v-eta"></b></span></knob>
+  <narration>
+    <say>Backpropagation gave the gradient, and gradient descent moves every parameter against it, scaled by the step size eta. To first order, the loss then changes by minus eta times the squared length of the gradient, which predicts a large drop for our example even at a small step. The plot shows the loss after one step for every step size, on a logarithmic axis, with <point to="label:lin">the first-order prediction dashed</point>.</say>
+    <say>At the small step, the actual loss falls less than predicted, because the prediction is only first order and the loss curves. Still, one step removes about half of the loss.</say>
+    <say>Ten times larger, the step overshoots: the first-order prediction is now far below zero, while the actual loss has passed its minimum and come back up.</say>
+    <say>At a step of one, the loss ends up far larger than where it started. The step pushes the first unit's pre-activation below zero, so both ReLU units are off; with both gates closed, only the output offset still receives a gradient, and nothing flows back into the hidden layer. Try the slider.</say>
+  </narration>
+</section>
+
+<!-- 35 -->
+<section>
+  <h2>Minibatches</h2>
+  <p class="opener">Real data sets have many examples, and the loss and its gradient average over them: $\cL=\frac1n\sum_{i=1}^n\cL_i$, $\nabla\cL=\frac1n\sum_{i=1}^n\nabla\cL_i$.</p>
+  <p>A second data point (example), $\bx=(2,-1)$, $y=6$: $\bz=(2,3)$, $\bh=(2,3)$, $\hat y=8$, $\cL_2=4$.</p>
+  <table class="vals tight">
+    <thead><tr><th></th><th>$w_{11}$</th><th class="w12">$w_{12}$</th><th>$w_{21}$</th><th>$w_{22}$</th><th>$b_1$</th><th>$b_2$</th><th>$v_1$</th><th>$v_2$</th><th>$d$</th></tr></thead>
+    <tbody>
+      <tr><td>$\nabla\cL_1$, example 1</td><td>4</td><td class="w12">8</td><td>0</td><td>0</td><td>4</td><td>0</td><td>12</td><td>0</td><td>4</td></tr>
+      <tr><td>$\nabla\cL_2$, example 2</td><td>8</td><td class="w12">−4</td><td>16</td><td>−8</td><td>4</td><td>8</td><td>8</td><td>12</td><td>4</td></tr>
+      <tr><td>average</td><td>6</td><td class="w12">2</td><td>8</td><td>−4</td><td>4</td><td>4</td><td>10</td><td>6</td><td>4</td></tr>
+    </tbody>
+  </table>
+  <p pause class="mark-w12">The examples disagree on $w_{12}$: example 1 says lower it ($+8$), example 2 says raise it ($-4$). The step follows their average.</p>
+  <narration>
+    <say>With many examples, the loss is the average of the examples' losses and its gradient the average of their gradients, so backpropagation runs once per example and the results are averaged. Here a second example joins the first. Its forward pass happens to give the same loss as the first, but its gradient is different in almost every coordinate.</say>
+    <say>The two examples even disagree on the direction for the weight w one two: the first pushes it down, the second pushes it up. The update follows the average over the batch, and a single example can point the wrong way.</say>
+  </narration>
+</section>
+
+<!-- 36 -->
+<section>
+  <h2>The training loop</h2>
+  <column>
+    <p class="opener">Repeating the forward pass, backward pass and update over the data, batch by batch, is the training loop.</p>
+    <p><b>Batch:</b> the $B$ examples used for one update. <b>Iteration:</b> one update. <b>Epoch:</b> one pass through all $n$ training examples, $n/B$ iterations.</p>
+    <block title="Minibatch gradient descent" class="small">
+      Initialize $\btheta$ at random.<br>
+      For each epoch: shuffle the data and split it into batches of $B$;<br>
+      &nbsp;&nbsp;for each batch: forward pass, loss, backward pass (the batch's average gradient), update $\btheta\leftarrow\btheta-\eta\nabla\cL_{\text{batch}}$.<br>
+      Stop when the validation loss stops improving.
+    </block>
+  </column>
+  <fig name="loop"></fig>
+  <narration>
+    <say>Training repeats four steps: run the forward pass on a batch, compute the loss, backpropagate, and update the parameters. One update is an iteration, and the examples it uses form a batch. An epoch is one pass through all of the training data, so it consists of the number of examples divided by the batch size iterations. Minibatch gradient descent shuffles the data at every epoch and splits it into batches, and it stops once the loss on held-out validation data stops improving.</say>
+  </narration>
+</section>
+
+<!-- 37 -->
+<section>
+  <h2>Your turn: training terminology</h2>
+  <p>A data set of 6,000 images is trained with batch size $B=200$ for 5 epochs.</p>
+  <ol class="parts">
+    <li>(a) How many iterations are in one epoch?</li>
+    <li>(b) How many iterations does the training run take?</li>
+  </ol>
+  <fig name="epochs" init="st=0" style="margin:30px auto 0"></fig>
+  <narration>
+    <say wait>Let's practise the training vocabulary. A data set of six thousand images is trained with batches of two hundred images for five epochs. Find the number of iterations in one epoch, and then in the whole run, before going on.</say>
+  </narration>
+</section>
+
+<!-- 38 -->
+<section>
+  <h2>Your turn: training terminology</h2>
+  <p>6,000 images, $B=200$, 5 epochs. (a) Iterations per epoch. (b) Iterations in all.</p>
+  <div pause="st=1">
+    <span class="structure">Solution</span>
+    <p class="solrow">(a) $6{,}000/200=30$ iterations per epoch.</p>
+  </div>
+  <p pause="st=2" class="solrow">(b) $30\times5=150$ iterations. Each image is used once per epoch, 5 times in all.</p>
+  <fig name="epochs" init="st=0" style="margin:16px auto 0"></fig>
+  <narration>
+    <say>Let's count.</say>
+    <say>Each iteration uses one batch, so an epoch has as many iterations as the data has batches.</say>
+    <say>Five epochs repeat that count five times, and each image is used once per epoch.</say>
+  </narration>
+</section>
+
+<!-- 39 -->
+<section>
+  <h2>The minibatch gradient is an estimator</h2>
+  <column>
+    <p class="opener">A minibatch gradient is computed from a random sample of examples, so Chapter 2's questions apply: is it unbiased, and how variable is it?</p>
+    <p>Draw $B$ examples uniformly, with replacement: $\hat\bg_B=\frac1B\sum_{b=1}^B\nabla\cL_{i_b}$.</p>
+    \[\htmlClass{dk1}{\E[\hat\bg_B]=\nabla\cL},\qquad \htmlClass{dk2}{\Var(\hat g_{B,k})=\frac{\sigma_k^2}{B}},\]
+    <p>with $\sigma_k^2$ the variance of coordinate $k$ over the examples: unbiased, with the variance of a mean (Ch. 2) of independent draws (Ch. 4).</p>
+    <p pause="st=2">$B=4$ halves the standard deviation,</p>
+    <p pause="st=3">and $B=16$ cuts it to 1/4. Stochastic gradient descent in 32-3 used $B=1$.</p>
+  </column>
+  <fig name="mbest" init="st=1"></fig>
+  <p class="caption">$\partial\cL/\partial d$ for the 2-2-1 network on 100 synthetic examples; 50 minibatches per row; shaded: the full gradient $\pm\sigma/\sqrt B$.</p>
+  <drawer>
+    <p class="dk1">Each index $i_b$ is uniform on $\{1,\dots,n\}$, so $\E[\nabla\cL_{i_b}]=\frac1n\sum_i\nabla\cL_i=\nabla\cL$, and the average of $B$ such terms has the same mean.</p>
+    <p class="dk2">Draws with replacement are independent, so the variance of their sum is the sum of their variances (Ch. 4): $\Var\big(\sum_b\nabla_k\cL_{i_b}\big)=B\sigma_k^2$, where $\sigma_k^2=\frac1n\sum_i\big(\nabla_k\cL_i-\nabla_k\cL\big)^2$. Dividing the sum by $B$ divides the variance by $B^2$.</p>
+  </drawer>
+  <narration>
+    <say>A minibatch gradient is an estimate of the full-data gradient, and the estimators of Chapter 2 describe it. If the examples are drawn uniformly at random, each draw's gradient has the full gradient as its mean, so their average is unbiased. The figure uses the network of the backpropagation example on a hundred synthetic examples: the top row shows fifty single-example estimates of the derivative with respect to the output offset, and <point to="label:fu">the vertical line is its full-data value</point>. They scatter widely, and many have the wrong sign.</say>
+    <say>Drawn with replacement, the gradients in a batch are independent, so the variance of their average is the per-example variance divided by the batch size: the variance of a sum, from Chapter 4. Batches of four halve the standard deviation.</say>
+    <say>Batches of sixteen cut it to a quarter. Stochastic gradient descent in the linear classification lecture used batches of one; larger batches give steadier steps at a higher cost per step.</say>
+  </narration>
+</section>
+
+<!-- 40 -->
+<section>
+  <h2>Initialization</h2>
+  <column>
+    <p class="opener">Gradient descent needs a starting point, and the scale of the starting weights decides whether signals survive many layers.</p>
+    <p><b>Symmetry:</b> units with equal weights compute equal values and receive equal gradients, so every update keeps them equal. Weights start random.</p>
+    <p>With independent weights of mean 0 and variance $\sigma^2$, independent of $\bh$ (Ch. 4, the variance of a sum):</p>
+    \[\htmlClass{dk1}{\Var(z_j)=\Var\Big(\sum_{i=1}^nW_{ji}h_i\Big)=n\sigma^2\,\E[h_i^2]}.\]
+    <p>A linear layer keeps the scale with $\sigma^2=1/n$. <span class="dk2">ReLU halves $\E[h^2]$</span>, so ReLU layers need $\sigma^2=2/n$.</p>
+  </column>
+  <fig name="init" init="a=1"></fig>
+  <knob param="a" min="0.5" max="4" step="0.05">$n\sigma^2$</knob>
+  <span pause="a=2"></span>
+  <span pause="a=4"></span>
+  <drawer>
+    <p class="dk1">Each term $W_{ji}h_i$ has mean 0 (the weight has mean 0 and is independent of $h_i$), so $\Var(W_{ji}h_i)=\E[W_{ji}^2]\,\E[h_i^2]=\sigma^2\E[h_i^2]$. The terms are uncorrelated, so their variances add: $n\sigma^2\E[h_i^2]$.</p>
+    <p class="dk2">If $z$ is symmetric about 0, $\relu(z)^2$ equals $z^2$ on half of the outcomes and 0 on the other half, so $\E[\relu(z)^2]=\frac12\E[z^2]=\frac12\Var(z)$. Then $\Var(z^{(l+1)})=n\sigma^2\cdot\frac12\Var(z^{(l)})$, constant from layer to layer when $n\sigma^2=2$.</p>
+    <p>The figure: the plan's simulation, an input of 1,000 standard normal vectors in $\bbR^{100}$ and 10 ReLU layers of width 100 without offsets, one draw of the weights. Scaling every weight by $c$ scales layer $l$'s activations by $c^l$, so one draw gives every $n\sigma^2$.</p>
+  </drawer>
+  <narration>
+    <say>Where should gradient descent start? Not with equal weights: units with the same incoming weights compute the same value and receive the same gradient, so they would stay identical forever. So the weights start random, and the question is how large they should be. A pre-activation is a sum of n products of weights and inputs, so by the variance of a sum its variance is n times the weight variance times the mean square input. On the right, ten ReLU layers of width one hundred with n sigma squared equal to one: the activations shrink layer after layer.</say>
+    <say>ReLU sets half of its inputs to zero, which halves the mean square. Doubling the weight variance makes up for it, and the activations keep their scale through all ten layers.</say>
+    <say>Doubling the variance once more, the activations grow by the same factor at every layer and explode. Training a deep network starts from weights that keep the scale; the slider varies n sigma squared.</say>
+  </narration>
+</section>
+
+<!-- 41 -->
+<section>
+  <h2>Networks can memorize</h2>
+  <column>
+    <p class="opener">A network trained this way can fit its training data too well: with enough parameters, exactly, noise included.</p>
+    <p>A regression on 8 noisy XOR points: training against validation loss for 2-2-1 (9 parameters) and 2-8-1 (33 parameters) networks.</p>
+    <p>The training loss keeps falling; the validation loss reaches a minimum, then rises.</p>
+    <alertblock pause title="The bias and variance trade-off of Ch. 5">More parameters lower the bias and raise the variance: past the minimum, the network fits the noise of its training data.</alertblock>
+  </column>
+  <div class="fig" style="width:470px">
+    <img src="img/overfitting_2_2_1.svg" alt="Training and validation loss of a 2-2-1 network" style="width:470px;display:block">
+    <img src="img/overfitting_2_8_1.svg" alt="Training and validation loss of a 2-8-1 network" style="width:470px;display:block;margin-top:8px">
+  </div>
+  <narration>
+    <say>With enough parameters, a network can fit its training data exactly, noise included. The curves come from a regression on eight noisy XOR points, for a network with two hidden units and one with eight. The training loss keeps falling toward zero, while the loss on held-out validation points reaches a minimum and then rises: the network has started to fit the noise.</say>
+    <say>This is the bias and variance trade-off of Chapter 5, for a network. More parameters let the fit follow the data more closely, which lowers the bias and raises the variance.</say>
+  </narration>
+</section>
+
+<!-- 42 -->
+<section>
+  <h2>Three fixes</h2>
+  <p class="opener">Three standard tools keep a network from fitting the noise.</p>
+  <div class="cards">
+    <div class="altcard"><div class="al">Early stopping</div>Keep the weights with the best validation loss; stop after $k$ epochs without improvement (the patience).<fig name="esFig"></fig></div>
+    <div class="altcard" pause><div class="al">Dropout</div>In training, each unit is kept with probability $1-p$: a mask $m\sim\ber(1-p)$, output $m\,h$, so $\E[m\,h]=(1-p)h$. At test time all units are kept, scaled by $1-p$.<fig name="dropFig"></fig></div>
+    <div class="altcard" pause><div class="al">Weight decay</div>Adding $\frac\lambda2\|\btheta\|^2$ to the negative log-likelihood is <span class="dk1">MAP with the prior $\btheta\sim\cN(\bzero,\lambda^{-1}\bI)$</span>: ridge regression (Ch. 5) for a network.<fig name="wdFig"></fig></div>
+  </div>
+  <drawer>
+    <p class="dk1">With the prior $\btheta\sim\cN(\bzero,\lambda^{-1}\bI)$, $\ln p(\btheta)=-\frac\lambda2\|\btheta\|^2+\text{const}$, so by Bayes' rule</p>
+    \[\htmlClass{dk1}{-\ln p(\btheta\mid\cD)=\underbrace{-\ln p(\cD\mid\btheta)}_{\text{the loss}}+\frac\lambda2\|\btheta\|^2+\text{const},}\]
+    <p class="dk1">and the minimizer of the penalized loss is the posterior mode, the MAP estimate (Ch. 3). For a linear model with Gaussian noise this is ridge regression (Ch. 5).</p>
+  </drawer>
+  <narration>
+    <say>Three fixes keep a network from memorizing its data. Early stopping watches the validation loss during training and keeps the weights from the epoch where it was lowest; training stops once it has not improved for a set number of epochs, the patience.</say>
+    <say>Dropout sets each hidden unit to zero at random during training, independently at every step, so no unit can rely on another. A unit is kept with probability one minus p, so its expected output is scaled by that probability; at test time every unit is kept, and its output is scaled the same way so that the next layer sees what it saw in training.</say>
+    <say>Weight decay adds a penalty on the squared length of the parameter vector to the negative log-likelihood. The sum is the negative log-posterior under a Gaussian prior with mean zero, so the fit is the MAP estimate: ridge regression from Chapter 5, applied to a network.</say>
+  </narration>
+</section>
+
+<!-- 43 -->
+<section>
+  <h2>Double descent</h2>
+  <div class="row" style="height:100%">
+    <column>
+      <p class="opener">Very large networks bring a surprise to the bias and variance picture of Chapter 5.</p>
+      <p>Test error falls, rises near the size that just fits the training data (the interpolation threshold), and falls again.</p>
+      <p pause data-fragment-index="0">The same XOR regression with very wide hidden layers and early stopping (below right): validation error flattens, and never comes back up.</p>
+      <alertblock pause data-fragment-index="1" title="With early stopping, you can safely start big">Very large networks need not overfit: larger models trained longer keep improving, the scaling laws of lecture 3.</alertblock>
+    </column>
+    <div class="dd-right">
+      <fig name="ddesc" style="zoom:0.72"></fig>
+      <img pause data-fragment-index="0" src="img/overfitting_diagnose.svg" alt="Loss at early stopping against network width" style="width:380px;display:block;margin:6px auto 0">
+    </div>
+  </div>
+  <narration>
+    <say>The classical picture says that past some size, more parameters mean more overfitting. Large networks behave differently. In this schematic, after Nakkiran and coauthors, the test error first follows the classical curve, peaks near the size at which the network can just fit the training data exactly, and then falls again as the network keeps growing.</say>
+    <say>The same XOR regression, run with very wide networks and early stopping, shows what happens in practice. The validation error falls with width and then flattens; it never comes back up.</say>
+    <say>So with early stopping, a large network is a safe place to start. The relation between model size, data and error returns in the third lecture of this part, as scaling laws.</say>
+  </narration>
+</section>
+
+<!-- 44 -->
+<section>
+  <h2>Calibration</h2>
+  <column>
+    <p>Are a network's probabilities trustworthy? A classifier is <b>calibrated</b> if among its predictions made with confidence 0.8, about 80% are right, and so for every confidence.</p>
+    <p>Toy: 100 predictions at confidence 0.5, 45 right; 100 at 0.9, 60 right.</p>
+    <p pause="st=2">Expected calibration error, the gap averaged over the predictions:</p>
+    \[\mathrm{ECE}=\tfrac{100}{200}\,|0.45-0.5|+\tfrac{100}{200}\,|0.6-0.9|=0.175.\]
+  </column>
+  <fig name="calib" init="st=1"></fig>
+  <narration>
+    <say>Are a network's probabilities trustworthy? A classifier is calibrated if its confidence matches its accuracy: among the predictions made with a given confidence, that fraction is right. In the reliability diagram on the right, each bar is the fraction of correct predictions in one group, placed at the group's confidence, and <point to="label:di">the dashed diagonal is perfect calibration</point>. The toy classifier's low-confidence group is close to it.</say>
+    <say>The high-confidence group is right far less often than it claims: the classifier is overconfident. The expected calibration error averages the gaps between confidence and accuracy, weighting each group by its number of predictions.</say>
+  </narration>
+</section>
+
+<!-- 45 -->
+<section>
+  <h2>Maximum likelihood rewards calibration</h2>
+  <column>
+    <p class="opener">Calibration follows from the loss the network is trained with.</p>
+    <p>If the label has distribution $p$ and the model predicts $q$, the expected log loss is</p>
+    \[\E_{Y\sim p}\Big[\ln\frac{1}{q(Y)}\Big]=H(p)+D(p\,\|\,q),\]
+    <p>smallest only at $q=p$ (32-3, slide 27). For $p=0.7$:</p>
+    <table class="vals tight">
+      <thead><tr><th>$q$</th><th>0.5</th><th>0.7</th><th>0.9</th></tr></thead>
+      <tbody><tr><td>expected loss (nats)</td><td>0.693</td><td>0.611</td><td>0.765</td></tr></tbody>
+    </table>
+    <p pause>Pretrained language models are well calibrated; post-training changes that (lecture 5).</p>
+  </column>
+  <fig name="logloss"></fig>
+  <narration>
+    <say>Why would a network be calibrated at all? Maximum likelihood rewards it. If the label follows a distribution p and the model predicts q, the expected log loss is the entropy of p plus the relative entropy from p to q, as in the linear classification lecture. The entropy does not depend on q, and the relative entropy is zero only when q equals p. The curve shows this for one label distribution: the loss is smallest at the true probability, and both under- and overconfident predictions cost more.</say>
+    <say>Language models are trained with exactly this loss, and pretrained models are well calibrated. The fifth lecture of this part shows how post-training changes that.</say>
+  </narration>
+</section>
+
+<!-- 46 -->
+<section>
+  <h2>Summary</h2>
+  <div class="fbody" style="top:100px">
+    <div class="sumrow"><svg class="icon" data-icon="feat" width="110" height="64"></svg>
+      <div>Features are learned by layers of weighted sums with nonlinear activations; the output layer gives a distribution's parameters, and the loss is its negative log-likelihood.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="graph" width="110" height="64"></svg>
+      <div>Backpropagation is the chain rule run backward: error times input at every layer.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="train" width="110" height="64"></svg>
+      <div>Training is maximum likelihood with estimated gradients, a variance-preserving start and a prior.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="calib" width="110" height="64"></svg>
+      <div>Calibration is what maximum likelihood rewards.</div></div>
+    <p>Every piece came from earlier chapters: maximum likelihood, the chain rule, the variance of a sum, priors. The fundamentals outlast the models.</p>
+    <p><alert>Next:</alert> tokens, embeddings and transformers.</p>
+  </div>
+  <narration>
+    <say>Neural networks learn their features with layers of weighted sums and nonlinear activations, and their output layers give the parameters of distributions we already knew, with the negative log-likelihood as the loss. Backpropagation computes every gradient by the chain rule, run backward, in the form error times input at every layer. Training is maximum likelihood with estimated gradients, a start that keeps the activations' scale, and a prior on the weights, and maximum likelihood rewards calibrated probabilities. Each of these pieces came from an earlier chapter. The next lecture turns text into tokens and vectors, and builds the transformer.</say>
+  </narration>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="deckmap.js"></script>
+<script src="data.js"></script>
+<script src="figs.js"></script>
+<script>startDeck();</script>
+</body>
+</html>
