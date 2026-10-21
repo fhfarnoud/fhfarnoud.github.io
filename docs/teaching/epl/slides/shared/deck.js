@@ -1412,6 +1412,11 @@ async function startDeck(opts = {}) {
   // clones slides for printing: clones then carry the SVG and labels.
   document.querySelectorAll('.fig[data-fig]').forEach(root => { FIGS[root.dataset.fig].init(root); show(root); });
   if (!PRINT) wireKnobs();
+  // Every declared face (KaTeX's twenty) is fetched before the slides are
+  // measured. A face first requested by the measurement itself would arrive
+  // after it, and balanceDeck would measure every slide a second time.
+  await Promise.race([Promise.all([...document.fonts].map(f => f.load().catch(() => {}))),
+    new Promise(r => setTimeout(r, 3000))]);
   await document.fonts.ready;
   await balanceDeck([...document.querySelectorAll('.slides > section')]);
   wireDrawers();
