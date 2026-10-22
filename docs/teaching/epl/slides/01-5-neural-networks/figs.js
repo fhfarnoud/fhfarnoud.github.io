@@ -5,8 +5,8 @@
 // by deck_numbers.py, which also prints every number the slides quote.
 
 Object.assign(MACROS, {
-  '\\bx': '\\mathbf{x}', '\\bh': '\\mathbf{h}', '\\bw': '\\mathbf{w}', '\\bW': '\\mathbf{W}', '\\bA': '\\mathbf{A}',
-  '\\bc': '\\mathbf{c}', '\\bb': '\\mathbf{b}', '\\bz': '\\mathbf{z}', '\\bp': '\\mathbf{p}', '\\be': '\\mathbf{e}',
+  '\\bx': '\\mathbf{x}', '\\bh': '\\mathbf{h}', '\\bw': '\\mathbf{w}', '\\bW': '\\mathbf{W}', '\\bH': '\\mathbf{H}', '\\bX': '\\mathbf{X}', '\\bA': '\\mathbf{A}',
+  '\\bc': '\\mathbf{c}', '\\bu': '\\mathbf{u}', '\\bF': '\\mathbf{F}', '\\bb': '\\mathbf{b}', '\\bz': '\\mathbf{z}', '\\bp': '\\mathbf{p}', '\\be': '\\mathbf{e}',
   '\\by': '\\mathbf{y}', '\\bg': '\\mathbf{g}', '\\bm': '\\mathbf{m}', '\\bI': '\\mathbf{I}', '\\bzero': '\\mathbf{0}',
   '\\bdelta': '\\boldsymbol{\\delta}', '\\btheta': '\\boldsymbol{\\theta}', '\\bphi': '\\boldsymbol{\\phi}',
   '\\cL': '\\mathcal{L}', '\\cD': '\\mathcal{D}', '\\bbR': '\\mathbb{R}', '\\relu': '\\operatorname{ReLU}',
@@ -108,7 +108,7 @@ function xorSquare(P, targets, o = {}) {
     P.dot([a, b], { r: 9, color: CLS(t > 0) });
     // labels outside the square: above the points at x2 = 1, below those at x2 = 0
     if (o.labels !== false) P.label((o.key || 'sq') + 't' + k, o.lab ? o.lab(k) : `$${neg(t)}$`, [a, b], b ? 'b' : 't',
-      { dy: b ? -14 : 14, color: CLS(t > 0) });
+      { dy: b ? -14 : 14, color: CLS(t > 0), opacity: o.labOpacity ?? 1 });
   });
 }
 
@@ -129,7 +129,7 @@ FIGS.pipe0 = {
     g.label('nnl2', sm('this lecture'), [418, 190], 'c', { color: '#8f5f00' });
     g.arrow([325, 340], [325, 372], { color: '#666', w: 2 });
     g.el('rect', { x: 8, y: 378, width: 484, height: 176, rx: 14, fill: 'none', stroke: C.ink, 'stroke-width': 2.5, 'stroke-dasharray': '9 6' });
-    g.label('sr', sm('softmax regression (32-3)', 20), [478, 398], 'r', { color: C.ink });
+    g.label('sr', sm('softmax regression (Ch. 6)', 20), [478, 398], 'r', { color: C.ink });
     g.label('lin', sm('$\\bz=\\bW\\bphi+\\bb$, softmax', 20), [30, 398], 'l', { color: '#333' });
     const P = g.plot(box2d(60, 430, 380, 80, 0.4, 4.6, 0, 0.5)), toks = ['rain', 'be', 'snow', 'clear'];
     const z = [2.1, 1.7, 0.7, -0.4], e = z.map(Math.exp), s = e.reduce((a, b) => a + b, 0);
@@ -293,18 +293,19 @@ FIGS.xorFeat = {
       label: (l, i) => [['$x_1$', '$x_2$'], ['$+$', '$\\times$'], ['$\\hat y$']][l][i],
       weight: (l, i) => l === 1 ? { s: i ? '$-2$' : '$+1$', t: 0.5, side: i ? 1 : 1, color: C.ink } : null });
     g.label('h1', '$h_1$', [72, 150], 'r'); g.label('h2', '$h_2$', [428, 150], 'l');
+    // the (h1, h2) plane arrives with the text that introduces it (lv = 1)
     const P = g.plot(box2d(80, 320, 340, 210, -0.3, 2.5, -0.3, 1.5)), lv = p.lv ?? 0;
-    frameAxes(P, { ox: -0.3, oy: -0.3, xt: [0, 1, 2], yt: [0, 1], names: ['$h_1$', '$h_2$'], key: 'hp' });
     P.g.group({ opacity: lv }, () => {
+      frameAxes(P, { ox: -0.3, oy: -0.3, xt: [0, 1, 2], yt: [0, 1], names: ['$h_1$', '$h_2$'], key: 'hp', opacity: lv });
       P.line([-0.3, -0.15], [2.5, 1.25], { color: 'pred', w: 2.5, dash: true });
       P.line([0.7, -0.15], [2.5, 0.75], { color: 'pred', w: 2.5, dash: true });
+      [[0, 0, 0], [1, 0, 1], [2, 1, 0]].forEach(([a, b, t]) => P.dot([a, b], { r: 9, color: CLS(t) }));
     });
     P.label('l0', '$\\hat y=0$', [2.5, 1.25], 'l', { dx: 6, color: 'pred', opacity: lv });
     P.label('l1', '$\\hat y=1$', [2.5, 0.75], 'l', { dx: 6, color: 'pred', opacity: lv });
-    [[0, 0, 0], [1, 0, 1], [2, 1, 0]].forEach(([a, b, t]) => P.dot([a, b], { r: 9, color: CLS(t) }));
-    P.label('p0', sm('$(0,0)$'), [0, 0], 'tr', { dx: -8, dy: 4, color: 'brown' });
-    P.label('p1', sm('$(0,1)$ and $(1,0)$'), [1, 0], 't', { dy: 8, color: 'teal' });
-    P.label('p2', sm('$(1,1)$'), [2, 1], 'b', { dy: -14, color: 'brown' });
+    P.label('p0', sm('$(0,0)$'), [0, 0], 'tr', { dx: -8, dy: 4, color: 'brown', opacity: lv });
+    P.label('p1', sm('$(0,1)$ and $(1,0)$'), [1, 0], 't', { dy: 8, color: 'teal', opacity: lv });
+    P.label('p2', sm('$(1,1)$'), [2, 1], 'b', { dy: -14, color: 'brown', opacity: lv });
   }
 };
 
@@ -369,19 +370,21 @@ FIGS.ell3d = {
 FIGS.collapse = {
   size: [520, 420],
   draw(g, p) {
-    g.net({ layers: [2, 2, 1], key: 'ex', r: 24,
+    // the two diagrams arrive with the idea of a linear hidden layer (st = 1)
+    const K = clamp(p.st ?? 1);
+    g.net({ layers: [2, 2, 1], key: 'ex', r: 24, opacity: K,
       at: (l, i) => [[[70, 40], [230, 40]], [[70, 190], [230, 190]], [[150, 340]]][l][i],
       label: (l, i) => [['$x_1$', '$x_2$'], ['$h_1$', '$h_2$'], ['$\\hat y$']][l][i],
       weight: (l, i, j) => l === 0 ? (i === j ? { s: `$A_{${j + 1}${i + 1}}$`, t: 0.5, side: i ? -1 : 1, fs: 18 }
         : { s: `$A_{${j + 1}${i + 1}}$`, t: 0.24, side: 1, fs: 18 }) : { s: `$w_${i + 1}$`, t: 0.45, side: i ? -1 : 1, fs: 18 } });
-    g.label('ext', sm('expanded', 20), [150, 404], 'c', { color: '#555' });
-    g.net({ layers: [1, 1, 1], key: 'cp', r: 24,
+    g.label('ext', sm('expanded', 20), [150, 404], 'c', { color: '#555', opacity: K });
+    g.net({ layers: [1, 1, 1], key: 'cp', r: 24, opacity: K,
       at: l => [[400, 40], [400, 190], [400, 340]][l],
       label: l => ['$\\bx$', '$\\bh$', '$\\hat y$'][l],
       weight: l => ({ s: l ? '$\\bw$' : '$\\bA,\\bc$', t: 0.5, fs: 20 }) });
-    g.label('cpt', sm('compact', 20), [400, 404], 'c', { color: '#555' });
-    g.label('cph', sm('$\\bh=\\bA\\bx+\\bc$'), [434, 190], 'l');
-    g.label('cpy', sm('$\\hat y=\\bw^T\\bh+d$'), [434, 340], 'l');
+    g.label('cpt', sm('compact', 20), [400, 404], 'c', { color: '#555', opacity: K });
+    g.label('cph', sm('$\\bh=\\bA\\bx+\\bc$'), [434, 190], 'l', { opacity: K });
+    g.label('cpy', sm('$\\hat y=\\langle\\bw,\\bh\\rangle+d$'), [434, 340], 'l', { opacity: K });
   }
 };
 
@@ -394,7 +397,7 @@ FIGS.act = {
       label: (l, i) => [['$x_1$', '$x_2$'], ['$z$'], ['$a$']][l][i],
       node: l => l === 2 ? { role: 'hid' } : {},
       weight: (l, i) => l === 0 ? { s: `$w_${i + 1}$`, t: 0.5 } : { s: '$g$', t: 0.5, fs: 24 } });
-    g.label('nb', sm('$z=\\bw^T\\bx+b$', 20), [270, 172], 't');
+    g.label('nb', sm('$z=\\langle\\bw,\\bx\\rangle+b$', 20), [270, 172], 't');
     g.label('na', sm('$a=g(z)$', 20), [460, 172], 't');
     const pr = p.pr ?? 0;
     g.label('px1', sm('$2$', 20), [34, 50], 'r', { color: C.prior, opacity: pr });
@@ -429,7 +432,8 @@ FIGS.reluXor = {
     P.line([0.35, 1.15], [1.15, 0.35], { color: 'postC', w: 2.5, dash: true });
     P.label('on1', sm('$h_1$ turns on'), [-0.15, 0.65], 'r', { dx: -6, color: '#8f5f00' });
     P.label('on2', sm('$h_2$ turns on'), [1.15, 0.35], 'l', { dx: 6, dy: 6, color: '#8f5f00' });
-    xorSquare(P, [0, 1, 1, 0], { key: 'rq', lab: k => `$\\hat y=${[0, 1, 1, 0][k]}$` });
+    // the outputs at the four corners arrive with the table that computes them (st = 1)
+    xorSquare(P, [0, 1, 1, 0], { key: 'rq', lab: k => `$\\hat y=${[0, 1, 1, 0][k]}$`, labOpacity: clamp(p.st ?? 1) });
   }
 };
 
@@ -490,7 +494,7 @@ FIGS.fwd = {
   size: [520, 560],
   draw(g, p) {
     const st = p.st ?? 0, x = p.x ?? [0, 1], F = bxNet(g, x, st, 'f');
-    // the pipeline: x -> Wx + b -> z -> ReLU -> h -> w^T h + d -> yhat
+    // the pipeline: x -> Wx + b -> z -> ReLU -> h -> <w, h> + d -> yhat
     const y0 = 400, bx = (cx, s, k, on) => {
       g.el('rect', { x: cx - 46, y: y0 - 26, width: 92, height: 52, rx: 8, fill: '#f1f1f1', stroke: '#888', 'stroke-width': 1.5 });
       g.label('op' + k, sm(s, 18), [cx, y0], 'c');
@@ -499,7 +503,7 @@ FIGS.fwd = {
     vec(28, `$${colv(x)}$`, 0, 1);
     bx(112, '$\\bW\\bx+\\bb$', 0); vec(198, `$${colv(F.z)}$`, 1, clamp(st));
     bx(282, '$\\relu$', 1); vec(366, `$${colv(F.h)}$`, 2, clamp(st - 1));
-    bx(452, '$\\bw^T\\bh+d$', 2);
+    bx(452, '$\\langle\\bw,\\bh\\rangle+d$', 2);
     g.label('pv3', `$${neg(F.y)}$`, [452, y0 + 64], 'c', { color: C.prior, opacity: clamp(st - 2) });
     [[52, 66], [158, 172], [224, 236], [328, 340], [390, 406]].forEach(([a, b]) => g.arrow([a, y0], [b, y0], { color: '#666', w: 2 }));
     g.arrow([452, y0 + 28], [452, y0 + 48], { color: '#666', w: 2 });
@@ -534,7 +538,7 @@ FIGS.contrib = {
   }
 };
 
-// ---------------------------------------------------------------- slide 20: many hinges make any curve
+// ---------------------------------------------------------------- slide 22: many hinges make any curve
 // Least-squares output weights for k ReLU units with hinges at 0, 1/k, ..., (k-1)/k, fitted on 1001
 // equally spaced points to the bump exp(-(x - 1/2)^2 / (2 * 0.15^2)); k = 2^m.
 const BUMP = x => Math.exp(-((x - 0.5) ** 2) / (2 * 0.15 ** 2));
@@ -576,7 +580,7 @@ FIGS.hinge = {
   }
 };
 
-// ---------------------------------------------------------------- slide 22: the ellipse with 2, 3 and 4 hidden units
+// ---------------------------------------------------------------- slide 21: the ellipse with 2, 3 and 4 hidden units
 const EX = DATA.ellnets.X;
 const ELLC = {};
 const netLogit = n => (a, b) => n.w.reduce((s, w, j) => s + w * relu(n.W[j][0] * a + n.W[j][1] * b + n.b[j]), n.d);
@@ -602,9 +606,11 @@ FIGS.ellFit = {
 };
 
 // ---------------------------------------------------------------- slide 23: stacking layers, two spirals
-// data.js spirals (deck_numbers.py): 400 points and the 2-16-16-1 network's weights after 0, 300, 1000 and
-// 5000 steps of gradient descent.  st: 0 to 3, the snapshot shown.
-const SPS = DATA.spirals, SPT = ['0', '300', '1000', '5000'], SPC = {};
+// data.js spirals (deck_numbers.py): the weights of a small ReLU network, fitted offline to the ideal regions of
+// the two spirals (chat_files/part4-deck-scripts/spiral_capacity.py), and 200 points per class drawn along the
+// arms, each inside its own class's region.  reg: 0 or 1, the opacity of the network's regions and boundary.
+const SPS = DATA.spirals, SPL = [2, ...SPS.net.b.map(b => b.length)];
+let SPC = null;
 const spLogit = Q => (a, b) => {
   let h = [a, b];
   Q.W.forEach((W, l) => { h = W.map((r, j) => r.reduce((s, w, i) => s + w * h[i], Q.b[l][j])); if (l < Q.W.length - 1) h = h.map(relu); });
@@ -613,22 +619,23 @@ const spLogit = Q => (a, b) => {
 FIGS.spiral = {
   size: [620, 510],
   draw(g, p) {
-    const st = Math.round(clamp(p.st ?? 3, 0, 3)), key = SPT[st], Q = SPS.snaps[key], f = spLogit(Q);
-    // the architecture, small: each layer's weights and offsets above the edges into it (its input side), as on slide 14
-    const cols = [18, 92, 166, 240];
-    g.net({ layers: [2, 16, 16, 1], key: 'sn', r: 7, box: [11, 70, 236, 370], gap: 23, arrows: false, edgeW: 0.5, edgeColor: '#c4c4c4' });
-    ['$\\bW^{(1)},\\bb^{(1)}$', '$\\bW^{(2)},\\bb^{(2)}$', '$\\bW^{(3)},\\bb^{(3)}$'].forEach((s, k) =>
-      g.label('sw' + k, sm(s, 15), [(cols[k] + cols[k + 1]) / 2, 52], 'c', { color: '#333' }));
-    [['2', 'inputs'], ['16', 'ReLU'], ['16', 'ReLU'], ['1', 'sigmoid']].forEach(([n, s], k) =>
-      g.label('sc' + k, `<div style="text-align:center;font-size:16px">${n}<br>${s}</div>`, [cols[k], 462], 't', { color: k === 1 || k === 2 ? '#8f5f00' : '#333' }));
-    // the regions: predicted probability of class 1, the p = 1/2 boundary, the data
+    const f = spLogit(SPS.net), reg = clamp(p.reg ?? 1), n = SPL.length;
+    // the architecture: each layer's weights and offsets above the edges into it (its input side), as on slide 14
+    const r = 11, x0 = 8 + r, x1 = 252 - r, cols = SPL.map((_, k) => x0 + (x1 - x0) * k / (n - 1));
+    g.net({ layers: SPL, key: 'sn', r, box: [8, 70, 244, 370], gap: 44, arrows: false, edgeW: 1, edgeColor: '#bdbdbd' });
+    cols.slice(1).forEach((c, k) => g.label('sw' + k,
+      `<div style="text-align:center;font-size:15px;line-height:1.25">$\\bW^{(${k + 1})}$<br>$\\bb^{(${k + 1})}$</div>`, [(cols[k] + c) / 2, 128], 'b', { color: '#333' }));
+    SPL.forEach((m, k) => g.label('sc' + k, `<div style="text-align:center;font-size:16px">${m}<br>${k === 0 ? 'inputs' : k === n - 1 ? 'sigmoid' : 'ReLU'}</div>`,
+      [cols[k], 395], 't', { color: k && k < n - 1 ? '#8f5f00' : '#333' }));
+    // the plane: the points, and from reg on the predicted probability of class 1 and the p = 1/2 boundary
     const B = box2d(270, 80, 330, 330, -3.6, 3.6, -3.6, 3.6), P = g.plot(B);
-    raster(g, B, 'sp' + key, (a, b) => diverge(2 * sigm(f(a, b)) - 1, 0.5), 150, 150);
-    if (!SPC[key]) SPC[key] = contourD(B, f, 0, 150, 150);
-    stroke(g, SPC[key], { color: 'ink', w: 2.5 });
+    g.group({ opacity: reg }, () => {
+      raster(g, B, 'sp', (a, b) => diverge(2 * sigm(f(a, b)) - 1, 0.5), 150, 150);
+      if (!SPC) SPC = contourD(B, f, 0, 150, 150);
+      stroke(g, SPC, { color: 'ink', w: 2.5 });
+    });
     SPS.X.forEach((q, i) => g.el('circle', { cx: P.X(q[0]), cy: P.Y(q[1]), r: 3, fill: C[CLS(SPS.y[i])], stroke: '#fff', 'stroke-width': 0.6 }));
     g.el('rect', { x: B.x0, y: B.y0, width: B.W, height: B.H, fill: 'none', stroke: '#999', 'stroke-width': 1 });
-    g.label('st', sm(`after ${Number(key).toLocaleString('en-US')} gradient-descent steps<br>training accuracy ${Math.round(100 * Q.acc)}%`, 18), [B.x0, 72], 'bl', { color: '#333' });
     g.label('sx', sm('$x_1$'), [B.x0 + B.W + 8, B.y0 + B.H], 'l', { color: '#444' });
     g.label('sy', sm('$x_2$'), [B.x0 - 6, B.y0 + 10], 'r', { color: '#444' });
   }
@@ -645,25 +652,105 @@ function bp221(p, x, y) {
   return { z1, z2, h1, h2, yh, L, grad: [g1 * x[0], g1 * x[1], g2 * x[0], g2 * x[1], g1, g2, gy * h1, gy * h2, gy] };
 }
 
-// ---------------------------------------------------------------- slide 25: the weights are buried
+// ---------------------------------------------------------------- slide 25: a small network and its loss
+// x = (1, 2), y = 1; W = [[2, 1], [1, -1]], b = (-1, 0), v = (1, 2), d = 0: z = (3, -1), h = (3, 0), yhat = 3, L = 4
+const BU = { x: [1, 2], y: 1, W: [[2, 1], [1, -1]], b: [-1, 0], v: [1, 2], d: 0 };
 FIGS.buried = {
   size: [560, 400],
   draw(g, p) {
-    const nb = g.net({ layers: [2, 2, 1], key: 'b', r: 26,
+    const st = p.st ?? 0;
+    const z = BU.W.map((r, i) => r[0] * BU.x[0] + r[1] * BU.x[1] + BU.b[i]), h = z.map(relu);
+    const yh = BU.v[0] * h[0] + BU.v[1] * h[1] + BU.d, L = (yh - BU.y) ** 2, off = h.map(v => v === 0);
+    const values = st >= 1 ? z.map((v, i) => ({ l: 1, i, s: `$z_${i + 1}=${neg(v)}$`, at: 'r', dx: -4, dy: i ? 22 : -22, color: C.prior })) : [];
+    if (st >= 1) off.forEach((o, i) => { if (o) values.push({ l: 1, i, s: sm('off', 18), at: 'r', dx: 30, dy: i ? 46 : -46, color: C.rose }); });
+    g.net({ layers: [2, 2, 1], key: 'b', r: 26,
       at: (l, i) => [[[60, 90], [60, 290]], [[250, 90], [250, 290]], [[400, 190]]][l][i],
-      label: (l, i) => [['$x_1$', '$x_2$'], ['$h_1$', '$h_2$'], ['$\\hat y$']][l][i],
-      weight: (l, i, j) => l === 0 ? (i === j ? { s: `$w_{${j + 1}${i + 1}}$`, t: 0.5, side: i ? -1 : 1 } : { s: `$w_{${j + 1}${i + 1}}$`, t: 0.25, side: i ? -1 : 1 })
-        : { s: `$v_${i + 1}$`, t: 0.5, side: i ? -1 : 1 },
-      bias: (l, i) => l === 1 ? `$b_${i + 1}$` : l === 2 ? '$d$' : null });
+      label: (l, i) => l === 0 ? `$${BU.x[i]}$` : l === 1 ? (st >= 1 ? `$${neg(h[i])}$` : '') : (st >= 1 ? `$${neg(yh)}$` : ''),
+      node: (l, i) => l === 1 && off[i] && st >= 1 ? { dash: true, fo: 0.08 } : {},
+      weight: (l, i, j) => l === 0 ? { s: `$w_{${j + 1}${i + 1}}=${neg(BU.W[j][i])}$`, t: i === j ? 0.5 : 0.25, side: i ? -1 : 1, color: C.ink }
+        : { s: `$v_${i + 1}=${BU.v[i]}$`, t: 0.62, side: i ? -1 : 1, color: C.ink },
+      bias: (l, i) => l === 1 ? { s: `$b_${i + 1}=${neg(BU.b[i])}$`, at: i ? 'b' : 't' } : l === 2 ? { s: `$d=${BU.d}$`, at: 'b' } : null,
+      values });
+    ['$x_1$', '$x_2$'].forEach((s, i) => g.label('bx' + i, sm(s), [60, [90, 290][i] - 44], 'c', { color: '#555' }));
+    g.label('byh', sm('$\\hat y$'), [400, 146], 'c', { color: '#555' });
     // the loss
     g.el('circle', { cx: 510, cy: 190, r: 26, fill: '#fbe9ef', stroke: C.rose, 'stroke-width': 2 });
-    g.label('L', '$\\cL$', [510, 190], 'c', { color: C.rose });
+    g.label('L', st >= 1 ? `$${L}$` : '$\\cL$', [510, 190], 'c', { color: C.rose });
+    g.label('Ln', sm('$\\cL$'), [510, 146], 'c', { color: C.rose, opacity: clamp(st) });
     g.arrow([428, 190], [482, 190], { color: '#777', w: 2 });
-    g.el('rect', { x: 488, y: 300, width: 44, height: 32, rx: 6, fill: '#f1f1f1', stroke: '#777', 'stroke-width': 1.5 });
-    g.label('y', '$y$', [510, 316], 'c');
+    g.el('rect', { x: 480, y: 300, width: 60, height: 32, rx: 6, fill: '#f1f1f1', stroke: '#777', 'stroke-width': 1.5 });
+    g.label('y', `$y=${BU.y}$`, [510, 316], 'c');
     g.arrow([510, 298], [510, 218], { color: '#777', w: 2 });
     g.label('in', sm('input', 20), [60, 370], 'c', { color: '#555' }); g.label('hd', sm('hidden', 20), [250, 370], 'c', { color: '#555' });
     g.label('ou', sm('output', 20), [400, 370], 'c', { color: '#555' });
+  }
+};
+
+// ---------------------------------------------------------------- slide 36: one layer as a computational graph
+// forward quantities above the edges; below, the messages delta^(l) = dL/dh^(l) followed back one block
+// per stage: st 1 through g, 2 through +, 3 through the product with W
+FIGS.layerGraph = {
+  size: [600, 230],
+  draw(g, p) {
+    const st = p.st ?? 3;
+    g.cgraph({ key: 'lg', stage: st, fs: 17, r: 19,
+      nodes: { W: { at: [180, 40], kind: 'param', label: '$\\bW^{(l)}$', w: 62 }, m: { at: [180, 150], kind: 'op', label: '$\\times$' },
+        b: { at: [330, 40], kind: 'param', label: '$\\bb^{(l)}$', w: 54 }, a: { at: [330, 150], kind: 'op', label: '$+$' },
+        gg: { at: [490, 150], kind: 'fn', label: '$g$' } },
+      edges: [{ from: [10, 150], to: 'm', fwd: '$\\bh^{(l-1)}$', bwd: '$\\bdelta^{(l-1)}$', fs: 0, bs: 3, pos: 0.45 },
+        { from: 'W', to: 'm' },
+        { from: 'm', to: 'a', fwd: '$\\bW^{(l)}\\bh^{(l-1)}$', bwd: "$\\bdelta^{(l)}\\odot g'(\\bz^{(l)})$", fs: 0, bs: 2 },
+        { from: 'b', to: 'a' },
+        { from: 'a', to: 'gg', fwd: '$\\bz^{(l)}$', bwd: "$\\bdelta^{(l)}\\odot g'(\\bz^{(l)})$", fs: 0, bs: 1 },
+        { from: 'gg', to: [596, 150], fwd: '$\\bh^{(l)}$', bwd: '$\\bdelta^{(l)}$', fs: 0, bs: 0, pos: 0.55 }] });
+    g.label('lk1', sm('above: values', 16), [10, 214], 'l', { color: C.prior });
+    g.label('lk2', sm('below: messages $\\partial\\cL/\\partial(\\cdot)$', 16), [150, 214], 'l', { color: C.rose });
+  }
+};
+
+// ---------------------------------------------------------------- slides 31 and 32: one unit, and the unit as a computational graph
+// the first hidden unit of slide 25: z1 = w11 x1 + w12 x2 + b1 = 2 + 2 - 1 = 3, h1 = 3
+// The value h1 = 3 shows from stage 1 on (slide 31's Forward line).
+function unit1(g, key, at, st) {
+  g.net({ layers: [2, 1], key, r: 24, stage: st,
+    at: (l, i) => at[l][i],
+    label: (l, i) => l === 0 ? `$${BU.x[i]}$` : null,
+    node: (l, i) => l === 1 ? { role: 'hid' } : {},
+    weight: (l, i, j) => ({ s: `$w_{1${i + 1}}=${BU.W[0][i]}$`, t: 0.5, side: i ? -1 : 1, color: C.ink }),
+    bias: (l, i) => l === 1 ? { s: '$b_1=-1$', at: 't' } : null,
+    values: [{ l: 1, i: 0, s: '$3$', at: 'c', stage: 1 }] });
+  ['$x_1$', '$x_2$'].forEach((t, i) => g.label(key + 'x' + i, sm(t), [at[0][i][0] - 40, at[0][i][1]], 'r', { color: '#555' }));
+  g.label(key + 'h', sm('$h_1$'), [at[1][0][0] + 34, at[1][0][1]], 'l', { color: '#555' });
+}
+// slide 31: the unit as drawn in a network
+FIGS.unit1 = {
+  size: [440, 300],
+  draw(g, p) { unit1(g, 'u1', [[[80, 70], [80, 230]], [[320, 150]]], p.st ?? 1); }
+};
+// slide 32: the same unit, small, above its computational graph; the forward values from stage 1 on
+FIGS.neuron = {
+  size: [600, 500],
+  draw(g, p) {
+    const st = p.st ?? 1;
+    g.net({ layers: [2, 1], key: 'nn', r: 24,
+      at: (l, i) => [[[80, 50], [80, 160]], [[280, 105]]][l][i],
+      label: (l, i) => l === 0 ? `$${BU.x[i]}$` : '$3$',
+      node: (l, i) => l === 1 ? { role: 'hid' } : {},
+      weight: (l, i, j) => ({ s: `$w_{1${i + 1}}=${BU.W[0][i]}$`, t: 0.5, side: i ? -1 : 1, color: C.ink }),
+      bias: (l, i) => l === 1 ? { s: '$b_1=-1$', at: 't' } : null });
+    ['$x_1$', '$x_2$'].forEach((t, i) => g.label('nx' + i, sm(t), [40, [50, 160][i]], 'r', { color: '#555' }));
+    g.label('nh', sm('$h_1$'), [314, 105], 'l', { color: '#555' });
+    g.cgraph({ key: 'ng', stage: st, fs: 18, r: 20,
+      nodes: { x1: { at: [60, 290], kind: 'data', label: '$x_1=1$', w: 66 }, w11: { at: [200, 225], kind: 'param', label: '$w_{11}=2$', w: 80 },
+        m1: { at: [200, 290], kind: 'op', label: '$\\times$' },
+        x2: { at: [60, 420], kind: 'data', label: '$x_2=2$', w: 66 }, w12: { at: [200, 482], kind: 'param', label: '$w_{12}=1$', w: 80 },
+        m2: { at: [200, 420], kind: 'op', label: '$\\times$' },
+        b1: { at: [350, 262], kind: 'param', label: '$b_1=-1$', w: 76 }, a1: { at: [350, 355], kind: 'op', label: '$+$' },
+        r1: { at: [470, 355], kind: 'fn', label: sm('ReLU', 14) } },
+      edges: [{ from: 'x1', to: 'm1', fwd: '$1$', fs: 1 }, { from: 'w11', to: 'm1', fwd: '$2$', fs: 1 },
+        { from: 'x2', to: 'm2', fwd: '$2$', fs: 1 }, { from: 'w12', to: 'm2', fwd: '$1$', fs: 1, side: -1 },
+        { from: 'm1', to: 'a1', fwd: '$2$', fs: 1 }, { from: 'm2', to: 'a1', fwd: '$2$', fs: 1 }, { from: 'b1', to: 'a1', fwd: '$-1$', fs: 1 },
+        { from: 'a1', to: 'r1', fwd: '$z_1=3$', fs: 1 }, { from: 'r1', to: [592, 355], fwd: '$h_1=3$', fs: 1 }] });
   }
 };
 
@@ -671,13 +758,18 @@ FIGS.buried = {
 FIGS.impact = {
   size: [520, 330],
   draw(g, p) {
-    g.cgraph({ key: 'im', stage: p.st, fs: 20, r: 24,
+    const st = p.st ?? 2, op = clamp(st - 1);
+    g.cgraph({ key: 'im', stage: st, fs: 20, r: 24,
       nodes: { u: { at: [80, 80], kind: 'data', label: '$u$', w: 50 }, v: { at: [80, 250], kind: 'data', label: '$v$', w: 50 },
-        m: { at: [270, 165], kind: 'op', label: '$\\times$' } },
-      edges: [{ from: 'u', to: 'm', fwd: '$5$', bwd: '$1$', fs: 1, bs: 2 }, { from: 'v', to: 'm', fwd: '$1$', bwd: '$5$', fs: 1, bs: 2 },
-        { from: 'm', to: [470, 165], fwd: '$z=5$', bwd: '$1$', fs: 1, bs: 2 }] });
+        m: { at: [270, 165], kind: 'op', label: '$\\times$' }, z: { at: [470, 165], kind: 'data', label: '$z$', w: 50 } },
+      edges: [{ from: 'u', to: 'm', fwd: '$u=5$', fs: 1 }, { from: 'v', to: 'm', fwd: '$v=1$', fs: 1 },
+        { from: 'm', to: 'z', fwd: '$z=5$', bwd: '$\\partial z/\\partial z=1$', fs: 1, bs: 2 }] });
+    // the two input edges slope, so their partial derivatives are set clear of them: the one under the
+    // falling edge ends where it starts to bend away, the one under the rising edge starts there
+    g.label('imbu', sm('$\\partial z/\\partial u=1$', 20), [186, 152], 'r', { color: C.rose, opacity: op });
+    g.label('imbv', sm('$\\partial z/\\partial v=5$', 20), [168, 236], 'l', { color: C.rose, opacity: op });
     g.label('k1', sm('above: values', 18), [500, 280], 'r', { color: C.prior });
-    g.label('k2', sm('below: partial derivatives', 18), [500, 306], 'r', { color: C.rose, opacity: clamp((p.st ?? 2) - 1) });
+    g.label('k2', sm('below: partial derivatives', 18), [500, 306], 'r', { color: C.rose, opacity: op });
   }
 };
 
@@ -733,13 +825,19 @@ FIGS.chain = {
   size: [600, 470],
   draw(g, p) {
     const st = p.st ?? 4;
-    g.label('c1', '<b>Linear:</b> $v=3u$, then $z=2v$', [10, 22], 'l');
+    g.label('c1', '<b>Products:</b> $s=uv$, then $z=sw$', [10, 22], 'l');
+    // the lower edges first name the partial derivatives to work out, then give their values
+    const pd = (x, v) => `$\\partial z/\\partial ${x}${st >= 1 ? '=' + v : ''}$`;
+    // the two products of slide 27, traced back along one branch only: from z through s to u
     g.cgraph({ key: 'ca', stage: st, fs: 20, r: 22,
-      nodes: { a: { at: [230, 120], kind: 'op', label: '$\\times3$', r: 26 }, b: { at: [430, 120], kind: 'op', label: '$\\times2$', r: 26 } },
-      edges: [{ from: [70, 120], to: 'a', fwd: '$u$', bwd: '$6$', fs: 0, bs: 2 }, { from: 'a', to: 'b', fwd: '$v$', bwd: '$2$', fs: 0, bs: 1 },
-        { from: 'b', to: [580, 120], fwd: '$z$', bwd: '$1$', fs: 0, bs: 1 }] });
-    g.label('c2', '<b>Nonlinear:</b> $s=u^2$, then $z=-s$, at $u=3$', [10, 262], 'l', { opacity: clamp(st - 2) });
-    g.cgraph({ key: 'cb', stage: st - 2, fs: 20, r: 22, opacity: clamp(st - 2),
+      nodes: { u: { at: [70, 150], kind: 'data', label: '$u$', w: 44 }, v: { at: [230, 62], kind: 'data', label: '$v$', w: 44 },
+        w: { at: [430, 62], kind: 'data', label: '$w$', w: 44 },
+        a: { at: [230, 150], kind: 'op', label: '$\\times$', r: 24 }, b: { at: [430, 150], kind: 'op', label: '$\\times$', r: 24 } },
+      edges: [{ from: 'u', to: 'a', fwd: '$u=1$', bwd: pd('u', 6), fs: 0, bs: 0 }, { from: 'v', to: 'a', fwd: '$v=3$', fs: 0 },
+        { from: 'a', to: 'b', fwd: '$s=3$', bwd: pd('s', 2), fs: 0, bs: 0 }, { from: 'w', to: 'b', fwd: '$w=2$', fs: 0 },
+        { from: 'b', to: [580, 150], fwd: '$z=6$', bwd: pd('z', 1), fs: 0, bs: 0 }] });
+    g.label('c2', '<b>Nonlinear:</b> $s=u^2$, then $z=-s$, at $u=3$', [10, 262], 'l', { opacity: clamp(st - 1) });
+    g.cgraph({ key: 'cb', stage: st - 1, fs: 20, r: 22, opacity: clamp(st - 1),
       nodes: { a: { at: [230, 360], kind: 'fn', label: '$(\\cdot)^2$' }, b: { at: [430, 360], kind: 'op', label: '$-$', r: 26 } },
       edges: [{ from: [70, 360], to: 'a', fwd: '$u=3$', bwd: '$-6$', fs: 0, bs: 2 }, { from: 'a', to: 'b', fwd: '$s=9$', bwd: '$-1$', fs: 0, bs: 1 },
         { from: 'b', to: [580, 360], fwd: '$z=-9$', bwd: '$1$', fs: 0, bs: 1 }] });
@@ -758,7 +856,7 @@ FIGS.branch = {
   }
 };
 
-// ---------------------------------------------------------------- slide 31: backpropagation in the full network
+// ---------------------------------------------------------------- slides 34 and 35: the full network as a computational graph, and backpropagation on it
 // Intro to ML's L16 frame 24, node for node: TikZ coordinates mapped to pixels.
 const FX = x => 34 + x * 56.5, FY = y => 260 - y * 58;
 const FN = (x, y, kind, label, w) => ({ at: [FX(x), FY(y)], kind, label, w });
@@ -788,6 +886,52 @@ const FULLE = [
   ['a3', 'ae', '\\hat y=3', '4', 2], ['yt', 'ng', '1', null, 0], ['ng', 'ae', '-1', '4', 2],
   ['ae', 'sq', 'e=2', '4', 2], ['sq', [FX(20), FY(0)], '\\cL=4', '1', 2]
 ];
+// slide 36: the same graph after one gradient-descent step (eta = 0.01); every edge value is computed
+// from the parameters, the moved parameters are outlined in green
+function fullEdges(P) {
+  const x = [1, 2], y = 1;
+  const z1 = P.w11 * x[0] + P.w12 * x[1] + P.b1, z2 = P.w21 * x[0] + P.w22 * x[1] + P.b2;
+  const h1 = Math.max(z1, 0), h2 = Math.max(z2, 0), yh = P.v1 * h1 + P.v2 * h2 + P.d, e = yh - y;
+  const e2 = 2 * e, gh1 = e2 * P.v1, gh2 = e2 * P.v2, gz1 = z1 > 0 ? gh1 : 0, gz2 = z2 > 0 ? gh2 : 0;
+  const f = v => { const r = Math.round(v * 100) / 100; return String(Object.is(r, -0) ? 0 : r); };
+  return [
+    ['w11', 'm1', f(P.w11), f(gz1 * x[0]), 4], ['w12', 'm2', f(P.w12), f(gz1 * x[1]), 4],
+    ['w21', 'm3', f(P.w21), f(gz2 * x[0]), 4], ['w22', 'm4', f(P.w22), f(gz2 * x[1]), 4],
+    ['x1', 'm1', '1', null, 0, 0.3], ['x2', 'm2', '2', null, 0, 0.3], ['x1', 'm3', '1', null, 0, 0.3], ['x2', 'm4', '2', null, 0, 0.3],
+    ['m1', 'a1', f(P.w11 * x[0]), f(gz1), 4, 0.3], ['m2', 'a1', f(P.w12 * x[1]), f(gz1), 4, 0.42], ['b1', 'a1', f(P.b1), f(gz1), 4, 0.3],
+    ['m3', 'a2', f(P.w21 * x[0]), f(gz2), 4], ['m4', 'a2', f(P.w22 * x[1]), f(gz2), 4, 0.3], ['b2', 'a2', f(P.b2), f(gz2), 4, 0.62],
+    ['a1', 'r1', 'z_1=' + f(z1), f(gz1), 3, 0.62], ['a2', 'r2', 'z_2=' + f(z2), f(gz2), 3, 0.8],
+    ['r1', 'm5', 'h_1=' + f(h1), f(gh1), 3], ['r2', 'm6', 'h_2=' + f(h2), f(gh2), 3],
+    ['v1', 'm5', f(P.v1), f(e2 * h1), 2], ['v2', 'm6', f(P.v2), f(e2 * h2), 2],
+    ['m5', 'a3', f(P.v1 * h1), f(e2), 2, 0.3], ['m6', 'a3', f(P.v2 * h2), f(e2), 2, 0.4], ['d', 'a3', f(P.d), f(e2), 2, 0.3],
+    ['a3', 'ae', '\\hat y=' + f(yh), f(e2), 2], ['yt', 'ng', '1', null, 0], ['ng', 'ae', '-1', f(e2), 2],
+    ['ae', 'sq', 'e=' + f(e), f(e2), 2], ['sq', [FX(20), FY(0)], '\\cL=' + f(e * e), '1', 2]
+  ];
+}
+const BP1 = (() => { const g = bp221(BP, [1, 2], 1).grad, q = {}; BPK.forEach((k, i) => { q[k] = +(BP[k] - 0.01 * g[i]).toFixed(4); }); return q; })();
+const PNAME = { w11: 'w_{11}', w12: 'w_{12}', w21: 'w_{21}', w22: 'w_{22}', b1: 'b_1', b2: 'b_2', v1: 'v_1', v2: 'v_2', d: 'd' };
+FIGS.fullStep = {
+  size: [1200, 500],
+  draw(g, p) {
+    const m = s => s == null ? null : '$' + s.replace(/(^|=)-/g, '$1-') + '$';
+    const moved = BPK.filter(k => BP1[k] !== BP[k]), nodes = {};
+    Object.keys(FULLN).forEach(k => { nodes[k] = Object.assign({}, FULLN[k]); });
+    BPK.forEach(k => { const v = Math.round(BP1[k] * 100) / 100; nodes[k].label = `$${PNAME[k]}=${v}$`; if (moved.includes(k)) nodes[k].w = (FULLN[k].w ?? 64) + 18; });
+    g.cgraph({ key: 'fs', stage: p.st, fs: 17, r: 17, off: 6, nodes,
+      edges: fullEdges(BP1).map(([a, b, f, w, bs, pos]) => ({ from: a, to: b, fwd: m(f), bwd: m(w), fs: 1, bs, pos: pos ?? 0.5 })) });
+    moved.forEach(k => { const [x, y] = nodes[k].at, w = nodes[k].w + 8;
+      g.el('rect', { x: x - w / 2, y: y - 19, width: w, height: 38, rx: 8, fill: 'none', stroke: C.like, 'stroke-width': 2.5 }); });
+    g.label('k1', sm('above each edge: forward value', 18), [860, 20], 'l', { color: C.prior, opacity: clamp(p.st ?? 1) });
+    g.label('k2', sm('below: backward message $\\partial\\cL/\\partial(\\cdot)$', 18), [860, 44], 'l', { color: C.rose, opacity: clamp((p.st ?? 1) - 1) });
+    g.label('k3', sm('outlined: moved by the step', 18), [860, 68], 'l', { color: C.like });
+    // the step's results, each from the click that shows it
+    const st = p.st ?? 0;
+    [[1, 'Forward pass: $\\cL$ goes from 4 to 1.93.'], [4, 'Backward pass: every partial derivative'],
+      [4, 'is smaller, $\\|\\nabla\\cL\\|^2=102.3$. Next step:'], [4, '$\\Delta\\cL\\approx-1.02$ predicted, 1.93 to 1.06 actual.'],
+      [5, 'Five steps: 4, 1.93, 1.06, 0.63, 0.39, 0.25.']]
+      .forEach(([s0, t], i) => g.label('r' + i, sm(t, 18), [860, 112 + i * 23], 'l', { color: C.ink, opacity: clamp(st - s0 + 1) }));
+  }
+};
 FIGS.full = {
   size: [1200, 500],
   draw(g, p) {
@@ -802,7 +946,7 @@ FIGS.full = {
 };
 
 // ================================================================ part 3: training that works
-// ---------------------------------------------------------------- slide 34: one gradient step, loss against eta
+// ---------------------------------------------------------------- slide 39: one gradient step, loss against eta
 const BPG = bp221(BP, [1, 2], 1).grad;
 const stepLoss = eta => { const q = {}; BPK.forEach((k, i) => { q[k] = BP[k] - eta * BPG[i]; }); return bp221(q, [1, 2], 1); };
 const etaOf = le => +(10 ** le).toPrecision(2);
@@ -818,17 +962,20 @@ FIGS.step = {
     P.curve(le => Math.max(0, 4 - 256 * 10 ** le), { color: C.mle, w: 2.5, dash: true, from: -3, to: Math.log10(4 / 256), n: 120 });
     P.label('lin', sm('dashed: first order'), [-2.97, 0.4], 'l', { color: C.mle });
     P.curve(le => stepLoss(10 ** le).L, { color: 'rose', w: 3.5, from: -3, to: 0, n: 400 });
-    const yv = Math.min(S.L, 6);
-    P.line([Math.log10(eta), 0], [Math.log10(eta), yv], { stroke: C.rose, 'stroke-dasharray': '3 4', 'stroke-width': 1.5 });
-    if (S.L <= 6) P.dot([Math.log10(eta), S.L], { r: 7, color: 'rose' });
-    else P.g.arrow([B.X(Math.log10(eta)), B.Y(5.2)], [B.X(Math.log10(eta)), B.Y(6) - 4], { color: C.rose, w: 2.5, head: 12 });
-    g.label('ro', `$\\eta=${eta}$: loss ${f2(S.L)}, $h_1=${f2(S.h1)}$, $h_2=${f2(S.h2)}$`, [290, 14], 'c', { color: C.rose });
+    // the marker and readout for the current eta arrive with the first result line (mk = 1)
+    const yv = Math.min(S.L, 6), mk = clamp(p.mk ?? 1);
+    P.g.group({ opacity: mk }, () => {
+      P.line([Math.log10(eta), 0], [Math.log10(eta), yv], { stroke: C.rose, 'stroke-dasharray': '3 4', 'stroke-width': 1.5 });
+      if (S.L <= 6) P.dot([Math.log10(eta), S.L], { r: 7, color: 'rose' });
+      else P.g.arrow([B.X(Math.log10(eta)), B.Y(5.2)], [B.X(Math.log10(eta)), B.Y(6) - 4], { color: C.rose, w: 2.5, head: 12 });
+    });
+    g.label('ro', `$\\eta=${eta}$: loss ${f2(S.L)}, $h_1=${f2(S.h1)}$, $h_2=${f2(S.h2)}$`, [290, 14], 'c', { color: C.rose, opacity: mk });
     const sec = g.root.closest('section'), out = sec && sec.querySelector('.v-eta');
     if (out && out.textContent !== String(eta)) out.textContent = String(eta);
   }
 };
 
-// ---------------------------------------------------------------- slide 36: the training loop
+// ---------------------------------------------------------------- slide 41: the training loop
 FIGS.loop = {
   size: [460, 420],
   draw(g, p) {
@@ -849,7 +996,7 @@ FIGS.loop = {
   }
 };
 
-// ---------------------------------------------------------------- slides 37 and 38: 6,000 images in batches of 200, 5 epochs
+// ---------------------------------------------------------------- slides 42 and 43: 6,000 images in batches of 200, 5 epochs
 FIGS.epochs = {
   size: [1080, 300],
   draw(g, p) {
@@ -865,7 +1012,7 @@ FIGS.epochs = {
   }
 };
 
-// ---------------------------------------------------------------- slide 39: minibatch gradient estimates
+// ---------------------------------------------------------------- slide 44: minibatch gradient estimates
 FIGS.mbest = {
   size: [580, 400],
   draw(g, p) {
@@ -886,10 +1033,36 @@ FIGS.mbest = {
   }
 };
 
-// ---------------------------------------------------------------- slide 40: activation scale through 10 ReLU layers
+// ---------------------------------------------------------------- slide 45: activation scale through 10 ReLU layers
 // The plan's simulation (width 100, input 1000 x 100 standard normal), its run at n sigma^2 = 2; the same
 // weights scaled give every n sigma^2 = a exactly: layer l's activations scale by (a / 2)^(l / 2).
 const INIT2 = DATA.init_sd2;
+// slide 45: two hidden units that start with the same weights stay copies of each other
+FIGS.symm = {
+  size: [520, 412],
+  draw(g, p) {
+    const op = clamp(p.st ?? 1);
+    const R = g.net({ layers: [2, 2, 1], key: 'sy', r: 26,
+      at: (l, i) => [[[70, 70], [70, 250]], [[270, 70], [270, 250]], [[440, 160]]][l][i],
+      label: (l, i) => l === 0 ? `$x_${i + 1}$` : l === 1 ? '$h$' : '$\\hat y$',
+      weight: (l, i, j) => l === 0 ? { s: i ? '$b$' : '$a$', t: i === j ? 0.5 : 0.28, side: i === j ? (i ? -1 : 1) : 1, color: C.ink }
+        : { s: '$v$', t: 0.5, side: i ? -1 : 1, color: C.ink },
+      bias: (l, i) => l === 1 ? { s: '$c$', at: i ? 'b' : 't' } : null });
+    g.label('syc', sm('both units: weights $a$, $b$; offset $c$; output weight $v$', 16), [88, 320], 'l', { color: '#555' });
+    // from the second click: the same message delta at both hidden units, and the four weights'
+    // partial derivatives, which depend on the input (column) but not on the unit (row)
+    [0, 1].forEach(i => { const [a, b] = R.ends(1, i, 0);
+      besideEdge(g, 'sym' + i, sizedLab('$\\delta$', 18), a, b, 0.42, i ? 1 : -1, 4, { color: C.rose, opacity: op }); });
+    const T = [[150, '$\\partial\\cL/\\partial(\\cdot)$'], [300, 'from $x_1$'], [430, 'from $x_2$']];
+    T.forEach(([x, t], k) => g.label('syh' + k, sm(t, 16), [x, 348], 'c', { color: '#555', opacity: op }));
+    ['unit 1', 'unit 2'].forEach((u, r) => {
+      g.label('syr' + r, sm(u, 16), [150, 372 + 24 * r], 'c', { color: '#555', opacity: op });
+      ["$\\delta\\,g'(z)\\,x_1$", "$\\delta\\,g'(z)\\,x_2$"].forEach((t, c) =>
+        g.label(`syv${r}${c}`, sm(t, 16), [[300, 430][c], 372 + 24 * r], 'c', { color: C.rose, opacity: op }));
+    });
+    g.label('syk', sm('rose: backward messages', 16), [300, 20], 'l', { color: C.rose, opacity: op });
+  }
+};
 FIGS.init = {
   size: [560, 470],
   draw(g, p) {
@@ -897,7 +1070,8 @@ FIGS.init = {
     frameAxes(P, { ox: 0.5, oy: -2, xt: [1, 2, 4, 6, 8, 10], yt: [-2, -1, 0, 1, 2], yf: v => ['0.01', '0.1', '1', '10', '100'][v + 2], key: 'in' });
     g.label('xn', sm('layer', 20), [B.X(5.5), B.Y(-2) + 44], 'c', { color: '#444' });
     g.label('yn', sm('activation standard deviation (log scale)', 20), [B.X(0.5) - 10, B.Y(2) - 26], 'l', { color: '#444' });
-    for (const [aa, col] of [[1, '#bbb'], [2, '#bbb'], [4, '#bbb']]) if (Math.abs(aa - a) > 1e-6)
+    // faint copies of the clicked states before this one (1, 2, 4), never of later ones
+    for (const [aa, col] of [[1, '#bbb'], [2, '#bbb'], [4, '#bbb']]) if (aa < a - 1e-6)
       P.path(INIT2.map((s, l) => [l + 1, Math.log10(s * (aa / 2) ** ((l + 1) / 2))]), { stroke: col, 'stroke-width': 1.5, 'stroke-dasharray': '4 4' });
     const pts = INIT2.map((s, l) => [l + 1, Math.log10(s * (a / 2) ** ((l + 1) / 2))]);
     P.path(pts.map(q => [q[0], clamp(q[1], -2, 2)]), { stroke: C.postC, 'stroke-width': 3.5 });
@@ -907,7 +1081,27 @@ FIGS.init = {
   }
 };
 
-// ---------------------------------------------------------------- slide 42: three fixes, small pictures
+// slide 47: the backward messages of the same simulation, from a standard normal message at layer 10's
+// values back to the input; at n sigma^2 = a the message at layer k is scaled by (a / 2)^((10 - k) / 2)
+const INITB = DATA.init_bwd_sd2;
+FIGS.initB = {
+  size: [560, 470],
+  draw(g, p) {
+    const a = p.a, B = box2d(80, 84, 430, 320, -0.5, 10.5, -2, 2), P = g.plot(B);
+    frameAxes(P, { ox: -0.5, oy: -2, xt: [0, 2, 4, 6, 8, 10], yt: [-2, -1, 0, 1, 2], yf: v => ['0.01', '0.1', '1', '10', '100'][v + 2], key: 'ib' });
+    g.label('xn', sm('layer (the message travels right to left)', 20), [B.X(5), B.Y(-2) + 44], 'c', { color: '#444' });
+    g.label('yn', sm('message standard deviation (log scale)', 20), [B.X(-0.5) - 10, B.Y(2) - 26], 'l', { color: '#444' });
+    const curve = aa => INITB.map((s, k) => [k, Math.log10(s * (aa / 2) ** ((10 - k) / 2))]);
+    for (const aa of [1, 2, 4]) if (aa < a - 1e-6) P.path(curve(aa), { stroke: '#bbb', 'stroke-width': 1.5, 'stroke-dasharray': '4 4' });
+    const pts = curve(a);
+    P.path(pts.map(q => [q[0], clamp(q[1], -2, 2)]), { stroke: C.rose, 'stroke-width': 3.5 });
+    pts.forEach(q => { if (q[1] >= -2 && q[1] <= 2) P.dot(q, { r: 5.5, color: 'rose' }); });
+    const first = INITB[0] * (a / 2) ** 5;
+    g.label('ro', `$n\\sigma^2=${fmt(a, 2)}$: layer-0 standard deviation ${first < 0.1 ? f3(first) : f2(first)}`, [295, 14], 'c', { color: C.rose });
+  }
+};
+
+// ---------------------------------------------------------------- slide 47: three fixes, small pictures
 FIGS.esFig = {
   size: [330, 170],
   draw(g, p) {
@@ -942,51 +1136,54 @@ FIGS.wdFig = {
   }
 };
 
-// ---------------------------------------------------------------- slides 43 and 44: double descent, computed
-// data.js ddesc (deck_numbers.py, after chat_files/part4-deck-scripts/double_descent_random_features.py):
-// median test error against the number p of random ReLU features, least squares (minimum norm) and ridge
-// (lambda = 0.1), n = 20 points; fits: one draw each at p = 10, 20, 4000 (its test error the median one).
-// o.inset adds the three fitted curves under the plot.  st: 1 the least-squares curve, 2 also ridge.
-const DD = DATA.ddesc, LG = Math.log10;
+// ---------------------------------------------------------------- slides 50 and 51: double descent, computed
+// data.js ddxor (deck_numbers.py, after chat_files/part4-deck-scripts/xor_double_descent_random_features.py):
+// slide 48's 8 XOR points and a 2-k-1 network with its first layer frozen at random; the median test error over
+// 300 first layers against k, for minimum-norm least squares (mse0) and ridge, lambda = 0.01 (mse1); fits: the
+// output of one draw each at k = 5, 7, 2048 (its test error the median one) on a grid over [-0.15, 1.15]^2.
+// inset adds the three fits under the plot.  st: 1 the least-squares curve, 2 also ridge; fits: the panels' opacity.
+const DX = DATA.ddxor, LG = Math.log10;
 function ddFig(inset) {
   return {
-    size: [600, inset ? 540 : 400],
+    size: [600, inset ? 572 : 400],
     draw(g, p) {
-      const st = p.st ?? 2, B = box2d(70, 34, 470, 270, LG(2), LG(4000), 0, 0.9), P = g.plot(B);
-      frameAxes(P, { ox: LG(2), oy: 0, xt: [LG(2), 1, 2, 3], xf: v => String(Math.round(10 ** v)), yt: [0.2, 0.4, 0.6, 0.8], key: 'dd' });
-      g.label('xn', sm('number of random features $p$ (log scale)', 19), [B.X(LG(90)), B.Y(0) + 38], 'c', { color: '#444' });
-      g.label('yn', sm('median test error', 19), [B.X(LG(2)) - 6, B.Y(0.9) - 18], 'l', { color: '#444' });
-      P.line([LG(20), 0], [LG(20), 0.9], { stroke: '#999', 'stroke-dasharray': '6 5', 'stroke-width': 1.5 });
-      P.label('nl', sm('$p=n=20$', 17), [LG(20), 0.9], 'tl', { dx: 6, dy: -2, color: '#666' });
-      const line = (ys, col, op, w) => g.group({ opacity: op }, () => {
-        P.path(DD.p.map((q, i) => [LG(q), Math.min(ys[i], 0.9)]), { stroke: col, 'stroke-width': w, 'stroke-linejoin': 'round' });
-        DD.p.forEach((q, i) => P.dot([LG(q), Math.min(ys[i], 0.9)], { r: 3.2, color: col, outline: false }));
+      const st = p.st ?? 2, top = 0.9, B = box2d(70, 34, 470, 270, 0, LG(2048), 0, top), P = g.plot(B);
+      frameAxes(P, { ox: 0, oy: 0, xt: [0, 1, 2, 3], xf: v => String(Math.round(10 ** v)), yt: [0.2, 0.4, 0.6, 0.8], key: 'dd' });
+      g.label('xn', sm('hidden units $k$ (log scale)', 19), [B.X(1.6), B.Y(0) + 38], 'c', { color: '#444' });
+      g.label('yn', sm('median test error', 19), [B.X(0) - 6, B.Y(top) - 18], 'l', { color: '#444' });
+      P.line([LG(7), 0], [LG(7), top], { stroke: '#999', 'stroke-dasharray': '6 5', 'stroke-width': 1.5 });
+      P.label('nl', sm('$k+1=n=8$', 17), [LG(7), 0], 'r', { dx: -6, dy: -16, color: '#666' });
+      const line = (ys, col, op) => g.group({ opacity: op }, () => {
+        P.path(DX.k.map((q, i) => [LG(q), Math.min(ys[i], top)]), { stroke: col, 'stroke-width': 3, 'stroke-linejoin': 'round' });
+        DX.k.forEach((q, i) => P.dot([LG(q), Math.min(ys[i], top)], { r: 3.2, color: col, outline: false }));
       });
-      line(DD.mse0, C.rose, clamp(st), 3);
-      line(DD.mse1, C.prior, clamp(st - 1), 3);
-      P.label('l0', sm('least squares, minimum norm', 17), [LG(4000), DD.mse0[DD.mse0.length - 1]], 'tl', { dx: -190, dy: 8, color: C.rose, opacity: clamp(st) });
-      P.label('l1', sm('ridge, $\\lambda=0.1$', 17), [LG(150), DD.mse1[DD.p.indexOf(150)]], 'b', { dy: -10, color: C.prior, opacity: clamp(st - 1) });
+      line(DX.mse0, C.rose, clamp(st));
+      line(DX.mse1, C.prior, clamp(st - 1));
+      const i7 = DX.k.indexOf(7);
+      P.label('l0', sm('least squares, minimum norm', 17), [LG(7), DX.mse0[i7]], 'l', { dx: 14, color: C.rose, opacity: clamp(st) });
+      P.label('l1', sm('ridge, $\\lambda=0.01$', 17), [LG(7), DX.mse1[i7]], 'tl', { dx: 10, dy: 22, color: C.prior, opacity: clamp(st - 1) });
       if (!inset) return;
-      const io = p.fits ?? 1;
-      [['10', 'p = 10'], ['20', 'p = 20'], ['4000', 'p = 4000']].forEach(([k, name], j) => {
-        const Q = g.plot(box2d(40 + j * 190, 392, 175, 112, 0, 1, -2.6, 2.6));
+      const io = p.fits ?? 1, [N, lo, hi] = DX.grid, S = 140;
+      ['5', '7', '2048'].forEach((k, j) => {
+        const x0 = 70 + j * 165, Q = g.plot(box2d(x0, 392, S, S, lo, hi, lo, hi)), v = DX.fits[k];
         g.group({ opacity: io }, () => {
-          g.el('rect', { x: Q.B.x0, y: Q.B.y0, width: Q.B.W, height: Q.B.H, fill: '#fafafa', stroke: '#bbb', 'stroke-width': 1 });
-          Q.curve(x => Math.sin(2 * Math.PI * x), { color: C.mle, w: 1.5, dash: '4 4', from: 0, to: 1 });
-          const ys = DD.fits[k];
-          Q.path(ys.map((v, i) => [i / 200, clamp(v, -2.6, 2.6)]), { stroke: C.rose, 'stroke-width': 2 });
-          DD.x.forEach((x, i) => Q.dot([x, DD.y[i]], { r: 2.6, color: 'ink', outline: false }));
+          raster(g, Q.B, 'ddfit' + k, (x, y) => {
+            const i = clamp(Math.floor((x - lo) / (hi - lo) * N), 0, N - 1), r = clamp(Math.floor((hi - y) / (hi - lo) * N), 0, N - 1);
+            return diverge(v[r * N + i] / 1.5, 0.8);
+          }, N, N);
+          g.el('rect', { x: Q.B.x0, y: Q.B.y0, width: S, height: S, fill: 'none', stroke: '#bbb', 'stroke-width': 1 });
+          DX.x.forEach((q, i) => Q.dot(q, { r: 4.5, color: 'ink' }));
         });
-        g.label('ft' + j, sm(name, 16), [Q.B.x0 + 87, Q.B.y0 - 4], 'b', { color: '#333', opacity: io });
+        g.label('ft' + j, sm(`$k=${k}$`, 17), [x0 + S / 2, 392 - 4], 'b', { color: '#333', opacity: io });
       });
-      g.label('fc', sm('one fit each: the network (rose), $\\sin 2\\pi x$ (dashed), the 20 points', 15), [40, 512], 'tl', { color: '#555', opacity: io });
+      g.label('fl', sm('one fit each: teal positive, brown negative', 16), [305, 392 + S + 8], 't', { color: '#555', opacity: io });
     }
   };
 }
 FIGS.ddcurve = ddFig(true);
 FIGS.ddridge = ddFig(false);
 
-// ---------------------------------------------------------------- slides 45 and 46: calibration
+// ---------------------------------------------------------------- slides 50 and 51: calibration
 FIGS.calib = {
   size: [480, 470],
   draw(g, p) {

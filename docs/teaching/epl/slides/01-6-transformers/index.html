@@ -1,0 +1,1102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tokens, Embeddings and Transformers</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<link rel="stylesheet" href="../shared/deck.css">
+<style>
+/* Deck-local layout */
+.reveal .fbody p { margin-bottom: 20px; }
+.reveal .fbody .katex-display { margin: 14px 0; }
+.cards { display: flex; gap: 24px; margin: 0 0 16px; }
+.cards .altcard { flex: 1 1 0; min-width: 0; }
+.altcard p { margin: 0 0 10px; }
+.altcard .katex-display { margin: 6px 0; }
+/* the opening slide's needs, each tagged with its part in the map's branch colour */
+ul.needs { list-style: none; padding: 0; margin: 0 0 12px; }
+ul.needs li { display: flex; align-items: flex-start; gap: 14px; margin: 0 0 12px; }
+.partno { flex: none; display: inline-block; width: 30px; height: 30px; border-radius: 50%; color: #fff; font-size: 18px; font-weight: 700;
+  text-align: center; line-height: 30px; margin-top: 1px; }
+.fig .lab .partno { margin: 0; }
+/* build states that replace one another in place share one grid cell */
+.swap { display: grid; justify-items: start; }
+.swap > * { grid-area: 1 / 1; align-self: start; }
+table.vals th:first-child, table.vals td:first-child { text-align: left; }
+table.vals.tight { font-size: 23px; }
+table.vals.tight th, table.vals.tight td { padding: 3px 12px; }
+table.vals.mono td:first-child { font-family: Menlo, 'DejaVu Sans Mono', monospace; font-size: 21px; }
+table.vals.sent { font-size: 20px; }
+table.vals.sent td, table.vals.sent th { padding: 2px 8px; }
+table.vals.sent td:last-child { text-align: left; }
+.solrow { margin: 0 0 12px; }
+.quote { font-style: italic; }
+ol.steps { margin: 0 0 16px; padding-left: 30px; }
+ol.steps li { margin: 0 0 8px; }
+ul.plain { margin: 0 0 14px; padding-left: 26px; }
+ul.plain li { margin: 0 0 6px; }
+.figimg { display: block; }
+.figimg img { display: block; }
+.imgcap { font-size: 18px; color: #555; margin-top: 6px; }
+.sentences .altcard { margin: 0 0 14px; display: flex; justify-content: space-between; gap: 16px; }
+.sentences .altcard .m { color: #555; font-size: 22px; white-space: nowrap; }
+.samples .altcard { margin: 0 0 14px; }
+.samples .altcard .s { font-family: Menlo, 'DejaVu Sans Mono', monospace; font-size: 19px; }
+.samples .altcard .b { color: var(--pred); font-size: 21px; margin-top: 4px; }
+.tk { font-family: Menlo, 'DejaVu Sans Mono', monospace; font-size: 0.88em; background: #f4f2ee; border: 1px solid #c9c3b8; border-radius: 5px; padding: 0 4px; }
+.knobs .ro { font-variant-numeric: tabular-nums; min-width: 12em; display: inline-block; }
+.knobs input[data-param="ln"] + output { display: none; }
+/* full slides: tighter vertical rhythm */
+.dense .fbody p { margin-bottom: 10px; }
+.dense .fbody .katex-display { margin: 8px 0; }
+.dense .fbody .block { margin-bottom: 10px; }
+.fbody code { font-size: 0.8em; }
+.dense ul.needs li { margin-bottom: 8px; }
+/* Beamer uses Computer Modern's sans-serif bold for Latin vector letters. */
+.reveal .katex .mathbf { font-family: KaTeX_SansSerif; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1 -->
+<section class="frame">
+  <svg class="bells" width="1280" height="720"></svg>
+  <div class="titlebox">
+    <div class="t">Tokens, Embeddings and Transformers</div>
+    <div class="st">Part 4: Where does the “intelligence” in a language model actually come from?</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Probabilistic Machine Learning</div>
+    <div class="i">University of Virginia<br>Farzad Farnoud</div>
+    <div class="d">Fall 2026</div>
+  </div>
+  <narration>
+    <say>This lecture opens up the network inside a language model. We follow a text from the moment it is cut into tokens, through the vectors that stand for those tokens, to the attention layers that let each vector take in its context, and finally to the transformer, which stacks those layers and generates text one token at a time.</say>
+  </narration>
+</section>
+
+<!-- 2 -->
+<section class="dense">
+  <h2>From text to features</h2>
+  <column>
+    <p class="opener">The neural-networks lecture ended on classifiers that are softmax regression on learned features.</p>
+    <p>A language model predicts the next token $w_t$ from $w_{1:t-1}=(w_1,\dots,w_{t-1})$ the same way, on a feature vector $\bphi(w_{1:t-1})$ (Ch. 6).</p>
+    <p><alert>Question:</alert> What does the network read, and how does it turn a context into features?</p>
+    <div pause="n=1">
+      <p style="margin-bottom:10px"><b>What answering it needs:</b></p>
+      <ul class="needs">
+        <li><span class="partno" style="background:#2354A8">1</span><span>Tokens: the units the model reads.</span></li>
+        <li><span class="partno" style="background:#008000">2</span><span>Embeddings: a vector for each token.</span></li>
+        <li><span class="partno" style="background:#B30000">3</span><span>Attention: vectors that depend on the context.</span></li>
+        <li><span class="partno" style="background:#762A83">4</span><span>The transformer: attention stacked, and text generated from it.</span></li>
+      </ul>
+    </div>
+  </column>
+  <fig name="opening" init="n=0"></fig>
+  <narration>
+    <say>The neural-networks lecture ended on classifiers whose last layer is softmax regression on features that the hidden layers compute. A language model ends the same way, with one class per token of the vocabulary. The figure follows a real small model, SmolLM2, reading the words Tomorrow it will: at the top, the pieces it actually reads, and at the bottom, its most probable next tokens. What happens in between is the question mark.</say>
+    <say>Answering it takes four pieces, one per part of this lecture. First, <point to="label:t1">the units the model reads</point>, called tokens. Second, <point to="label:t2">a vector for each token</point>, called its embedding. Third, <point to="label:t3">attention</point>, which lets each vector change with the words around it. Fourth, the transformer, which stacks attention layers, and <point to="label:t4">the loop that turns its predictions into text</point>.</say>
+  </narration>
+</section>
+
+<!-- 3 -->
+<section class="frame" data-slide="map">
+  <ol class="toc" hidden>
+    <li data-map-num="1"><a href="#/sec-tok">Tokens</a></li>
+    <li data-map-num="2"><a href="#/sec-emb">Embeddings</a></li>
+    <li data-map-num="3"><a href="#/sec-att">Attention</a></li>
+    <li data-map-num="4"><a href="#/sec-tr">The transformer and generation</a></li>
+  </ol>
+  <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
+  <notes>The mind map of the deck. Entering pulls back from the opening slides to the whole map.</notes>
+  <narration>
+    <say>The lecture has four parts. Tokens are the pieces a text is cut into. Embeddings give each token a vector learned from the contexts it appears in. Attention lets each vector take in the other words of the sentence. The transformer stacks attention layers and generates text one token at a time. Each part rests on a tool from earlier in the course: counting, mutual information, the softmax and the chain rule.</say>
+  </narration>
+</section>
+
+<!-- 4 -->
+<section id="sec-tok" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=all b=0 t=2" class="mapfig"></fig>
+  <notes>The map zooms into the tokens branch.</notes>
+  <narration>
+    <say>Let's start with tokens, the units a language model actually reads.</say>
+  </narration>
+</section>
+
+<!-- 5 -->
+<section class="dense">
+  <h2>Byte pair encoding</h2>
+  <column>
+    <p class="opener">A language model reads text as tokens, pieces from a fixed vocabulary that byte pair encoding builds by counting.</p>
+    <block title="Byte pair encoding (BPE)">Learned once, from a training corpus: start from characters (bytes, in current models); repeatedly merge the most frequent adjacent pair into a new token; keep the merges in order.</block>
+    <p class="solrow" pause="m=1">Merge 1: <span class="tk">e</span> + <span class="tk">s</span>, 9 times (newest 6, widest 3).</p>
+    <p class="solrow" pause="m=2">Merge 2: <span class="tk">es</span> + <span class="tk">t</span>, 9 times.</p>
+    <p class="solrow" pause="m=3">Merge 3: <span class="tk">l</span> + <span class="tk">o</span>, 7 times (low 5, lower 2).</p>
+    <p class="solrow" pause="m=4">Merge 4: <span class="tk">lo</span> + <span class="tk">w</span>, 7 times.</p>
+    <alertblock pause title="Frequent strings become tokens" class="small"><span class="tk">low</span> is one token and <span class="tk">est</span> a shared ending; the rarer words stay in pieces.</alertblock>
+  </column>
+  <fig name="bpe" init="m=0"></fig>
+  <narration>
+    <say>A language model does not read words or letters directly. It reads tokens, pieces of text from a fixed vocabulary, and byte pair encoding builds that vocabulary by counting. The tokenizer is learned once, from a training corpus, before the language model itself is trained. It starts from single characters, single bytes in current models, and repeatedly merges the pair of neighbouring symbols that occurs most often in the corpus. Here the training corpus is a toy of four words, each with its count.</say>
+    <say>Count every adjacent pair, weighting each word by how often it occurs. The pair e s occurs in both newest and widest, which makes it the most frequent pair, tied with s t. Merging it makes es a token of its own, everywhere it appears.</say>
+    <say>Counting again, es followed by t is now the most frequent pair, so est becomes a token: the shared ending of newest and widest.</say>
+    <say>Next come l o and o w, from low and lower, again tied. Merging l and o first gives lo.</say>
+    <say>Merging lo with w makes low a single token.</say>
+    <say>The frequent word is now one symbol, while lower, newest and widest still take several tokens each. A real tokenizer runs tens of thousands of merges on a large corpus, so common words end up as single tokens and rare words as a few pieces. The list of merges, in the order they were learned, is what the tokenizer keeps.</say>
+  </narration>
+</section>
+
+<!-- 6 -->
+<section>
+  <h2>Tokenizing new text</h2>
+  <column>
+    <p class="opener">The tokenizer cuts any new text by applying its merges in the order they were learned.</p>
+    <p>Take <span class="tk">lowest</span>, a word the corpus of slide 5 does not contain. Start from its characters and apply the four merges in order.</p>
+    <span pause="k=1"></span>
+    <span pause="k=2"></span>
+    <span pause="k=3"></span>
+    <p pause="k=4">It ends as two tokens of the vocabulary, <span class="tk">low</span> and <span class="tk">est</span>.</p>
+    <p pause="n=1"><span class="tk">newer</span> contains none of the merged pairs, so it stays as five characters.</p>
+    <alertblock pause title="Tokenizing uses only the learned merges" class="small">The vocabulary comes from the training corpus; a new text is never counted, only cut.</alertblock>
+  </column>
+  <fig name="bpeApply" init="k=0 n=0"></fig>
+  <narration>
+    <say>The tokenizer cuts every new text with its list of merges, applied in the order they were learned. Take lowest, a word that never appears in the corpus of the previous slide. It starts as its six characters.</say>
+    <say>The first merge joins e and s, which occur next to each other in lowest too.</say>
+    <say>The second joins es and t into the ending est.</say>
+    <say>The third joins l and o.</say>
+    <say>The fourth joins lo and w. Lowest ends as two tokens of the vocabulary, low and est, although the corpus never contained this word.</say>
+    <say>A word with none of the merged pairs, like newer, gets no merges and stays as single characters. Real vocabularies are large enough that most text is cut into common pieces.</say>
+    <say>So the vocabulary is learned once, from the training corpus, and a new text is only cut with it, never counted.</say>
+  </narration>
+</section>
+
+<!-- 7 -->
+<section class="dense">
+  <h2>Tokenization in practice</h2>
+  <column>
+    <p class="opener">Real tokenizers learn tens of thousands of merges from a large sample of text, and their pieces decide what a model sees.</p>
+    <p>Meta's open Llama 3 language models use a vocabulary of 128K tokens; SmolLM2's (right) has 49,152.</p>
+    <p pause="r=1">Where a word is cut depends on how often its pieces appeared in the tokenizer's training text, not on its parts: strawberry is one token, Strawberry two, and three at the start of a sentence, where no space precedes it; unbelievably is cut into pieces that are not its parts. Digits are single tokens.</p>
+  </column>
+  <fig name="toks" init="r=0"></fig>
+  <narration>
+    <say>Tokenization decides what the model actually sees. Vocabularies in current models are large, over a hundred thousand tokens in Llama 3, built by merges like these from a large sample of text in many languages. Another common tokenizer, the unigram tokenizer, is instead a probability model over pieces, fit by the EM algorithm of Chapter 7. On the right, a sentence of common words, cut by SmolLM2's tokenizer: each word is one token.</say>
+    <say>Where a word is cut depends on how often its pieces appeared in the tokenizer's training text, not on the word's parts. In this tokenizer, strawberry in lower case is a single token. With a capital letter it becomes two, and at the start of a sentence, where no space comes before it, three. So the same word can reach the model as different tokens, and the model has to learn that they mean the same thing. An unusual word is cut into pieces that are not its parts, and the digits of a number are separate tokens. The model receives tokens, not letters.</say>
+  </narration>
+</section>
+
+<!-- 8 -->
+<section>
+  <h2>Numbers and languages in tokens</h2>
+  <p class="opener">The cuts of slide 7 follow the tokenizer's counts, and they change how a model handles numbers and what a text costs in each language.</p>
+  <div class="cards" style="margin-top:6px">
+    <div class="altcard">
+      <div class="al">Numbers</div>
+      <p>OpenAI's chat models GPT-3.5 and GPT-4 cut a long number into chunks of three digits from the left (Singh and Strouse 2024): 1234567 as <span class="tk">123</span><span class="tk">456</span><span class="tk">7</span>.</p>
+      <p>Written with commas, the same number is cut from the right, <span class="tk">1</span><span class="tk">,</span><span class="tk">234</span><span class="tk">,</span><span class="tk">567</span>, and their arithmetic is much better.</p>
+    </div>
+    <div class="altcard" pause>
+      <div class="al">Languages</div>
+      <p>Languages pay unequally: the same text can take up to 15 times as many tokens in one language as in another (Petrov et al. 2023).</p>
+    </div>
+  </div>
+  <narration>
+    <say>The cuts a tokenizer makes have consequences beyond the vocabulary. How numbers are cut into tokens affects arithmetic. OpenAI's chat models GPT-3.5 and GPT-4 have a token for every number of up to three digits, and they cut a longer number into chunks of three starting from the left, so the last chunk can be short and the chunks do not line up with thousands. Writing the number with commas makes the chunks run from the right instead, matching place value. Singh and Strouse found that the same arithmetic problems, written this way, were solved far more often.</say>
+    <say>Tokenizers trained mostly on English cut other languages into many more pieces. Petrov and coauthors measured the same text, translated, taking many times as many tokens in one language as in another, so it costs more to process and fills the context sooner.</say>
+  </narration>
+</section>
+
+<!-- 9 -->
+<section class="dense">
+  <h2>Perplexity per word</h2>
+  <column>
+    <p class="opener">A model's perplexity per token depends on how its tokenizer cuts the text.</p>
+    <p style="margin-bottom:6px">For a text of $n$ tokens and $W$ words with total loss in bits</p>
+    \[L=\sum_{t=1}^n\log_2\frac{1}{p(w_t\mid w_{1:t-1})},\]
+    <p style="margin-bottom:6px">the perplexity per token is $2^{L/n}$, and per word $2^{L/W}$.</p>
+    <div pause>
+      <p style="margin-bottom:6px">SmolLM2 and OpenAI's GPT-2 (2019) on the first five paragraphs of <i>The Canterville Ghost</i>, 368 words:</p>
+      <table class="vals tight">
+        <thead><tr><th>model</th><th>tokens</th><th>perplexity per token</th><th>per word</th></tr></thead>
+        <tbody><tr><td style="white-space:nowrap">SmolLM2-135M-Instruct</td><td>473</td><td>23</td><td>57</td></tr><tr><td>GPT-2 (124M)</td><td>460</td><td>29</td><td>67</td></tr></tbody>
+      </table>
+    </div>
+    <p pause><alert>Question:</alert> A token is only an index: how can a model tell that two tokens mean similar things?</p>
+  </column>
+  <fig name="bpb"></fig>
+  <drawer>
+    <p>Each model scores every token after the first: SmolLM2 472 tokens, GPT-2 459, both covering the same 367 words and 2,022 bytes (the text less its first word, When).</p>
+    <p>The summed loss is 2,145 bits for SmolLM2 and 2,226 for GPT-2. Perplexity per token is 2 to this sum divided by the tokens scored; per word, divided by 367.</p>
+    <p>Papers that compare tokenizers often divide by bytes instead, which need no rule for where a word ends: bits per byte, the sum divided by 2,022, is 1.061 for SmolLM2 and 1.101 for GPT-2.</p>
+    <p>The tokenizers have 49,152 (SmolLM2) and 50,257 (GPT-2) tokens. Computed with <code>chat_files/part4-deck-scripts/deckB/bits_per_byte.py</code>.</p>
+  </drawer>
+  <narration>
+    <say>Perplexity, from Chapter 6, is two to the average loss in bits per prediction. Tokenizers cut the same text differently, so the perplexity per token depends on the tokenizer as well as the model: a tokenizer with longer tokens makes fewer, harder predictions. Dividing the same total loss by the number of words instead of the number of tokens removes that dependence, and gives the perplexity per word.</say>
+    <say>Here are two small models on the opening of The Canterville Ghost. Their tokenizers cut it differently, as the excerpt on the right shows: one splits Hiram and Canterville in other places than the other, so the models make different numbers of predictions over the same words. Per word, each model is as uncertain about the next word as a uniform choice among that many words, and SmolLM2 does better. Papers that compare tokenizers often divide by the number of bytes instead, because a byte, unlike a word, needs no rule for where it ends.</say>
+    <say>A token, though, is only an index into the vocabulary: nothing in it says that two tokens mean similar things.</say>
+  </narration>
+</section>
+
+<!-- 10 -->
+<section id="sec-emb" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=0 b=1 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Tokens done: the map pulls back and enters embeddings.</notes>
+  <narration>
+    <say>That finishes tokens. Byte pair encoding builds the vocabulary by counting pairs, so frequent strings become single tokens.</say>
+    <say>Next we give each token a vector, its embedding, learned from the contexts it appears in, so that tokens with similar meanings get nearby vectors.</say>
+  </narration>
+</section>
+
+<!-- 11 -->
+<section>
+  <h2>Words as symbols in an n-gram model</h2>
+  <column>
+    <p class="opener">A token is an index, and the n-gram models of Sec. 1.3 use it as nothing more.</p>
+    <p>An n-gram model estimates $p(w_t\mid w_{t-2},w_{t-1})$ (here $n=3$) by counting. To it, “cat” and “kitten” are unrelated symbols: counts after “the cat” say nothing about what follows “the kitten”.</p>
+    <p pause="oh=1">With $V$ the vocabulary size, the one-hot vector $\be_w\in\{0,1\}^V$ of word $w$ has a single 1, at $w$'s position. Any two different words are orthogonal and equally far apart.</p>
+    <alertblock pause title="Counts do not transfer between words">What a symbol model learns about one word says nothing about any other word.</alertblock>
+  </column>
+  <fig name="onehot" init="oh=0"></fig>
+  <narration>
+    <say>The language models of Section 1.3 predict a token from the previous few by counting how often each continuation followed that context. To such a model, every word is a symbol. The training text may contain many sentences about a cat and few about a kitten; the counts for the cat then say nothing about what follows kitten.</say>
+    <say>One way to see this: write each word as a one-hot vector, as long as the vocabulary, with a single one in the word's own position. Any two different words then have inner product zero and the same distance, so cat is as far from kitten as it is from truck.</say>
+    <say>So what the model learns about one word cannot transfer to another. We want vectors in which similar words are close.</say>
+  </narration>
+</section>
+
+<!-- 12 -->
+<section>
+  <h2>The distributional hypothesis</h2>
+  <column>
+    <p class="opener">Vectors in which similar words are close need a notion of when two words are similar, and linguistics supplies one.</p>
+    <block title="J. R. Firth, 1957"><span class="quote">“You shall know a word by the company it keeps!”</span></block>
+    <p>The distributional hypothesis: words that occur in similar contexts tend to have similar meanings.</p>
+    <p pause="pt=1"><b>Goal:</b> a vector $\bu_w\in\bbR^D$ for every word $w$, $D$ from 50 to 300, with similar words close together. In real word vectors learned from Wikipedia and news text (right), closeness (cosine similarity, next slide) is graded: from “cat”, dog 0.88, kitten 0.56, car 0.31, truck 0.23.</p>
+    <p pause>Two questions: how to measure closeness, and how to learn the vectors from text.</p>
+  </column>
+  <fig name="catcos" init="pt=0"></fig>
+  <narration>
+    <say>To give words vectors, we need a working notion of when two words are similar. The linguist J. R. Firth put it as a slogan in 1957: you shall know a word by the company it keeps. Its modern form is called the distributional hypothesis: words that occur in similar contexts, such as cat and kitten, tend to have similar meanings.</say>
+    <say>So we look for a vector for every word, with a few dozen to a few hundred coordinates, such that words used in similar contexts get nearby vectors. On the right are real vectors of this kind, from a model we will meet shortly: the bars compare the vector of cat with four others, using a measure of closeness we define on the next slide. Closeness is graded: the two animals score well above the two vehicles, and dog scores higher than kitten.</say>
+    <say>This raises two questions. How do we measure that two vectors are close? And how do we learn such vectors from text? We take them in this order.</say>
+  </narration>
+</section>
+
+<!-- 13 -->
+<section>
+  <h2>Your turn: inner product and cosine similarity</h2>
+  <column>
+    <p class="opener">Before learning such vectors, two ways to measure how close two vectors are.</p>
+    <p style="margin-bottom:6px">For $\bu,\bv\in\bbR^D$:</p>
+    \[\langle\bu,\bv\rangle=\sum_{\ell=1}^Du_\ell v_\ell,\qquad\cos(\bu,\bv)=\frac{\langle\bu,\bv\rangle}{\|\bu\|\,\|\bv\|}.\]
+    <p>Read $\bu_1,\dots,\bu_5$ off the figure. For the pairs $(\bu_1,\bu_2)$, $(\bu_3,\bu_4)$, $(\bu_1,\bu_3)$ and $(\bu_1,\bu_5)$, find</p>
+    <ol class="parts">
+      <li>(a) the inner product;</li>
+      <li>(b) the cosine similarity;</li>
+      <li>(c) where the two measures disagree, and why.</li>
+    </ol>
+  </column>
+  <fig name="five" init="c=0"></fig>
+  <narration>
+    <say wait>Before learning embeddings, let's practise two ways of measuring how close two vectors are. The inner product multiplies matching coordinates and adds the products; it grows with the lengths of the two vectors and with how well they point the same way. The cosine similarity divides the inner product by the two lengths, which leaves only the angle: one for the same direction, zero at a right angle, minus one for opposite directions. Read the five vectors off the grid. For each of the four pairs, find the inner product, then the cosine, and then say where the two measures disagree and why. Solve these before going on.</say>
+  </narration>
+</section>
+
+<!-- 14 -->
+<section class="dense">
+  <h2>Your turn: inner product and cosine similarity (a) to (c)</h2>
+  <column>
+    <p class="opener">Each pair needs its inner product for (a), and that and its two lengths for (b), from $\bu_1=(3,1)$, $\bu_2=(4,3)$, $\bu_3=(0.5,-1.5)$, $\bu_4=(1.5,-2)$, $\bu_5=(-3,-1)$.</p>
+    <div pause data-fragment-index="1">
+      <span class="structure">Solution</span>
+      <table class="vals tight">
+        <thead><tr><th>pair</th><th>(a) inner product</th><th pause data-fragment-index="2">(b) cosine</th></tr></thead>
+        <tbody>
+          <tr><td>$(\bu_1,\bu_2)$</td><td>$12+3=15$</td><td pause data-fragment-index="2">$15/(\sqrt{10}\cdot5)\approx0.95$</td></tr>
+          <tr><td>$(\bu_3,\bu_4)$</td><td>$0.75+3=3.75$</td><td pause data-fragment-index="2">$3.75/(\sqrt{2.5}\cdot2.5)\approx0.95$</td></tr>
+          <tr><td>$(\bu_1,\bu_3)$</td><td>$1.5-1.5=0$</td><td pause data-fragment-index="2">$0$</td></tr>
+          <tr><td>$(\bu_1,\bu_5)$</td><td>$-9-1=-10$</td><td pause data-fragment-index="2">$-10/(\sqrt{10}\cdot\sqrt{10})=-1$</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p pause="c=1" data-fragment-index="3" class="solrow">(c) The first two pairs share a cosine but not an inner product; $(\bu_1,\bu_3)$ is perpendicular, $(\bu_1,\bu_5)$ opposite.</p>
+    <alertblock pause data-fragment-index="4" title="Cosine ignores length" class="small">$\bu_3,\bu_4$ are shorter than $\bu_1,\bu_2$ and at the same angle: a smaller inner product, the same cosine.</alertblock>
+  </column>
+  <fig name="five" init="c=0"></fig>
+  <narration>
+    <say>Let's work through the three parts. Each inner product multiplies matching coordinates and adds them; each cosine divides that inner product by the two lengths.</say>
+    <say>For the inner products, multiply and add. The pair u one, u two has the largest; u one and u three give zero, and u one and u five, which point in opposite directions, give a negative inner product.</say>
+    <say>For the cosines, divide each inner product by the two lengths. The first two pairs come out equal. The vectors u one and u three are perpendicular, since their inner product is zero, and u one and u five point in exactly opposite directions.</say>
+    <say>The two measures disagree on the first two pairs. The angles marked on the right are equal, so the cosines are equal, but u three and u four are shorter, so their inner product is smaller: the inner product grows with the lengths of the vectors.</say>
+    <say>Cosine compares directions and ignores length. It is the usual measure of similarity between embeddings.</say>
+  </narration>
+</section>
+
+<!-- 15 -->
+<section class="dense">
+  <h2>Word2vec: the CBOW model</h2>
+  <column>
+    <p class="opener">Word2vec turns the distributional hypothesis into a task: predict a hidden word (right) from its context.</p>
+    <p>Each word $w$ of the vocabulary $\cV$ has a context vector $\bc_w$ and an output vector $\bu_w$.</p>
+    <div pause>
+      <p style="margin-bottom:6px">CBOW (continuous bag of words), with context the $m/2$ words on each side of the blank in its sentence (here $m=4$):</p>
+      <ol class="steps">
+        <li>average their vectors: $\bh=\frac1m\sum_{j=1}^m\bc_{w_j}$;</li>
+        <li>score every $w\in\cV$ by $\langle\bu_w,\bh\rangle$;</li>
+        <li>softmax over $\cV$: $\;p(w\mid\text{context})=\dfrac{e^{\langle\bu_w,\bh\rangle}}{\sum_{w'\in\cV}e^{\langle\bu_{w'},\bh\rangle}}$.</li>
+      </ol>
+    </div>
+    <alertblock pause title="CBOW is softmax regression on learned features" class="small">The features are $\bh$; word $w$ is a class with weights $\bu_w$ (Ch. 6).</alertblock>
+  </column>
+  <fig name="cbow"></fig>
+  <narration>
+    <say>Word2vec learns embeddings from a fill-in-the-blank task. Hide a word in a sentence and predict it from the words around it, its context: the words within a fixed window of positions on each side, in the same sentence. Vectors that predict hidden words well must place words used in similar contexts near each other, which is the property we want. Each word gets two vectors: a context vector, for when it appears around the blank, and an output vector, for when it is the word being predicted.</say>
+    <say>The continuous bag-of-words model, or CBOW, makes the prediction in three steps, as in the diagram. Here the window is two words on each side of the blank, so the context is store, bought, from and grocery. CBOW averages the context vectors of the words around the blank into one vector, h. It scores every word of the vocabulary by the inner product of that word's output vector with h. Softmax over the vocabulary turns the scores into probabilities.</say>
+    <say>This is softmax regression from Chapter 6: h plays the role of the features, and each vocabulary word is a class with its own weight vector, its output vector. The difference is that the features are learned too: the context vectors are parameters, fit together with the output vectors.</say>
+  </narration>
+</section>
+
+<!-- 16 -->
+<section class="dense">
+  <h2>CBOW: a worked example</h2>
+  <column>
+    <p class="opener">Here is that computation for “The store bought ___ from grocery wholesalers”, with made-up three-dimensional vectors.</p>
+    <p>Context vectors (right): store $(0.4,0.5,0.3)$, bought $(0.2,0.1,0.3)$, from $(0.1,0.1,0.1)$, grocery $(0.8,0.6,0.2)$.</p>
+    <p pause="h=1">Their average, the star: $\bh=(0.375,\,0.325,\,0.225)$.</p>
+    <p pause="u=1">Output vectors $\bu_{\text{oranges}}=(0.7,0.5,0.2)$ and $\bu_{\text{laptops}}=(0.1,0.2,0.9)$: a candidate's score is its inner product with $\bh$.</p>
+  </column>
+  <fig name="ctx3d" init="az=-44 el=32 h=0 u=0"></fig>
+  <knob param="az" min="-180" max="180" step="1" digits="0">azimuth</knob>
+  <knob param="el" min="-30" max="80" step="1" digits="0">elevation</knob>
+  <narration>
+    <say>Here is the computation for the blank in the store sentence, with made-up three-dimensional vectors. The figure draws the context vectors of the four words around the blank as arrows from the origin; their coordinates are on the left.</say>
+    <say>CBOW averages them, coordinate by coordinate, into the context vector h, marked by the star among the four arrows' tips.</say>
+    <say wait>Two candidates for the blank are oranges and laptops, each with its own output vector, drawn as two more arrows. The output vector of oranges points much like the context vector of grocery, while that of laptops points mostly along the third coordinate. Turn the view with the two sliders to see how the arrows sit in space before going on.</say>
+  </narration>
+</section>
+
+<!-- 17 -->
+<section class="dense">
+  <h2>CBOW: scores and softmax</h2>
+  <column>
+    <p class="opener">Each candidate's score is the inner product of its output vector with $\bh$, and the softmax turns the scores into probabilities.</p>
+    <p>From slide 16: $\bh=(0.375,\,0.325,\,0.225)$, $\bu_{\text{oranges}}=(0.7,0.5,0.2)$, $\bu_{\text{laptops}}=(0.1,0.2,0.9)$.</p>
+    <p pause="st=1">Scores: $\langle\bu_{\text{oranges}},\bh\rangle=0.470$ and $\langle\bu_{\text{laptops}},\bh\rangle=0.305$.</p>
+    <p pause="st=2">Softmax over the two: $p(\text{oranges}\mid\text{context})=0.541$, and $0.459$ for laptops.</p>
+  </column>
+  <fig name="cbowp" init="st=0"></fig>
+  <narration>
+    <say>With the context vector h and the two output vectors of the last slide, CBOW scores each candidate by the inner product of its output vector with h.</say>
+    <say>The scores, on the left of the figure, are these inner products. Oranges scores higher: its vector points more nearly the way the grocery context points.</say>
+    <say>Softmax over the two candidates turns the scores into the probabilities on the right. With a real vocabulary of tens of thousands of words, the sum in the denominator runs over all of them.</say>
+  </narration>
+</section>
+
+<!-- 18 -->
+<section class="dense">
+  <h2>Gradients of the CBOW loss</h2>
+  <column style="flex:1.3 1 0">
+    <p class="opener">Training fits every vector by maximum likelihood, one blank at a time, with gradients from the chain rule.</p>
+    <p style="margin-bottom:6px">For a blank with hidden word $w^*$, scores $z_w=\langle\bu_w,\bh\rangle$ and their softmax $p(w\mid\text{context})$ over $\cV$:</p>
+    \[\cL=-\ln p(w^*\mid\text{context})=-z_{w^*}+\ln\sum_{w'\in\cV}e^{z_{w'}}.\]
+    <div pause data-fragment-index="1">
+      <p style="margin-bottom:6px">Its derivative with respect to a score is the error (Ch. 6), with $I(w=w^*)=1$ only for the hidden word:</p>
+      \[\begin{aligned}\frac{\partial\cL}{\partial z_w}&=-I(w=w^*)+\frac{e^{z_w}}{\sum_{w'}e^{z_{w'}}}\\&=\htmlClass{hl-err}{p(w\mid\text{context})-I(w=w^*)}.\end{aligned}\]
+    </div>
+    <div pause data-fragment-index="2">
+      <p style="margin-bottom:6px">Since $\partial z_w/\partial\bu_w=\bh$, the gradient is error times input:</p>
+      \[\nabla_{\bu_w}\cL=\big(p(w\mid\text{context})-I(w=w^*)\big)\,\bh.\]
+    </div>
+  </column>
+  <column>
+    <block title="Slide 16's blank, hidden word oranges">
+      <p>$\bh=(0.375,\,0.325,\,0.225)$; $p=0.541$ for oranges, $0.459$ for laptops; $\cL=-\ln0.541=0.614$.</p>
+      <p pause data-fragment-index="1">Errors: $0.541-1=-0.459$ for oranges, $0.459$ for laptops.</p>
+      <div pause data-fragment-index="2">
+        <p style="margin-bottom:4px">Output-vector gradients:</p>
+        \[\begin{aligned}\nabla_{\bu_{\text{oranges}}}\cL&=-0.459\,\bh\\&=(-0.172,\,-0.149,\,-0.103),\\\nabla_{\bu_{\text{laptops}}}\cL&=0.459\,\bh\\&=(0.172,\,0.149,\,0.103).\end{aligned}\]
+      </div>
+    </block>
+  </column>
+  <narration>
+    <say>Training fits the vectors by maximum likelihood, one blank at a time. The loss of a blank is the negative log of the probability the model gives the hidden word. Written out, it is minus the hidden word's score plus the log of the softmax denominator, a sum over the whole vocabulary. On the right is the store sentence's blank from the last slide: the hidden word is oranges, and the model gives it a little over half of its probability.</say>
+    <say>Now differentiate with respect to one score. The first term gives minus one, for the hidden word only; the second gives that word's softmax probability. Their sum, the predicted probability minus the indicator of the hidden word, is <point to="err">the error</point>, as in softmax regression. In the example, oranges has a negative error, since the model gave it less than certainty, and laptops a positive error of the same size.</say>
+    <say>Each score depends on its own output vector only through an inner product with h, so the gradient for an output vector is its error times h: error times input. In the example the two gradients point in opposite directions along h, so a step against them moves the output vector of oranges toward h and that of laptops away from it.</say>
+  </narration>
+</section>
+
+<!-- 19 -->
+<section class="dense">
+  <h2>Learning the context vectors</h2>
+  <column style="flex:1.3 1 0">
+    <p class="opener">The context vectors are learned by the same gradient descent, through their average $\bh=\frac1m\sum_{j=1}^m\bc_{w_j}$.</p>
+    <div pause data-fragment-index="1">
+      <p style="margin-bottom:6px">$\bh$ enters every score $z_w=\langle\bu_w,\bh\rangle$:</p>
+      \[\begin{aligned}\nabla_{\bh}\cL&=\sum_{w\in\cV}\big(p(w\mid\text{context})-I(w=w^*)\big)\,\bu_w\\&=\sum_{w\in\cV}p(w\mid\text{context})\,\bu_w-\bu_{w^*}.\end{aligned}\]
+    </div>
+    <div pause data-fragment-index="2">
+      <p style="margin-bottom:6px">Each context word's vector gets $1/m$ of it:</p>
+      \[\nabla_{\bc_{w_j}}\cL=\tfrac1m\nabla_{\bh}\cL=\tfrac1m\big(\textstyle\sum_wp(w\mid\text{context})\,\bu_w-\bu_{w^*}\big).\]
+      <p>A step moves each $\bc_{w_j}$ toward $\bu_{w^*}$ and away from the probability-weighted average of the output vectors.</p>
+    </div>
+    <p pause data-fragment-index="3">A word's $\bc_w$ is updated in every blank where the word is in the context, so over the corpus it moves toward the output vectors of the words it tends to surround.</p>
+  </column>
+  <column>
+    <block title="Slide 16's blank, hidden word oranges">
+      <p>Errors $-0.459$ (oranges) and $0.459$ (laptops); $m=4$.</p>
+      <div pause data-fragment-index="1">
+        \[\begin{aligned}\nabla_{\bh}\cL&=-0.459\,\bu_{\text{oranges}}+0.459\,\bu_{\text{laptops}}\\&=0.459\,(\bu_{\text{laptops}}-\bu_{\text{oranges}})\\&=(-0.275,\,-0.138,\,0.321).\end{aligned}\]
+      </div>
+      <div pause data-fragment-index="2">
+        <p style="margin-bottom:4px">Each of the four context vectors (store, bought, from, grocery):</p>
+        \[\begin{aligned}\nabla_{\bc_{w_j}}\cL&=\tfrac14\nabla_{\bh}\cL\\&=(-0.069,\,-0.034,\,0.080).\end{aligned}\]
+      </div>
+    </block>
+  </column>
+  <narration>
+    <say>The context vectors are learned by the same gradient descent as the output vectors. They reach the loss only through h, the average of the context words' vectors, so we first find the gradient for h and then share it out among them.</say>
+    <say>Unlike an output vector, h enters every score, so its gradient sums the error of each word times that word's output vector. Since the errors are the probabilities minus the indicator, this is the probability-weighted average of the output vectors minus the hidden word's output vector. With two candidate words, it is a multiple of the difference between the output vectors of laptops and oranges.</say>
+    <say>Each context word's vector contributes one m-th of h, so it gets one m-th of h's gradient; in the example, each of the four context vectors gets a quarter. A step against this gradient moves every context vector toward the hidden word's output vector and away from the probability-weighted average of all the output vectors.</say>
+    <say>This is how a context vector is learned. A word's context vector changes in every blank where the word appears around the hidden word, each time a little toward that hidden word's output vector. Over the corpus, it takes in the words it tends to surround, the company it keeps.</say>
+  </narration>
+</section>
+
+<!-- 20 -->
+<section class="dense">
+  <h2>Training CBOW by gradient descent</h2>
+  <column>
+    <p class="opener">Training starts from random context vectors (in gensim, a widely used open-source word2vec library, output vectors at zero) and takes one step of size $\eta$ per blank:</p>
+    \[\bu_w\leftarrow\bu_w-\eta\,\nabla_{\bu_w}\cL,\qquad\bc_{w_j}\leftarrow\bc_{w_j}-\tfrac{\eta}{m}\,\nabla_{\bh}\cL,\]
+    <p>the same step for every context word $j=1,\dots,m$ of the blank.</p>
+    <p pause="s1=1">One step on slide 16's blank, $\eta=0.5$: $\bu_{\text{oranges}}$ becomes $(0.786,0.575,0.252)$ and $\bu_{\text{laptops}}$ $(0.014,0.125,0.848)$, every context vector moves by the same $(0.034,0.017,-0.040)$, and $p(\text{oranges}\mid\text{context})$ rises from 0.541 to 0.589.</p>
+  </column>
+  <fig name="ctx3dstep" init="az=-44 el=32 s1=0"></fig>
+  <knob param="az" min="-180" max="180" step="1" digits="0">azimuth</knob>
+  <knob param="el" min="-30" max="80" step="1" digits="0">elevation</knob>
+  <drawer>
+    <p>The run uses the softmax over the two words of slide 16 and updates the four context vectors and the two output vectors together at every step, $\eta=0.5$; its first step is the one on the slide; <code>CBOW_RUN</code> in <code>figs.js</code> keeps every vector at every step for the figure. <code>deckB_numbers.py</code> repeats it.</p>
+    <p>gensim's source (<code>word2vec_inner.pyx</code>, its CBOW routine) sums the rows of <code>syn0</code>, documented as <span class="quote">“Embeddings for the words in the vocabulary (`model.wv.vectors`)”</span>, for the context words, and keeps the output vectors in <code>syn1neg</code>, <span class="quote">“Weights of the hidden layer in the model's trainable neural network.”</span> Its <code>init_weights</code> fills <code>syn1neg</code> with zeros.</p>
+  </drawer>
+  <narration>
+    <say>Training puts these gradients together. It starts from random context vectors; gensim, a widely used open-source word2vec library, starts the output vectors at zero. For each blank, it takes one step of size eta against the gradient. Each output vector takes its own step, and every context word in the blank takes the same one: eta over m times the gradient for h, since each context vector contributes one m-th of h. On the right are the vectors of slide sixteen, before any step.</say>
+    <say wait>Here is one such step on the store sentence's blank. The output vector of oranges moves toward h and that of laptops away from it, each context vector moves by the same quarter share, and the probability of oranges goes up. In the figure, the solid arrows are the vectors after the step and the faint ones where they were before. Turn the view with the two sliders to compare them before going on.</say>
+  </narration>
+</section>
+
+<!-- 21 -->
+<section class="dense">
+  <h2>Training CBOW from a random start</h2>
+  <column>
+    <p class="opener">The same training, started from random vectors on a toy corpus, groups words that keep the same company.</p>
+    <p>The corpus: 12 sentences such as “she ate ripe apples” and “he bought new tablets at the electronics store” (all in the drawer).</p>
+    <p>Start: random context vectors (right, each drawn at length 1), output vectors at zero; 60 epochs of slide 20's update, $\eta=0.2$.</p>
+    <p pause="e=60">By epoch 60 the fruits point one way and the devices another: mean cosine 0.999 within a group, $-0.47$ across (0.19 and 0.19 at the start).</p>
+  </column>
+  <fig name="toy3d" init="az=-150 el=33 e=0"></fig>
+  <knob param="e" min="0" max="60" step="1" digits="0">epoch</knob>
+  <knob param="az" min="-180" max="180" step="1" digits="0">azimuth</knob>
+  <knob param="el" min="-30" max="80" step="1" digits="0">elevation</knob>
+  <drawer>
+    <p>The corpus: “we ate fresh oranges”, “she ate ripe apples”, “he ate fresh bananas”, “we bought ripe oranges at the grocery”, “she bought fresh apples at the grocery”, “he bought ripe bananas at the grocery”, “we charged new laptops”, “she charged old phones”, “he charged new tablets”, “we bought old laptops at the electronics store”, “she bought new phones at the electronics store”, “he bought old tablets at the electronics store”: 69 words, 21 distinct.</p>
+    <p>Every word is a blank once per epoch, 69 blanks, in a fresh random order each epoch. Its context is the words within 2 positions in its sentence, so $m$ runs from 1 to 4, fewer near a sentence's ends, and $\bh$ averages the $m$ present, as gensim's CBOW does. Full softmax over the 21 words, $D=3$, $\eta=0.2$. As in gensim, the context vectors start uniform in $[-1/3,1/3)$ and the output vectors at zero, so the first loss is $\ln21=3.04$.</p>
+    <p>Seed 29 is a start without grouping: within- and across-group cosines both 0.19. From 40 other starts the within-group cosine ends between 0.956 and 1 (median 0.995), the across-group cosine at a median of $-0.20$ (largest 0.50). Computed with <code>chat_files/part4-deck-scripts/deckB/cbow_toy.py</code>.</p>
+  </drawer>
+  <narration>
+    <say>Now the training starts from scratch, on a toy corpus of twelve sentences. In it, fruits appear next to words such as ate, fresh and ripe, devices next to charged, new and old, and both groups next to bought. As in gensim, the context vectors start small and random and the output vectors at zero, and the update of the last slide runs over every blank of the corpus, sixty times. The figure draws the six fruits' and devices' context vectors, each scaled to length one, since cosine similarity compares only directions. At the start, they point in unrelated directions.</say>
+    <say wait>After sixty epochs, the three fruits point almost the same way, and so do the three devices, while the two groups point apart. Nothing told the model which words are fruits: words that appear next to the same words end up with context vectors pointing the same way. Move the epoch slider to watch the groups form, and turn the view, before going on.</say>
+  </narration>
+</section>
+
+<!-- 22 -->
+<section class="dense">
+  <h2>The training run, in numbers</h2>
+  <column>
+    <p class="opener">The run of slide 21 can be followed through the average loss and the cosines between the context vectors.</p>
+    <p pause="s=60 v=1">Right: the loss per blank falls from $\ln21=3.04$ to 0.88. The mean cosine within a group rises from 0.19 to 0.999; across groups it first rises to 0.64 at epoch 13, then falls below 0 by epoch 25 and to $-0.47$.</p>
+  </column>
+  <column style="flex:none;width:520px">
+    <fig name="toycurves" init="s=0 v=0"></fig>
+    <alertblock pause title="The context vectors become the embeddings" class="small">After training, gensim returns the input vectors, here the $\bc_w$, as the word embeddings (the rows of <code>model.wv</code>).</alertblock>
+  </column>
+  <narration>
+    <say>The same run can be followed through numbers: the average loss over the blanks, and the mean cosine between the context vectors of two words in the same group, and of two words in different groups.</say>
+    <say>The loss falls from the log of the vocabulary size, where every word is equally likely, to a plateau: some blanks stay ambiguous, since after bought either group can follow. The cosine within a group climbs to nearly one. The cosine across groups first rises, because early on every context vector moves toward the output vectors of the words both groups share, and then falls below zero as the groups separate.</say>
+    <say>After training, the context vectors are kept as the word embeddings. In gensim, they are the vectors the model returns for each word, and the output vectors stay inside the model as its last layer's weights.</say>
+  </narration>
+</section>
+
+<!-- 23 -->
+<section class="dense">
+  <h2>Skip-gram with negative sampling</h2>
+  <column>
+    <p class="opener">Negative sampling replaces CBOW's sum over the whole vocabulary by a few random words.</p>
+    <p>Skip-gram predicts each context word $c$ of a word $w$ (a word within the window around $w$ in its sentence) from $w$. With negative sampling (SGNS), this is logistic regression on (word, context) pairs: label 1 for a pair from the text, 0 for each of $k$ pairs with a random context:</p>
+    \[p(\text{label}=1\mid w,c)=\sigma(\langle\bu_w,\bc_c\rangle),\]
+    <p>with $\sigma$ the sigmoid (Ch. 6) and $\bc_c$ the context vector of $c$.</p>
+    <div pause>
+      <p style="margin-bottom:6px">The loss of a real pair with random contexts $c_1,\dots,c_k$:</p>
+      \[-\ln\sigma(\langle\bu_w,\bc_c\rangle)-\sum_{i=1}^k\ln\sigma(-\langle\bu_w,\bc_{c_i}\rangle).\]
+    </div>
+  </column>
+  <fig name="sgns"></fig>
+  <narration>
+    <say>The softmax of CBOW needs a sum over the whole vocabulary for every blank, which is expensive. Negative sampling avoids it, and its best-known form is skip-gram with negative sampling. Take a word and one of the words within its window, a context word, and call the pair real. Draw k random context words for the same word and call those pairs fake, as on the right. A logistic regression on the inner product of the two vectors learns to tell real pairs from fake ones.</say>
+    <say>The loss of one real pair is the negative log probability of calling it real, plus, for each random context, the negative log probability of calling that pair fake. Only k plus one inner products are computed, however large the vocabulary.</say>
+  </narration>
+</section>
+
+<!-- 24 -->
+<section>
+  <h2>Pointwise mutual information and the SGNS optimum</h2>
+  <column>
+    <p class="opener">Levy and Goldberg (NIPS 2014) worked out what the fitted SGNS vectors converge to.</p>
+    <p style="margin-bottom:6px">With enough coordinates to fit every pair, the SGNS loss is minimized by setting $\langle\bu_w,\bc_c\rangle=\PMI(w,c)-\ln k$ for every pair $(w,c)$, where</p>
+    \[\htmlClass{hl-pmi}{\PMI(w,c)=\ln\frac{p(w,c)}{p(w)\,p(c)}},\]
+    <p>$p(w,c)$ is the fraction of all (word, context) pairs, counted within the window over the whole corpus, that are $(w,c)$, and $p(w)$, $p(c)$ are its marginals.</p>
+    <p pause>Example: $p(w,c)=0.02$, $p(w)=0.1$, $p(c)=0.05$ give $\PMI(w,c)=\ln4$.</p>
+    <alertblock pause title="Embeddings store pointwise mutual information" class="small">$\langle\bu_w,\bc_c\rangle$ is fit to $\PMI(w,c)-\ln k$; averaged over pairs, $\PMI$ is the mutual information $I(W;C)$ of Sec. 1.4.</alertblock>
+  </column>
+  <drawer>
+    <p>A word $w$ occurs with context $c$ with probability $p(w,c)$, and each occurrence of $w$ draws $k$ random contexts from $p(c)$. Per pair of the text, the expected objective for $(w,c)$, with $x=\langle\bu_w,\bc_c\rangle$, is</p>
+    \[\ell(x)=p(w,c)\ln\sigma(x)+k\,p(w)\,p(c)\ln\sigma(-x).\]
+    <p class="dk1">With $\frac{d}{dx}\ln\sigma(x)=\sigma(-x)$, setting $\ell'(x)=0$ gives</p>
+    \[\htmlClass{dk1}{p(w,c)\,\sigma(-x)=k\,p(w)\,p(c)\,\sigma(x).}\]
+    <p class="dk2">Since $\sigma(x)/\sigma(-x)=e^x$,</p>
+    \[\htmlClass{dk2}{x=\ln\frac{p(w,c)}{k\,p(w)\,p(c)}=\PMI(w,c)-\ln k.}\]
+    <p>This needs each inner product to be free to take its own value, which holds when the vectors have enough coordinates (Levy and Goldberg, Sec. 3.1). With fewer, the fit is a weighted low-rank approximation of this matrix.</p>
+  </drawer>
+  <narration>
+    <say>What does this fit converge to? Levy and Goldberg showed that, when the vectors have enough coordinates to fit every pair exactly, the best inner product for each pair is its <point to="pmi">pointwise mutual information</point>, shifted down by the log of k. Pointwise mutual information compares how often the word and the context occur together with how often they would if they were independent. Together means within the window: every pair of a word and a context word in its window, counted over the whole corpus.</say>
+    <say>In the example, the joint probability is larger than the product of the two marginals, so the pair occurs more often than chance would predict and its pointwise mutual information is positive.</say>
+    <say>So the embeddings are a compressed table of pointwise mutual information. Averaged over pairs, pointwise mutual information is the mutual information between a word and its context, from Section 1.4. Words with similar rows in this table, that is, similar company, get similar vectors. The theorem assumes a perfect fit; the next slide checks it on a real text.</say>
+  </narration>
+</section>
+
+<!-- 25 -->
+<section>
+  <h2>SGNS on a real text</h2>
+  <column>
+    <p class="opener">The theorem assumes a perfect fit; trained on a real text, SGNS comes close to it.</p>
+    <p>Jane Austen's <i>Emma</i> (161,686 words, 2,328 distinct words seen at least 5 times). SGNS with $k=5$ random contexts, a fixed window of 2 words on each side within each sentence, 100 coordinates.</p>
+    <p pause="sp=1">For the 3,584 (word, context) pairs seen at least 20 times, the inner product after training against $\PMI(w,c)-\ln k$ from the same counts: correlation 0.990 (600 pairs drawn on the right).</p>
+    <p pause="nm=1">(mr, knightley): seen 331 times, $\PMI-\ln k=1.96$, inner product 2.16. The other two marked pairs, (frank, churchill) and (of, the), also lie near the dashed line.</p>
+  </column>
+  <fig name="sgnspmi" init="sp=0 nm=0"></fig>
+  <drawer>
+    <p>gensim's word2vec with the settings of Levy and Goldberg's analysis: skip-gram, $k=5$, a fixed window of 2 (<code>shrink_windows=False</code>; by default gensim draws a smaller window at each position), no subsampling of frequent words, random contexts drawn from the word frequencies, 30 passes, one seed.</p>
+    <p>$\PMI$ is computed from the same window counts: $\ln\big(\#(w,c)\,|D|/(\#(w)\,\#(c))\big)$, with $|D|$ the number of pairs. The text is cut into sentences at . ! ? and ;, and neither gensim nor the counts let a window cross a sentence; words seen fewer than 5 times are dropped before the windows are taken, as gensim does.</p>
+    <p>A least-squares line gives inner product $=1.02\,(\PMI-\ln k)+0.08$; the mean absolute gap is 0.12. Computed with <code>chat_files/part4-deck-scripts/deckB/sgns_pmi.py</code>.</p>
+  </drawer>
+  <narration>
+    <say>Does a real fit come close to the theorem? Here skip-gram with negative sampling is trained on one novel, Jane Austen's Emma, with five random contexts per real pair and a fixed window of two words on each side, which never crosses the end of a sentence.</say>
+    <say>Each point is one word and context pair that occurs often enough to be estimated well. Its horizontal position is the pointwise mutual information from the counts, shifted by the log of k; its vertical position is the inner product of the trained vectors. The points lie along the dashed line where the two are equal.</say>
+    <say>For example, knightley follows mr hundreds of times in the novel, far more often than chance, and the trained inner product for that pair is close to its shifted pointwise mutual information. The other two marked pairs, the name frank churchill and the very common pair of the, lie near the line as well.</say>
+  </narration>
+</section>
+
+<!-- 26 -->
+<section class="dense">
+  <h2>Nearest neighbours and clusters of GloVe vectors</h2>
+  <column>
+    <p class="opener">Trained on a large corpus, such vectors group words by topic and arrange them along shared directions.</p>
+    <p>The vectors of slide 12 come from GloVe (Pennington, Socher and Manning 2014), a related model fit to word co-occurrence counts: 100 coordinates for each of 400,000 words, trained on Wikipedia 2014 and the Gigaword 5 news corpus. Nearest words to “soccer” by cosine: football 0.87, basketball 0.80, volleyball 0.77, hockey 0.74, league 0.74.</p>
+    <div class="swap">
+      <p class="current-visible" pause="v=0 a=1" data-fragment-index="1">Right, 32 words of four groups: each is closer to its own group's average vector than to any other group's, in all 100 coordinates.</p>
+      <p pause="v=1" data-fragment-index="2">Right, 34 capitals and their countries: the first direction separates Europe from Asia for 67 of the 68 words, the second cities from countries for 67 of 68.</p>
+    </div>
+  </column>
+  <fig name="glovemap" init="v=0 a=0"></fig>
+  <narration>
+    <say>Once trained, the vectors can be queried. These are GloVe vectors, the ones of slide twelve, from a related model fit to the same kind of co-occurrence counts. The words nearest to soccer by cosine similarity are other sports, and a word that appears with them, league.</say>
+    <say>The figure draws words on the two directions along which their vectors vary most. Here are words from four groups: animals, vehicles, foods and countries form separate clusters, and a check on the full vectors agrees with the picture.</say>
+    <say>Here are capitals and their countries, European and Asian, each capital joined to its country. The first direction separates Europe from Asia, and the second separates cities from countries. Nothing in training mentioned geography; it comes from the company the words keep.</say>
+  </narration>
+</section>
+
+<!-- 27 -->
+<section class="dense">
+  <h2>Analogies by vector arithmetic</h2>
+  <column>
+    <p class="opener">Differences between vectors carry meaning too: the same offset recurs across many pairs of words.</p>
+    <p>To answer “$a$ is to $b$ as $c$ is to ?”, take the word nearest by cosine to $\bu_b-\bu_a+\bu_c$ (unit vectors), leaving out $a$, $b$ and $c$. Right: king − man + woman.</p>
+    <div pause data-fragment-index="2">
+      <p style="margin-bottom:4px">No analogy appears in the training objective. It follows from the counts (Allen and Hospedales 2019): if, across context words $c$,</p>
+      \[\frac{p(c\mid\text{king})}{p(c\mid\text{man})}\approx\frac{p(c\mid\text{queen})}{p(c\mid\text{woman})},\]
+      <p>vectors whose inner products fit $\PMI-\ln k$ (slide 24) have $\bu_{\text{king}}-\bu_{\text{man}}\approx\bu_{\text{queen}}-\bu_{\text{woman}}$.</p>
+      <p>For $c=$ young, counted five words either side in 17 million words of Wikipedia (text8), the two ratios are 0.15 and 0.11.</p>
+    </div>
+  </column>
+  <column style="flex:none;width:480px">
+    <fig name="analogy"></fig>
+    <table class="vals tight" pause data-fragment-index="1" style="margin:0 auto">
+      <thead><tr><th>vector arithmetic</th><th>nearest word</th></tr></thead>
+      <tbody><tr><td>Tokyo − Japan + France</td><td>Paris</td></tr><tr><td>man − king + queen</td><td>woman</td></tr>
+        <tr><td>slow − big + bigger</td><td>slower</td></tr><tr><td>Einstein − scientist + painter</td><td>Picasso</td></tr></tbody>
+    </table>
+  </column>
+  <narration>
+    <say>Directions in the space carry relationships too. To solve an analogy, add and subtract the unit vectors and look for the nearest word. The bars on the right are the cosines with king minus man plus woman, highest first. King itself comes first, since it is one of the inputs; leaving out the three inputs, as the method does, queen is the answer.</say>
+    <say>The same arithmetic recovers a capital, a gender pair, a comparative and even a painter for Einstein's place, each computed on the same GloVe vectors.</say>
+    <say>Analogies were never part of the training objective; they follow from the co-occurrence statistics. Suppose that, for the context words, king is more likely than man by about the same factor as queen is than woman. Take young: in seventeen million words of Wikipedia, young is about seven times rarer near king than near man, and about nine times rarer near queen than near woman. The difference between two words' pointwise mutual information with a context word is the log of that factor, and the inner products fit pointwise mutual information, so the difference between the vectors of king and man matches the difference between those of queen and woman. Allen and Hospedales derive this for skip-gram vectors, and conjecture that the same reason holds for GloVe vectors like these.</say>
+  </narration>
+</section>
+
+<!-- 28 -->
+<section>
+  <h2>Static embeddings: bias and polysemy</h2>
+  <p class="opener">These vectors learn whatever associations their training text contains, and a static embedding gives each word exactly one vector.</p>
+  <div class="cards" style="margin-top:6px;align-items:flex-start">
+    <div class="altcard">
+      <div class="al">Associations, biases included</div>
+      <p>GloVe: doctor − man + woman ≈ nurse.</p>
+      <p>Bolukbasi et al. (2016): word2vec trained on Google News articles answers “man is to computer programmer as woman is to x” with x = homemaker.</p>
+    </div>
+    <div style="flex:1 1 0;min-width:0">
+      <div class="altcard" pause style="margin-bottom:16px">
+        <div class="al">Polysemy: one word, several meanings</div>
+        <p>“The ticket cost a pound.” “The bag weighs a pound.” “Waves pound the shore.”</p>
+        <p>The nearest words to “pound” in GloVe mix money and weight: pounds, dollar, kilogram, cent, ounce.</p>
+      </div>
+      <alertblock pause title="A word's vector must depend on its context">Which meaning is meant is decided by the other words of the sentence.</alertblock>
+      <p pause><alert>Question:</alert> How can a word's vector depend on the words around it?</p>
+    </div>
+  </div>
+  <narration>
+    <say>Embeddings learn whatever associations their text contains, biases included. In GloVe, doctor minus man plus woman gives nurse as the nearest word. Bolukbasi and coauthors found that word2vec vectors trained on Google News articles answer man is to computer programmer as woman is to homemaker. The vectors encode how the training text uses words, stereotypes included, not facts about people.</say>
+    <say>A second limitation is built in: a static embedding gives each word one vector. Pound is a unit of money, a unit of weight and a verb. Its single vector is a compromise, and its nearest neighbours mix money words such as dollar with weight words such as kilogram and ounce.</say>
+    <say>Which sense is meant can only be decided from the other words in the sentence, so a word's vector must depend on its context.</say>
+    <say>So the question is how to compute a word's vector from the words around it.</say>
+  </narration>
+</section>
+
+<!-- 29 -->
+<section id="sec-att" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=1 b=2 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Embeddings done: the map pulls back and enters attention.</notes>
+  <narration>
+    <say>That completes embeddings. Fitting a word's vector to predict its context makes inner products estimate pointwise mutual information minus the log of k, so words with similar company get similar vectors. Each word still has one vector.</say>
+    <say>The next part, attention, gives each token a new vector computed from the other tokens of its sentence.</say>
+  </narration>
+</section>
+
+<!-- 30 -->
+<section>
+  <h2>Three senses of “spring”</h2>
+  <column>
+    <p class="opener">Attention answers that question; first, here is how a reader handles a word with several senses.</p>
+    <div class="sentences">
+      <div class="altcard"><span>“The old <b>spring</b> couch was uncomfortable.”</span><span class="m">metal coil</span></div>
+      <div class="altcard"><span>“<b>Spring</b> is my favorite season.”</span><span class="m">time of year</span></div>
+      <div class="altcard"><span>“We found a natural <b>spring</b> while hiking.”</span><span class="m">water source</span></div>
+    </div>
+    <p pause="a=1">A reader decides by looking at a few informative words, couch, season, hiking, and ignores the rest.</p>
+  </column>
+  <fig name="star" init="a=0"></fig>
+  <narration>
+    <say>The word spring shows the problem. It means a metal coil next to couch, a time of year next to season, and a water source next to hiking. A static embedding gives all three the same vector.</say>
+    <say>A reader settles the meaning in a fraction of a second by looking at a few informative words and ignoring the rest. The sketch on the right shows that idea for the second sentence; it is a picture of a reader, not of a model. Attention turns the idea into a computation.</say>
+  </narration>
+</section>
+
+<!-- 31 -->
+<section class="dense">
+  <h2>Attention as a weighted average</h2>
+  <column>
+    <p class="opener">Attention gives each word a new vector, a weighted average of the vectors of all the words in its sentence.</p>
+    <block title="Attention">
+      \[\bv_i^{\text{new}}=\sum_{j=1}^n\htmlClass{hl-a}{\cat{\alpha_{ij}}}\,\bv_j,\qquad\cat{\alpha_{ij}}\ge0,\quad\sum_j\cat{\alpha_{ij}}=1.\]
+    </block>
+    <p>Here $\cat{\balpha_i}=(\cat{\alpha_{i1}},\dots,\cat{\alpha_{in}})$ is a distribution over the $n$ positions, and $\bv_i^{\text{new}}$ is the mean of $\bv_J$ for $J\sim\cat{\balpha_i}$.</p>
+    <p pause="pt=1 w=1" data-fragment-index="1">Example: “old spring couch soft” (right), with given weights.</p>
+    <div pause="n=1" data-fragment-index="2">
+      \[\begin{aligned}\bv^{\text{new}}_{\text{spring}}&=0.1(1,0)+0.1(1,1)+0.5(1,3)+0.3(0,2)\\&=(0.70,\,2.20).\end{aligned}\]
+    </div>
+  </column>
+  <fig name="wavg" init="set=0 pt=0 w=0 n=0"></fig>
+  <p class="under" pause data-fragment-index="2" style="width:470px;margin:0">Spring's own vector is not lost to its small weight: a transformer block adds this output to it, $\bx+f(\bx)$ (slide 43). How much a token attends to itself varies by head.</p>
+  <narration>
+    <say>Attention builds a new vector for each word as a weighted average of the vectors of all the words in the sentence. The weights are nonnegative and add to one, so for each word they form a probability distribution over the positions of the sentence, and the new vector is the expected value of the vectors under that distribution.</say>
+    <say>Take the phrase old spring couch soft, with the two-dimensional vectors on the right. Suppose spring puts most of its weight on couch and soft. For now these weights are given; we will compute them shortly. The area of each circle is proportional to its weight.</say>
+    <say>The new vector for spring is the weighted average, marked by the star. It has moved from spring's own vector toward couch and soft, the furniture sense of the word. Spring's own vector is not lost, although its weight is small: the transformer block adds the attention output to the word's vector, a residual connection we will meet later. In trained models, how much a token attends to itself differs from head to head.</say>
+  </narration>
+</section>
+
+<!-- 32 -->
+<section>
+  <h2>Your turn: “The spring season blooms”</h2>
+  <column>
+    <p class="opener">The same given weights, now in a sentence where spring is a season.</p>
+    <p>Vectors: The (1,0), spring (2,1), season (2,3), blooms (0,2).</p>
+    <p>Weights from “spring”, as on slide 31: 0.10, 0.10, 0.50, 0.30.</p>
+    <ol class="parts">
+      <li>(a) The new vector $\bv^{\text{new}}_{\text{spring}}$.</li>
+      <li>(b) Toward which word does “spring” move, and how does that compare with slide 31?</li>
+    </ol>
+  </column>
+  <fig name="wavg" init="set=1 w=0 n=0"></fig>
+  <narration>
+    <say wait>Let's practise the weighted average on a second sentence, in which spring is a season. The vectors are in the figure, and spring uses the same weights as before, now on The, spring, season and blooms. Compute the new vector for spring. Then say which word it moves toward, and compare with the couch example. Solve these before going on.</say>
+  </narration>
+</section>
+
+<!-- 33 -->
+<section>
+  <h2>Your turn: “The spring season blooms” (a) and (b)</h2>
+  <column>
+    <p class="opener">Each weight multiplies its word's vector, and the four products add.</p>
+    <p>Vectors The (1,0), spring (2,1), season (2,3), blooms (0,2); weights 0.10, 0.10, 0.50, 0.30.</p>
+    <div pause="w=1 n=1">
+      <span class="structure">Solution</span>
+      <p class="solrow">(a) \[\begin{aligned}\bv^{\text{new}}_{\text{spring}}&=0.1(1,0)+0.1(2,1)+0.5(2,3)+0.3(0,2)\\&=(1.30,\,2.20).\end{aligned}\]</p>
+    </div>
+    <p pause class="solrow">(b) Toward “season”, the time of year. On slide 31 the same weights pulled “spring” toward “couch”.</p>
+    <alertblock pause title="Same word, different context, different vector" class="small">The weights were the same; the words they averaged were not.</alertblock>
+  </column>
+  <fig name="wavg" init="set=1 w=0 n=0"></fig>
+  <narration>
+    <say>Let's work through the two parts. Part (a) is the same weighted average as in the couch example, now over the vectors of the season sentence.</say>
+    <say>Multiply each word's vector by its weight and add the four products. The star on the right marks the result.</say>
+    <say>Spring moves toward season, the time-of-year sense. In the couch example, the same weights pulled it toward the furniture words.</say>
+    <say>The weights were the same in both sentences; the vectors they averaged were not, and so the new vector of spring differs. Next we see where the weights themselves come from.</say>
+  </narration>
+</section>
+
+<!-- 34 -->
+<section class="dense">
+  <h2>Query, key and value</h2>
+  <column>
+    <p class="opener">So far the weights were given; a transformer computes them from the vectors themselves.</p>
+    <p style="margin-bottom:6px">Learned $\mW_Q,\mW_K\in\bbR^{d\times D}$ and $\mW_V\in\bbR^{d_v\times D}$ turn each input $\bx_j\in\bbR^D$ into a query, a key and a value:</p>
+    \[\underset{\textsf{what $i$ looks for}}{\cq{\bq_i}=\mW_Q\bx_i}\qquad\underset{\textsf{what $j$ is matched on}}{\ck{\bk_j}=\mW_K\bx_j}\qquad\underset{\textsf{what $j$ contributes}}{\cv{\bv_j}=\mW_V\bx_j}\]
+    \[\htmlClass{hl-s}{s_{ij}=\frac{\langle\cq{\bq_i},\ck{\bk_j}\rangle}{\sqrt d}},\qquad\cat{\balpha_i}=\softmax_{j=1,\dots,n}(s_{ij}).\]
+    <p pause="st=1">Example: slide 32's vectors, $\mW_Q=\mW_K=\mW_V=\mI$, $D=d=2$. For “spring”, $\langle\cq{\bq_{\text{spring}}},\ck{\bk_j}\rangle=(2,5,7,2)$ for $j=1,\dots,4$, and $\cat{\balpha_{\text{spring}}}=(0.022,0.187,0.768,0.022)$ (top right),</p>
+    <p pause="st=2">so $\bv^{\text{new}}_{\text{spring}}=(1.93,\,2.54)$, against slide 33's $(1.30,2.20)$ (bottom right).</p>
+  </column>
+  <fig name="qkv" init="st=0"></fig>
+  <narration>
+    <say>Where do the weights come from? Each position starts from an input vector. Three learned matrices turn it into a query, which says what the position is looking for, a key, which says what it offers to be matched on, and a value, which is what it contributes to the average when it is matched. These roles are a reading of a soft lookup: the query is matched against every key, and the values of the matches are averaged. Training only fits the three matrices to lower the loss, so a given head need not use them this way. <point to="s">The score</point> of position j for position i is the inner product of i's query with j's key, divided by the square root of the key length, and softmax over the positions turns each row of scores into weights.</say>
+    <say>To see the computation, take the season sentence with all three matrices equal to the identity, so queries, keys and values are the word vectors themselves. The scores for spring, at the top of the figure, are its inner products with the four vectors, largest for season. Softmax turns them into the weights below them, produced by the model rather than given.</say>
+    <say>The weighted average of the values is the new vector, the solid star at the bottom. It lies closer to season than the dashed star from the given weights, because the softmax put more weight on season. In a trained model the three matrices are learned by gradient descent, so the model learns what to attend to.</say>
+  </narration>
+</section>
+
+<!-- 35 -->
+<section class="dense">
+  <h2>Variance of an attention score</h2>
+  <column>
+    <p class="opener">Slide 34 divides each score by $\sqrt d$; the reason is the size of an inner product of long vectors.</p>
+    <p>Suppose the $d$ components of a query $\cq{\bq_i}$ and a key $\ck{\bk_j}$ are independent, with mean 0 and variance 1 (Vaswani et al. 2017).</p>
+    <div pause="v=1">
+      <p style="margin-bottom:6px">Each product $q_{i\ell}k_{j\ell}$ then has mean 0 and variance $\E[q_{i\ell}^2k_{j\ell}^2]=\E[q_{i\ell}^2]\,\E[k_{j\ell}^2]=1$, and the variances of independent terms add (Ch. 0):</p>
+      \[\Var(\langle\cq{\bq_i},\ck{\bk_j}\rangle)=\sum_{\ell=1}^d\Var(q_{i\ell}k_{j\ell})=d.\]
+      <p>So the scores spread like $\sqrt d$: a standard deviation of 8 at $d=64$ (right, one random draw).</p>
+    </div>
+    <p pause><alert>Question:</alert> What does the softmax do with scores this far apart?</p>
+  </column>
+  <fig name="sqscore" init="v=0"></fig>
+  <narration>
+    <say>Why does slide 34 divide the scores by the square root of d? The reason is the size of an inner product between long vectors. Suppose the coordinates of a query and a key are independent, with mean zero and variance one: the assumption Vaswani and coauthors make when they introduce the factor.</say>
+    <say>The product of a query coordinate with the matching key coordinate then has mean zero, and since the two are independent, its variance is the product of their variances, one. The score adds d such products, and the variance of a sum of independent terms is the sum of their variances, so the score has variance d. Its standard deviation, the square root of d, is the typical size of a score. On the right are the scores of one random query against sixteen random keys: most lie within one standard deviation of zero, and a few go well beyond it.</say>
+    <say wait>Long vectors therefore give large scores, far apart from one another. Predict what the softmax does with scores like these before going on.</say>
+  </narration>
+</section>
+
+<!-- 36 -->
+<section class="dense">
+  <h2>Scaled dot-product attention</h2>
+  <column>
+    <p class="opener">Scores this far apart saturate the softmax, and a saturated softmax passes back almost no gradient.</p>
+    <p>The softmax grows exponentially in its scores, so one weight comes near 1 and the rest near 0 (right: slide 35's draw, unscaled; over 2,000 draws the largest weight averages 0.84).</p>
+    <div pause>
+      <p style="margin-bottom:6px">From $\cat{\alpha_{ij}}=e^{s_{ij}}/\sum_\ell e^{s_{i\ell}}$, by the quotient rule,</p>
+      \[\frac{\partial\cat{\alpha_{ij}}}{\partial s_{ij}}=\cat{\alpha_{ij}}-\cat{\alpha_{ij}}^2=\cat{\alpha_{ij}}(1-\cat{\alpha_{ij}}),\]
+      <p>near 0 when $\cat{\alpha_{ij}}$ is near 0 or 1: little gradient reaches the scores, or through them $\mW_Q$ and $\mW_K$.</p>
+    </div>
+    <p pause="sc=1">Dividing by $\sqrt d$ gives the scores variance 1: the largest weight averages 0.25, the weights stay spread, and the gradients stay useful.</p>
+  </column>
+  <fig name="sqrtd" init="sc=0"></fig>
+  <toggle param="sc">divide by $\sqrt{64}$</toggle>
+  <narration>
+    <say>The softmax exponentiates the scores, so a score a few units above the others takes nearly all the weight. On the right is the draw of the last slide, unscaled: one key gets almost all the weight, and over many draws the largest weight is close to one on average. Even in the two-dimensional example of slide 34, dropping the factor makes the weights sharper.</say>
+    <say>This matters for training. Differentiating a weight with respect to its own score gives the weight times one minus the weight. When the weight is near zero or near one, this is near zero, so a saturated softmax passes almost no gradient back to the scores, and through them to the query and key matrices.</say>
+    <say wait>Dividing by the square root of d gives the scores variance one again. The weights stay spread out, and the softmax stays where its gradients are useful. Use the toggle to compare the scaled and unscaled weights of the draw before going on.</say>
+  </narration>
+</section>
+
+<!-- 37 -->
+<section>
+  <h2>Attention weights in SmolLM2</h2>
+  <div class="fig swap" style="width:640px">
+    <div class="figimg fade-out" pause data-fragment-index="1"><img src="img/L20-attention-pronoun.png" width="560" alt="SmolLM2 attention weights, layer 13, head 8"></div>
+    <div class="figimg" pause data-fragment-index="1" style="padding-top:70px"><img src="img/L20-QK-real.png" width="640" alt="The queries and keys of SmolLM2's layer 13, head 8">
+      <p class="imgcap">Queries (rows, left) and keys (columns, right) of the same head, 64 numbers each.</p></div>
+  </div>
+  <column>
+    <p class="opener">A trained model computes these weights with learned matrices, and they can be read off for a real sentence.</p>
+    <p>SmolLM2-135M-Instruct on “The animal didn't cross the street because it was too tired”, layer 13, head 8.</p>
+    <p>First figure: row $i$ holds the weights $\cat{\balpha_i}$ of token $i$; the row of “it” puts 73% of its weight on “animal”.</p>
+    <p pause data-fragment-index="1">The second figure, which replaces it, shows the queries and keys behind those weights. The score $\langle\cq{\bq}_{\text{it}},\ck{\bk}_{\text{animal}}\rangle/\sqrt{64}$ is computed from the two outlined vectors after the rotation that encodes position (slide 40).</p>
+  </column>
+  <narration>
+    <say>Does a trained model attend the way a reader does? This heat map comes from SmolLM2, a small open model with 135 million parameters, reading a sentence in which "it" refers to the animal. Each row is one token, and its cells are that token's attention weights over the tokens so far. In this head, the row of "it" puts most of its weight on animal: the model has learned to link the pronoun to its noun.</say>
+    <say>The scores behind that row are inner products. The second figure replaces the heat map with the actual queries and keys of this head: a row of its left panel is a token's query, a column of its right panel is a token's key. The score of animal for it comes from the two outlined vectors: each is first rotated by an angle that depends on its position, a way of encoding word order that we meet in a few slides, and the score is the inner product of the rotated vectors, divided by the square root of their length.</say>
+  </narration>
+</section>
+
+<!-- 38 -->
+<section class="dense">
+  <h2>Multi-head attention</h2>
+  <!-- the eight heads are the ones Intro to ML's L20 picked (generate_l20_figures.py) -->
+  <div class="figimg fig" style="padding-top:30px"><img src="img/L20-attention-head-specialization.png" width="680" alt="Eight attention heads of SmolLM2 on the same sentence"></div>
+  <column>
+    <p class="opener">A layer runs several attention computations side by side; each is called a head.</p>
+    <p>Head $h$ has its own $\mW_Q^{(h)},\mW_K^{(h)},\mW_V^{(h)}$ (SmolLM2 shares 3 key and value heads among its 9 query heads); the heads' outputs are stacked into one vector and multiplied by an output matrix $\mW_O$.</p>
+    <p>SmolLM2 has 30 layers of 9 heads, 270 in all; left, eight on one sentence, chosen for their distinct patterns.</p>
+    <alertblock pause title="Different heads attend in different patterns" class="small">One links the pronoun to its noun; others watch the previous or the first word.</alertblock>
+  </column>
+  <narration>
+    <say>A layer runs several attention computations side by side, each called a head, each with its own query, key and value matrices; their outputs are joined into one vector by an output matrix. SmolLM2 saves memory by letting each group of three query heads share one key and one value matrix. On the left is a selection of SmolLM2's heads on the same sentence, picked to show different patterns.</say>
+    <say>Different heads learn different patterns. One head links the pronoun to its noun, another looks at the previous token, another sends nearly all its weight to the first token, and others spread their weight broadly. Every layer of SmolLM2 has its own set of heads, so the model has hundreds of them.</say>
+  </narration>
+</section>
+
+<!-- 39 -->
+<section class="dense">
+  <h2>The causal mask</h2>
+  <column>
+    <p class="opener">A language model predicts each token from the ones before it, so attention must not look ahead.</p>
+    <p style="margin-bottom:6px">With the scores $s_{ij}=\langle\cq{\bq_i},\ck{\bk_j}\rangle/\sqrt d$ of slide 34, set</p>
+    \[\begin{aligned}&s_{ij}=-\infty\ \text{for}\ j>i\ \text{(before the softmax)},\\&\text{so}\ e^{s_{ij}}=0\ \text{and}\ \cat{\alpha_{ij}}=0.\end{aligned}\]
+    <p>Right: slide 34's weights, without the mask.</p>
+    <p pause="m=1">With the mask, they become lower triangular.</p>
+    <p pause="pr=1">One pass over a text gives every $p(w_t\mid w_{1:t-1})$, so the loss $\cL=-\sum_t\ln p(w_t\mid w_{1:t-1})$ comes from all positions at once.</p>
+    <alertblock pause title="The chain rule is built into the network" class="small">Every factor of $p(w_{1:n})=\prod_tp(w_t\mid w_{1:t-1})$ (Sec. 1.3) comes from one pass.</alertblock>
+  </column>
+  <fig name="mask" init="m=0 pr=0"></fig>
+  <narration>
+    <say>A language model predicts each token from the ones before it, so during training a position must not see the words that follow it. The causal mask enforces this. The scores are the query-key products of slide thirty-four, divided by the square root of d; before the softmax, every score for a later position is set to minus infinity, so its exponential, and its weight, are zero. On the right are the attention weights of the season example, one row per position, still without the mask.</say>
+    <say>With the mask, everything above the diagonal is zero, and each row spreads its weight over the current and earlier positions only. The first word can attend only to itself.</say>
+    <say>Because each row sees only its past, the output at each position can predict the next token from exactly the tokens so far. One pass over a training text gives the predicted probability of every token from its prefix, and the loss, the sum of the negative log probabilities, is computed for all positions at once.</say>
+    <say>This is the chain rule of Section 1.3 built into the network: every factor of the probability of the text, each token given its prefix, comes out of the same forward pass.</say>
+  </narration>
+</section>
+
+<!-- 40 -->
+<section class="dense">
+  <h2>Positional encoding</h2>
+  <column>
+    <p class="opener">Attention so far ignores where each word sits, so word order must be supplied separately.</p>
+    <p>Without the mask, attention treats its inputs as a set: permuting the inputs permutes the outputs and changes nothing else. Right: slide 34's weights from “spring” and its new vector.</p>
+    <p pause="r=1">Reversed, “blooms season spring The”: “spring” puts the same weights on the same words and gets the same new vector.</p>
+    <div pause>
+      <p style="margin-bottom:8px">So position $t$ is encoded, by</p>
+      <ul class="plain">
+        <li>a learned vector $\bp_t$ added to $\bx_t$;</li>
+        <li>sinusoids of $t$ (Vaswani et al. 2017);</li>
+        <li>queries and keys rotated by angles proportional to $t$ (rotary embeddings, used by Meta's Llama 2 models and SmolLM2).</li>
+      </ul>
+    </div>
+  </column>
+  <fig name="perm" init="r=0"></fig>
+  <narration>
+    <say>Attention by itself ignores word order. Without the mask, each output is a weighted average whose weights depend only on the vectors, not on where the words sit, so shuffling the words shuffles the outputs and changes nothing else. Dog bites man and man bites dog would look the same. On the right is the season example: the weights that spring puts on each word, and its new vector.</say>
+    <say>In the season example with the words reversed, spring puts the same weights on the same words and gets the same new vector.</say>
+    <say>So order has to be added. The usual ways add a position vector to each input, learned or built from sinusoids of the position, or rotate each query and key by an angle that grows with the position, so that the score between two words depends on how far apart they are.</say>
+  </narration>
+</section>
+
+<!-- 41 -->
+<section class="dense">
+  <h2>Contextual vectors in SmolLM2</h2>
+  <column>
+    <p class="opener">Stacked attention layers give each token a vector that depends on its context.</p>
+    <table class="vals sent">
+      <tbody><tr><td>C1</td><td>The old couch had a broken spring</td></tr><tr><td>C2</td><td>The mattress squeaks because of a loose spring</td></tr>
+        <tr><td>S1</td><td>The flowers bloom every year in spring</td></tr><tr><td>S2</td><td>Birds return to the north every spring</td></tr>
+        <tr><td>W1</td><td>We drank cold water from a mountain spring</td></tr><tr><td>W2</td><td>The village gets its water from a natural spring</td></tr></tbody>
+    </table>
+    <p>SmolLM2's vectors at the final “spring”: as token embeddings, identical (left).</p>
+    <p pause="r=1">After 12 of its 30 layers, cosines of 0.92 to 0.97 within a sense and 0.74 to 0.82 across senses (right).</p>
+    <p pause><alert>Question:</alert> How are attention layers assembled into a model that predicts, and generates, text?</p>
+  </column>
+  <fig name="ctxvec" init="r=0"></fig>
+  <narration>
+    <say>Do stacked attention layers really give a word a vector that depends on its context? Here SmolLM2 reads six sentences that end in spring, two for each sense: a coil, a season and a water source. The left grid compares the six vectors at spring as the model first looks them up, before any attention layer: they are the same vector, the static embedding.</say>
+    <say>Partway through the model's layers, the six vectors differ, and they differ by sense: the two coil sentences give nearly the same vector, as do the two season sentences and the two water sentences, while vectors of different senses are further apart. Attention over the earlier words has turned one static vector into a vector for each meaning.</say>
+    <say>The remaining question is how attention layers are assembled into a full model that predicts the next token and generates text.</say>
+  </narration>
+</section>
+
+<!-- 42 -->
+<section id="sec-tr" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=2 b=3 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Attention done: the map pulls back and enters the transformer and generation.</notes>
+  <narration>
+    <say>That completes attention. A softmax of query and key scores weights the values, the causal mask keeps each position from seeing the future, and position information supplies the order.</say>
+    <say>Next we stack attention into a transformer and use it to generate text.</say>
+  </narration>
+</section>
+
+<!-- 43 -->
+<section>
+  <h2>The transformer block</h2>
+  <column>
+    <p class="opener">A transformer stacks $L$ blocks of the same form, one per layer, and every block contains masked multi-head attention.</p>
+    <p style="margin-bottom:8px">A block has two parts:</p>
+    <ol class="steps">
+      <li>masked multi-head attention;</li>
+      <li>an MLP (the neural-networks lecture) at each position;</li>
+    </ol>
+    <p>each with a residual connection, $\bx+f(\bx)$ for the part $f$, and layer normalization (each vector rescaled to mean 0 and variance 1 across its coordinates). The last layer is softmax regression over the vocabulary.</p>
+    <p pause="pa=1">Parameters per block, of width $d$: attention $4d^2$, MLP $8d^2$, so about $12d^2$.</p>
+    <p pause>With $d=4096$ and $L=32$, $32\times12d^2\approx6.4$B; with the embeddings, about $6.7$B: the shape of Llama 2 7B.</p>
+  </column>
+  <fig name="block" init="pa=0"></fig>
+  <drawer>
+    <p class="dk1">Attention: $\mW_Q,\mW_K,\mW_V$ (all heads together) and the output matrix $\mW_O$ are $d\times d$ each: $4d^2$.</p>
+    <p class="dk2">MLP: $d\to4d\to d$, two matrices of $4d^2$ each: $8d^2$. Biases and normalization add only multiples of $d$.</p>
+    <p>At $d=4096$: $12d^2=201{,}326{,}592$ per block, $6{,}442{,}450{,}944$ for 32 blocks.</p>
+    <p>Llama 2 7B's configuration (hidden size 4,096; 32 layers; MLP width 11,008 with three matrices; vocabulary 32,000): attention $4d^2=67.1$M and MLP $3\times4096\times11{,}008=135.3$M per block, $202.4$M in all; $6.48$B for 32 blocks; input and output embeddings $2\times32{,}000\times4{,}096=0.26$B; total $6.74$B.</p>
+    <p>Llama 2's paper: “apply pre-normalization using RMSNorm (Zhang and Sennrich, 2019), use the SwiGLU activation function (Shazeer, 2020)”. RMSNorm rescales each vector without subtracting its mean; SwiGLU is why its MLP has three matrices.</p>
+  </drawer>
+  <narration>
+    <say>A transformer is a stack of blocks of the same form, one per layer. Each block has two parts. Masked multi-head attention lets each position gather information from the positions before it. Then a small neural network, the MLP, processes each position on its own. Each part adds its output to its input, a residual connection, so information can pass through the block unchanged, and a layer normalization keeps the vectors at a stable scale. After the last block, a linear layer and a softmax give the next-token probabilities: the softmax regression of Chapter 6.</say>
+    <say>Where are the parameters? Attention needs four square matrices of the model's width, for queries, keys, values and the output that joins the heads. The MLP widens each vector fourfold and narrows it back, which takes twice as many. That is where the count on the slide comes from.</say>
+    <say>With the width and depth of Llama 2's smallest model, the blocks give the count on the slide, and the token embeddings at the input and the output add the rest. This is the size behind the name of a seven-billion-parameter model.</say>
+  </narration>
+</section>
+
+<!-- 44 -->
+<section>
+  <h2>The KV cache</h2>
+  <column>
+    <p class="opener">Generating text runs the transformer once per new token, and the causal mask lets most of that work be reused.</p>
+    <p>With the mask, earlier positions never see later ones, so their keys and values never change.</p>
+    <p pause="c=1">They are stored, in the KV cache: each new token computes its own query, key and value, attends to the cache, and joins it.</p>
+    <p pause="s=1">Memory per token: $2\times\text{layers}\times\text{width}$ numbers. In 16-bit numbers, with 32 layers of width 4,096: 0.5 MB per token, and 2 GB for a context of 4,096 tokens.</p>
+  </column>
+  <fig name="kv" init="c=0 s=0"></fig>
+  <narration>
+    <say>Generation runs the model once per new token. Because of the causal mask, the keys and values of earlier tokens do not change when a token is appended, so recomputing them would be wasted work.</say>
+    <say>The model stores them, in what is called the KV cache. Each new token computes its own query, key and value, attends to everything in the cache, and adds its key and value to it, as the next step on the right shows.</say>
+    <say>Once rain is processed, its key and value join the cache, and the next token, today, attends to all four. The cache grows with every token, and the price is memory. Every token stores one key and one value in every layer, each as long as the model's width. For a model the size of Llama 2's smallest, that gives the amount on the slide per token, and a few thousand tokens of context fill gigabytes. Memory grows in proportion to the length of the context.</say>
+  </narration>
+</section>
+
+<!-- 45 -->
+<section class="dense">
+  <h2>Attention over long contexts</h2>
+  <column>
+    <p class="opener">Each new token attends to the whole context, so a relevant token competes with every other one.</p>
+    <p style="margin-bottom:6px">Toy scores, in a context of $n$ tokens: one relevant key at 3, the other $n-1$ at $-2$. Its weight:</p>
+    \[\cat{\alpha}=\frac{e^3}{e^3+(n-1)e^{-2}}=\frac{1}{1+(n-1)e^{-5}}.\]
+    <table class="vals tight">
+      <thead><tr><th>$n$</th><th>10</th><th>100</th><th>1,000</th><th>10,000</th></tr></thead>
+      <tbody><tr><td>$\cat{\alpha}$</td><td>0.94</td><td>0.60</td><td>0.13</td><td>0.015</td></tr></tbody>
+    </table>
+    <p pause="g=1">Keeping $\cat{\alpha}=\frac12$ needs a score gap of $\ln(n-1)$, growing with the context.</p>
+    <p pause>Measured: on NoLiMa (2025), a benchmark of finding a fact in a long text where the fact and the question share few words, the accuracy of OpenAI's GPT-4o falls from an almost perfect 99.3% to 69.7% at 32K tokens.</p>
+  </column>
+  <fig name="dilute" init="g=0"></fig>
+  <knob param="ln" min="1" max="4.3" step="0.01"><span>$n$ (log scale)</span> <span class="ro v-n"></span></knob>
+  <narration>
+    <say wait>Attention weights are a softmax over every position in the context, so a relevant token competes with all the others. In this toy, one key matches the query well and all the others match poorly, by a fixed margin. As the context grows, the many weak matches together take over: the relevant key's weight, plotted on the right, falls from nearly all of the attention to a small share. Try the slider before going on.</say>
+    <say>To hold the relevant key at half the weight, its score must beat the others by the log of the number of competitors, so the scores have to grow with the context length.</say>
+    <say>The effect shows up in measurements of current models. In the NoLiMa benchmark, where the needed fact and the question share few words, the accuracy of OpenAI's GPT-4o falls from near perfect on short inputs to far below it on long ones.</say>
+  </narration>
+</section>
+
+<!-- 46 -->
+<section class="dense">
+  <h2>Autoregressive generation and temperature</h2>
+  <column>
+    <p class="opener">Generation runs the chain rule of Sec. 1.3 forward, one sampled token at a time.</p>
+    \[p(w_{1:n})=\prod_{t=1}^np(w_t\mid w_{1:t-1})\]
+    <p pause="sp=1" data-fragment-index="1">Generate: sample $w_t$ from $p(\cdot\mid w_{1:t-1})$, append it, repeat.</p>
+    <div pause="tp=1" data-fragment-index="2">
+      <p style="margin-bottom:4px">Temperature $T>0$ divides the logits $z_k$ (Ch. 6): $\;\cpd{p_T(k)}=\dfrac{e^{z_k/T}}{\sum_je^{z_j/T}}$.</p>
+    </div>
+    <div class="swap">
+      <table class="vals tight current-visible" pause data-fragment-index="2">
+        <thead><tr><th>$T$</th><th>rain</th><th>snow</th><th>clear</th></tr></thead>
+        <tbody><tr><td>1</td><td>0.5</td><td>0.25</td><td>0.25</td></tr></tbody>
+      </table>
+      <table class="vals tight current-visible" pause="lT=-0.30103" data-fragment-index="3">
+        <thead><tr><th>$T$</th><th>rain</th><th>snow</th><th>clear</th></tr></thead>
+        <tbody><tr><td>1/2</td><td>0.667</td><td>0.167</td><td>0.167</td></tr><tr><td>1</td><td>0.5</td><td>0.25</td><td>0.25</td></tr></tbody>
+      </table>
+      <table class="vals tight" pause="lT=0.30103" data-fragment-index="4">
+        <thead><tr><th>$T$</th><th>rain</th><th>snow</th><th>clear</th></tr></thead>
+        <tbody><tr><td>1/2</td><td>0.667</td><td>0.167</td><td>0.167</td></tr><tr><td>1</td><td>0.5</td><td>0.25</td><td>0.25</td></tr><tr><td>2</td><td>0.414</td><td>0.293</td><td>0.293</td></tr></tbody>
+      </table>
+    </div>
+  </column>
+  <fig name="gen" init="sp=0 tp=0 lT=0"></fig>
+  <narration>
+    <say>Generation is the chain rule run forward. The probability of a text is the product of each token's probability given the tokens before it, and the transformer computes each of those factors.</say>
+    <say>To generate, the model computes the distribution of the next token, samples one, appends it to the context, and repeats, as the loop on the right shows. Each step reuses the KV cache.</say>
+    <say>Temperature, from Chapter 6, reshapes each next-token distribution by dividing the logits by T before the softmax. At T equal to one we sample from the model itself; the bars use the toy rain, snow and clear logits from that chapter.</say>
+    <say>Below one, temperature sharpens the distribution toward the most probable token; as T goes to zero, sampling becomes picking the most probable token every time.</say>
+    <say>Above one, it flattens the distribution toward uniform, so less likely tokens appear more often. Other decoding rules, and why the most probable text is not typical text, come in the lecture on decoding.</say>
+  </narration>
+</section>
+
+<!-- 47 -->
+<section class="samples dense">
+  <h2>Sampling SmolLM2 at three temperatures</h2>
+  <p class="opener">On a real model, temperature trades predictable text for varied text.</p>
+  <p>SmolLM2-135M-Instruct continues “Tomorrow it will” for 20 tokens, sampling from its full next-token distribution, with the same random seed each time; ↵ is a line break.</p>
+  <div class="altcard"><div class="al">$T=1/2$</div><div class="s">Tomorrow it will be a happy Sunday to you.↵↵[Warm welcome to the church, please.]↵</div>
+    <div class="b">its perplexity under the model: 7.3</div></div>
+  <div class="altcard" pause><div class="al">$T=1$</div><div class="s">Tomorrow it will reflect on yourself and share any insights that have been gained.↵↵Step 1: Create a</div>
+    <div class="b">11.7</div></div>
+  <div class="altcard" pause><div class="al">$T=3/2$</div><div class="s">Tomorrow it will reflect them yourself warmly in any future interaction with this interview.”↵msg (no response saved rep =&gt;</div>
+    <div class="b">about 640</div></div>
+  <p pause><alert>Question:</alert> A model of 135 million parameters writes fluent but aimless text; what do more parameters and more training text change?</p>
+  <narration>
+    <say>Here is what temperature does on a real model. SmolLM2 continues the words Tomorrow it will, sampling each token from its full distribution, and the random seed is the same each time, so only the temperature changes. At one half, the text is fluent and safe. Under each sample is its perplexity per token, measured by the model itself at temperature one: lower means the model finds the text more probable.</say>
+    <say>At temperature one, the model samples from its own distribution. The text is still fluent but wanders.</say>
+    <say>At three halves, low-probability tokens take over, the text falls apart, and its perplexity under the model is far higher.</say>
+    <say>That finishes the transformer. This small model writes fluent but aimless text. What more parameters and more training text change, and what they cannot, is the subject of the next lecture.</say>
+  </narration>
+</section>
+
+<!-- 48 -->
+<section>
+  <h2>Summary</h2>
+  <div class="fbody" style="top:100px">
+    <div class="sumrow"><svg class="icon" data-icon="tok" width="110" height="64"></svg>
+      <div>Byte pair encoding builds the vocabulary by counting: frequent strings become tokens, rare words stay in pieces; models with different tokenizers are compared by perplexity per word.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="emb" width="110" height="64"></svg>
+      <div>CBOW and skip-gram are softmax and logistic regression with learned features; SGNS inner products estimate $\PMI-\ln k$, on a real text too.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="att" width="110" height="64"></svg>
+      <div>Attention: a softmax of query and key scores weights the values; the causal mask computes every conditional in one pass.</div></div>
+    <div class="sumrow"><svg class="icon" data-icon="tr" width="110" height="64"></svg>
+      <div>A transformer stacks blocks of about $12d^2$ parameters; generation samples one token at a time from the chain rule.</div></div>
+    <p>Tokens come from counting, embeddings from PMI, attention from a softmax, and generation from the chain rule.</p>
+    <p><alert>Next:</alert> pretraining: scaling laws, in-context learning, and what pretraining can and cannot store.</p>
+  </div>
+  <narration>
+    <say>Byte pair encoding builds the vocabulary by counting pairs, so frequent strings become single tokens. Embeddings are learned by softmax or logistic regression on contexts, and their inner products estimate pointwise mutual information minus the log of k. Attention averages value vectors with softmax weights from queries and keys, and the causal mask turns one pass into every conditional of the chain rule. A transformer stacks these blocks, and generation samples from them one token at a time. Each piece is a tool from earlier in the course. The next lecture turns to pretraining: scaling laws, in-context learning, and what pretraining can and cannot store.</say>
+  </narration>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="deckmap.js"></script>
+<script src="data.js"></script>
+<script src="figs.js"></script>
+<script>startDeck();</script>
+</body>
+</html>
