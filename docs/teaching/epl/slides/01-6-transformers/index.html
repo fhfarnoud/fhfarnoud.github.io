@@ -180,12 +180,19 @@ ul.plain li { margin: 0 0 6px; }
   <column>
     <p class="opener">Real tokenizers learn tens of thousands of merges from a large sample of text, and their pieces decide what a model sees.</p>
     <p>Meta's open Llama 3 language models use a vocabulary of 128K tokens; SmolLM2's (right) has 49,152.</p>
-    <p pause="r=1">Where a word is cut depends on how often its pieces appeared in the tokenizer's training text, not on its parts: strawberry is one token, Strawberry two, and three at the start of a sentence, where no space precedes it; unbelievably is cut into pieces that are not its parts. Digits are single tokens.</p>
+    <div pause="r=1">
+      <p style="margin-bottom:8px">Where a word is cut depends on how often its pieces appeared in the tokenizer's training text, not on its morphology:</p>
+      <ul class="plain">
+        <li>strawberry is one token, Strawberry two;</li>
+        <li>unbelievably is cut into pieces that do not follow its morphology;</li>
+        <li>digits are single tokens.</li>
+      </ul>
+    </div>
   </column>
   <fig name="toks" init="r=0"></fig>
   <narration>
     <say>Tokenization decides what the model actually sees. Vocabularies in current models are large, over a hundred thousand tokens in Llama 3, built by merges like these from a large sample of text in many languages. Another common tokenizer, the unigram tokenizer, is instead a probability model over pieces, fit by the EM algorithm of Chapter 7. On the right, a sentence of common words, cut by SmolLM2's tokenizer: each word is one token.</say>
-    <say>Where a word is cut depends on how often its pieces appeared in the tokenizer's training text, not on the word's parts. In this tokenizer, strawberry in lower case is a single token. With a capital letter it becomes two, and at the start of a sentence, where no space comes before it, three. So the same word can reach the model as different tokens, and the model has to learn that they mean the same thing. An unusual word is cut into pieces that are not its parts, and the digits of a number are separate tokens. The model receives tokens, not letters.</say>
+    <say>Where a word is cut depends on how often its pieces appeared in the tokenizer's training text, not on the word's morphology. In this tokenizer, strawberry in lower case is a single token. With a capital letter it becomes two. So the same word can reach the model as different tokens, and the model has to learn that they mean the same thing. An unusual word is cut into pieces that do not follow its morphology, and the digits of a number are separate tokens. The model receives tokens, not letters.</say>
   </narration>
 </section>
 

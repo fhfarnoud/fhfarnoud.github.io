@@ -266,10 +266,9 @@ FIGS.bpeApply = {
 // ---------------------------------------------------------------- slide 7: tokenization in practice
 // Splits by SmolLM2's tokenizer (HuggingFaceTB/SmolLM2-135M-Instruct, 49,152 tokens), computed in Python.
 const TOK_A = ['The', ' spring', ' season', ' blooms', '.'];
-// 'Strawberry' with no space before it, as at the start of a sentence, is St + raw + berry
-const TOK_B = [[' strawberry'], [' Straw', 'berry'], ['St', 'raw', 'berry'], [' unbelie', 'v', 'ably'], [' ', '1', '2', '3', '4', '5', '6', '7', '8']];
+const TOK_B = [[' strawberry'], [' Straw', 'berry'], [' unbelie', 'v', 'ably'], [' ', '1', '2', '3', '4', '5', '6', '7', '8']];
 FIGS.toks = {
-  size: [560, 470],
+  size: [560, 418],
   draw(g, p) {
     const r = p.r ?? 0, soft = { fill: '#e9eef7', stroke: C.prior };
     g.label('ha', sm('common words: one token each', 19), [0, 22], 'l', { color: '#555' });
@@ -278,11 +277,11 @@ FIGS.toks = {
     g.group({ opacity: r >= 1 ? 1 : 0 }, () => {
       TOK_B.forEach((t, i) => tokenRow(g, 0, 186 + i * 52, t, { size: 19, gap: 5, style: () => soft }));
     });
-    g.label('hb', sm('the cut follows the counts, not the word’s parts', 19), [0, 148], 'l', { color: '#555', opacity: r >= 1 ? 1 : 0 });
+    g.label('hb', sm('the cut follows the counts, not the word’s morphology', 19), [0, 148], 'l', { color: '#555', opacity: r >= 1 ? 1 : 0 });
     // left-anchored: a label anchored at its right end in a body figure shrinks every printed page
-    ['1 token', '2 tokens', '3 tokens', '3 tokens', '9 tokens'].forEach((s, i) =>
+    ['1 token', '2 tokens', '3 tokens', '9 tokens'].forEach((s, i) =>
       g.label('nb' + i, sm(s, 19), [470, 186 + i * 52], 'l', { color: '#555', opacity: r >= 1 ? 1 : 0 }));
-    g.label('cap', sm(`SmolLM2’s tokenizer (49,152 tokens); <span style="font-family:${MONO}">␣</span> is a space`, 17), [0, 446], 'l', { color: '#666' });
+    g.label('cap', sm(`SmolLM2’s tokenizer (49,152 tokens); <span style="font-family:${MONO}">␣</span> is a space`, 17), [0, 394], 'l', { color: '#666' });
   }
 };
 
