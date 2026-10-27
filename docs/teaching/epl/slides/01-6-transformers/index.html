@@ -48,6 +48,8 @@ ul.plain li { margin: 0 0 6px; }
 .tk { font-family: Menlo, 'DejaVu Sans Mono', monospace; font-size: 0.88em; background: #f4f2ee; border: 1px solid #c9c3b8; border-radius: 5px; padding: 0 4px; }
 .knobs .ro { font-variant-numeric: tabular-nums; min-width: 12em; display: inline-block; }
 .knobs input[data-param="ln"] + output { display: none; }
+/* sliders wider than their figure wrap at the figure's width instead of taking the column's */
+.knobwrap .knobs { flex-wrap: wrap; row-gap: 6px; max-width: var(--kw); }
 /* full slides: tighter vertical rhythm */
 .dense .fbody p { margin-bottom: 10px; }
 .dense .fbody .katex-display { margin: 8px 0; }
@@ -277,13 +279,20 @@ ul.plain li { margin: 0 0 6px; }
 </section>
 
 <!-- 12 -->
-<section>
+<section class="dense">
   <h2>The distributional hypothesis</h2>
   <column>
     <p class="opener">Vectors in which similar words are close need a notion of when two words are similar, and linguistics supplies one.</p>
     <block title="J. R. Firth, 1957"><span class="quote">“You shall know a word by the company it keeps!”</span></block>
     <p>The distributional hypothesis: words that occur in similar contexts tend to have similar meanings.</p>
-    <p pause="pt=1"><b>Goal:</b> a vector $\bu_w\in\bbR^D$ for every word $w$, $D$ from 50 to 300, with similar words close together. In real word vectors learned from Wikipedia and news text (right), closeness (cosine similarity, next slide) is graded: from “cat”, dog 0.88, kitten 0.56, car 0.31, truck 0.23.</p>
+    <div pause="pt=1">
+      <p style="margin-bottom:8px"><b>Goal:</b> a vector $\bu_w\in\bbR^D$ for every word $w$, with similar words close together:</p>
+      <ul class="plain">
+        <li>the dimension $D$ is typically 50 to 300;</li>
+        <li>in real word vectors learned from Wikipedia and news text (right), closeness (cosine similarity, next slide) is graded;</li>
+        <li>from “cat”: dog 0.88, kitten 0.56, car 0.31, truck 0.23.</li>
+      </ul>
+    </div>
     <p pause>Two questions: how to measure closeness, and how to learn the vectors from text.</p>
   </column>
   <fig name="catcos" init="pt=0"></fig>
@@ -474,13 +483,20 @@ ul.plain li { margin: 0 0 6px; }
 </section>
 
 <!-- 20 -->
-<section class="dense">
+<section class="dense knobwrap" style="--kw:520px">
   <h2>Training CBOW by gradient descent</h2>
   <column>
     <p class="opener">Training starts from random context vectors (in gensim, a widely used open-source word2vec library, output vectors at zero) and takes one step of size $\eta$ per blank:</p>
     \[\bu_w\leftarrow\bu_w-\eta\,\nabla_{\bu_w}\cL,\qquad\bc_{w_j}\leftarrow\bc_{w_j}-\tfrac{\eta}{m}\,\nabla_{\bh}\cL,\]
     <p>the same step for every context word $j=1,\dots,m$ of the blank.</p>
-    <p pause="s1=1">One step on slide 16's blank, $\eta=0.5$: $\bu_{\text{oranges}}$ becomes $(0.786,0.575,0.252)$ and $\bu_{\text{laptops}}$ $(0.014,0.125,0.848)$, every context vector moves by the same $(0.034,0.017,-0.040)$, and $p(\text{oranges}\mid\text{context})$ rises from 0.541 to 0.589.</p>
+    <div pause="s1=1">
+      <p style="margin-bottom:8px">One step on slide 16's blank, $\eta=0.5$:</p>
+      <ul class="plain">
+        <li>$\bu_{\text{oranges}}$ becomes $(0.786,0.575,0.252)$ and $\bu_{\text{laptops}}$ $(0.014,0.125,0.848)$;</li>
+        <li>every context vector moves by the same $(0.034,0.017,-0.040)$;</li>
+        <li>$p(\text{oranges}\mid\text{context})$ rises from 0.541 to 0.589.</li>
+      </ul>
+    </div>
   </column>
   <fig name="ctx3dstep" init="az=-44 el=32 s1=0"></fig>
   <knob param="az" min="-180" max="180" step="1" digits="0">azimuth</knob>
@@ -496,7 +512,7 @@ ul.plain li { margin: 0 0 6px; }
 </section>
 
 <!-- 21 -->
-<section class="dense">
+<section class="dense knobwrap" style="--kw:700px">
   <h2>Training CBOW from a random start</h2>
   <column>
     <p class="opener">The same training, started from random vectors on a toy corpus, groups words that keep the same company.</p>
@@ -542,7 +558,11 @@ ul.plain li { margin: 0 0 6px; }
   <h2>Skip-gram with negative sampling</h2>
   <column>
     <p class="opener">Negative sampling replaces CBOW's sum over the whole vocabulary by a few random words.</p>
-    <p>Skip-gram predicts each context word $c$ of a word $w$ (a word within the window around $w$ in its sentence) from $w$. With negative sampling (SGNS), this is logistic regression on (word, context) pairs: label 1 for a pair from the text, 0 for each of $k$ pairs with a random context:</p>
+    <p style="margin-bottom:8px">Skip-gram predicts each context word $c$ of a word $w$ from $w$; with negative sampling (SGNS), this is logistic regression on (word, context) pairs:</p>
+    <ul class="plain">
+      <li>a context word of $w$ is a word within the window around $w$ in its sentence;</li>
+      <li>label 1 for a pair from the text, 0 for each of $k$ pairs with a random context:</li>
+    </ul>
     \[p(\text{label}=1\mid w,c)=\sigma(\langle\bu_w,\bc_c\rangle),\]
     <p>with $\sigma$ the sigmoid (Ch. 6) and $\bc_c$ the context vector of $c$.</p>
     <div pause>
@@ -611,7 +631,14 @@ ul.plain li { margin: 0 0 6px; }
   <h2>Nearest neighbours and clusters of GloVe vectors</h2>
   <column>
     <p class="opener">Trained on a large corpus, such vectors group words by topic and arrange them along shared directions.</p>
-    <p>The vectors of slide 12 come from GloVe (Pennington, Socher and Manning 2014), a related model fit to word co-occurrence counts: 100 coordinates for each of 400,000 words, trained on Wikipedia 2014 and the Gigaword 5 news corpus. Nearest words to “soccer” by cosine: football 0.87, basketball 0.80, volleyball 0.77, hockey 0.74, league 0.74.</p>
+    <div>
+      <p style="margin-bottom:8px">The vectors of slide 12 come from GloVe (Pennington, Socher and Manning 2014), a related model fit to word co-occurrence counts:</p>
+      <ul class="plain">
+        <li>100 coordinates for each of 400,000 words;</li>
+        <li>trained on Wikipedia 2014 and the Gigaword 5 news corpus.</li>
+      </ul>
+    </div>
+    <p>Nearest words to “soccer” by cosine: football 0.87, basketball 0.80, volleyball 0.77, hockey 0.74, league 0.74.</p>
     <div class="swap">
       <p class="current-visible" pause="v=0 a=1" data-fragment-index="1">Right, 32 words of four groups: each is closer to its own group's average vector than to any other group's, in all 100 coordinates.</p>
       <p pause="v=1" data-fragment-index="2">Right, 34 capitals and their countries: the first direction separates Europe from Asia for 67 of the 68 words, the second cities from countries for 67 of 68.</p>
@@ -726,7 +753,8 @@ ul.plain li { margin: 0 0 6px; }
     </div>
   </column>
   <fig name="wavg" init="set=0 pt=0 w=0 n=0"></fig>
-  <p class="under" pause data-fragment-index="2" style="width:470px;margin:0">Spring's own vector is not lost to its small weight: a transformer block adds this output to it, $\bx+f(\bx)$ (slide 43). How much a token attends to itself varies by head.</p>
+  <p class="under" pause data-fragment-index="2" style="width:470px;margin:0">Spring's own vector is not lost to its small weight: a transformer block adds this output to it, $\bx+f(\bx)$ (slide 43).</p>
+  <p class="under" pause data-fragment-index="2" style="width:470px;margin:6px 0 0">How much a token attends to itself varies by head.</p>
   <narration>
     <say>Attention builds a new vector for each word as a weighted average of the vectors of all the words in the sentence. The weights are nonnegative and add to one, so for each word they form a probability distribution over the positions of the sentence, and the new vector is the expected value of the vectors under that distribution.</say>
     <say>Take the phrase old spring couch soft, with the two-dimensional vectors on the right. Suppose spring puts most of its weight on couch and soft. For now these weights are given; we will compute them shortly. The area of each circle is proportional to its weight.</say>
@@ -848,7 +876,13 @@ ul.plain li { margin: 0 0 6px; }
     <p class="opener">A trained model computes these weights with learned matrices, and they can be read off for a real sentence.</p>
     <p>SmolLM2-135M-Instruct on “The animal didn't cross the street because it was too tired”, layer 13, head 8.</p>
     <p>First figure: row $i$ holds the weights $\cat{\balpha_i}$ of token $i$; the row of “it” puts 73% of its weight on “animal”.</p>
-    <p pause data-fragment-index="1">The second figure, which replaces it, shows the queries and keys behind those weights. The score $\langle\cq{\bq}_{\text{it}},\ck{\bk}_{\text{animal}}\rangle/\sqrt{64}$ is computed from the two outlined vectors after the rotation that encodes position (slide 40).</p>
+    <div pause data-fragment-index="1">
+      <p style="margin-bottom:8px">The second figure, which replaces it, shows the queries and keys behind those weights:</p>
+      <ul class="plain">
+        <li>the score $\langle\cq{\bq}_{\text{it}},\ck{\bk}_{\text{animal}}\rangle/\sqrt{64}$ is computed from the two outlined vectors;</li>
+        <li>both vectors are taken after the rotation that encodes position (slide 40).</li>
+      </ul>
+    </div>
   </column>
   <narration>
     <say>Does a trained model attend the way a reader does? This heat map comes from SmolLM2, a small open model with 135 million parameters, reading a sentence in which "it" refers to the animal. Each row is one token, and its cells are that token's attention weights over the tokens so far. In this head, the row of "it" puts most of its weight on animal: the model has learned to link the pronoun to its noun.</say>
@@ -863,7 +897,13 @@ ul.plain li { margin: 0 0 6px; }
   <div class="figimg fig" style="padding-top:30px"><img src="img/L20-attention-head-specialization.png" width="680" alt="Eight attention heads of SmolLM2 on the same sentence"></div>
   <column>
     <p class="opener">A layer runs several attention computations side by side; each is called a head.</p>
-    <p>Head $h$ has its own $\mW_Q^{(h)},\mW_K^{(h)},\mW_V^{(h)}$ (SmolLM2 shares 3 key and value heads among its 9 query heads); the heads' outputs are stacked into one vector and multiplied by an output matrix $\mW_O$.</p>
+    <div>
+      <p style="margin-bottom:8px">Head $h$ has its own $\mW_Q^{(h)},\mW_K^{(h)},\mW_V^{(h)}$:</p>
+      <ul class="plain">
+        <li>SmolLM2 shares 3 key and value heads among its 9 query heads;</li>
+        <li>the heads' outputs are stacked into one vector and multiplied by an output matrix $\mW_O$.</li>
+      </ul>
+    </div>
     <p>SmolLM2 has 30 layers of 9 heads, 270 in all; left, eight on one sentence, chosen for their distinct patterns.</p>
     <alertblock pause title="Different heads attend in different patterns" class="small">One links the pronoun to its noun; others watch the previous or the first word.</alertblock>
   </column>
