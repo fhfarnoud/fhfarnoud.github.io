@@ -416,33 +416,26 @@ ul.plain li { margin: 0 0 6px; }
 <!-- 18 -->
 <section class="dense">
   <h2>Gradients of the CBOW loss</h2>
-  <column style="flex:1.3 1 0">
+  <column>
     <p class="opener">Training fits every vector by maximum likelihood, one blank at a time, with gradients from the chain rule.</p>
     <p style="margin-bottom:6px">For a blank with hidden word $w^*$, scores $z_w=\langle\bu_w,\bh\rangle$ and their softmax $p(w\mid\text{context})$ over $\cV$:</p>
     \[\cL=-\ln p(w^*\mid\text{context})=-z_{w^*}+\ln\sum_{w'\in\cV}e^{z_{w'}}.\]
-    <div pause data-fragment-index="1">
-      <p style="margin-bottom:6px">Its derivative with respect to a score is the error (Ch. 6), with $I(w=w^*)=1$ only for the hidden word:</p>
-      \[\begin{aligned}\frac{\partial\cL}{\partial z_w}&=-I(w=w^*)+\frac{e^{z_w}}{\sum_{w'}e^{z_{w'}}}\\&=\htmlClass{hl-err}{p(w\mid\text{context})-I(w=w^*)}.\end{aligned}\]
-    </div>
-    <div pause data-fragment-index="2">
-      <p style="margin-bottom:6px">Since $\partial z_w/\partial\bu_w=\bh$, the gradient is error times input:</p>
-      \[\nabla_{\bu_w}\cL=\big(p(w\mid\text{context})-I(w=w^*)\big)\,\bh.\]
-    </div>
-  </column>
-  <column>
-    <block title="Slide 16's blank, hidden word oranges">
-      <p>$\bh=(0.375,\,0.325,\,0.225)$; $p=0.541$ for oranges, $0.459$ for laptops; $\cL=-\ln0.541=0.614$.</p>
-      <p pause data-fragment-index="1">Errors: $0.541-1=-0.459$ for oranges, $0.459$ for laptops.</p>
-      <div pause data-fragment-index="2">
-        <p style="margin-bottom:4px">Output-vector gradients:</p>
-        \[\begin{aligned}\nabla_{\bu_{\text{oranges}}}\cL&=-0.459\,\bh\\&=(-0.172,\,-0.149,\,-0.103),\\\nabla_{\bu_{\text{laptops}}}\cL&=0.459\,\bh\\&=(0.172,\,0.149,\,0.103).\end{aligned}\]
+    <p>To make $\cL$ small, we want the hidden word's score $z_{w^*}$ large and the sum $\sum_{w'}e^{z_{w'}}$ small.</p>
+    <p pause data-fragment-index="1" style="margin-bottom:6px">The derivative of $\cL$ with respect to a score is the error (Ch. 6), and $\partial z_w/\partial\bu_w=\bh$, so:</p>
+    <div style="display:flex;justify-content:space-evenly;align-items:center">
+      <div pause data-fragment-index="1">
+        \[\frac{\partial\cL}{\partial z_w}=\htmlClass{hl-err}{\begin{cases}p(w\mid\text{context})-1,&w=w^*,\\p(w\mid\text{context}),&w\neq w^*,\end{cases}}\]
       </div>
-    </block>
+      <div pause data-fragment-index="2">
+        \[-\nabla_{\bu_w}\cL=\begin{cases}\big(1-p(w\mid\text{context})\big)\,\bh,&w=w^*,\\-p(w\mid\text{context})\,\bh,&w\neq w^*.\end{cases}\]
+      </div>
+    </div>
+    <p pause data-fragment-index="2">Example: in slide 16's blank, hidden word oranges, $-\nabla_{\bu_{\text{oranges}}}\cL=0.459\,\bh$ and $-\nabla_{\bu_{\text{laptops}}}\cL=-0.459\,\bh$.</p>
   </column>
   <narration>
-    <say>Training fits the vectors by maximum likelihood, one blank at a time. The loss of a blank is the negative log of the probability the model gives the hidden word. Written out, it is minus the hidden word's score plus the log of the softmax denominator, a sum over the whole vocabulary. On the right is the store sentence's blank from the last slide: the hidden word is oranges, and the model gives it a little over half of its probability.</say>
-    <say>Now differentiate with respect to one score. The first term gives minus one, for the hidden word only; the second gives that word's softmax probability. Their sum, the predicted probability minus the indicator of the hidden word, is <point to="err">the error</point>, as in softmax regression. In the example, oranges has a negative error, since the model gave it less than certainty, and laptops a positive error of the same size.</say>
-    <say>Each score depends on its own output vector only through an inner product with h, so the gradient for an output vector is its error times h: error times input. In the example the two gradients point in opposite directions along h, so a step against them moves the output vector of oranges toward h and that of laptops away from it.</say>
+    <say>Training fits the vectors by maximum likelihood, one blank at a time. The loss of a blank is the negative log of the probability the model gives the hidden word. Written out, it is minus the hidden word's score plus the log of the softmax denominator, a sum over the whole vocabulary. To make the loss small, we want the hidden word's score large and that sum small. In the store sentence's blank from slide 16, the hidden word is oranges, and the model gives it probability 0.541.</say>
+    <say>Now differentiate with respect to one score. The first term gives minus one, for the hidden word only; the second gives that word's softmax probability. Their sum is <point to="err">the error</point>, as in softmax regression: the predicted probability minus one for the hidden word, and the predicted probability itself for every other word. In that blank, oranges has the error 0.541 minus 1, or minus 0.459, since the model gave it less than certainty, and laptops the positive error 0.459.</say>
+    <say>Each score depends on its own output vector only through an inner product with h, so the gradient for an output vector is its error times h: error times input. Its negative is the direction in which a gradient step moves the vector. In that blank, the negative gradient for oranges points along h and the one for laptops against it, so a step moves the output vector of oranges toward h and that of laptops away from it.</say>
   </narration>
 </section>
 
@@ -453,11 +446,11 @@ ul.plain li { margin: 0 0 6px; }
     <p class="opener">The context vectors are learned by the same gradient descent, through their average $\bh=\frac1m\sum_{j=1}^m\bc_{w_j}$.</p>
     <div pause data-fragment-index="1">
       <p style="margin-bottom:6px">$\bh$ enters every score $z_w=\langle\bu_w,\bh\rangle$:</p>
-      \[\begin{aligned}\nabla_{\bh}\cL&=\sum_{w\in\cV}\big(p(w\mid\text{context})-I(w=w^*)\big)\,\bu_w\\&=\sum_{w\in\cV}p(w\mid\text{context})\,\bu_w-\bu_{w^*}.\end{aligned}\]
+      \[\begin{aligned}-\nabla_{\bh}\cL&=-\sum_{w\in\cV}\frac{\partial\cL}{\partial z_w}\,\bu_w\\&=\bu_{w^*}-\sum_{w\in\cV}p(w\mid\text{context})\,\bu_w.\end{aligned}\]
     </div>
     <div pause data-fragment-index="2">
       <p style="margin-bottom:6px">Each context word's vector gets $1/m$ of it:</p>
-      \[\nabla_{\bc_{w_j}}\cL=\tfrac1m\nabla_{\bh}\cL=\tfrac1m\big(\textstyle\sum_wp(w\mid\text{context})\,\bu_w-\bu_{w^*}\big).\]
+      \[-\nabla_{\bc_{w_j}}\cL=-\tfrac1m\nabla_{\bh}\cL.\]
       <p>A step moves each $\bc_{w_j}$ toward $\bu_{w^*}$ and away from the probability-weighted average of the output vectors.</p>
     </div>
     <p pause data-fragment-index="3">A word's $\bc_w$ is updated in every blank where the word is in the context, so over the corpus it moves toward the output vectors of the words it tends to surround.</p>
@@ -466,18 +459,18 @@ ul.plain li { margin: 0 0 6px; }
     <block title="Slide 16's blank, hidden word oranges">
       <p>Errors $-0.459$ (oranges) and $0.459$ (laptops); $m=4$.</p>
       <div pause data-fragment-index="1">
-        \[\begin{aligned}\nabla_{\bh}\cL&=-0.459\,\bu_{\text{oranges}}+0.459\,\bu_{\text{laptops}}\\&=0.459\,(\bu_{\text{laptops}}-\bu_{\text{oranges}})\\&=(-0.275,\,-0.138,\,0.321).\end{aligned}\]
+        \[\begin{aligned}-\nabla_{\bh}\cL&=0.459\,\bu_{\text{oranges}}-0.459\,\bu_{\text{laptops}}\\&=0.459\,(\bu_{\text{oranges}}-\bu_{\text{laptops}})\\&=(0.275,\,0.138,\,-0.321).\end{aligned}\]
       </div>
       <div pause data-fragment-index="2">
         <p style="margin-bottom:4px">Each of the four context vectors (store, bought, from, grocery):</p>
-        \[\begin{aligned}\nabla_{\bc_{w_j}}\cL&=\tfrac14\nabla_{\bh}\cL\\&=(-0.069,\,-0.034,\,0.080).\end{aligned}\]
+        \[\begin{aligned}-\nabla_{\bc_{w_j}}\cL&=-\tfrac14\nabla_{\bh}\cL\\&=(0.069,\,0.034,\,-0.080).\end{aligned}\]
       </div>
     </block>
   </column>
   <narration>
     <say>The context vectors are learned by the same gradient descent as the output vectors. They reach the loss only through h, the average of the context words' vectors, so we first find the gradient for h and then share it out among them.</say>
-    <say>Unlike an output vector, h enters every score, so its gradient sums the error of each word times that word's output vector. Since the errors are the probabilities minus the indicator, this is the probability-weighted average of the output vectors minus the hidden word's output vector. With two candidate words, it is a multiple of the difference between the output vectors of laptops and oranges.</say>
-    <say>Each context word's vector contributes one m-th of h, so it gets one m-th of h's gradient; in the example, each of the four context vectors gets a quarter. A step against this gradient moves every context vector toward the hidden word's output vector and away from the probability-weighted average of all the output vectors.</say>
+    <say>Unlike an output vector, h enters every score, so its gradient sums the error of each word times that word's output vector. Since the error is the probability minus one for the hidden word and the probability itself for every other word, the negative gradient is the hidden word's output vector minus the probability-weighted average of the output vectors. With two candidate words, it is a multiple of the difference between the output vectors of oranges and laptops.</say>
+    <say>Each context word's vector contributes one m-th of h, so it gets one m-th of h's gradient; in the example, each of the four context vectors gets a quarter. A step along the negative gradient moves every context vector toward the hidden word's output vector and away from the probability-weighted average of all the output vectors.</say>
     <say>This is how a context vector is learned. A word's context vector changes in every blank where the word appears around the hidden word, each time a little toward that hidden word's output vector. Over the corpus, it takes in the words it tends to surround, the company it keeps.</say>
   </narration>
 </section>
@@ -567,7 +560,7 @@ ul.plain li { margin: 0 0 6px; }
     <p>with $\sigma$ the sigmoid (Ch. 6) and $\bc_c$ the context vector of $c$.</p>
     <div pause>
       <p style="margin-bottom:6px">The loss of a real pair with random contexts $c_1,\dots,c_k$:</p>
-      \[-\ln\sigma(\langle\bu_w,\bc_c\rangle)-\sum_{i=1}^k\ln\sigma(-\langle\bu_w,\bc_{c_i}\rangle).\]
+      \[-\ln\sigma(\langle\bu_w,\bc_c\rangle)-\sum_{i=1}^k\ln\big(1-\sigma(\langle\bu_w,\bc_{c_i}\rangle)\big).\]
     </div>
   </column>
   <fig name="sgns"></fig>
@@ -582,25 +575,25 @@ ul.plain li { margin: 0 0 6px; }
   <h2>Pointwise mutual information and the SGNS optimum</h2>
   <column>
     <p class="opener">Levy and Goldberg (NIPS 2014) worked out what the fitted SGNS vectors converge to.</p>
-    <p style="margin-bottom:6px">With enough coordinates to fit every pair, the SGNS loss is minimized by setting $\langle\bu_w,\bc_c\rangle=\PMI(w,c)-\ln k$ for every pair $(w,c)$, where</p>
+    <p style="margin-bottom:6px">With enough coordinates to fit every pair, the SGNS loss is minimized by setting $\langle\bu_w,\bc_c\rangle=\PMI(w,c)-\ln k$ for every pair $(w,c)$, where PMI, the pointwise mutual information, is</p>
     \[\htmlClass{hl-pmi}{\PMI(w,c)=\ln\frac{p(w,c)}{p(w)\,p(c)}},\]
     <p>$p(w,c)$ is the fraction of all (word, context) pairs, counted within the window over the whole corpus, that are $(w,c)$, and $p(w)$, $p(c)$ are its marginals.</p>
     <p pause>Example: $p(w,c)=0.02$, $p(w)=0.1$, $p(c)=0.05$ give $\PMI(w,c)=\ln4$.</p>
-    <alertblock pause title="Embeddings store pointwise mutual information" class="small">$\langle\bu_w,\bc_c\rangle$ is fit to $\PMI(w,c)-\ln k$; averaged over pairs, $\PMI$ is the mutual information $I(W;C)$ of Sec. 1.4.</alertblock>
+    <alertblock pause title="Embeddings store pointwise mutual information" class="small">$\langle\bu_w,\bc_c\rangle$ is fit to $\PMI(w,c)-\ln k$; $\PMI(w,c)$ is the term of the pair $(w,c)$ in the mutual information of Sec. 1.4, $\sum_{w,c}p(w,c)\,\PMI(w,c)$.</alertblock>
   </column>
   <drawer>
     <p>A word $w$ occurs with context $c$ with probability $p(w,c)$, and each occurrence of $w$ draws $k$ random contexts from $p(c)$. Per pair of the text, the expected objective for $(w,c)$, with $x=\langle\bu_w,\bc_c\rangle$, is</p>
-    \[\ell(x)=p(w,c)\ln\sigma(x)+k\,p(w)\,p(c)\ln\sigma(-x).\]
-    <p class="dk1">With $\frac{d}{dx}\ln\sigma(x)=\sigma(-x)$, setting $\ell'(x)=0$ gives</p>
-    \[\htmlClass{dk1}{p(w,c)\,\sigma(-x)=k\,p(w)\,p(c)\,\sigma(x).}\]
-    <p class="dk2">Since $\sigma(x)/\sigma(-x)=e^x$,</p>
+    \[\ell(x)=p(w,c)\ln\sigma(x)+k\,p(w)\,p(c)\ln\big(1-\sigma(x)\big).\]
+    <p class="dk1">With $\frac{d}{dx}\ln\sigma(x)=1-\sigma(x)$ and $\frac{d}{dx}\ln\big(1-\sigma(x)\big)=-\sigma(x)$, setting $\ell'(x)=0$ gives</p>
+    \[\htmlClass{dk1}{p(w,c)\,\big(1-\sigma(x)\big)=k\,p(w)\,p(c)\,\sigma(x).}\]
+    <p class="dk2">Since $\sigma(x)/\big(1-\sigma(x)\big)=e^x$,</p>
     \[\htmlClass{dk2}{x=\ln\frac{p(w,c)}{k\,p(w)\,p(c)}=\PMI(w,c)-\ln k.}\]
     <p>This needs each inner product to be free to take its own value, which holds when the vectors have enough coordinates (Levy and Goldberg, Sec. 3.1). With fewer, the fit is a weighted low-rank approximation of this matrix.</p>
   </drawer>
   <narration>
     <say>What does this fit converge to? Levy and Goldberg showed that, when the vectors have enough coordinates to fit every pair exactly, the best inner product for each pair is its <point to="pmi">pointwise mutual information</point>, shifted down by the log of k. Pointwise mutual information compares how often the word and the context occur together with how often they would if they were independent. Together means within the window: every pair of a word and a context word in its window, counted over the whole corpus.</say>
     <say>In the example, the joint probability is larger than the product of the two marginals, so the pair occurs more often than chance would predict and its pointwise mutual information is positive.</say>
-    <say>So the embeddings are a compressed table of pointwise mutual information. Averaged over pairs, pointwise mutual information is the mutual information between a word and its context, from Section 1.4. Words with similar rows in this table, that is, similar company, get similar vectors. The theorem assumes a perfect fit; the next slide checks it on a real text.</say>
+    <say>So the embeddings are a compressed table of pointwise mutual information. Each entry is one pair's term in the mutual information between a word and its context, from Section 1.4: the mutual information is the average of the entries, each weighted by how often its pair occurs. Words with similar rows in this table, that is, similar company, get similar vectors. The theorem assumes a perfect fit; the next slide checks it on a real text.</say>
   </narration>
 </section>
 
@@ -809,13 +802,14 @@ ul.plain li { margin: 0 0 6px; }
     <p class="opener">So far the weights were given; a transformer computes them from the vectors themselves.</p>
     <p style="margin-bottom:6px">Learned $\mW_Q,\mW_K\in\bbR^{d\times D}$ and $\mW_V\in\bbR^{d_v\times D}$ turn each input $\bx_j\in\bbR^D$ into a query, a key and a value:</p>
     \[\underset{\textsf{what $i$ looks for}}{\cq{\bq_i}=\mW_Q\bx_i}\qquad\underset{\textsf{what $j$ is matched on}}{\ck{\bk_j}=\mW_K\bx_j}\qquad\underset{\textsf{what $j$ contributes}}{\cv{\bv_j}=\mW_V\bx_j}\]
-    \[\htmlClass{hl-s}{s_{ij}=\frac{\langle\cq{\bq_i},\ck{\bk_j}\rangle}{\sqrt d}},\qquad\cat{\balpha_i}=\softmax_{j=1,\dots,n}(s_{ij}).\]
-    <p pause="st=1">Example: slide 32's vectors, $\mW_Q=\mW_K=\mW_V=\mI$, $D=d=2$. For “spring”, $\langle\cq{\bq_{\text{spring}}},\ck{\bk_j}\rangle=(2,5,7,2)$ for $j=1,\dots,4$, and $\cat{\balpha_{\text{spring}}}=(0.022,0.187,0.768,0.022)$ (top right),</p>
+    \[\htmlClass{hl-s}{s_{ij}=\frac{\langle\cq{\bq_i},\ck{\bk_j}\rangle}{\sqrt d}},\qquad\cat{\balpha_i}=\softmax_{j=1,\dots,n}(s_{ij}),\]
+    \[\bv_i^{\text{new}}=\textstyle\sum_{j=1}^n\cat{\alpha_{ij}}\,\cv{\bv_j}.\]
+    <p pause="st=1">Example: slide 32's vectors with $\mW_Q=\mW_K=\mW_V=\mI$ and $D=d=2$, so the queries, keys and values are the word vectors; the scores and weights of “spring” are at the top right,</p>
     <p pause="st=2">so $\bv^{\text{new}}_{\text{spring}}=(1.93,\,2.54)$, against slide 33's $(1.30,2.20)$ (bottom right).</p>
   </column>
   <fig name="qkv" init="st=0"></fig>
   <narration>
-    <say>Where do the weights come from? Each position starts from an input vector. Three learned matrices turn it into a query, which says what the position is looking for, a key, which says what it offers to be matched on, and a value, which is what it contributes to the average when it is matched. These roles are a reading of a soft lookup: the query is matched against every key, and the values of the matches are averaged. Training only fits the three matrices to lower the loss, so a given head need not use them this way. <point to="s">The score</point> of position j for position i is the inner product of i's query with j's key, divided by the square root of the key length, and softmax over the positions turns each row of scores into weights.</say>
+    <say>Where do the weights come from? Each position starts from an input vector. Three learned matrices turn it into a query, which says what the position is looking for, a key, which says what it offers to be matched on, and a value, which is what it contributes to the average when it is matched. These roles are a reading of a soft lookup: the query is matched against every key, and the values of the matches are averaged. Training only fits the three matrices to lower the loss, so a given head need not use them this way. <point to="s">The score</point> of position j for position i is the inner product of i's query with j's key, divided by the square root of the key length, and softmax over the positions turns each row of scores into weights. The new vector of position i is the average of the values, with these weights.</say>
     <say>To see the computation, take the season sentence with all three matrices equal to the identity, so queries, keys and values are the word vectors themselves. The scores for spring, at the top of the figure, are its inner products with the four vectors, largest for season. Softmax turns them into the weights below them, produced by the model rather than given.</say>
     <say>The weighted average of the values is the new vector, the solid star at the bottom. It lies closer to season than the dashed star from the given weights, because the softmax put more weight on season. In a trained model the three matrices are learned by gradient descent, so the model learns what to attend to.</say>
   </narration>
