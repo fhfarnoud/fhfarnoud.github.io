@@ -1,0 +1,1185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pretraining, Scaling, and In-Context Learning</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<link rel="stylesheet" href="../shared/deck.css?v=e78dd9285f6b">
+<link rel="stylesheet" href="lecture.css?v=e78dd9285f6b">
+<style>
+/* The same theme, dimensions and figure engine as lectures 1 and 2. */
+.reveal .fbody p { margin-bottom: 18px; }
+.reveal .fbody .katex-display { margin: 14px 0; }
+.reveal .katex .mathbf { font-family: KaTeX_SansSerif; font-weight: 700; }
+.tk { font-family: Menlo, 'DejaVu Sans Mono', monospace; font-size: .88em;
+  background: #f4f2ee; border: 1px solid #c9c3b8; border-radius: 5px; padding: 0 4px; }
+.objective .col { font-size: 25px; }
+.objective .col .katex-display { font-size: .94em; }
+.objective .knobs { justify-content: center; margin-top: 8px; }
+.objective .knobs input { width: 215px; }
+/* The two teacher-forcing slides share the existing house theme. */
+.teacher-content { display: block; }
+.teacher-content .example { font-size: 25px; margin: 0 0 18px; }
+.teacher-content .teacher-definition { font-size: 27px; line-height: 1.35; margin: 24px 0 0; }
+.teacher-reasons { height: 435px; gap: 40px; }
+.teacher-reasons .col { font-size: 25px; line-height: 1.32; }
+.teacher-reasons .teaching-point { margin: 0 0 24px; }
+.teacher-reasons .teaching-point b { color: var(--struct); }
+.teacher-takeaway { border-top: 1px solid #ccc; padding-top: 14px; margin-top: 12px;
+  color: var(--struct); font-size: 25px; line-height: 1.3; }
+.pipeline .pipeline-row { height: 520px; gap: 35px; }
+.pipeline .pipeline-explanation { flex: 1; min-width: 0; padding-top: 18px; font-size: 27px; }
+.pipeline .pipeline-panel { display: none; }
+.pipeline:not([data-pipeline-build]) .pipeline-panel[data-build="0"],
+.pipeline[data-pipeline-build="0"] .pipeline-panel[data-build="0"],
+.pipeline[data-pipeline-build="1"] .pipeline-panel[data-build="1"],
+.pipeline[data-pipeline-build="2"] .pipeline-panel[data-build="2"] { display: block; }
+.pipeline .pipeline-example { margin-top: 28px; font-size: 25px; line-height: 1.6; }
+.pipeline .pipeline-example .tk { padding: 2px 7px; }
+.pipeline .pipeline-example .input { color: var(--prior); }
+.pipeline .pipeline-example .target { color: var(--like); }
+.pipeline .pipeline-note { margin-top: 24px; font-size: 24px; color: #555; }
+.pipeline .pipeline-transition { position: absolute; left: 0; right: 0; bottom: 0;
+  margin: 0; text-align: center; color: var(--struct); font-size: 26px; visibility: hidden; }
+.pipeline[data-pipeline-build="2"] .pipeline-transition { visibility: visible; }
+/* Scaling overview: notation above two full-width plots. */
+#scaling-laws .scale-intro { display: flex; gap: 65px; height: 175px; align-items: flex-start; }
+#scaling-laws .scale-intro .opener { flex: 1; margin: 0; font-size: 25px; line-height: 1.3; }
+#scaling-laws .scale-intro table.vals { width: 605px; flex: none; margin: 0; font-size: 25px; }
+#scaling-laws .scale-intro table.vals td { padding: 3px 10px; line-height: 1.1; text-align: left; }
+#scaling-laws .scale-intro table.vals td:first-child { width: 35px; }
+#scaling-laws .scale-balance { margin: 8px 0 0; font-size: 25px; line-height: 1.2; text-align: center; }
+/* Three-state empirical scaling: text left, aligned plots right. */
+#empirical-scaling .empirical-row { gap: 35px; }
+#empirical-scaling .empirical-text { flex: 1; min-width: 0; font-size: 25px; }
+#empirical-scaling .empirical-intro { font-size: 26px; line-height: 1.3; margin: 0; }
+#empirical-scaling .power-explanation { margin-top: 24px; }
+#empirical-scaling .power-equation { font-size: 27px; margin: 0 0 8px; }
+#empirical-scaling .power-example { font-size: 21px; margin: 0 0 16px; color: #555; }
+#empirical-scaling .log-equation { font-size: 23px; margin: 0; }
+#empirical-scaling .scaling-model { margin-top: 28px; }
+#empirical-scaling .scaling-summary { text-align: center; }
+#empirical-scaling .scaling-summary .bt { font-size: 29px; padding: 10px 8px; }
+#empirical-scaling .scaling-summary .bb { padding: 12px 10px 14px; }
+#empirical-scaling .scaling-definitions { font-size: 22px; line-height: 1.5; }
+#empirical-scaling .fit-caption { font-size: 22px; line-height: 1.3; margin: 18px 0 0; color: var(--struct); }
+/* Compute-optimal intuition; detailed derivation is an optional final appendix. */
+#compute-optimal .compute-row { gap: 30px; }
+#compute-optimal .compute-text { flex: 1; min-width: 0; font-size: 24px; line-height: 1.3; }
+#compute-optimal .compute-heading { color: var(--struct); font-size: 26px; margin: 0 0 12px; }
+#compute-optimal .compute-equation { font-size: 30px; text-align: center; margin: 0 0 14px; line-height: 1.35; }
+#compute-optimal .compute-tradeoff { margin: 0 0 16px; }
+#compute-optimal .compute-cases p { font-size: 23px; line-height: 1.25; margin: 0 0 14px; }
+#compute-optimal .compute-takeaway { color: var(--struct); font-size: 20px; line-height: 1.25; margin-top: 12px; }
+#compute-optimal .compute-visual { width: 720px; flex: none; }
+#compute-optimal table.compute-comparison { width: 100%; border-collapse: collapse; font-size: 20px; margin: 0; }
+#compute-optimal .compute-comparison th { font-weight: normal; color: #555; border-bottom: 1px solid #c7c3d0; }
+#compute-optimal .compute-comparison th, #compute-optimal .compute-comparison td { padding: 5px 9px; text-align: center; }
+#compute-optimal .compute-comparison td:first-child { text-align: left; }
+#compute-optimal .compute-opt-row { color: var(--like); }
+#compute-optimal .compute-selected-row { color: var(--rose); }
+#compute-optimal .compute-control { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 12px; font-size: 20px; }
+#compute-optimal .compute-control label { white-space: nowrap; }
+#compute-optimal .compute-control input { width: 185px; accent-color: var(--struct); }
+#compute-optimal .compute-control output { min-width: 150px; color: var(--rose); }
+.deck-print #compute-optimal .compute-control { visibility: hidden; }
+#compute-optimal-appendix .appendix-body { font-size: 25px; }
+#compute-optimal-appendix .appendix-body .katex-display { font-size: .92em; }
+#why-chinchilla .col { font-size: 25px; line-height: 1.35; }
+#why-chinchilla .chinchilla-story { margin: 0 0 28px; }
+#why-chinchilla .chinchilla-story h3 { font-size: 20px; font-weight: bold; line-height: 1.2;
+  letter-spacing: .04em; color: var(--struct); margin: 0 0 10px; }
+#why-chinchilla .chinchilla-story p { margin: 0; }
+#why-chinchilla .question { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; font-size: 25px; line-height: 1.3; margin: 0; }
+#compute-optimal .compute-math { margin: 0 0 8px; }
+#compute-optimal .compute-math .math-label { font-size: 24px; line-height: 1.3; margin: 0 0 16px; }
+#compute-optimal .compute-math .math-equation { font-size: 24px; text-align: center; }
+#compute-optimal .compute-math .math-scaling { font-size: 24px; line-height: 1.6; margin: 18px 0 0; text-align: center; white-space: nowrap; }
+/* Only teaching-content slides receive a visible page number. */
+.reveal:has(.slides > section.present:not([data-content-number])) .slide-number,
+.pdf-page:has(section:not([data-content-number])) .slide-number-pdf { display: none !important; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- Lecture title: same composition as the Transformers lecture. -->
+<section id="lecture-title" class="frame">
+  <svg class="bells" width="1280" height="720"></svg>
+  <div class="titlebox">
+    <div class="t">Pretraining, Scaling, and In-Context Learning</div>
+    <div class="st">Part 4: Where does the “intelligence” in a language model actually come from?</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Probabilistic Machine Learning</div>
+    <div class="i">University of Virginia<br>Sarvin Motamen</div>
+    <div class="d">Fall 2026</div>
+  </div>
+  <narration>
+    <say>The previous lecture explained how a transformer computes a next-token distribution. This lecture asks how learning to predict text leads to the capabilities of modern language models. We will connect pretraining to scaling, generation, and learning from examples in the context.</say>
+  </narration>
+</section>
+
+<!-- Introductory roadmap: three builds, followed by the existing slide map. -->
+<section id="todays-roadmap" class="continuation introductory-roadmap">
+  <h2>Today's Roadmap</h2>
+  <p class="roadmap-question">How does next-token prediction lead to the capabilities—and limitations—of LLMs?</p>
+  <div class="roadmap-columns">
+    <div class="roadmap-item">
+      <span class="roadmap-number">1</span>
+      <div><h3>Pretraining</h3><p>How do we train a transformer on text?</p></div>
+    </div>
+    <div class="roadmap-item">
+      <span class="roadmap-number">2</span>
+      <div><h3>Scaling Laws</h3><p>How do model size, data, and compute affect performance?</p></div>
+    </div>
+    <div class="roadmap-item" pause data-fragment-index="0">
+      <span class="roadmap-number">3</span>
+      <div><h3>Emergent Capabilities</h3><p>Why do some abilities appear suddenly?</p></div>
+    </div>
+    <div class="roadmap-item" pause data-fragment-index="0">
+      <span class="roadmap-number">4</span>
+      <div><h3>Decoding</h3><p>How do we turn token probabilities into text?</p></div>
+    </div>
+    <div class="roadmap-item" pause data-fragment-index="0">
+      <span class="roadmap-number">5</span>
+      <div><h3>In-Context Learning</h3><p>How can models adapt without weight updates?</p></div>
+    </div>
+    <div class="roadmap-item" pause data-fragment-index="1">
+      <span class="roadmap-number">6</span>
+      <div><h3>Limitations</h3><p>Why doesn't good text prediction guarantee correct answers?</p></div>
+    </div>
+  </div>
+  <notes>About 1 minute, three builds. Start with the guiding question and topics 1–2: next-token training and how parameters, data, and compute influence performance. Next reveal topics 3–5: apparent emergence, decoding, and adaptation through context. Finally reveal topic 6: why good text prediction alone does not guarantee correct answers. This is an introductory roadmap; leave the existing section map and transitions unchanged.</notes>
+  <narration>
+    <say>How does next-token prediction lead to the capabilities and limitations of language models? We first ask how to train a transformer on text, and how model size, training data, and compute affect performance.</say>
+    <say>Then we examine why some abilities appear suddenly, how decoding turns token probabilities into text, and how models can adapt through context without weight updates.</say>
+    <say>Finally, we ask why good text prediction does not guarantee correct answers.</say>
+  </narration>
+</section>
+
+<!-- Full lecture outline. -->
+<section id="lecture-outline" class="frame" data-slide="map">
+  <ol class="toc" hidden>
+    <li data-map-num="1"><a href="#/sec-pretraining">From Transformers to Pretraining</a></li>
+    <li data-map-num="2"><a href="#/sec-scaling">Scaling Laws</a></li>
+    <li data-map-num="3"><a href="#/sec-emergence">Emergent Capabilities</a></li>
+    <li data-map-num="4"><a href="#/sec-decoding">Decoding and Typicality</a></li>
+    <li data-map-num="5"><a href="#/sec-icl">In-Context Learning</a></li>
+    <li data-map-num="6"><a href="#/sec-limitations">Limitations of Pretraining</a></li>
+    <li data-map-num="7"><a href="#/sec-summary">Summary and Transition</a></li>
+  </ol>
+  <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
+  <notes>The same visual slide map used by the Transformers lecture. The seven branches follow the planned lecture order. Every branch links to its section, with thumbnails of all completed content slides.</notes>
+  <narration>
+    <say>We begin with the pretraining objective and the training process. Then we ask how model size, data, and computation affect prediction loss, and how task performance can appear to change suddenly. We examine how decoding selects outputs from the learned distribution. In-context learning is the main mathematical example: how can examples in a prompt change a prediction while the parameters stay fixed? We finish with limitations of pretraining and a transition to the next lecture.</say>
+  </narration>
+</section>
+
+<!-- Section 1, slide 1: 2 minutes. -->
+<!-- Section 1 transition: same map zoom as lectures 1 and 2. -->
+<section id="sec-pretraining" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=all b=0 t=2" class="mapfig"></fig>
+  <notes>Brief section transition. Zoom from the outline into the first branch.</notes>
+  <narration>
+    <say>We begin with how transformer predictions become maximum-likelihood training on a text corpus.</say>
+  </narration>
+</section>
+
+<section id="from-transformers">
+  <h2>From Architecture to Training</h2>
+  <column>
+    <p class="opener">A transformer with parameters $\theta$ maps a token prefix to a distribution over the next token:</p>
+    \[p_\theta(w_t\mid w_{&lt;t}).\]
+    <p>The transformer architecture defines how input tokens are processed to predict the next token. How are its parameters learned?</p>
+    <p pause="phase=1"><b>Pretraining:</b> learn $\theta$ from a large text corpus by predicting tokens from their preceding context.</p>
+    <alertblock pause="phase=2" title="Big Picture">How do we train a transformer on text, and what determines what it can learn and do?</alertblock>
+  </column>
+  <fig name="pretrainBridge" init="phase=0"></fig>
+  <notes>About 2 minutes. Connect to the transformer lecture without redrawing attention or the transformer block. Pretraining learns all trainable parameters, including token embeddings. The final box is the same model architecture with learned parameters. This is the first of the four requested section slides, not a separate lecture cover.</notes>
+  <narration>
+    <say>We now know how a transformer turns a prefix into probabilities for the next token. Its architecture specifies that computation, but it does not specify useful values for the parameters. A newly initialized transformer has the same structure as a trained one. Where do the useful parameters come from?</say>
+    <say>Pretraining learns the parameters from a large collection of text. At each position, the preceding tokens form the context and the next token is the prediction target. The transformer, the likelihood objective, and an optimizer together turn the corpus into parameter updates.</say>
+    <say>The big-picture question is how we train a transformer on text, and what determines what it can learn and do. First we make the training process precise. Then we can ask what changes as we increase its scale.</say>
+  </narration>
+</section>
+
+<!-- Section 1, slide 2: 2.5 minutes. -->
+<section id="pretraining-objective" class="objective">
+  <h2>The pretraining objective</h2>
+  <column>
+    <p class="opener">The text supplies both the prefixes and the tokens the model should predict.</p>
+    <p>For one sequence $w_{1:T}$, recall</p>
+    \[\mathcal L(\theta;w_{1:T})
+      =-\sum_{t=1}^{T}\log p_\theta(w_t\mid w_{&lt;t}).\]
+    <p pause data-fragment-index="0">For corpus $\mathcal D=\{w^{(i)}_{1:T_i}\}_{i=1}^{M}$, minimize loss per predicted token:</p>
+    <div pause data-fragment-index="0">
+      \[\mathcal L_{\mathrm{corpus}}(\theta)
+        =-\frac{\sum_i\sum_{t=1}^{T_i}\log p_\theta(w_t^{(i)}\mid w_{&lt;t}^{(i)})}{\sum_i T_i}.\]
+    </div>
+    <block pause title="Connection to maximum likelihood" class="small">As in ordinary MLE, we maximize the probability of the observed training data. For language models, we report the average negative log-likelihood per token (nats/token).</block>
+  </column>
+  <fig name="tokenLoss" init="pos=3"></fig>
+  <knob param="pos" min="1" max="4" step="1" digits="0">Position $t$</knob>
+  <notes>About 2.5 minutes. The word tokens, vocabulary of five outcomes, and probabilities are illustrative, not measurements of a pretrained model. The start symbol is context only, not a target. The input and target rows are the same sequence shifted by one position; each prediction sees only the input prefix through its position. Position 3 intentionally gives the observed token sat probability 0.30 while slept has probability 0.50. Likelihood training uses the probability of sat, even though it is not the model's favorite. Drag across positions rather than deriving cross-entropy again. The corpus objective divides the total negative log-likelihood by the total number of valid predicted tokens, excluding padding. Averaging sequence sums instead divides by M: it equals the token-averaged loss times the mean sequence length, so both have the same minimizer for a fixed corpus. Averaging per-sequence token means would instead weight unequal-length sequences differently. All logarithms here are natural.</notes>
+  <narration>
+    <say>Here is one training sequence, The cat sat followed by a period. The input and target rows are shifted by one token. The start symbol predicts The, The predicts cat, and the prefix The cat predicts sat. The data provide every target. The figure uses an illustrative vocabulary and probabilities. Move the position slider to inspect a conditional distribution and the loss assigned to its observed next token.</say>
+    <say>For each sequence, we use the autoregressive negative log-likelihood from the earlier lectures. Over a corpus, sum all sequence losses and divide by the total number of predicted tokens. Averaging the sequence sums would divide by M instead: for a fixed corpus this only rescales the loss. The per-token form matches our validation-loss units. All positions use the same model parameters.</say>
+    <say>This is the same maximum-likelihood principle we already studied. At position three the model prefers slept, but the observed token is sat. The loss uses the probability assigned to sat. Training raises the likelihood of the observed text; it does not replace the target with the model's preferred token.</say>
+  </narration>
+</section>
+
+<!-- Section 1, slide 3: 3 minutes. -->
+<section id="teacher-forcing" class="teacher">
+  <h2>Teacher Forcing</h2>
+  <div class="fbody"><div class="row teacher-content">
+    <p class="example">Training corpus: <span class="tk">The cat sat .</span></p>
+    <fig name="teacherForcing"></fig>
+    <p pause class="teacher-definition"><b>Teacher forcing:</b> During training, next-token predictions use the actual preceding tokens from the corpus, not the model's generated tokens.</p>
+  </div></div>
+  <notes>About 1 minute. Continue the observed-token loss from the preceding slide. Both rows begin with The cat. The toy distribution gives slept probability 0.50 and sat 0.30, with the remaining 0.20 on unshown outcomes. Because sat is the observed target, the training loss uses 0.30 even though slept is more probable. The next training prefix comes from the corpus: The cat sat. No token is selected in training. In generation, the selected token is slept, so the next prefix is The cat slept. That can also be a valid continuation; the diagram does not label it an error. The green corpus arrow and amber selected-token arrow make the different input sources explicit. The example is static; no checkbox is used. Reveal the definition after explaining the diagram. Leave causal masking and exposure bias to the following slide.</notes>
+  <narration>
+    <say>Both rows start with The cat. The model assigns probability point five to slept and point three to sat. In training, sat is the actual next token, so the loss uses point three. We do not select a training token: the corpus supplies the next prefix, The cat sat. In generation, suppose we select slept. The next prefix is then The cat slept. The green arrow follows the actual corpus token; the amber arrow follows the selected token.</say>
+    <say>Teacher forcing means that training predictions use the actual preceding corpus tokens, rather than tokens generated by the model. That is the definition. Next we will separate why this is useful from the possible mismatch at generation time.</say>
+  </narration>
+</section>
+
+<section id="teacher-forcing-implications" class="teacher-implications">
+  <h2>Why Teacher Forcing Matters</h2>
+  <div class="fbody">
+    <div class="row teacher-reasons">
+      <div class="col">
+        <p class="teaching-point"><b>1. Known targets</b><br>The corpus provides the target at every position, so we can calculate next-token prediction loss.</p>
+        <p class="teaching-point" pause="phase=1" data-fragment-index="0"><b>2. Parallel training</b><br>The entire sequence is known. Causal masking lets the transformer predict all positions in parallel.</p>
+        <p class="teaching-point" pause data-fragment-index="1"><b>3. Exposure bias</b><br>Generation uses the model's own earlier outputs. Unfamiliar generated prefixes can make later predictions less reliable.</p>
+      </div>
+      <fig name="parallelTeacherForcing" init="phase=0"></fig>
+    </div>
+    <p class="teacher-takeaway" pause data-fragment-index="1"><b>Teacher forcing uses the same next-token prediction loss introduced earlier.</b></p>
+  </div>
+  <notes>About 2 minutes. Each row is the causal view at a different position of one known input sequence, not an independent generation process or a separate transformer call. The prefix The predicts target cat; The cat predicts sat; The cat sat predicts the period. The start-token prediction of The is omitted for clarity. All three predictions are computed together in a single masked transformer forward pass. Reveal the parallel-training point to highlight all three arrows simultaneously. Causal masking prevents each position from seeing its target or later tokens. Parallel refers to token positions within the pass, not to transformer layers or optimizer updates. Generation still builds an unknown continuation sequentially with fixed weights. Exposure bias is a possible reliability issue for unfamiliar generated prefixes, not a claim that every different continuation is wrong. Reveal the final point and takeaway together, then move naturally to the pretraining pipeline's forward pass, loss and parameter update.</notes>
+  <narration>
+    <say>The training sequence already supplies the targets. The predicts cat, The cat predicts sat, and The cat sat predicts the period. Each target lets us calculate a next-token prediction loss. The rows show three positions in the same sequence.</say>
+    <say>Because that whole sequence is known, a causal mask lets one transformer forward pass compute all three predictions in parallel. The three arrows appear together. Each position can use its preceding tokens while the mask hides its target and the later tokens. We are not generating the three rows in sequence or making three separate forward passes.</say>
+    <say>During generation, the model instead conditions on its own earlier outputs. Unfamiliar generated prefixes can make later predictions less reliable; a different but valid continuation is not automatically an error. Teacher forcing is the standard input setup for autoregressive maximum-likelihood training, not a separate loss. The next slide puts these inputs, predictions and losses into the complete pretraining pipeline.</say>
+  </narration>
+</section>
+
+<!-- Section 1, slide 4: 2.5 minutes. -->
+<section id="pretraining-pipeline" class="pipeline">
+  <h2>The Pretraining Pipeline</h2>
+  <div class="fbody">
+    <div class="row pipeline-row">
+      <div class="pipeline-explanation">
+        <div class="pipeline-panel" data-build="0">
+          <block title="Self-Supervised Learning">The training targets are automatically obtained from the text itself, without manually labeled examples.</block>
+          <div class="pipeline-example">
+            <div>Training text: <span class="tk">The cat sat.</span></div>
+            <div>Input: <span class="tk input">The cat</span></div>
+            <div>Target next token: <span class="tk target">sat</span></div>
+          </div>
+          <p class="pipeline-note">The target is the next token in the same training sequence.</p>
+        </div>
+        <div class="pipeline-panel" data-build="1">
+          <block title="Learning from Each Minibatch">For each minibatch, the transformer predicts next-token probabilities, computes cross-entropy against the observed tokens, and updates its parameters using backpropagation.</block>
+          <p class="pipeline-note">The loss averages over valid predicted tokens; padding is excluded.</p>
+        </div>
+        <div class="pipeline-panel" data-build="2">
+          <block title="Repeat across Minibatches">Training repeats over many minibatches. Each new minibatch uses the updated parameters.</block>
+          <p class="pipeline-note">After training, the learned parameters define a pretrained language model.</p>
+        </div>
+      </div>
+      <fig name="pretrainPipeline" init="phase=0"></fig>
+    </div>
+    <span pause="phase=1" data-fragment-index="0"></span>
+    <span pause="phase=2" data-fragment-index="1"></span>
+    <p class="pipeline-transition"><b>How do model size, training data, and compute affect performance?</b></p>
+  </div>
+  <notes>About 2.5 minutes, in exactly three states. First, distinguish corpus preparation from the repeated optimizer loop. Collect and clean the text, tokenize it, and organize sequences into minibatches. In the word-level example The cat sat., the prefix The cat supplies the target sat from the same text; no manual next-token annotation is needed. The preparation phase is shown once conceptually; implementations may stream tokenization or form batches on demand. Second, replace the left explanation and highlight the three training operations. With causal masking and teacher forcing, the forward pass predicts all valid token positions, average cross-entropy compares with the actual next tokens, and backpropagation computes gradients for an optimizer update. The displayed equation is ordinary gradient descent; AdamW uses a different update rule. Third, replace the explanation again and emphasize the return arrow. The loop returns to the forward pass with the next minibatch and updated parameters, not to corpus collection. Batch selection is repeated even though corpus preparation is separate. After many such steps we obtain the pretrained model. Finish with the question on model size, training data and compute to introduce scaling laws.</notes>
+  <narration>
+    <say>First, collect and clean the text, then tokenize it and organize minibatches. This is self-supervised learning: the training targets come from the text itself. In The cat sat, the input prefix The cat has the observed next token sat. The target is already in the training sequence.</say>
+    <say>For each minibatch, the transformer predicts next-token probabilities at every valid position. We calculate average cross-entropy against the actual next tokens, then backpropagate and use an optimizer to update the parameters. The equation illustrates ordinary gradient descent; AdamW and other optimizers use different update rules.</say>
+    <say>Repeat these training steps with the next minibatch, using the updated parameters each time. The loop returns to prediction, not to collecting the corpus. After many minibatches, the result is a pretrained language model. How do model size, training data, and compute affect performance? That is the question for scaling laws.</say>
+  </narration>
+</section>
+
+<!-- Section 2: Scaling Laws · 5 slides, about 13 minutes. -->
+<!-- Section 2 transition: same map zoom as lectures 1 and 2. -->
+<section id="sec-scaling" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=0 b=1 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Brief section transition. Entering zooms out from the preceding slide to the full outline. Advance once to zoom into the next section, then advance to its first content slide.</notes>
+  <narration>
+    <say>We have the next-token objective and the pretraining pipeline.</say>
+    <say>How should model size, data and compute grow together? We next examine empirical scaling laws.</say>
+  </narration>
+</section>
+
+<section id="scaling-laws" class="continuation">
+  <h2>What determines pretraining performance?</h2>
+  <div class="fbody">
+    <div class="scale-intro">
+      <p class="opener">We can run the same pretraining procedure at different scales. What limits the resulting predictor?</p>
+      <table class="vals"><tbody>
+        <tr><td>$N$</td><td>number of model parameters</td></tr>
+        <tr><td>$D$</td><td>number of training tokens processed</td></tr>
+        <tr><td>$C$</td><td>training compute, in FLOPs</td></tr>
+        <tr><td>$L$</td><td>validation cross-entropy per token</td></tr>
+      </tbody></table>
+    </div>
+    <fig name="scaleLimits" init="s=0"></fig>
+    <p class="question scale-balance" pause>Under a compute budget, should we increase $N$, $D$, or both?</p>
+  </div>
+  <notes>2 minutes. Compare loss per valid token with a fixed tokenizer and evaluation distribution. D counts processed token presentations; repeating the same data need not give the same benefit as new information. The left schematic increases N at fixed D; the right increases D at fixed N. The y-axes share a linear scale. Each horizontal decade has equal width, and dotted minor gridlines at 2 through 9 times the decade base get progressively closer together toward the next power of ten. These are separate resource comparisons, not fixed-compute experiments or measured training runs. Both curves retain residual loss. Reveal the compute-budget question to introduce balancing N and D.</notes>
+  <narration>
+    <say>We can run the same pretraining procedure at different scales. N counts parameters, D counts training tokens, C is training compute, and L is held-out cross-entropy per token. On the left, increase model size while keeping training data fixed. On the right, increase training data while keeping model size fixed. Both schematic curves decrease with diminishing returns. Equal-width decades and the increasingly close minor gridlines make the logarithmic horizontal scales explicit. The vertical loss scale is linear and shared. These are separate effects, not experiments at fixed compute.</say>
+    <say>Both larger models and more training data improve prediction performance. Since both require computation, how should we balance them? Under a compute budget, should we increase N, D, or both? Empirical scaling laws give one way to approach this allocation.</say>
+  </narration>
+</section>
+
+<section id="empirical-scaling" class="continuation">
+  <h2>Discovering empirical scaling laws</h2>
+  <div class="fbody">
+    <div class="row empirical-row">
+      <div class="empirical-text">
+        <p class="empirical-intro">Researchers train models at different scales and measure their validation losses.</p>
+        <div class="power-explanation" pause="phase=1" data-fragment-index="0">
+          <p class="power-equation">$f(N)=AN^{-\alpha}$</p>
+          <p class="power-example">Illustration: $A=1$, $\alpha=0.35$, $1\le N\le100$.</p>
+          <p class="log-equation">$\log_{10}f(N)=\log_{10}A-\alpha\log_{10}N.$</p>
+        </div>
+        <div class="scaling-model" pause="phase=2" data-fragment-index="1">
+          <block class="scaling-summary" title="$L(N,D)\approx E+f(N)+g(D).$">
+          <div class="scaling-definitions">
+            <div>$E$: Fitted asymptotic loss floor</div>
+            <div>$f(N)$: Extra loss due to limited model size</div>
+            <div>$g(D)$: Extra loss due to limited training data</div>
+          </div>
+          </block>
+          <p class="fit-caption">Increasing either $N$ or $D$ reduces its contribution to validation loss.</p>
+        </div>
+      </div>
+      <fig name="powerLawAxes" init="phase=0"></fig>
+    </div>
+    <p class="source">Schematic power-law illustration; scaling-law parameters are fitted empirically. <a href="https://arxiv.org/abs/2203.15556" target="_blank" rel="noopener">Hoffmann et al. (2022), §3</a>.</p>
+  </div>
+  <notes>2.5 minutes, exactly three states. First, researchers train models at different scales and measure held-out losses. The upper graph is an illustrative contribution f(N), not measured validation loss L. Model size is in relative units. Second, retain the first graph and reveal the same function on log–log axes. Both use f(N)=N^(-0.35), with A=1 and 1≤N≤100. The lower graph shows transformed coordinates: log10 N runs from 0 to 2 and log10 f(N) from 0 to -0.7. Light, solid major gridlines mark the labeled logarithmic coordinates; the line has slope -0.35 and intercept zero. The example exponent 0.35 is illustrative, distinct from the next slide's fitted Chinchilla exponent 0.34. A straight trend on log–log axes motivates fitting power laws to measurements; it is not a derivation from first principles. Third, reveal the empirical additive decomposition, component definitions and takeaway. The extra-loss contributions are positive and decrease as the corresponding resource increases. This decomposition is a modeling assumption, not a universal theorem. The fitted floor depends on the training family, tokenizer and evaluation distribution. Transition to Hoffmann et al.'s specific Chinchilla fit.</notes>
+  <narration>
+    <say>Researchers train models at different scales and measure their validation losses. The ordinary-axis plot illustrates a model-size contribution to excess loss. Increasing model size reduces that contribution, with diminishing returns. This is a schematic curve rather than experimental measurements.</say>
+    <say>Now view exactly the same function and range on logarithmic axes. In this illustration A is one and alpha is point three five. Taking base-ten logarithms gives log f of N equals log A minus alpha log N, so the transformed curve is a straight line with slope minus point three five. This motivates fitting power laws to measured scaling trends, rather than deriving them from first principles.</say>
+    <say>To model both resources, one empirical approximation adds a fitted floor, a model-size contribution, and a training-data contribution. The two extra-loss terms are positive contributions due to limited model size and limited training data. Increasing either N or D reduces its own contribution to validation loss. Next we will examine the specific fitted law from the Chinchilla study.</say>
+  </narration>
+</section>
+
+<section id="chinchilla-law" class="continuation">
+  <h2>The Chinchilla scaling law</h2>
+  <column>
+    <p class="opener">For their model family, Hoffmann et al. fitted</p>
+    \[L(N,D)=\underbrace{E}_{\text{floor}}
+      +\underbrace{\frac{A}{N^\alpha}}_{\text{model contribution}}
+      +\underbrace{\frac{B}{D^\beta}}_{\text{data contribution}}.\]
+    <p>$\alpha\approx0.34$, $\beta\approx0.28$: <b>empirically fitted exponents</b>.</p>
+    <p class="small">For this fit, $E=1.69$, $A=406.4$, $B=410.7$, with $N,D$ in individual parameters and tokens; loss in nats/token.</p>
+    <p pause="ln=9.301029995663981 ld=10 compare=1" data-fragment-index="0">Doubling $N$ multiplies its contribution by</p>
+    <div pause data-fragment-index="0">\[2^{-0.34}\approx0.79.\]</div>
+    <alertblock pause data-fragment-index="2" title="Which loss decreases by 21%?" class="small">The model-size contribution. The floor and data contribution remain, so total loss falls by less.</alertblock>
+  <span pause="ln=9 ld=10.301029995663981 compare=2" data-fragment-index="1"></span>
+  </column>
+  <fig name="chinchillaTerms" init="ln=9 ld=10 compare=0"></fig>
+  <knob param="ln" min="7" max="12" step="0.05">$\log_{10}N$</knob>
+  <knob param="ld" min="8" max="14" step="0.05">$\log_{10}D$</knob>
+  <p class="source"><a href="https://arxiv.org/abs/2203.15556" target="_blank" rel="noopener">Hoffmann et al. (2022), Appendix D</a>. Interactive values evaluate the published fit, not a new experiment.</p>
+  <notes>2.5 minutes. Start at N=1B, D=10B: the terms are 1.69000, 0.35396, 0.65092, and total loss is 2.69488. The next reveal doubles N to 2B at fixed D=10B: the model contribution falls to 0.27964 (factor 0.79004), and total loss is 2.62056, a decrease of 2.7577%. The next reveal changes only the plot: reset N to 1B and double D to 20B. The data contribution falls to 0.53609 (factor 0.82359), and total loss is 2.58005, a decrease of 4.2610% from the initial baseline. The final reveal retains this plot and shows the existing clarification about the 21% model-term reduction. Each stacked total contains exactly the three component contributions. Sliders remain available: model comparisons use N=1B at the current D as reference, and data comparisons use D=10B at the current N. The floor remains fixed. These coefficients and the fitted floor apply to this training family; do not treat them as universal or extrapolate to different tokenizers or training recipes.</notes>
+  <narration>
+    <say>The Chinchilla study fitted a floor and two inverse-power contributions. The exponents are approximately point three four for model size and point two eight for training tokens. They are estimates from that training family, not theoretical constants.</say>
+    <say>Doubling the parameter count multiplies its own contribution by about point seven nine. It does not reduce the entire validation loss by twenty-one percent. The plot now doubles N from one to two billion while holding D at ten billion tokens. Only the model contribution shrinks; total loss falls by about two point seven six percent. The sliders remain available for exploration.</say>
+    <say>Now reset N to one billion and double D from ten to twenty billion training tokens. Only the data contribution shrinks. The total loss becomes about two point five eight, a decrease of about four point two six percent from the initial configuration. The text stays in place while the plot changes.</say>
+    <say>The fit is useful for allocating resources within a comparable training setup. It is not a universal numerical formula for every language model.</say>
+  </narration>
+</section>
+
+<section id="compute-optimal" class="continuation">
+  <h2>Compute-optimal training</h2>
+  <div class="fbody">
+    <div class="row compute-row">
+      <div class="compute-text">
+        <p class="compute-heading"><b>Fixed training-compute budget</b></p>
+        <p class="compute-equation">$C\approx6ND\quad\Longrightarrow\quad D\approx\dfrac{C}{6N}$</p>
+        <p class="compute-tradeoff">Increasing model size leaves fewer training tokens at fixed $C$.</p>
+        <div class="compute-cases">
+          <div class="compute-math" pause="ln=8 phase=1" data-fragment-index="0">
+            <p class="math-label">Minimizing the fitted loss balances marginal gains:</p>
+            <div class="math-equation">$\alpha\dfrac{A}{N^\alpha}=\beta\dfrac{B}{D^\beta}.$</div>
+            <p class="math-scaling">$N^*\propto C^{\beta/(\alpha+\beta)}\qquad D^*\propto C^{\alpha/(\alpha+\beta)}$</p>
+          </div>
+          <span pause="ln=11.4 phase=2" data-fragment-index="1"></span>
+          <span pause="ln=10.064112713100396 phase=3" data-fragment-index="2"></span>
+        </div>
+        <p class="compute-takeaway" pause data-fragment-index="2"><b>At fixed training compute, the best model balances parameter count and training tokens.</b></p>
+      </div>
+      <div class="compute-visual">
+        <fig name="computeBalance" init="ln=8 phase=0"></fig>
+        <table class="compute-comparison" pause data-fragment-index="0">
+          <thead><tr><th>Choice</th><th>Parameters $N$</th><th>Tokens $D$</th><th>Loss $L$</th></tr></thead>
+          <tbody>
+            <tr class="compute-selected-row" data-compute-row><td><b data-compute="choice">Selected (red)</b></td><td data-compute="N"></td><td data-compute="D"></td><td data-compute="L"></td></tr>
+          </tbody>
+        </table>
+        <div class="compute-control" pause data-fragment-index="0">
+          <label for="compute-model-size">Explore model size $N$</label>
+          <input id="compute-model-size" type="range" min="8" max="12" step="any" value="8" aria-label="Explore model size N">
+          <output for="compute-model-size" data-compute="slider-N"></output>
+        </div>
+      </div>
+    </div>
+    <p class="source"><a href="https://arxiv.org/abs/2203.15556" target="_blank" rel="noopener">Hoffmann et al. (2022), §3 and Appendices D, F</a>. Training compute only; inference cost excluded. <a href="#/compute-optimal-appendix">Optional derivation → appendix</a>.</p>
+  </div>
+  <notes>2–3 minutes. Begin with the fixed training-compute constraint. Retain the small-N, large-N and optimal-N plot states, with all compact marginal-balance and optimal compute-scaling formulas appearing together on the first plot reveal. The later plot reveals change only the selected point, slider and row until the final takeaway appears. Small N uses 100M parameters; Large N uses 251.2B; the last step moves to the exact fitted optimum N≈11.5908B. Each case moves the logarithmic slider and one point along the same fitted curve, recalculating D=C/(6N), loss and the single table row. The first two choices are red and labeled Selected; the last is green and labeled Optimal. No separate fixed green point or second table row is drawn. At the last step, moving the slider away from the optimum turns the point and row red again, so an arbitrary interactive choice is never mislabeled optimal. The optimum is computed from the published fit, not the rounded display values. Inference cost is excluded. The optimum formulas follow by substituting D=C/(6N) into the fitted loss and setting its derivative with respect to log N to zero. The resulting powers are beta/(alpha+beta)≈0.4516 for N* and alpha/(alpha+beta)≈0.5484 for D*. The full derivation remains in the optional appendix after the lecture summary.</notes>
+  <narration>
+    <say>We fix a training-compute budget. For a dense transformer, training compute is approximately six N D. Increasing the number of parameters therefore forces us to reduce the number of training tokens. Inference cost is excluded.</say>
+    <say>First, consider a small model with one hundred million parameters. The slider and red selected point move to the left side of the curve. Even with many training tokens, the model is capacity-limited. The single table row shows this choice and its fitted loss. Minimizing the fitted loss balances the exponent-weighted marginal gains; the two loss terms need not be equal. The resulting optimal parameter and token counts scale as the displayed powers of compute.</say>
+    <say>Now increase model size to about two hundred fifty-one billion parameters. The same red point and slider move to the right. This model has greater capacity, but the fixed budget leaves only about forty billion training tokens. The model is data-limited. The already displayed scaling relationship gives optimal N proportional to compute to the power beta over alpha plus beta.</say>
+    <say>Finally, move to the fitted optimum: approximately eleven point six billion parameters and eight hundred sixty-three billion training tokens. The point and single table row turn green and are labeled Optimal. Optimal D follows from C divided by six N star; its compute exponent is alpha over alpha plus beta. For this fit the two exponents are approximately point four five and point five five. At fixed training compute, the best model balances parameter count and training tokens.</say>
+  </narration>
+</section>
+
+<section id="why-chinchilla" class="continuation">
+  <h2>Why Chinchilla mattered</h2>
+  <column>
+    <div class="chinchilla-story">
+      <h3>THE QUESTION</h3>
+      <p>Could a <b>smaller model outperform a larger one</b> using the same training-compute budget?</p>
+    </div>
+    <div class="chinchilla-story">
+      <h3>THE EXPERIMENT</h3>
+      <p>DeepMind compared Chinchilla with its earlier, much larger model, Gopher, using <b>different allocations of comparable training compute</b>.</p>
+    </div>
+    <div class="chinchilla-story" pause="phase=2" data-fragment-index="0">
+      <h3>THE FINDING</h3>
+      <p>Chinchilla <b>performed better</b> despite having <b>far fewer parameters</b>.</p>
+    </div>
+  </column>
+  <fig name="gopherChinchilla" init="phase=1"></fig>
+    <p class="question" pause data-fragment-index="0">If validation loss improves smoothly, why do some abilities appear to improve suddenly?</p>
+  <p class="source"><a href="https://arxiv.org/abs/2203.15556" target="_blank" rel="noopener">Hoffmann et al. (2022), Abstract and Tables 1, 4–6</a>. Training recipes also differed; compute was comparable, not numerically identical.</p>
+  <notes>3 minutes, exactly two states. First show THE QUESTION, THE EXPERIMENT and both parameter and training-token charts: Gopher (DeepMind, 2021) was a competitive 280B-parameter model, while Chinchilla used 70B parameters. The training-data comparison shows 300B versus 1,400B, about 4.7 times as many, at comparable training compute. Then reveal THE FINDING, 5-shot MMLU accuracy and the red transition question. The duplicate comparison table and below-chart takeaway are removed; all three charts retain their previous values, scales, labels and coordinates. Use the requested 60.0% for Gopher and 67.5% for Chinchilla, the headline Chinchilla score in the paper's abstract; Table 6 and §4.2.2 instead print 67.6%, a 0.1-percentage-point reporting discrepancy. The full 0–100% accuracy axis avoids exaggerating the difference. All charts have separate zero-based scales, equal widths and equal bar thicknesses. This experiment supports allocating compute between model size and training data, not a universal guarantee that smaller models always win. The rounded N,D counts give 6ND proxies of 5.04e23 and 5.88e23 FLOPs; actual accounting and training recipes differ.</notes>
+  <narration>
+    <say>Gopher was DeepMind's competitive large language model from 2021. Chinchilla tested a different allocation of a comparable training-compute budget. The first chart shows two hundred eighty billion versus seventy billion parameters: Chinchilla was four times smaller. The second chart shows the other side of the allocation: Gopher processed three hundred billion training tokens and Chinchilla one point four trillion, about four point seven times as many. Training compute was comparable, not numerically identical.</say>
+    <say>The third chart compares five-shot MMLU accuracy on a full zero-to-one-hundred-percent scale: about sixty percent for Gopher and sixty-seven point five percent for Chinchilla, using the paper's headline score. The smaller model achieved better performance after substantially more training. This shows why compute allocation matters. If validation loss improves smoothly, why do some abilities appear to improve suddenly?</say>
+  </narration>
+</section>
+
+<!-- Section 3: Emergent Capabilities · 3 slides, about 7 minutes. -->
+<!-- Section 3 transition: same map zoom as lectures 1 and 2. -->
+<section id="sec-emergence" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=1 b=2 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Brief section transition. Entering zooms out from the preceding slide to the full outline. Advance once to zoom into the next section, then advance to its first content slide.</notes>
+  <narration>
+    <say>Scaling can improve average prediction loss smoothly.</say>
+    <say>Why can task performance appear to jump? We next examine emergence and evaluation metrics.</say>
+  </narration>
+</section>
+
+<section id="emergent-capabilities" class="continuation emergence-evidence">
+  <h2>What is emergence?</h2>
+  <div class="row research-row">
+    <div class="col research-copy">
+      <div>
+        <h3>DEFINITION</h3>
+        <p class="emergence-definition">An ability is called emergent when performance remains <b>near random for smaller models</b>, then <b>rises sharply at larger scales</b>.</p>
+      </div>
+      <div>
+        <p><b>Reported examples:</b> Multi-digit arithmetic, Persian question answering, and word unscrambling.</p>
+      </div>
+      <div pause data-fragment-index="0">
+        <h3>CENTRAL QUESTION</h3>
+        <p class="question">Does this mean the underlying ability suddenly appears?</p>
+      </div>
+    </div>
+    <div class="research-evidence wei-evidence">
+      <div class="paper-panels">
+        <figure>
+          <img src="img/research/wei-fig2a-arithmetic.svg" width="950" height="1075" alt="Original Wei et al. Figure 2A: multi-digit arithmetic accuracy versus logarithmic training FLOPs for LaMDA and GPT-3, with the approximately zero-percent random-guessing baseline and major logarithmic gridlines.">
+          <figcaption><a href="https://arxiv.org/pdf/2206.07682v2#page=4" target="_blank" rel="noopener">Wei et al. (2022), Figure 2A.</a></figcaption>
+        </figure>
+        <figure>
+          <img src="img/research/wei-fig2d-persian.svg" width="950" height="1075" alt="Original Wei et al. Figure 2D: Persian question-answering exact match versus logarithmic training FLOPs, including LaMDA, GPT-3, PaLM, and the 25-percent random-guessing baseline (four answer choices), with major logarithmic gridlines.">
+          <figcaption><a href="https://arxiv.org/pdf/2206.07682v2#page=4" target="_blank" rel="noopener">Wei et al. (2022), Figure 2D.</a></figcaption>
+        </figure>
+      </div>
+      <p class="paper-axis">Model scale (training FLOPs; logarithmic axis)</p>
+      <div class="wei-legend" aria-label="Original model-family colors and markers">
+        <span><i class="legend-dot"></i> LaMDA</span>
+        <span><i class="legend-square"></i> GPT-3</span>
+        <span><i class="legend-pentagon"></i> PaLM</span>
+        <span><i class="legend-random"></i> Random-guessing baseline</span>
+      </div>
+      <p class="reproduction-note">Arithmetic: ~0% exact-answer accuracy.<span> Persian QA: 25% (four choices).</span></p>
+    </div>
+  </div>
+  <notes>About 2 minutes, two builds. Build 1: operational definition and both original experimental panels, including the full model legend, baseline explanations, and concise list of reported examples. Figure 2A aggregates a BIG-Bench modified-arithmetic task with 3-digit addition/subtraction and 2-digit multiplication, evaluated with 2-shot prompting. Its x-axis is logarithmic training compute, not a fixed-compute comparison. Original model-family colors and markers are retained. These are reproduced panels from Wei et al. (2022), Figure 2, with full titles and light major grids added at the original PDF tick positions. Gridlines occur only on background pixels; original axes, points, curves, colors, and baselines are unchanged. The arithmetic random-guessing baseline is approximately 0% exact-answer accuracy; Persian QA has a 25% baseline because it has four answer choices. No minor gridlines are added. Build 2: ask whether the underlying capability must itself change suddenly. This definition concerns observed benchmark behavior and is not proof of a discontinuity in internal computation.</notes>
+  <narration>
+    <say>Wei and colleagues reported benchmark abilities whose performance stays near random over smaller model scales and then rises sharply. The first original panel shows multi-digit arithmetic. Each point is a different model, and the horizontal axis is logarithmic training computation. The major vertical gridlines mark powers of ten from ten to the eighteenth to ten to the twenty-fourth. The dashed pink random-guessing baseline is approximately zero percent exact-answer accuracy. GPT-3 and LaMDA improve sharply at the larger measured scales. The second original panel shows Persian question answering. It includes PaLM as well as GPT-3 and LaMDA, with the dashed pink baseline at twenty-five percent: random guessing among four answer choices. The paper also reports word unscrambling. These are observations of benchmark performance across particular models and training setups.</say>
+    <say>Does a sharp change in the benchmark score mean that the underlying ability itself suddenly appears? Arithmetic gives us a useful way to investigate what the evaluation rule can do.</say>
+  </narration>
+</section>
+
+<section id="all-or-nothing" class="continuation emergence-evidence math-emergence">
+  <h2>All-or-nothing evaluation</h2>
+  <div class="row research-row">
+    <div class="col research-copy">
+      <div>
+        <p class="math-motivation"><b>Why might arithmetic accuracy remain near zero even as a model gradually improves?</b></p>
+        <p>Suppose a task requires $\ell$ independent steps, each correct with probability $p$, and <b>every step must be correct</b>.</p>
+        \[P(\text{success})=p^\ell.\]
+      </div>
+      <div class="model-caveat" pause data-fragment-index="2">
+        <p class="assumptions-note">Even when individual steps improve gradually, requiring every step to be correct can make whole-task accuracy rise sharply.</p>
+        <p class="mechanism-takeaway">A possible explanation for arithmetic emergence, not necessarily for Persian QA or other tasks.</p>
+      </div>
+    </div>
+    <div class="math-visual" pause data-fragment-index="0">
+      <fig name="exactMatch" init="len=3"></fig>
+      <span pause="len=40" data-fragment-index="1" aria-hidden="true"></span>
+      <knob param="len" min="1" max="50" step="1" digits="0">Required steps $\ell$</knob>
+    </div>
+  </div>
+  <p class="source"><a href="https://arxiv.org/abs/2304.15004" target="_blank" rel="noopener">Schaeffer et al. (2023), §2</a>. Illustrative mechanism, not experimental data.</p>
+  <notes>About 2.5 minutes, four builds. Build 1 motivates the arithmetic question and states the assumptions and equation. Build 2 reveals the interactive graph at ell=3. The marked per-step probabilities are p=0.90, 0.95, and 0.98. Dashed gray is per-step correctness p; solid rose is whole-task success p^ell. Build 3 animates ell from 3 to 40 over 2.5 seconds, updating the slider, curve, probability markers, and exponent together. The PDF shows the two endpoints as separate build states. At ell=3 the marked probabilities are about 0.729, 0.857, and 0.941; at ell=40 they are about 0.015, 0.129, and 0.446. Manual slider exploration remains available from 1 to 50. Build 4 reveals the existing explanation and arithmetic-specific takeaway. For every finite ell this curve is continuous, not a true discontinuity; limited measurement resolution and sparse model scales can make a steep change look abrupt. Real LLM errors may be dependent, unequal in probability, and sometimes recoverable. This toy mechanism does not establish that all reported emergence is a metric effect.</notes>
+  <narration>
+    <say>Why might arithmetic accuracy remain near zero even as a model gradually improves? Suppose the task requires ell independent steps, each correct with probability p, and the entire answer is counted correct only if every step is correct. Whole-task success is p to the power ell.</say>
+    <say>The graph starts with three required steps. The marked per-step correctness probabilities are point nine, point nine five, and point nine eight. The dashed line is per-step correctness and the solid curve is whole-task success. With three steps, the marked success probabilities are about seventy-three, eighty-six, and ninety-four percent.</say>
+    <say>Now increase the number of required steps from three to forty. The slider moves with the curve and the marked success probabilities. At forty steps, the corresponding success probabilities are about one point five, twelve point nine, and forty-four point six percent. Requiring every step to be correct can sharply reduce complete-task accuracy even when individual steps are fairly reliable. The slider remains available for exploration.</say>
+    <say>This is an illustrative model, not a fitted account of actual LLM reasoning. It assumes independent steps, equal probabilities and no recovery. All-or-nothing scoring can turn gradual improvements into apparent emergence, but this mechanism does not explain every reported case.</say>
+  </narration>
+</section>
+
+<section id="interpreting-emergence" class="continuation emergence-evidence metric-emergence">
+  <h2>Is emergence real?</h2>
+  <div class="row research-row">
+    <div class="col research-copy">
+      <div>
+        <h3>THE CHALLENGE</h3>
+        <p>Schaeffer et al. (2023) re-evaluated reported emergent tasks using <b>different performance metrics</b>.</p>
+      </div>
+      <div>
+        <h3>THE FINDING</h3>
+        <p>Apparent jumps in exact-match accuracy became <b>smoother improvements under token edit distance</b>.</p>
+      </div>
+      <div>
+        <h3>THE TAKEAWAY</h3>
+        <p>A sudden change in benchmark scores does <b>not necessarily imply</b> a sudden change in underlying capabilities.</p>
+      </div>
+    </div>
+    <div class="research-evidence metric-evidence">
+      <p class="experiment-label">Four-digit addition · GPT-3 family · 2-shot</p>
+      <div class="paper-panels">
+        <figure>
+          <h4>Exact-match accuracy</h4>
+          <img src="img/research/schaeffer-fig3-addition-accuracy.svg" width="365" height="355" alt="Published four-digit-addition accuracy curves, Schaeffer et al. Figure 3, right column. Original data marks and bands; enlarged labels. Model parameters are logarithmic, accuracy is linear from zero to one.">
+          <figcaption><a href="https://arxiv.org/pdf/2304.15004v2#page=5" target="_blank" rel="noopener">Schaeffer et al. (2023), Figure 3.</a></figcaption>
+        </figure>
+        <figure>
+          <h4>Negative edit distance</h4>
+          <img src="img/research/schaeffer-fig3-addition-edit-distance.svg" width="365" height="355" alt="Published negative token-edit-distance curves for the same four-digit-addition model outputs. The paper uses minus edit distance: improvement moves upward toward zero. Original marks and bands with enlarged labels.">
+          <figcaption><a href="https://arxiv.org/pdf/2304.15004v2#page=5" target="_blank" rel="noopener">Schaeffer et al. (2023), Figure 3.</a></figcaption>
+        </figure>
+      </div>
+      <div class="metric-legend" aria-label="Published target lengths and temperatures">
+        <span>Target length:</span>
+        <span style="--series:#edd1cb"><i></i>1</span><span style="--series:#d499a7"><i></i>2</span><span style="--series:#aa688f"><i></i>3</span><span style="--series:#6e4071"><i></i>4</span><span style="--series:#2d1e3e"><i></i>5</span>
+        <span class="temperature-key"><i></i>$T=0$ <i class="dashed"></i>$T=1$</span>
+      </div>
+      <p class="metric-sign-note">Paper plots <b>−edit distance</b>: toward 0 means fewer edits.</p>
+    </div>
+  </div>
+  <p class="question research-transition" pause data-fragment-index="0">Even with a fixed model, how we generate its outputs changes its observed behavior.</p>
+  <p class="source">Related arithmetic experiment; not the same outputs shown in Wei et al.'s Figure 2. Within this comparison, the outputs are fixed and rescored.</p>
+  <notes>About 2.5 minutes, two builds. These are the actual experimental four-digit-addition plots in Figure 3, right column, of Schaeffer et al. (2023), not the mathematical-model panels in its left column. Build 1: all content except the red transition sentence, including the challenge, both plots, finding, takeaway, complete legend, and sign explanation. Original plot rectangles are reproduced unchanged; tiny surrounding labels are enlarged using exact published tick positions. Every curve and shaded band is preserved. Target string lengths 1–5 use the original light-to-dark color ordering. Solid and dashed curves are temperatures zero and one. The original x-axis is logarithmic GPT-3 model parameters, with 10^9, 10^10, and 10^11 ticks. The original second y-axis is NEGATIVE token edit distance; movement toward zero is better because the underlying edit count decreases. Edit distance counts token insertions, deletions, and substitutions needed to match the target; a mean edit distance provides partial credit. These are related arithmetic experiments with the InstructGPT/GPT-3 family, not a rescore of the specific outputs in Wei et al. Figure 2. Build 2: reveal only the red transition sentence about decoding. This evidence shows strong metric dependence in some reported emergence; it does not conclusively disprove every emergent capability or identify the models' internal algorithms.</notes>
+  <narration>
+    <say>Schaeffer and colleagues tested the metric explanation empirically on related arithmetic tasks. This is their four-digit-addition experiment, not a rescore of the specific outputs shown by Wei and colleagues. Exact-match accuracy shows apparently sharp gains for longer target strings as model size increases. The horizontal axis remains logarithmic. Now evaluate the same outputs from this experiment with token edit distance, which gives partial credit for nearly correct answers. The trend is smoother. The original paper plots negative edit distance, so upward movement toward zero means fewer edits and better performance. Colors indicate target length, while solid and dashed lines show temperatures zero and one. The finding is that some apparent jumps depend strongly on the chosen metric. A sudden change in a benchmark score need not imply a sudden change in underlying capability, and these results do not rule out every emergent ability.</say>
+    <say>Even with a fixed model, how we generate its outputs changes its observed behavior. Next we examine decoding.</say>
+  </narration>
+</section>
+
+<!-- Section 4: Decoding and Typicality · 5 slides, about 11 minutes. -->
+<!-- Section 4 transition: same map zoom as lectures 1 and 2. -->
+<section id="sec-decoding" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=2 b=3 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Brief section transition. Entering zooms out from the preceding slide to the full outline. Advance once to zoom into the next section, then advance to its first content slide.</notes>
+  <narration>
+    <say>Task performance depends on how we evaluate the generated outputs.</say>
+    <say>It also depends on how we choose those outputs. Next: decoding and typicality.</say>
+  </narration>
+</section>
+
+<section id="greedy-beam" class="continuation decoding-refresh greedy-slide">
+  <h2>Greedy decoding vs. beam search</h2>
+  <div class="row decode-row">
+    <div class="col">
+      <p class="decode-question">Once an LLM has learned next-token probabilities, how should we use them to generate text?</p>
+      <p><b>Greedy decoding:</b> select the highest-probability token at each step.</p>
+      <div pause="phase=1" data-fragment-index="0">
+        <p><b>Beam search:</b> keep the $b$ highest-scoring partial sequences at each level; expand and prune at each step.</p>
+      </div>
+      <p class="compact" pause="phase=2" data-fragment-index="1">Beam search is approximate: pruning can miss the globally most probable sequence.</p>
+    </div>
+    <fig name="greedyBeam" init="phase=0"></fig>
+  </div>
+  <p class="decode-takeaway" pause data-fragment-index="1">The locally most probable token need not lead to the most probable complete sequence.</p>
+  <p class="source">Illustrative fixed-length example. $P(Z\mid A)=0.45$ and $P(W\mid B)=0.05$ complete the conditional distributions.</p>
+  <notes>About 2 minutes, three builds. Initially show local greedy selection: A has probability 0.6, B has probability 0.4, and X has conditional probability 0.55 versus 0.45 for Z after A. Greedy decoding therefore selects X. Build 2 reveals B's continuations: Y has probability 0.95 and W has probability 0.05. Beam width 2 retains both first-token prefixes, expands them, and compares four complete two-token sequences. Build 3 shows AX=0.33, AZ=0.27, BY=0.38, BW=0.02, summing to 1. In this tiny fixed-length tree beam width 2 happens to find the global maximum BY, but that is not a general guarantee. Sequence probability multiplies conditional probabilities; a beam ranks by those products or equivalently summed log probabilities. No length penalties or variable stopping decisions are involved.</notes>
+  <narration>
+    <say>Pretraining gives next-token probabilities. How should we turn them into text? Greedy decoding chooses A because point six is greater than point four. After A, X has probability point five five, greater than point four five for Z, so greedy decoding selects X. All sequences in this example have exactly two tokens.</say>
+    <say>Beam search keeps several promising prefixes. A beam of width two retains both A and B. Expanding B reveals a high-probability continuation Y, with conditional probability point nine five. Its other branch has probability point zero five, so this is a normalized probability tree.</say>
+    <say>The sequence probabilities are products: AX has probability point three three, while BY has probability point three eight. The locally best first token did not lead to the most probable complete sequence. Beam search finds BY here, but in a larger tree its pruning can miss the global optimum.</say>
+  </narration>
+</section>
+
+<section id="decoding-typicality" class="continuation decoding-refresh temperature-slide">
+  <h2>Temperature sampling</h2>
+  <column>
+    <p class="opener">Sample from a rescaled version of the <b>same model's</b> next-token distribution.</p>
+    \[p_i(T)=\frac{\exp(z_i/T)}{\sum_j\exp(z_j/T)},\qquad T>0.\]
+    <p><b>$T=1$:</b> original model distribution.</p>
+    <p pause="temp=0.5" data-fragment-index="0"><b>$0&lt;T&lt;1$:</b> sharper; high-probability tokens become more likely.</p>
+    <div pause="temp=2" data-fragment-index="1">
+      <p><b>$T&gt;1$:</b> flatter; greater sampling diversity.</p>
+      <p class="compact"><b>$T\to0^+$:</b> approaches greedy selection when the highest logit is unique.</p>
+      <p class="temperature-takeaway">Temperature controls how concentrated the sampling distribution is.</p>
+    </div>
+  </column>
+  <fig name="temperatureDemo" init="temp=1"></fig>
+  <knob param="temp" min="0.05" max="2.5" step="0.05">Temperature $T$</knob>
+  <p class="source">Exact illustrative softmax with fixed logits $(\log0.5,\log0.3,\log0.2)$. Temperature changes the decoder, not the learned parameters.</p>
+  <notes>About 2 minutes, three builds. The initial distribution at T=1 is (0.5,0.3,0.2). Build 2 moves to T=0.5, giving approximately (0.658,0.237,0.105). Build 3 moves to T=2, giving approximately (0.415,0.322,0.263). All probabilities normalize to 1. The slider remains available from 0.05 to 2.5; neural weights and original logits remain fixed. A unique maximal logit receives limiting probability 1 as T approaches zero from above; tied maxima would share the limiting mass. Diversity does not imply factual correctness.</notes>
+  <narration>
+    <say>Sampling draws the next token from a distribution. Temperature rescales the logits before softmax. At temperature one, we recover the original model distribution: point five, point three, and point two for our three illustrative tokens. The logits and learned neural parameters stay fixed.</say>
+    <say>A temperature below one sharpens the distribution. At point five, the most probable token becomes substantially more likely. Use the slider to explore this change while checking that the probabilities still sum to one.</say>
+    <say>A temperature above one flattens the distribution and increases diversity. As temperature approaches zero, a unique highest logit takes all the probability mass, approaching greedy selection. Temperature controls concentration, not whether the generated answer is true.</say>
+  </narration>
+</section>
+
+<section id="top-k-top-p" class="continuation decoding-refresh truncation-slide">
+  <h2>Top-k and nucleus sampling</h2>
+  <column>
+    <p class="opener">Restrict which tokens are eligible for sampling.</p>
+    <p><b>Top-k:</b> keep the $k$ highest-probability tokens. Set the rest to zero, renormalize, and sample.</p>
+    <div pause="mode=1" data-fragment-index="0">
+      <p><b>Nucleus (top-p):</b> sort tokens; keep the smallest set with cumulative probability <b>at least $p$</b>. Renormalize and sample.</p>
+      <p class="compact">A threshold of $0.60$ retains $0.40+0.25=0.65$, not exactly $0.60$.</p>
+    </div>
+    <div pause data-fragment-index="1">
+      <p class="temperature-takeaway">Top-k fixes the number of candidates; top-p adapts the number to the distribution.</p>
+      <p class="compact">Temperature rescales probabilities; truncation removes candidates. They can be combined.</p>
+    </div>
+  </column>
+  <fig name="truncationDemo" init="mode=0 k=3 nucleus=0.6"></fig>
+  <toggle param="mode">Use nucleus (top-p)</toggle>
+  <knob param="k" min="1" max="6" step="1" digits="0">Top-k: $k$</knob>
+  <knob param="nucleus" min="0.05" max="1" step="0.05">Top-p: $p$</knob>
+  <p class="source"><a href="https://arxiv.org/abs/1904.09751" target="_blank" rel="noopener">Holtzman et al. (2020), §3.1–3.2</a>. Illustrative sorted distribution; excluded tokens have zero sampling probability.</p>
+  <notes>About 2 minutes, three builds. Build 1 shows top-k with k=3 on probabilities (0.40,0.25,0.15,0.10,0.06,0.04). It retains original mass 0.80 and samples from (0.5,0.3125,0.1875,0,0,0). Build 2 switches to nucleus sampling with threshold 0.60: the smallest qualifying prefix has two tokens and mass 0.65; cumulative sums appear beneath the bars. The checkbox switches methods, and k and p sliders permit exploration. Build 3 states the fixed-count/adaptive-count distinction and the different role of temperature. The threshold is reached or exceeded, not matched exactly. No probability ties occur here; a practical implementation needs a tie convention. Neither truncation rule exactly samples from a formal information-theoretic typical set.</notes>
+  <narration>
+    <say>Top-k keeps a fixed number of the most probable tokens. Here the first three retain eighty percent of the original probability mass. Excluded tokens become ineligible; the remaining probabilities are renormalized before sampling.</say>
+    <say>Nucleus sampling instead chooses enough high-probability tokens to reach a threshold. For point six, the first token is insufficient, but the first two reach point six five. The cumulative row shows why the set stops there. Switch methods and adjust k or p to compare the retained sets and sampling probabilities.</say>
+    <say>Top-k fixes the candidate count; top-p adapts it to the distribution. Temperature and truncation can be combined, but they do different things: one changes concentration, while the other excludes candidates.</say>
+  </narration>
+</section>
+
+<section id="coin-typicality" class="continuation decoding-refresh typicality-slide">
+  <h2>Typicality: most probable vs. representative</h2>
+  <column>
+    <p class="opener">100 independent coin flips, with $P(H)=0.9$. Let $K$ count tails.</p>
+    <p><b>Most probable individual sequence:</b> 100 heads.</p>
+    <p pause="phase=1" data-fragment-index="0"><b>Representative draws:</b> approximately 90 heads and 10 tails.</p>
+    <div pause="phase=2" data-fragment-index="1">
+      <p class="temperature-takeaway">The most probable individual sequence is not necessarily a representative sample from the model's distribution.</p>
+      <p class="compact">Typical per-symbol information is near the entropy $H_2(0.9)\approx0.469$ bits.</p>
+      <p class="compact">This motivates stochastic decoding; it does not prove greedy decoding always produces poor text.</p>
+    </div>
+  </column>
+  <fig name="coinTypicality" init="phase=0"></fig>
+  <p class="source">Exact IID coin calculation. $P(K=10)$ is the probability of an event containing many sequences, not one sequence. The formal typical-set statement is asymptotic.</p>
+  <notes>About 2.5 minutes, three builds. Initially show the all-heads individual sequence and its probability 0.9^100≈2.656e-5. Build 2 adds one fixed arrangement of 90 heads and 10 tails: its individual probability is 0.9^90×0.1^10≈7.618e-15. There are choose(100,10)≈1.731e13 such arrangements, whose total event probability is approximately 0.131865. The displayed mixed grid is one illustrative arrangement, not a claimed random sample. Build 3 connects mode versus mass to information theory and language generation. For IID sequences the formal typical-set criterion concerns per-symbol information near H2(0.9)≈0.469 bits; the exact K=10 event is not itself the complete formal typical set. Natural language is not IID, and this analogy neither proves greedy text is always poor nor makes stochastic outputs correct.</notes>
+  <narration>
+    <say>Consider one hundred independent coin flips with heads probability point nine. The most probable individual sequence is all heads. Its probability is point nine to the one hundred, about two point six six times ten to the minus five.</say>
+    <say>A representative draw instead has roughly ninety heads and ten tails. This particular arrangement is much less probable, but there are more than seventeen trillion arrangements with exactly ten tails. Their probabilities add to about point one three two. One sequence and an event containing many sequences are different probability objects.</say>
+    <say>This is the information-theoretic distinction between a mode and typical behavior. Typical per-symbol information is near entropy. It helps explain why stochastic decoding can be useful, but it does not prove greedy decoding always gives poor language or that a representative sample is factually correct.</say>
+  </narration>
+</section>
+
+<section id="decoding-implications" class="continuation decoding-refresh decoding-study">
+  <h2>Is there a best decoding strategy?</h2>
+  <div class="decode-study-grid">
+    <div class="published-examples">
+      <h3>Holtzman et al. (2020), Figure 3: original phrases</h3>
+      <p class="paper-prompt">Shared prompt topic: young whales stranded in Western Australia.</p>
+      <figure class="output-row"><figcaption><b>Beam search, $b=16$</b> · repetition</figcaption><p class="paper-output"><span class="paper-excerpt paper-repeat">“more than 50 per cent in the past year”<br>… “more than 50 per cent in the past year”</span><br><span class="paper-description">The continuation repeats this phrasing.</span></p></figure>
+      <figure class="output-row"><figcaption><b>Pure sampling</b> · incoherence</figcaption><p class="paper-output"><span class="paper-excerpt paper-incoherent">“umidauda”</span><span class="paper-description"> — an invented word in a drifting continuation.</span></p></figure>
+      <div pause data-fragment-index="0">
+        <figure class="output-row"><figcaption><b>Temperature, $T=0.9$</b> · incoherence remains</figcaption><p class="paper-output"><span class="paper-excerpt paper-incoherent">“packed”</span><span class="paper-description"> — part of an implausible description of one whale inside another.</span></p></figure>
+        <figure class="output-row"><figcaption><b>Top-k, $k=640$</b> · can veer off topic</figcaption><p class="paper-output"><span class="paper-excerpt paper-incoherent">“Pumping Station”</span><span class="paper-description"> — an unrelated topic replaces the whale story.</span></p></figure>
+        <figure class="output-row"><figcaption><b>Nucleus, $p=0.95$</b> · better balance here, still imperfect</figcaption><p class="paper-output"><span class="paper-excerpt">“feed their calves”</span><span class="paper-description"> — stays closer to the whale topic here, but the full output still drifts and makes errors.</span></p></figure>
+      </div>
+    </div>
+    <div class="decode-modern" pause data-fragment-index="1">
+      <h3>Shi et al. (2024): task dependence</h3>
+      <p>Results depended on <b>task, model, settings, and evaluation objective</b>.</p>
+      <table class="decoding-task-table">
+        <thead><tr><th>Task</th><th>Choices to evaluate</th></tr></thead>
+        <tbody>
+          <tr><td>Open-ended writing</td><td>Temperature / top-p sampling</td></tr>
+          <tr><td>Translation / constraints</td><td>Beam search / task-specific decoding</td></tr>
+          <tr><td>Factual / structured</td><td>Low temperature / deterministic; verify facts</td></tr>
+          <tr><td>Math reasoning</td><td>Generate multiple solutions; verify or compare answers.</td></tr>
+        </tbody>
+      </table>
+      <p class="guidance-note">Contextual guidance; evaluate on the actual task.</p>
+    </div>
+  </div>
+  <p class="decode-study-takeaway" pause data-fragment-index="1"><b>There is no universally best decoding method.</b> The right strategy depends on whether we prioritize diversity, coherence, correctness, or computational cost.</p>
+  <p class="question decode-study-transition" pause data-fragment-index="1">Decoding selects an output. What changes when the prompt supplies examples?</p>
+  <p class="source"><a href="https://arxiv.org/pdf/1904.09751v2#page=4" target="_blank" rel="noopener">Holtzman et al. (2020), Figure 3 and §6</a>; <a href="https://aclanthology.org/2024.emnlp-main.489/" target="_blank" rel="noopener">Shi et al. (2024), §4–6 and Appendix I</a>. Short original phrases; explanatory descriptions paraphrased. Table: contextual guidance.</p>
+  <notes>About 2.5 minutes, three builds. Build 1 presents the original common prompt and short original phrases from beam search and pure sampling in Holtzman Figure 3. Build 2 adds original temperature, top-k and nucleus excerpts, preserving the settings and quoted wording, with the original blue/red highlight identities. Ellipses mark omitted text; explanatory descriptions are paraphrases, not replacement model outputs. These are selected phrases from illustrative generations in the 2020 paper, not new measurements or complete outputs. In the paper's wider open-ended experiments nucleus balanced quality/diversity well; its example still drifts from whales to birds and contains errors, so do not call it universally best or factually reliable. Build 3 adds Shi et al. (2024) and the contextual task table. Their tuned LLM evaluations found task/model dependence; for unaligned Llama2, deterministic methods were often stronger on closed-ended tasks, while open-ended results favored other methods. The size of decoding differences also varied with model size and deployment settings. Their study is not a proof of one permanent winner for all present or future models. The task table synthesizes contextual choices, not a claim every listed combination was directly ranked in their experiments. Multiple-candidate verification is mentioned only as a possible task-specific inference approach. Transition to ICL: the decoder selects from a conditional distribution, while demonstrations in the prompt change that distribution with fixed neural weights.</notes>
+  <narration>
+    <say>Holtzman and colleagues compared decoding methods for open-ended generation. These short original phrases come from their Figure 3, all continuing the same whale prompt; the adjacent descriptions paraphrase the failure cases. Beam search repeats phrases, while pure sampling produces an incoherent continuation. The blue and red colors retain the original highlight identities.</say>
+    <say>Temperature and top-k also have failure cases at these settings. Nucleus sampling offered a better quality-diversity balance in their experiments, but even this output contains errors. These examples come from 2020 and do not establish a universal ranking for modern language models.</say>
+    <say>Shi and colleagues later compared many decoders across LLMs, tasks and settings. Their results reinforce that the best choice depends on what we evaluate and which model we use. The table lists contextual approaches to test, not guaranteed winners. Diversity, coherence, correctness and computation are different objectives. Next we ask how demonstrations in the prompt change the conditional distribution itself.</say>
+  </narration>
+</section>
+
+
+<!-- Section 5: In-Context Learning · 7 slides, about 20 minutes. -->
+<!-- Section 5 transition: same map zoom as lectures 1 and 2. -->
+<section id="sec-icl" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=3 b=4 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Brief section transition. Entering zooms out from the preceding slide to the full outline. Advance once to zoom into the next section, then advance to its first content slide.</notes>
+  <narration>
+    <say>Decoding selects outputs from the model's conditional probabilities.</say>
+    <say>How can examples in the context change those probabilities while neural weights stay fixed?</say>
+  </narration>
+</section>
+
+<section id="in-context-learning" class="continuation icl-story story-discovery">
+  <h2>What Is In-Context Learning?</h2>
+  <div class="story-grid">
+    <div class="story-copy">
+      <h3>Examples in the prompt provide information about the task.</h3>
+      <div class="prompt story-prompt">Loved it. → POS<br>Hated it. → NEG<br>A delightful film. → <span class="answer">?</span></div>
+      <p class="story-small"><b>Zero-shot:</b> no demonstrations.<br><b>Few-shot:</b> examples in the prompt.</p>
+      <div pause="phase=1" data-fragment-index="0">
+        \[\boxed{\htmlClass{story-output}{\hat y_*}=\htmlClass{story-model}{F_\theta}(\htmlClass{story-context}{\mathcal D_k},\htmlClass{story-query}{x_*})}\]
+        <p class="story-small story-definitions"><span class="story-context">$\mathcal D_k$:</span> examples in the prompt<br><span class="story-query">$x_*$:</span> new input · <span class="story-output">$\hat y_*$:</span> output<br><span class="story-model">$F_\theta$:</span> the transformer with pretrained parameters $\theta$</p>
+      </div>
+    </div>
+    <fig name="iclDiscovery" init="phase=0"></fig>
+  </div>
+  <p class="story-takeaway" pause="phase=2" data-fragment-index="1">In-context learning changes the model's predictions through its input context,<br>not through weight updates.</p>
+  <p class="source"><a href="https://arxiv.org/abs/2005.14165">Brown et al. (2020), §1–2, Figs. 1.1–1.2</a>. Sentiment example is illustrative, not a measured GPT-3 response.</p>
+  <notes>About 2 minutes. Main idea: Brown et al. (2020), §1–2 and Figs. 1.1–1.2, made GPT-3's task adaptation through text demonstrations striking at scale. Build 1 shows an intended sentiment answer, not an actual model run. Zero-shot can still contain an instruction; it simply contains no demonstrations. Build 2 writes the same model as F_theta and identifies the ordered examples D_k, query x_* and output y-hat_*. F_theta is the pretrained language model used for prediction, not a separately trained sentiment classifier. Build 3 highlights fixed neural weights. Hidden activations and conditional predictions change; ordinary inference does not run a weight update. Contrast fine-tuning only at this level, without introducing its algorithms. Brown evaluated GPT-3 on tasks without task-specific gradient updates, while also documenting limitations. Spoken transition: “But why would a model trained only to predict the next token develop the ability to learn from examples?”</notes>
+  <narration>
+    <say>GPT-3 showed how a language model could use demonstrations supplied as text. Here the examples suggest sentiment classification, and the intended answer is POS. Zero-shot means no demonstrations; few-shot means examples in the prompt.</say>
+    <say>The examples D k and new input x star enter the same pretrained transformer F theta. It produces the output y hat star. This is the pretrained model being used to predict, rather than a new task-specific classifier.</say>
+    <say>In-context learning changes the input while theta remains fixed. But why would a model trained only to predict the next token develop this ability?</say>
+  </narration>
+</section>
+
+<section id="what-changes-icl" class="continuation icl-story story-pretraining">
+  <h2>Why Can ICL Emerge from Pretraining?</h2>
+  <fig name="iclLatentConcept" init="phase=0"></fig>
+  <div class="story-information" pause="phase=1" data-fragment-index="0">
+    \[\boxed{H(X_{t+1})-H(X_{t+1}\mid X_{1:t})=I(X_{t+1};X_{1:t})}\]
+    <p>The information in earlier tokens can reduce uncertainty about the next token.</p>
+  </div>
+  <p class="story-takeaway" pause="phase=2" data-fragment-index="1">Learning to predict tokens can also teach a model to extract hidden structure from context.</p>
+  <p class="source"><a href="https://arxiv.org/abs/2111.02080">Xie et al. (2022), Fig. 1 (adapted), §2–3</a>; <a href="https://arxiv.org/abs/2505.18373">Riechers et al. (2025, preprint), §2, Eqs. (1–3)</a>. Entropies describe expected uncertainty, not guaranteed gains for every prompt.</p>
+  <notes>About 2.5 minutes. Build 1 adapts Xie et al.'s Figure 1: tokens within a pretraining document share a concept, such as biographical text. Our newly written biography and name-to-nationality examples preserve that idea without reproducing the paper's full figure. Build 2 uses the general mutual-information identity for the same next-token random variable, with finite entropies. It quantifies an expected reduction in uncertainty when conditioning on earlier tokens; it does not say every particular prompt helps a learned model. Riechers et al., arXiv:2505.18373v2 (2025 preprint), §2 Eqs. (1–3), study cross-entropy under the training sequence distribution and the entropy attained by an exact distributional predictor. Monotonicity across positions additionally uses stationarity; it is not a claim about arbitrary shifted prompts. Build 3 connects a shared document concept to a task shared across demonstrations. Xie et al. analyze a well-specified mixture of HMMs and an exact pretraining-distribution predictor, with regularity and distinguishability assumptions in §2.1, Condition 1 and Theorem 1. These explanations connect ordinary next-token pretraining with context use, while leaving general GPT few-shot task learning open. Transition: “Let's see how observations can reveal a hidden parameter and change predictions in a simple Bayesian model.”</notes>
+  <narration>
+    <say>Text is not a sequence of unrelated tokens. A document can share a hidden topic or concept. Earlier biographical text helps predict what is likely to come next, so next-token training rewards using that structure.</say>
+    <say>Mutual information measures how much earlier tokens can reduce expected uncertainty about the next token. Riechers and colleagues formalize in-distribution context-dependent learning under next-token pretraining. This is an average relationship, not a promise that any particular prompt improves a model.</say>
+    <say>Xie and colleagues connect the shared concept within a document to a task shared across demonstrations. Their theory uses a stylized mixture of hidden Markov models. It does not prove arbitrary few-shot learning in a real GPT model. Let us make the statistical intuition concrete with a coin.</say>
+  </narration>
+</section>
+
+<section id="beta-bernoulli-posterior" class="continuation icl-story story-bayes-example">
+  <h2>Learning from Context: A Bayesian Example</h2>
+  <div class="story-grid">
+    <div class="story-copy">
+      <h3>One unknown coin bias per sequence</h3>
+      \[\Theta\sim\operatorname{Beta}(1,1)\]
+      <p>Before any flips, what probability of heads would we predict?</p>
+      <div pause="phase=1 heads=3 tails=1" data-fragment-index="0">
+        <p class="story-observations">Observe: <span class="story-context">H, H, T, H</span></p>
+        \[\Theta\mid\mathcal D\sim\operatorname{Beta}(4,2).\]
+      </div>
+      <div pause="phase=2" data-fragment-index="1">
+        \[\boxed{P(H_{\mathrm{next}}\mid\mathcal D)=\frac46=\frac23}\]
+        <p class="story-small">The inference rule stays fixed.<br>The observations change the posterior and prediction.</p>
+      </div>
+    </div>
+    <div class="story-evidence">
+      <fig name="iclBayesianCoin" init="phase=0 heads=0 tails=0"></fig>
+      <knob for="iclBayesianCoin" param="heads" min="0" max="20" step="1" digits="0">Heads $h$</knob>
+      <knob for="iclBayesianCoin" param="tails" min="0" max="20" step="1" digits="0">Tails $t$</knob>
+      <p class="story-note story-center">Controls explore other contexts; the worked example is HHTH.</p>
+    </div>
+  </div>
+  <p class="story-takeaway" pause data-fragment-index="1">Context can change predictions by providing evidence<br>about an unknown underlying parameter or task.</p>
+  <p class="source">Exact Beta–Bernoulli toy model, motivated by <a href="https://arxiv.org/abs/2111.02080">Xie et al. (2022)</a>. This is not evidence that a real GPT computes Beta posteriors.</p>
+  <notes>About 2.5 minutes. Each sequence has one latent heads probability capital Theta, with conditionally IID Bernoulli flips and a uniform Beta(1,1) prior. Theta is not the neural parameter vector theta. Build 1 displays the uniform density and asks for the prior predictive, which is 1/2. Build 2 adds HHTH: h=3 and t=1, giving Beta(4,2), with density 20 Theta^3(1−Theta). Build 3 marks the posterior mean 2/3 and the next-heads predictive. The posterior mode is 3/4, which is not the predictive. The controls use Beta(1+h,1+t) and predictive (1+h)/(2+h+t); the left worked example stays explicitly HHTH. A corpus containing sequences from different latent biases would make earlier flips useful for next-symbol prediction. A neural predictor might approximate that rule across contexts with fixed weights. This exact conjugate calculation is our pedagogical example, not a result reported by Xie et al. or proof of GPT's internal mechanism. Transition: “So far, examples seem useful because they tell us the correct relationship. But a surprising experiment challenged that intuition.”</notes>
+  <narration>
+    <say>Suppose each sequence comes from a coin with an unknown bias. A uniform prior puts equal density on all biases. Before any observations, the next-heads probability is one half.</say>
+    <say>Now observe heads, heads, tails, heads. The posterior is Beta four two. The same inference rule incorporates the observations as evidence about the shared bias.</say>
+    <say>The predictive probability is the posterior mean, two thirds. A next-token predictor exposed to many such sequences might learn to exploit this evidence. This exact Bayesian toy model does not prove that GPT computes Beta posteriors. But do demonstrations always need to give correct labels?</say>
+  </narration>
+</section>
+
+<section id="demonstration-labels" class="continuation icl-story story-random-labels">
+  <h2>Do Demonstrations Need Correct Labels?</h2>
+  <div class="story-grid">
+    <div class="story-copy">
+      <h3>Correct labels</h3>
+      <div class="prompt story-label-prompt">Loved it. → <span class="story-context">POS</span><br>Hated it. → <span class="story-context">NEG</span></div>
+      <h3>Incorrect labels</h3>
+      <div class="prompt story-label-prompt">Loved it. → <span class="story-alert">NEG</span><br>Hated it. → <span class="story-alert">POS</span></div>
+      <p class="story-note">Illustration: swapped labels.<br>The experiment uses randomly sampled labels.</p>
+      <p class="story-question">Should performance drop dramatically?</p>
+    </div>
+    <div class="story-evidence" pause data-fragment-index="0">
+      <h3>Min et al.: a surprisingly small decline</h3>
+      <img class="story-min-plot" src="img/research/min-fig1-classification.png" alt="Original Min et al. Figure 1 top panel: classification macro-F1 from 25 to 65 percent, comparing no demonstrations, gold demonstration labels and random demonstration labels for MetaICL 774M, GPT-J 6B and GPT-3 175B. All published bars, scales and labels preserved.">
+      <p class="story-figure-caption">Figure 1, top panel. Classification macro-F1, channel scoring.<br>The paper also studies multiple-choice tasks.</p>
+      <div class="story-label-interpretation" pause data-fragment-index="1">
+        <p>Examples also reveal <b>input distribution</b>, <b>output labels</b>, and <b>task format</b>.</p>
+      </div>
+    </div>
+  </div>
+  <p class="story-takeaway" pause data-fragment-index="1">Examples can help a model identify what to do<br>without necessarily teaching it a new input-output rule.</p>
+  <p class="source"><a href="https://aclanthology.org/2022.emnlp-main.759/">Min et al. (EMNLP 2022), Fig. 1 (top), §3–5</a>. Original experimental panel; the paired prompts on the left are schematic.</p>
+  <notes>About 2.5 minutes. Build 1 contrasts correct labels with a fully swapped two-example illustration. Do not call that illustration the paper's random-label intervention: Min et al. independently sample labels from the label space, so some randomized labels remain correct. Ask whether performance should collapse if demonstrations teach the mapping. Build 2 shows the unchanged classification panel from published Figure 1, PDF page 1: macro-F1, three models, channel scoring, the GPT-3-evaluation subset. The second Figure 1 panel reports multiple-choice accuracy, which is not displayed here. Both panels use the paper's six-dataset subset in aggregate. §3 uses 16 demonstrations; §4 gives the broader comparisons and conditions, and §5 ablates input distribution, label space and format. MetaICL is a meta-trained model, while GPT-J and GPT-3 are distinct base models; this panel does not isolate a pure pretraining mechanism. Build 3 interprets the result as evidence that demonstrations do more than teach a correct mapping. The small declines in these studied tasks do not establish that correctness never matters or that every model ignores labels. Transition: “This suggests we need to distinguish two different meanings of learning from examples.”</notes>
+  <narration>
+    <say>If demonstrations teach the input-output mapping, wrong labels ought to be damaging. These swapped sentiment examples illustrate the question. The actual study randomly sampled demonstration labels, rather than systematically reversing every label.</say>
+    <say>Here is Min and colleagues' original classification result. On these tasks and scoring settings, randomized demonstration labels cause a comparatively small decline. The paper also studies multiple-choice tasks. This is a task-dependent empirical result.</say>
+    <say>Demonstrations can reveal the input distribution, the possible labels, and the expected format. They may identify a task the model already knows, even when individual mappings are unreliable. That motivates separating task recognition from task learning.</say>
+  </narration>
+</section>
+
+<section id="task-recognition-learning" class="continuation icl-story story-task-types">
+  <h2>Task Recognition vs. Task Learning</h2>
+  <div class="story-task-pair">
+    <div>
+      <h3 class="story-context">Task recognition</h3>
+      <p>Identify a familiar task.</p>
+      <div class="prompt">cat → chat<br>dog → chien<br>house → <span class="answer">maison</span></div>
+      <p class="story-small">The examples identify English-to-French translation.<br>Apply a skill acquired during pretraining.</p>
+    </div>
+    <div pause data-fragment-index="0">
+      <h3 class="story-output">Task learning</h3>
+      <p>Infer a relationship from examples.</p>
+      <div class="prompt">1 → 7<br>2 → 10<br>3 → <span class="answer">13</span></div>
+      \[f(x)=3x+4\]
+      <p class="story-small">One possible rule gives $f(3)=13$.</p>
+    </div>
+  </div>
+  <p class="story-takeaway" pause data-fragment-index="1">Examples can help an LLM recognize a familiar task or infer a new relationship.</p>
+  <p class="source"><a href="https://aclanthology.org/2023.findings-acl.527/">Pan et al. (ACL Findings 2023), §2–4, Fig. 1</a>; <a href="https://aclanthology.org/2022.emnlp-main.759/">Min et al. (2022)</a>. Conceptual examples, not measured model responses.</p>
+  <notes>About 2.5 minutes. Build 1 illustrates task recognition: the examples suggest applying translation knowledge already acquired during pretraining. Build 2 illustrates a candidate rule inferred from demonstrations, f(x)=3x+4. Its answer 13 is not uniquely identified by two observations; inductive bias resolves ambiguity. An LLM might also recognize a familiar arithmetic pattern, so this toy example is not an experimental identification of its mechanism. Build 3 summarizes the two ways that examples can help. Pan et al. §2 and Fig. 1 operationalize recognition using RANDOM labels and learning using ABSTRACT labels, which replace familiar labels by symbols. §3–4 compare GPT-3, LLaMA and OPT classification tasks; their evidence indicates both contributions, with different effects of scale and demonstration count. These interventions are operational probes, not proof of mutually exclusive neural modules. The contrast helps explain Min et al.'s results while preserving the possibility of learning new mappings. Transition: “Can a transformer genuinely learn an unfamiliar function from examples? Researchers designed controlled experiments to test this.”</notes>
+  <narration>
+    <say>The translation examples can tell a pretrained model which familiar skill to apply. That is task recognition: identifying the intended task using examples.</say>
+    <say>A different prompt suggests a possible numerical rule, three x plus four. Inferring a new mapping would be task learning.</say>
+    <say>Examples can help an LLM recognize a familiar task or infer a new relationship. To test learning an unfamiliar function more directly, we next turn to a controlled synthetic experiment.</say>
+  </narration>
+</section>
+
+<section id="beta-predictive" class="continuation icl-story story-function-learning">
+  <h2>Can Transformers Learn New Functions?</h2>
+  <p class="story-experiment-distinction">Controlled experiment: Train one transformer across many synthetic functions, then test on unseen functions.</p>
+  <div class="story-function-grid">
+    <div class="story-copy">
+      <h3>Many tasks, one trained predictor</h3>
+      <ol class="story-steps">
+        <li>Sample a new coefficient vector $w$.</li>
+        <li>Generate examples: $y_i=w^\top x_i$.</li>
+        <li>Predict a new query from its context.</li>
+        <li>Repeat across functions during training.</li>
+      </ol>
+      \[\hat y_*=F_\theta(\mathcal D_k,x_*)\]
+      <p class="story-small"><b>Test:</b> unseen functions, fixed $\theta$.</p>
+      <p class="story-note" pause data-fragment-index="1">Transformer errors track least squares here.</p>
+    </div>
+    <div class="story-evidence" pause data-fragment-index="0">
+      <img class="story-garg-plot" src="img/research/garg-fig2-regression.png" alt="Original Garg et al. Figure 2: normalized squared prediction error versus number of in-context examples. Transformer and least squares perform comparably, unlike higher-error 3-nearest-neighbor and averaging baselines. All original curves, legend labels and confidence bands retained.">
+      <p class="story-figure-caption">Garg et al., Figure 2. $d=20$; $w,x_i,x_*\sim\mathcal N(0,I_d)$ independently.<br>Squared error divided by $d$. 1,280 prompts; original 90% bootstrap intervals.</p>
+    </div>
+  </div>
+  <p class="story-takeaway" pause data-fragment-index="1">When trained across a family of tasks, transformers can perform<br>statistical estimation on previously unseen functions.</p>
+  <p class="source"><a href="https://arxiv.org/abs/2208.01066">Garg et al. (NeurIPS 2022), §2–3.1, Fig. 2</a>. Original panel. Least squares uses the minimum-norm fit when the context is underdetermined.</p>
+  <notes>About 2.5 minutes. Start with the visible distinction: Garg et al. deliberately train a GPT-2-family decoder from scratch on synthetic function prompts. This is a capability experiment, not a reconstruction of how general-purpose GPT pretraining produced ICL. §2 trains on predictions over prompt prefixes across many sampled tasks. §3 independently samples w and inputs from a standard Gaussian in d=20 and uses noiseless linear targets. Build 2 shows original Figure 2, with every curve and band preserved: normalized squared error versus number of in-context examples. Least squares uses the minimum-norm solution, including fewer than d examples. The figure averages 1,280 prompts with 90% confidence intervals from 1,000 bootstrap trials. Build 3 emphasizes estimator-like performance on new functions while keeping transformer weights fixed. Matching errors establishes behavior in this task family, not that arbitrary GPT models internally compute OLS. We omit OLS derivations because students already know them. Transition: “Transformers can behave like learning algorithms. But how could attention actually implement such computations?”</notes>
+  <narration>
+    <say>Unlike ordinary GPT pretraining, Garg and colleagues deliberately trained transformers on synthetic function-learning tasks. Each prompt comes from a sampled linear function. Training repeats across functions; testing uses unseen functions while transformer weights remain fixed.</say>
+    <say>The original plot shows prediction error as the number of in-context examples grows. The transformer tracks least squares, while the simpler baselines have higher error. The task has twenty input dimensions and independently sampled Gaussian coefficients and inputs.</say>
+    <say>This is evidence that transformers can acquire a reusable statistical prediction procedure. It is not proof that a general-purpose GPT model computes ordinary least squares internally. How might an attention computation implement a learning step?</say>
+  </narration>
+</section>
+
+<section id="bayes-to-llms" class="continuation icl-story story-attention-learning">
+  <h2>Attention as Implicit Gradient Descent</h2>
+  <div class="story-grid">
+    <div class="story-copy">
+      <p>One gradient step for linear regression with scalar outputs,<br>starting at $w_0=0$:</p>
+      \[\boxed{\htmlClass{story-output}{\hat y_*}=\frac{\eta}{k}\sum_{i=1}^k\htmlClass{story-target}{y_i}\big(\htmlClass{story-context}{x_i}^\top\htmlClass{story-query}{x_*}\big)}\]
+      <div pause data-fragment-index="0"><fig name="iclAttentionComputation"></fig></div>
+    </div>
+    <div class="story-evidence" pause data-fragment-index="1">
+      <img class="story-oswald-plot" src="img/research/oswald-fig2-training.png" alt="Original von Oswald et al. Figure 2 left panel: training loss of a single linear self-attention layer approaches a one-step gradient-descent reference on controlled synthetic regression.">
+      <p class="story-figure-caption">von Oswald et al., Fig. 2, left.<br>A trained linear-attention layer approaches the GD reference.</p>
+      <p class="story-note">This exact equivalence is for a particular linear-attention construction, not standard softmax attention.</p>
+    </div>
+  </div>
+  <p class="story-takeaway" pause data-fragment-index="1">A fixed transformer can, under suitable assumptions,<br>implement learning-algorithm computations during inference.</p>
+  <p class="source"><a href="https://proceedings.mlr.press/v202/von-oswald23a.html">von Oswald et al. (ICML 2023), §2–3, Prop. 1, Fig. 2 (left)</a>; <a href="https://arxiv.org/abs/2211.15661">Akyürek et al. (ICLR 2023), §3–4</a>. Equation: pedagogical specialization.</p>
+  <notes>About 3 minutes. Build 1 recalls the result of one full-batch GD step on L(w)=(1/(2k)) sum_i(y_i−w^T x_i)^2, starting from w_0=0. The gradient gives w_1=(eta/k) sum_i y_i x_i, and the displayed prediction follows by multiplying by x_*. This scalar, zero-initialized specialization is pedagogical. Build 2 maps query x_*, context keys x_i, and scaled values eta*y_i/k to an unnormalized linear-attention weighted sum. Build 3 shows original von Oswald et al. Figure 2's left training-loss panel. We select this empirical comparison instead of Figure 1's broad conceptual illustration so students can see a trained single linear-attention layer approach the GD reference. Proposition 1 is an exact construction with a single head, paired (x_i,y_i) tokens, context-only keys/values, specific projection matrices, residual target-coordinate updates and an output readout. §3 separately tests learned behavior on controlled regression. Neither the proof nor that experiment establishes GD in ordinary softmax GPTs. Akyürek et al. §3, Theorems 1–2, supply separate GD and ridge-update constructions and §4 studies learned behavior. Omit the complete matrix construction. Transition: “Do we know which of these mechanisms explains ICL in actual LLMs?”</notes>
+  <narration>
+    <say>For zero-initialized linear regression with scalar outputs, one gradient step produces this prediction. Each observed target is weighted by an inner product between its input and the query.</say>
+    <say>That weighted-sum structure can be implemented by unnormalized linear attention: compare query and keys, weight the corresponding values, then add. This is a specific attention computation, rather than a universal identity for softmax attention.</say>
+    <say>The published panel shows a trained linear-attention layer approaching the gradient-descent reference on controlled regression. Von Oswald and colleagues also give an exact construction under specified assumptions. This shows what such a fixed transformer can implement, not the mechanism of every GPT model.</say>
+  </narration>
+</section>
+
+<section id="icl-limits" class="continuation icl-story story-synthesis">
+  <h2>Where Do We Stand in 2026?</h2>
+  <fig name="iclMechanismSynthesis"></fig>
+  <p class="story-schematic-note">Overlapping research perspectives, not a proven neural architecture or mandatory pipeline.</p>
+  <div class="story-evidence-pair">
+    <div pause data-fragment-index="0">
+      <h3 class="story-query">Well supported</h3>
+      <ul>
+        <li>Context changes predictions without weight updates.</li>
+        <li>Task recognition and statistical inference can contribute to ICL.</li>
+        <li>Controlled transformers can implement learning-like computations.</li>
+      </ul>
+    </div>
+    <div pause data-fragment-index="1">
+      <h3 class="story-alert">Still unresolved</h3>
+      <ul>
+        <li>Which mechanisms dominate in modern LLMs?</li>
+        <li>How reliably does ICL generalize to unfamiliar tasks?</li>
+        <li>How well do controlled theoretical results explain real LLMs?</li>
+      </ul>
+    </div>
+  </div>
+  <p class="story-takeaway" pause data-fragment-index="1">ICL can involve task recognition, statistical inference,<br>and learning-like computations—all with fixed pretrained weights.</p>
+  <p class="source"><a href="https://arxiv.org/abs/2505.18373">Riechers et al. (2025, preprint), §2</a>; <a href="https://proceedings.mlr.press/v300/akata26a.html">Akata et al. (AISTATS 2026), §3–4, Figs. 2–4</a>; <a href="https://proceedings.iclr.cc/paper_files/paper/2026/hash/a598163f84a7d6d64476ec6762ca25ce-Abstract-Conference.html">De Wynter (ICLR 2026), §3–4</a>. Research available through October 2026.</p>
+  <notes>About 2.5 minutes. Build 1 synthesizes complementary perspectives: task recognition (Min et al. §4–5; Pan et al. §2–4), statistical inference (Xie et al. §2–3; Riechers et al. §2), and estimator/optimization computations (Garg et al. §3; von Oswald et al. Prop. 1 and §3; Akyürek et al. §3–4). The diagram is a conceptual summary, not three proven internal modules or a mandatory sequence. Build 2 summarizes support with scope. Riechers et al. is the verified 2025 arXiv preprint, concerning in-distribution next-token loss. Akata et al. is published at AISTATS 2026 (PMLR 300): §3.1 and §4.1, Figs. 2–3, examine GP-generated continuous functions in 1–4 dimensions, including Qwen-3 models and model-family comparisons; curves depend on kernels and dimensionality and often approach the GP baseline. §4.2 and Fig. 4 study inductive biases. GP-like predictions do not prove an internal GP implementation. Build 3 discusses unresolved transfer. De Wynter is published at ICLR 2026: §3 gives a formal framework in which ICL counts as learning, while §4 tests four models on nine verifiable formal tasks. The paper reports brittle OOD generalization as the test distribution moves away from the demonstrations. These results are not a universal negative theorem about natural-language ICL. The recent studies support context-dependent capabilities and reveal limits, rather than settling one mechanism for all production LLMs. Transition: “The context can adapt a predictor, but its pretraining distribution still shapes what it knows and how it generalizes. What limitations follow from learning from finite text?”</notes>
+  <narration>
+    <say>By October twenty twenty-six, several perspectives contribute to the picture. Examples can identify a familiar task, reveal hidden statistical structure, or support computations resembling a learning algorithm. These perspectives can overlap.</say>
+    <say>Context changes predictions without weight updates. Task recognition and statistical inference can contribute to in-context learning. Controlled transformers can implement learning-like computations.</say>
+    <say>Which mechanisms dominate in modern LLMs? How reliably does in-context learning generalize to unfamiliar tasks? How well do controlled theoretical results explain real LLMs? In-context learning can involve task recognition, statistical inference, and learning-like computations, all with fixed pretrained weights. We now turn to the limitations of learning from finite text.</say>
+  </narration>
+</section>
+
+<!-- Section 6: Limitations · 4 slides, about 10 minutes. -->
+<!-- Section 6 transition: same map zoom as lectures 1 and 2. -->
+<section id="sec-limitations" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=4 b=5 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Brief section transition. Entering zooms out from the preceding slide to the full outline. Advance once to zoom into the next section, then advance to its first content slide.</notes>
+  <narration>
+    <say>The Bayesian example illustrates adaptation through context with a fixed inference rule.</say>
+    <say>What can pretraining still fail to learn or retrieve? We now examine its limitations.</say>
+  </narration>
+</section>
+
+<section id="limitations" class="continuation good-turing-slide">
+  <h2>How Much Probability Mass Have We Never Seen?</h2>
+  <column>
+    <p class="opener">We've observed 1,000 samples. How much probability should we assign to symbols we've never seen?</p>
+    <p>Good–Turing estimates unseen mass using symbols observed exactly once.</p>
+    <p>In a discrete IID sampling model, let $n$ be the number of observations and $N_1$ the number of symbols observed exactly once.</p>
+    \[\widehat P(\text{next symbol was unseen})=\frac{N_1}{n}.\]
+    <div pause data-fragment-index="1" class="gt-takeaways">
+      <p><b>Statistical insight:</b> Many symbols appearing only once suggest substantial unseen probability mass.</p>
+      <p><b>LLM implication:</b> Kalai and Vempala (2024) establish a lower bound on hallucination rates for calibrated language models, related to the Good–Turing estimate of unseen probability mass.</p>
+    </div>
+  </column>
+  <fig name="goodTuring" pause data-fragment-index="0"></fig>
+  <p class="source"><span class="gt-footer-note">Unseen probability mass ≠ LLM hallucination rate.</span><br><a href="https://doi.org/10.1093/biomet/40.3-4.237" target="_blank" rel="noopener">Good (1953)</a>; <a href="https://arxiv.org/abs/2311.14648" target="_blank" rel="noopener">Kalai &amp; Vempala (2024)</a>. $n$ here is sample size, not model size $N$.</p>
+  <notes>3 minutes. The frequency table accounts for 1000 draws: 120*1+80*2+60*3+54*10. The unseen mass sums the true probabilities of all unobserved symbols; it is not the probability of one chosen unseen fact. The classic estimate uses the singleton fraction. Text tokens and facts are not generally IID. Kalai and Vempala obtain hallucination results for arbitrary facts under a specified calibration condition and additional assumptions; do not make a universal inevitability claim for all models or systematic facts.</notes>
+  <narration>
+    <say>We've observed one thousand samples. How much probability should we assign to symbols we've never seen? Good–Turing estimates this unseen probability mass using the number of symbols observed exactly once.</say>
+    <say>Good–Turing uses the fraction of singleton observations to estimate that missing mass. With one hundred twenty singletons in one thousand draws, the estimate is twelve percent.</say>
+    <say>Many symbols appearing only once suggest substantial unseen probability mass. Kalai and Vempala establish a lower bound on hallucination rates for calibrated language models, related to the Good–Turing estimate of unseen probability mass. This does not make unseen probability mass an LLM hallucination rate.</say>
+  </narration>
+</section>
+
+<section id="reversal-curse" class="continuation reversal-evidence">
+  <h2>The reversal curse</h2>
+  <column>
+    <p class="opener">A model can learn a forward relationship yet fail to answer the equivalent reverse question.</p>
+    <p class="compact">Fictional fact: <b>Mira Vale is the composer of Silver Lanterns.</b></p>
+    <div class="reversal-example">
+      <p><b>Forward:</b> “What did Mira Vale compose?”<br><span class="forward-answer">→ Silver Lanterns</span></p>
+      <p><b>Reverse:</b> “Who composed Silver Lanterns?”<br><span class="reverse-answer">→ Mira Vale</span></p>
+    </div>
+    <div pause data-fragment-index="1" class="reversal-takeaways">
+      <p><b>Original finding:</b> Learning a relationship in one direction does not guarantee retrieving it in reverse.</p>
+      <p><b>Can we fix it?</b> Reverse training and improved representations can reduce this problem, but no universal solution has been established.</p>
+    </div>
+  </column>
+  <fig name="reversalAccuracy" pause data-fragment-index="0"></fig>
+  <p class="source"><a href="https://arxiv.org/html/2309.12288v3#S2.SS2" target="_blank" rel="noopener">Berglund et al. (2023/2024), §2.2</a><span pause data-fragment-index="1">; <a href="https://arxiv.org/abs/2403.13799" target="_blank" rel="noopener">Golovneva et al. (2024)</a>; <a href="https://proceedings.mlr.press/v306/ma26o.html" target="_blank" rel="noopener">Ma et al. (2026)</a>; <a href="https://proceedings.iclr.cc/paper_files/paper/2026/hash/00a0ebcad584c59dbc439c2af8793638-Abstract-Conference.html" target="_blank" rel="noopener">Wang &amp; Sun (2026)</a>.</span></p>
+  <notes>2.5–3 minutes. Assume a unique composer; arrows show correct answers, not model responses. Original controlled experiments fine-tuned GPT-3/Llama-1 on invented identities. The chart uses the separate historical GPT-4 celebrity study (§2.2): parents of 1,000 IMDb celebrities yielded 1,573 pairs (79%); reverse queries retrieved the original celebrity for 33% of those pairs, counting ≥1 success in ten samples (temperature 1). The denominators/protocols differ. Unknown pretraining data make this suggestive, prompt-dependent evidence, not a controlled causal test or current GPT-4 score. These are §2.2 rates, not Figure 5's different summary. Golovneva et al. (COLM 2024) improve reversal with forward/reversed-text training that preserves entities or segments. Ma et al. (ICML 2026) add identity-bridge examples (A → A), with theoretical results for a simplified transformer and empirical gains on tested tasks. Wang &amp; Sun (ICLR 2026; preprint 2025) investigate inconsistent/entangled concept representations and report gains using a JEPA-based design and memory layers. The mitigation results are setup-dependent; systematic binding with less human scaffolding remains a challenge. No universal solution follows. Autoregressive factorization alone is not an impossibility theorem for reverse retrieval.</notes>
+  <narration>
+    <say>Suppose a model learns that Mira Vale is the composer of Silver Lanterns. Retrieving the work from the name does not guarantee retrieving the name from the work, even though the two questions express the same unique relationship.</say>
+    <say>In the original paper's historical GPT-4 celebrity study, the reported forward rate was seventy-nine percent and reverse retrieval was thirty-three percent. The reverse test used pairs first obtained in the forward direction and allowed ten attempts. These are historical, prompt-dependent results, not current GPT-4 performance.</say>
+    <say>Learning in one direction does not guarantee reverse retrieval. Can we fix it? Reverse training and improved representations can reduce this problem, but no universal solution has been established.</say>
+  </narration>
+</section>
+
+<section id="output-priors" class="continuation output-prior-evidence">
+  <h2>Why Do LLMs Prefer Familiar Answers?</h2>
+  <div class="row output-prior-row">
+    <div class="output-copy">
+      <p>ROT13 shifts each letter 13 positions in the alphabet (A ↔ N, B ↔ O).</p>
+      <p class="rot13-full"><span class="tk">Gur png fng ba gur dhnfne.</span><br>Correct: “The cat sat on the quasar.”</p>
+      <p class="rot13-deterministic"><b>ROT13 decoding is deterministic: there is exactly one correct answer, regardless of how natural it sounds.</b></p>
+      <div pause data-fragment-index="1" class="output-bayes">
+        <p class="bayes-heading"><b>Bayesian interpretation</b></p>
+        \[p(y\mid x)\propto p(x\mid y)\,p(y).\]
+        <p>$p(y)$: preference for familiar outputs.<br>$p(x\mid y)$: task-related evidence.</p>
+        <p class="output-takeaway"><b>Can we fix it?</b> <span class="mitigation-text">Prompting and targeted fine-tuning can reduce this bias, but no universal solution exists (Zhang et al., 2025).</span></p>
+      </div>
+    </div>
+    <div class="output-paper">
+      <div pause data-fragment-index="0" class="output-experiment">
+        <p class="historical-label">Historical experimental results · McCoy et al. (2024)</p>
+        <img src="img/research/mccoy-2024-fig3-rot13-output.svg" alt="Original Figure 3 top-left panel from McCoy et al. (2024). ROT13 decoding accuracy versus correct-output log probability for GPT-3.5 and GPT-4; original points, legend, ticks and one-standard-error bands preserved; x-axis title clarified and a direction annotation added.">
+        <p class="output-comparison"><b>GPT-4:</b> <b>51%</b> for high-probability outputs<br>versus <b>13%</b> for low-probability outputs.</p>
+      </div>
+    </div>
+  </div>
+  <p class="source"><a href="https://doi.org/10.1073/pnas.2322420121" target="_blank" rel="noopener">McCoy et al. (2024), Figure 3, top-left</a><span pause data-fragment-index="1">; <a href="https://arxiv.org/abs/2504.12585" target="_blank" rel="noopener" title="Identifying and Mitigating the Influence of the Prior Distribution in Large Language Models">Zhang et al. (2025)</a></span><br>Original data panel (CC BY 4.0), x-axis title clarified; error bands: ±1 SE. GPT-4: gpt-4-0613; not current performance.</p>
+  <notes>2.5–3 minutes. ROT13 is its own inverse; punctuation and spaces remain unchanged. The full ROT13 example is constructed, not a model output. The original published panel is cropped from PNAS 121(41), e2322420121, page 5. Its data, curves, ticks, legend and uncertainty bands are unchanged. Only the x-axis title is clarified; an annotation points toward more probable correct outputs. The reported GPT-4 high/low accuracy comparison is 51%/13%. These experiments used gpt-4-0613 and gpt-3.5-turbo-0613 at temperature 0, with 100 examples per condition. Output probabilities were estimated with GPT-2; the horizontal coordinate is not the evaluated model's confidence in its answer. High-probability stimuli came from Global Voices, medium-probability stimuli replaced words, and low-probability stimuli shuffled the latter. This is a historical result for these tasks and prompts. Introduce the Bayesian interpretation only after the evidence. This is a Bayesian interpretation, not an explicit computation of separate prior and likelihood factors during transformer decoding. Here x is the cipher input and y a candidate plaintext. The factors illustrate how familiarity can interact with imperfect task evidence; transformers do not explicitly compute this decomposition. For an exact deterministic decoder, incompatible outputs have zero likelihood, so a prior cannot override the unique correct answer. Final-build update: Zhang et al. (2025), Identifying and Mitigating the Influence of the Prior Distribution in Large Language Models (arXiv:2504.12585), report improvements on tested prior-dominated tasks through prompting and lightweight targeted fine-tuning of Llama 3. These experiments do not establish a universal fix across models and tasks.</notes>
+  <narration>
+    <say>ROT13 shifts every letter thirteen positions through the alphabet. The example decodes to The cat sat on the quasar. There is exactly one correct decoding, even if the sentence sounds unusual.</say>
+    <say>The published ROT13 experiment shows higher decoding accuracy for more probable correct outputs. Historically, GPT-4 achieved fifty-one percent for high-probability outputs versus thirteen percent for low-probability outputs. The plot preserves the original points and error bands.</say>
+    <say>Bayes' rule offers an interpretation: familiar-output preferences can interact with imperfect task evidence. This is not a separate Bayesian calculation performed by the transformer. Can we fix it? Prompting and targeted fine-tuning can reduce this bias, but no universal solution exists.</say>
+  </narration>
+</section>
+
+<section id="limitations-together" class="continuation limitations-synthesis">
+  <h2>What these limitations have in common</h2>
+  <table class="vals wide-table"><thead><tr><th>Limitation</th><th>Statistical pressure</th><th>What isn't guaranteed?</th></tr></thead><tbody>
+    <tr><td>Rare facts</td><td>Finite evidence about individual facts</td><td>Reliable support for a specific claim</td></tr>
+    <tr><td>Reversal</td><td>Asymmetric contexts in training</td><td>Guaranteed transfer to an inverse query</td></tr>
+    <tr><td>Output preferences</td><td>High probability for familiar text</td><td>Exact execution of an unusual task</td></tr>
+  </tbody></table>
+  <p pause data-fragment-index="0" class="synthesis-conclusion">Low next-token prediction loss does not guarantee factual correctness, reliable generalization, or exact task execution.</p>
+  <p pause data-fragment-index="1" class="synthesis-support">Better training, retrieval, and verification can improve reliability, but each capability must be evaluated separately.</p>
+  <p class="source">Synthesis of <a href="https://arxiv.org/abs/2311.14648" target="_blank" rel="noopener">Kalai &amp; Vempala</a>, <a href="https://arxiv.org/abs/2309.12288" target="_blank" rel="noopener">Berglund et al.</a>, and <a href="https://arxiv.org/abs/2309.13638" target="_blank" rel="noopener">McCoy et al.</a>; no universal failure theorem is asserted.</p>
+  <notes>2 minutes. Bring the examples back to the objective and data rather than listing unrelated failures. Generalization can overcome some missing examples, and pretraining can learn systematic facts. The conclusion is about what the objective does not directly specify, not a claim that pretraining cannot produce correct or instruction-following behavior. Motivate the next lecture without introducing its training algorithms.</notes>
+  <narration>
+    <say>These limitations share a statistical origin. Rare facts offer little evidence, reversed queries may require transfer across different contexts, and familiar output preferences can compete with unusual task requirements.</say>
+    <say>Low next-token prediction loss does not guarantee factual correctness, reliable generalization, or exact task execution.</say>
+    <say>Better training, retrieval, and verification can improve reliability, but each capability must be evaluated separately.</say>
+  </narration>
+</section>
+
+<!-- Section 7: Summary and transition · 1 slide, about 3 minutes. -->
+<!-- Section 7 transition: same map zoom as lectures 1 and 2. -->
+<section id="sec-summary" class="frame" data-slide="map">
+  <fig name="deckmap" init="a=5 b=6 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Brief section transition. Entering zooms out from the preceding slide to the full outline. Advance once to zoom into the next section, then advance to its first content slide.</notes>
+  <narration>
+    <say>These limitations connect model behavior to its training distribution and next-token objective.</say>
+    <say>Let's bring the lecture together and state the question for Lecture four.</say>
+  </narration>
+</section>
+
+<section id="summary-transition" class="continuation summary-slide">
+  <h2>What We've Learned — and What's Next</h2>
+  <div class="summary-topic-groups">
+    <div class="summary-topic-group">
+      <h3>How we train LLMs</h3>
+      <ul>
+        <li><b>Pretraining:</b> learn next-token predictions from large text corpora.</li>
+        <li><b>Scaling:</b> empirical loss trends guide parameters, data, and compute.</li>
+      </ul>
+    </div>
+    <div class="summary-topic-group">
+      <h3>What LLMs can do</h3>
+      <ul>
+        <li><b>Emergence:</b> interpret apparent jumps through the evaluation metric.</li>
+        <li><b>Decoding:</b> use the learned distribution to generate text.</li>
+        <li><b>In-context learning:</b> adapt predictions through context, with fixed neural weights.</li>
+      </ul>
+    </div>
+    <div class="summary-topic-group">
+      <h3>What remains challenging</h3>
+      <ul>
+        <li><b>Limitations:</b> finite data and the prediction objective leave important gaps.</li>
+      </ul>
+    </div>
+  </div>
+  <p pause data-fragment-index="0" class="summary-question">Predicting text is not the same as producing the response we want.<br>How can we close that gap?</p>
+  <div pause data-fragment-index="1" class="summary-next-lecture">
+    <p class="next-lecture-title">Lecture 4: Post-training, Reasoning, and Limitations</p>
+    <p class="next-lecture-subtitle">Supervised fine-tuning, reinforcement learning, reasoning, and remaining challenges.</p>
+  </div>
+  <notes>2–3 minutes. First summarize the six topics in three groups: how models are trained, what their behavior enables, and what remains challenging. Distinguish parameter updates, conditioning on context, and changing the decoder. Interpret apparent emergence through evaluation; it is not a universal guarantee. Next reveal the question about the gap between predicting text and producing the response we want. Finally announce Lecture 4 and name its topics only; do not introduce their algorithms here.</notes>
+  <narration>
+    <say>We have covered three groups of ideas. Pretraining and scaling explain how we train language models and allocate resources. Emergence, decoding, and in-context learning explain aspects of what models can do and how we use them. Limitations show where finite data and the prediction objective still leave important gaps.</say>
+    <say>Predicting text is not the same as producing the response we want. How can we close that gap?</say>
+    <say>Lecture four is Post-training, Reasoning, and Limitations. We will discuss supervised fine-tuning, reinforcement learning, reasoning, and remaining challenges.</say>
+  </narration>
+</section>
+
+<!-- Optional appendix, after the lecture summary so the teaching sequence is unchanged. -->
+<section id="compute-optimal-appendix" class="continuation">
+  <h2>Appendix: Compute-optimal scaling</h2>
+  <div class="fbody appendix-body">
+    <p>At fixed training compute, let $K=C/6$, so $D=K/N$:</p>
+    \[L(N,K/N)=E+AN^{-\alpha}+B(N/K)^\beta.\]
+    <p>Set the derivative with respect to $\log N$ to zero:</p>
+    \[-\alpha AN^{-\alpha}+\beta B(N/K)^\beta=0
+      \quad\Longrightarrow\quad
+      \alpha\frac{A}{(N^*)^\alpha}=\beta\frac{B}{(D^*)^\beta}.\]
+    <p>The exponent-weighted marginal gains balance; the two loss contributions need not be equal.</p>
+    \[N^*=\left(\frac{\alpha A}{\beta B}\right)^{1/(\alpha+\beta)}
+        K^{\beta/(\alpha+\beta)},\qquad D^*=K/N^*.\]
+    \[N^*\propto C^{\beta/(\alpha+\beta)},\qquad
+      D^*\propto C^{\alpha/(\alpha+\beta)}.\]
+    <p>For this fit, the exponents are about $0.45$ and $0.55$.<br>Across the Chinchilla analyses, both resources grow roughly as $\sqrt C$.</p>
+    <p class="small"><a href="#/compute-optimal/3">← Return to the interactive compute-optimal slide</a></p>
+    <p class="source"><a href="https://arxiv.org/abs/2203.15556" target="_blank" rel="noopener">Hoffmann et al. (2022), §3 and Appendices D, F</a>. Conditional on the empirical fit and the dense-training compute approximation.</p>
+  </div>
+  <notes>Optional appendix only, after the lecture summary. K is training compute divided by six. With positive A, B, alpha and beta, the derivative is strictly increasing in log N: the positive second derivative gives a unique minimum. For the published exponents, beta/(alpha+beta)≈0.4516 and alpha/(alpha+beta)≈0.5484. Approximate square-root scaling summarizes the broader empirical analyses rather than an exact identity for this particular fitted formula. Inference compute is excluded.</notes>
+  <narration><say>This optional derivation minimizes the fitted loss at fixed training compute. Differentiating with respect to log N balances exponent-weighted marginal gains. Solving yields optimal parameters proportional to compute to the power beta over alpha plus beta, and optimal tokens proportional to compute to the power alpha over alpha plus beta. The exponents are approximately point four five and point five five for this fit.</say></narration>
+</section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+<script src="../shared/deck.js?v=e78dd9285f6b"></script>
+<script src="deckmap.js?v=e78dd9285f6b"></script>
+<script src="figs.js?v=e78dd9285f6b"></script>
+<script src="remaining-figs.js?v=e78dd9285f6b"></script>
+<script>
+// Keep navigation and thumbnail indices intact; number teaching content only.
+const contentSlides = [...document.querySelectorAll('.slides > section')]
+  .filter(slide => slide.querySelector(':scope > h2') && slide.dataset.slide !== 'map');
+contentSlides.forEach((slide, i) => { slide.dataset.contentNumber = i + 1; });
+slideLabel = slide => slide && slide.dataset.contentNumber
+  ? [slide.dataset.contentNumber, '/', contentSlides.length] : [''];
+startDeck();
+</script>
+</body>
+</html>
