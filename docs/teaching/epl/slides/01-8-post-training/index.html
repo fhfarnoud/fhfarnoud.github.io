@@ -1,0 +1,1170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Post-Training, Reasoning, and Limitations</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<link rel="stylesheet" href="../shared/deck.css">
+<link rel="stylesheet" href="lecture.css">
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1. Preserve the pretraining title composition and its bell-curve decoration. -->
+<section id="lecture-title" class="frame" aria-label="Lecture title">
+  <svg class="bells" width="1280" height="720" aria-hidden="true"></svg>
+  <div class="titlebox">
+    <div class="t">Post-Training, Reasoning, and Limitations</div>
+    <div class="st">Part 4: From predicting text to useful and reliable assistants</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Probabilistic Machine Learning</div>
+    <div class="i">University of Virginia<br>Sarvin Motamen</div>
+    <div class="d">Fall 2026</div>
+  </div>
+  <narration>
+    <say>Last lecture, we studied how large language models learn from text through pretraining. We also explored some surprising capabilities and limitations of next-token prediction. Today, we'll look at what happens after pretraining. How do we teach a pretrained model to follow instructions, produce responses people prefer, and solve difficult problems? We'll also examine why these additional training stages still don't guarantee reliability.</say>
+  </narration>
+</section>
+
+<!-- 2. Three states: sections 1–3, then 4–5, then 6. -->
+<section id="todays-roadmap" class="introductory-roadmap" data-content-number="1">
+  <h2>Today's Roadmap</h2>
+  <div class="fbody">
+    <p class="roadmap-question">How do we turn next-token predictors into helpful and reliable assistants?</p>
+    <div class="roadmap-columns">
+      <div class="roadmap-item">
+        <span class="roadmap-number">1</span>
+        <div><h3>Supervised Fine-Tuning</h3><p>How do demonstrations teach instruction following?</p></div>
+      </div>
+      <div class="roadmap-item">
+        <span class="roadmap-number">2</span>
+        <div><h3>Human Preferences</h3><p>How can we learn from comparisons between responses?</p></div>
+      </div>
+      <div class="roadmap-item">
+        <span class="roadmap-number">3</span>
+        <div><h3>Chain-of-Thought</h3><p>Why can intermediate steps improve reasoning?</p></div>
+      </div>
+      <div class="roadmap-item" pause data-fragment-index="0">
+        <span class="roadmap-number">4</span>
+        <div><h3>Reasoning Models</h3><p>How do test-time compute and reinforcement learning improve performance?</p></div>
+      </div>
+      <div class="roadmap-item" pause data-fragment-index="0">
+        <span class="roadmap-number">5</span>
+        <div><h3>Limitations</h3><p>Why can optimized models still produce unreliable answers?</p></div>
+      </div>
+      <div class="roadmap-item" pause data-fragment-index="1">
+        <span class="roadmap-number">6</span>
+        <div><h3>Conclusions</h3><p>What can post-training improve, and what remains unresolved?</p></div>
+      </div>
+    </div>
+  </div>
+  <narration>
+    <say>We'll begin with supervised fine-tuning, where models learn to respond to instructions using demonstrations of desirable behavior. Then we'll see how instruction following can be evaluated.<br><br>Next, we'll introduce human preferences and learn how comparisons between responses can be used to train reward models and improve model behavior through RLHF and DPO.</say>
+    <say>We will then study reasoning, beginning with chain-of-thought prompting. Reasoning models bring in test-time computation and reinforcement learning. We will also examine limitations such as reward hacking, sycophancy, and hallucinations.</say>
+    <say>We will finish by drawing conclusions about what post-training can improve and what remains unresolved. Our goal is to understand both how these training stages improve language models and why important challenges remain.</say>
+  </narration>
+</section>
+
+<!-- Reuse the pretraining lecture's full outline and section camera. -->
+<section id="lecture-outline" class="frame" data-slide="map" aria-label="Lecture outline">
+  <ol class="toc" hidden>
+    <li data-map-num="1"><a href="#/sec-sft">Supervised Fine-Tuning</a></li>
+    <li data-map-num="2"><a href="#/sec-human-preferences">Human Preferences</a></li>
+    <li data-map-num="3" data-planned>Chain-of-Thought</li>
+    <li data-map-num="4" data-planned>Reasoning Models</li>
+    <li data-map-num="5" data-planned>Limitations</li>
+    <li data-map-num="6" data-planned>Conclusions</li>
+  </ol>
+  <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
+  <narration>
+    <say>This map shows the structure of the lecture. The title and today's roadmap sit above the outline, with six branches below. We begin with supervised fine-tuning and instruction-following evaluation, then introduce human preferences, reward modeling, RLHF, and DPO within the second branch. The later branches cover chain-of-thought, reasoning models, limitations, and conclusions. We'll zoom into the first branch to motivate why additional training is useful.</say>
+  </narration>
+</section>
+
+<section id="sec-sft" class="frame" data-slide="map" aria-label="Supervised Fine-Tuning section">
+  <fig name="deckmap" init="a=all b=0 t=2" class="mapfig"></fig>
+  <narration>
+    <say>We begin with supervised fine-tuning. As the map zooms into this first branch, let's consider the gap between predicting likely text and producing the response a user actually wants. The historical GPT-3 and InstructGPT comparison will motivate post-training before we focus on supervised demonstrations.</say>
+  </narration>
+</section>
+
+<!-- The original third slide retains its three progressive states. -->
+<section id="why-fine-tune" class="motivation" data-content-number="2">
+  <h2>Why Fine-Tune?</h2>
+  <div class="fbody">
+    <div class="user-prompt">
+      <div class="prompt-label">User prompt</div>
+      <p>“Explain the moon landing to a 6 year old in a few sentences.”</p>
+    </div>
+    <div class="response-panels">
+      <div class="response-panel pretrained">
+        <div class="response-heading"><h3>GPT-3</h3><span>Pretrained model</span></div>
+        <div class="response-body">
+          <blockquote>
+            <p>“Explain gravity to a 6 year old.”</p>
+            <p>“Explain relativity to a 6 year old.”</p>
+            <p>“Explain the Big Bang to a 6 year old.”</p>
+          </blockquote>
+          <p class="response-caption">Continues the pattern instead of answering.</p>
+        </div>
+      </div>
+      <div class="response-panel post-trained" pause data-fragment-index="0">
+        <div class="response-heading"><h3>InstructGPT</h3><span>Post-trained model</span></div>
+        <div class="response-body">
+          <blockquote><p>“People traveled to the Moon in a spaceship. They walked on its surface, took pictures, and returned to Earth.”</p></blockquote>
+          <p class="response-caption">Responds to the user's instruction.</p>
+        </div>
+      </div>
+    </div>
+    <div class="training-comparison" pause data-fragment-index="1">
+      <p><b>Pretraining:</b> Predict the next token.</p>
+      <p><b>Desired behavior:</b> Follow instructions and produce helpful responses.</p>
+      <button type="button" class="try-demo" aria-haspopup="dialog" aria-controls="sft-live-overlay">Try it yourself</button>
+    </div>
+    <p class="source">Illustrative adaptation of <a href="https://arxiv.org/abs/2203.02155" target="_blank" rel="noopener">Ouyang et al. (2022)</a>, <a href="https://openai.com/index/instruction-following/" target="_blank" rel="noopener">InstructGPT</a>. Not verbatim model outputs.</p>
+  </div>
+  <narration>
+    <say>Before introducing supervised fine-tuning, let's consider why researchers developed it in the first place.<br><br>Here's a historical example from the InstructGPT work. A user asks a pretrained GPT-3 model to explain the moon landing to a six-year-old. The responses shown on this slide are shortened teaching adaptations of that demonstration, not verbatim model transcripts.<br><br>Look at the response on the left. Instead of explaining the moon landing, the model continues generating similar requests.<br><br>Why might this happen?<br><br>Remember that GPT-3 was pretrained to predict the next token in text. Imagine encountering a document containing a list of prompts beginning with “Explain something to a six-year-old.” Continuing with another prompt could be statistically plausible, even though it isn't what the user wanted.</say>
+    <say>Now look at the post-trained model on the right. It actually answers the question in language appropriate for a child. Our short adaptation describes people traveling to the Moon, walking on its surface, taking pictures, and returning to Earth.</say>
+    <say>The two statements at the bottom contrast the next-token prediction objective with the behavior we want. Pretraining can produce plausible continuations without satisfying a user's request. Researchers therefore introduced additional training stages using desirable responses and human feedback.<br><br>The historical InstructGPT example reflects multiple post-training stages, including supervised fine-tuning and reinforcement learning from human feedback. We should not attribute the entire improvement to SFT alone.<br><br>If we have time, click Try it yourself for a live comparison. The overlay loads the actual NUS demonstration only when opened. Model files load in the browser, so allow time to load the models before presenting.<br><br>Use the request “Give me three ideas for a weekend in Singapore.” Start with GPT-2 Small, a pretrained model with 124 million parameters. Before running it, what kind of response do you expect? Load the model, run the request, and discuss its actual output.<br><br>Then select LaMini-GPT, which was instruction-tuned starting from GPT-2. Reuse exactly the same request and match temperature and maximum output length where possible. Before running it, ask students to predict how the response might change. Compare the actual generated responses rather than expecting any particular wording.<br><br>The models have the same architecture, and fine-tuning changes learned parameters. There is an important qualification: the demo uses different prompt formatting for the two models. It also applies different stopping and repetition settings to the base model. This is a comparison of the deployed systems, not a perfectly controlled measurement of parameter changes alone. Neither instruction tuning nor the historical InstructGPT procedure guarantees reliable behavior on every request.<br><br>Closing the overlay returns to the same build of this slide and preserves the live chat session for reopening.<br><br>We've observed how instruction tuning can change model behavior. Now let's understand mathematically how supervised fine-tuning works.</say>
+  </narration>
+</section>
+
+<!-- SFT 2: single-example objectives, corpus normalization, then token targets. -->
+<section id="sft-objective" class="sft-objective" data-content-number="3">
+  <h2>The SFT Objective</h2>
+  <div class="fbody">
+    <div class="sft-single-columns">
+      <div class="sft-pretraining">
+        <h3>Pretraining</h3>
+        <div class="sft-single-equation">\[\mathcal L_{\mathrm{pre}}(\theta;w_{1:T})=-\sum_{t=1}^{T}\log p_\theta(w_t\mid w_{&lt;t})\]</div>
+        <p>Predict every token from its preceding text.</p>
+      </div>
+      <div class="sft-supervised">
+        <h3>Supervised Fine-Tuning</h3>
+        <div class="sft-single-equation">\[\mathcal L_{\mathrm{SFT}}(\theta;x,y_{1:T})=-\sum_{t=1}^{T}\log p_\theta(y_t\mid x,y_{&lt;t})\]</div>
+        <p>Predict every response token given the instruction and preceding response tokens.</p>
+      </div>
+    </div>
+    <div class="sft-corpus" pause data-fragment-index="0">
+      <h3>Training on a Dataset</h3>
+      <div class="sft-corpus-columns">
+        <div>
+          <p>For a corpus of $M$ text sequences</p>
+          <div class="sft-corpus-equation">\[\mathcal L_{\mathrm{pre,corpus}}(\theta)=-\frac{\displaystyle\sum_{i=1}^{M}\sum_{t=1}^{T_i}\log p_\theta(w_t^{(i)}\mid w_{&lt;t}^{(i)})}{\displaystyle\sum_{i=1}^{M}T_i}\]</div>
+        </div>
+        <div>
+          <p>For $n$ instruction-response pairs</p>
+          <div class="sft-corpus-equation">\[\mathcal L_{\mathrm{SFT,corpus}}(\theta)=-\frac{\displaystyle\sum_{i=1}^{n}\sum_{t=1}^{T_i}\log p_\theta(y_t^{(i)}\mid x_i,y_{&lt;t}^{(i)})}{\displaystyle\sum_{i=1}^{n}T_i}\]</div>
+        </div>
+      </div>
+      <p class="sft-loss-units">Average negative log-likelihood per predicted token (nats/token).</p>
+    </div>
+    <div class="sft-token-view" pause data-fragment-index="1">
+      <div class="sft-token-example">
+        <p><b>Instruction $x$:</b> Explain the moon landing to a six-year-old.</p>
+        <p><b>Demonstrated response:</b> People traveled to the Moon...</p>
+        <p class="sft-token-schematic">Schematic word tokens. Actual tokenization depends on the model.</p>
+      </div>
+      <table class="sft-token-table" aria-label="Schematic response targets and their training contexts">
+        <thead><tr><th>Target token</th><th>Context</th></tr></thead>
+        <tbody>
+          <tr><td>People</td><td>Instruction</td></tr>
+          <tr><td>traveled</td><td>Instruction + People</td></tr>
+          <tr><td>to</td><td>Instruction + People traveled</td></tr>
+          <tr><td>the</td><td>Instruction + People traveled to</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sft-token-takeaway" pause data-fragment-index="1">Same maximum-likelihood principle. Different training data and prediction targets.</p>
+    <p class="sft-source">SFT procedure: <a href="https://arxiv.org/abs/2203.02155" target="_blank" rel="noopener">Ouyang et al. (2022), §3.5</a>.</p>
+  </div>
+  <narration>
+    <say>On the left is the pretraining objective from our previous lecture, now written for one text sequence, w one through T. At each position, the model predicts the observed token w t from its preceding text. Summing the negative log probabilities gives the sequence loss.<br><br>On the right, x is an instruction and y one through T is its demonstrated response. SFT uses the same autoregressive negative log-likelihood. The difference is that every response prediction conditions on the instruction as well as earlier response tokens. We want high probability for the desirable demonstrated response. The semicolon in the loss notation separates the parameters from the example whose loss we are evaluating.</say>
+    <say>For complete datasets, sum the token losses across examples and divide by the total number of prediction targets. On the left, M is the number of text sequences, and T i counts the predicted text tokens in sequence i. On the right, n is the number of instruction-response pairs, and T i counts the predicted response tokens for pair i.<br><br>Both denominators are total predicted-token counts. Longer examples contribute more token terms, and padding positions are excluded. This reports average negative log-likelihood per predicted token, using natural logarithms, so the units are nats per token. For a fixed dataset, this normalization rescales the summed likelihood objective without changing its minimizer. Averaging each example's own token average would instead give a different weighting to unequal-length examples.</say>
+    <say>The compact example shows what becomes a prediction target. The instruction asks for a child-friendly explanation of the moon landing, and the demonstrated response begins “People traveled to the Moon.” To predict People, the model sees the instruction. To predict traveled, it sees the instruction and the actual preceding response token People. The next targets are to and the, each with the demonstrated prefix shown in the table.<br><br>This is teacher forcing: earlier response tokens come from the demonstration during training. The word tokens here are schematic, since actual tokenization depends on the model. The example is illustrative, not an actual InstructGPT training record, and we assign no invented token probabilities.<br><br>In this response-only SFT formulation, instruction tokens supply context rather than prediction targets. Masking them out of the loss is common, but not universal across SFT implementations. The instruction still influences predictions through the model's computation.<br><br>Maximizing likelihood on curated demonstrations uses gradient-based optimization to update pretrained parameters and encourage desirable responses. In-context learning instead keeps the parameters fixed. The shared principle is maximum likelihood, while the training data and prediction targets differ. Next, let's examine whether instruction tuning improves performance on held-out tasks.</say>
+  </narration>
+</section>
+
+<!-- SFT 3: exact Table 2 values, reconstructed as a progressive bar chart. -->
+<section id="does-sft-work" class="sft-evidence" data-content-number="4">
+  <h2>Does SFT Work?</h2>
+  <div class="fbody">
+    <p class="flan-intro">FLAN is LaMDA-PT 137B after supervised instruction tuning.</p>
+    <svg class="flan-bars" viewBox="0 0 1200 480" width="1200" height="480" role="img" aria-labelledby="flan-bars-title flan-bars-description">
+      <title id="flan-bars-title">Accuracy on three selected tasks from FLAN Table 2</title>
+      <desc id="flan-bars-description">Grouped bars compare LaMDA-PT 137B zero-shot, LaMDA-PT 137B few-shot, and FLAN 137B zero-shot. RTE: 73.3, 70.8, 78.3 percent. OpenBookQA: 41.8, 50.6, 77.4 percent. ARC-Challenge: 42.0, 49.4, 61.7 percent. FLAN values are means across instruction templates.</desc>
+      <g class="flan-chart-legend" font-size="21">
+        <rect x="104" y="9" width="20" height="20" rx="2" fill="#2354A8"></rect>
+        <text x="134" y="26">LaMDA-PT 137B, zero-shot</text>
+        <rect x="490" y="9" width="20" height="20" rx="2" fill="#087F80"></rect>
+        <text x="520" y="26">LaMDA-PT 137B, few-shot</text>
+        <rect x="890" y="9" width="20" height="20" rx="2" fill="#463C7D"></rect>
+        <text x="920" y="26">FLAN 137B, zero-shot</text>
+      </g>
+      <g class="flan-chart-axes">
+        <line x1="100" y1="346" x2="1160" y2="346" class="flan-gridline"></line>
+        <text x="82" y="353" text-anchor="end" font-size="21">0</text>
+        <line x1="100" y1="290" x2="1160" y2="290" class="flan-gridline"></line>
+        <text x="82" y="297" text-anchor="end" font-size="21">20</text>
+        <line x1="100" y1="234" x2="1160" y2="234" class="flan-gridline"></line>
+        <text x="82" y="241" text-anchor="end" font-size="21">40</text>
+        <line x1="100" y1="178" x2="1160" y2="178" class="flan-gridline"></line>
+        <text x="82" y="185" text-anchor="end" font-size="21">60</text>
+        <line x1="100" y1="122" x2="1160" y2="122" class="flan-gridline"></line>
+        <text x="82" y="129" text-anchor="end" font-size="21">80</text>
+        <line x1="100" y1="66" x2="1160" y2="66" class="flan-gridline"></line>
+        <text x="82" y="73" text-anchor="end" font-size="21">100</text>
+        <path d="M100,66 V346 H1160" class="flan-axis-line"></path>
+        <text x="28" y="206" text-anchor="middle" transform="rotate(-90 28 206)" font-size="23">Accuracy (%)</text>
+        <text x="280" y="390" text-anchor="middle" font-size="26">RTE</text>
+        <text x="640" y="390" text-anchor="middle" font-size="26">OpenBookQA</text>
+        <text x="1000" y="390" text-anchor="middle" font-size="26">ARC-Challenge</text>
+      </g>
+      <g class="flan-series" data-condition="zero-shot">
+        <rect data-task="RTE" data-accuracy="73.3" x="176" y="140.76" width="56" height="205.24" fill="#2354A8"></rect>
+        <text x="204" y="127.76" text-anchor="middle" class="flan-bar-value">73.3%</text>
+        <rect data-task="OpenBookQA" data-accuracy="41.8" x="536" y="228.96" width="56" height="117.04" fill="#2354A8"></rect>
+        <text x="564" y="215.96" text-anchor="middle" class="flan-bar-value">41.8%</text>
+        <rect data-task="ARC-Challenge" data-accuracy="42.0" x="896" y="228.40" width="56" height="117.60" fill="#2354A8"></rect>
+        <text x="924" y="215.40" text-anchor="middle" class="flan-bar-value">42.0%</text>
+      </g>
+      <g class="flan-series" data-condition="few-shot" pause data-fragment-index="0">
+        <rect data-task="RTE" data-accuracy="70.8" x="252" y="147.76" width="56" height="198.24" fill="#087F80"></rect>
+        <text x="280" y="134.76" text-anchor="middle" class="flan-bar-value">70.8%</text>
+        <rect data-task="OpenBookQA" data-accuracy="50.6" x="612" y="204.32" width="56" height="141.68" fill="#087F80"></rect>
+        <text x="640" y="191.32" text-anchor="middle" class="flan-bar-value">50.6%</text>
+        <rect data-task="ARC-Challenge" data-accuracy="49.4" x="972" y="207.68" width="56" height="138.32" fill="#087F80"></rect>
+        <text x="1000" y="194.68" text-anchor="middle" class="flan-bar-value">49.4%</text>
+      </g>
+      <g class="flan-series" data-condition="instruction-tuned" pause data-fragment-index="1">
+        <rect data-task="RTE" data-accuracy="78.3" x="328" y="126.76" width="56" height="219.24" fill="#463C7D"></rect>
+        <text x="356" y="113.76" text-anchor="middle" class="flan-bar-value">78.3%</text>
+        <rect data-task="OpenBookQA" data-accuracy="77.4" x="688" y="129.28" width="56" height="216.72" fill="#463C7D"></rect>
+        <text x="716" y="116.28" text-anchor="middle" class="flan-bar-value">77.4%</text>
+        <rect data-task="ARC-Challenge" data-accuracy="61.7" x="1048" y="173.24" width="56" height="172.76" fill="#463C7D"></rect>
+        <text x="1076" y="160.24" text-anchor="middle" class="flan-bar-value">61.7%</text>
+      </g>
+      <g class="flan-task-descriptions" font-size="20" text-anchor="middle">
+        <text class="flan-task-description" x="280" y="422"><tspan x="280">Does one sentence </tspan><tspan x="280" dy="23">imply another?</tspan></text>
+        <text class="flan-task-description" x="640" y="422"><tspan x="640">Elementary science questions </tspan><tspan x="640" dy="23">using factual and commonsense </tspan><tspan x="640" dy="23">reasoning.</tspan></text>
+        <text class="flan-task-description" x="1000" y="422"><tspan x="1000">Difficult grade-school </tspan><tspan x="1000" dy="23">science questions.</tspan></text>
+      </g>
+    </svg>
+    <p class="flan-conclusion" pause data-fragment-index="1">Instruction tuning can outperform few-shot prompting, even on unseen tasks.</p>
+    <p class="sft-source">Reconstructed from <a href="https://arxiv.org/abs/2109.01652v5" target="_blank" rel="noopener">Wei et al. (2022), Table 2</a>. Three selected tasks. FLAN results are averaged across instruction templates.</p>
+  </div>
+  <narration>
+    <say>FLAN is the pretrained LaMDA-PT model with 137 billion parameters after supervised instruction tuning. This chart compares that model before and after tuning, and also asks what happens if we give the pretrained model demonstrations in its prompt.<br><br>The three tasks are RTE, which asks whether one sentence implies another, OpenBookQA, which asks elementary science questions using factual and commonsense reasoning, and ARC-Challenge, which contains difficult grade-school science questions. The vertical axis is accuracy from zero to one hundred percent.<br><br>Start with the blue bars. These are LaMDA-PT zero-shot results, without demonstrations in the prompt: 73.3 percent on RTE, 41.8 on OpenBookQA, and 42.0 on ARC-Challenge.</say>
+    <say>The teal bars add few-shot demonstrations to the same pretrained model's prompt. Its parameters stay fixed. The paper uses five demonstrations for RTE and ten each for OpenBookQA and ARC-Challenge.<br><br>Accuracy becomes 70.8, 50.6, and 49.4 percent, respectively. Examples help on the two science question-answering tasks, but slightly reduce performance on RTE here. Providing examples is useful, but it does not necessarily improve every task. Prompt format and the choice of examples matter.</say>
+    <say>Now reveal the purple bars. FLAN's instruction tuning uses multiple training tasks and updates the model parameters. It receives no demonstrations at evaluation time, yet reaches 78.3 percent on RTE, 77.4 on OpenBookQA, and 61.7 on ARC-Challenge. It exceeds both pretrained baselines on these three selected tasks.<br><br>The evaluation task categories were held out of instruction tuning, with separate checkpoints for the held-out categories. These FLAN results are averaged across instruction templates. This supports persistent improvements that generalize beyond the instruction-tuning tasks. The exclusion concerns fine-tuning, not a guarantee about the web pretraining corpus.<br><br>These are selected results reconstructed from Table 2, not the complete experiments or an original published figure. Gains vary by task, and instruction tuning does not always beat few-shot prompting. This FLAN experiment has no RLHF stage.<br><br>We've seen that instruction tuning can outperform few-shot prompting on some unseen tasks. But how do we determine whether a model actually follows the instructions we give it? That's what we'll examine next.</say>
+  </narration>
+</section>
+
+<!-- SFT 4: verifiable instructions and exact strict-evaluation results. -->
+<section id="measuring-instruction-following" class="sft-ifeval" data-content-number="5">
+  <h2>Measuring Instruction Following</h2>
+  <div class="fbody">
+    <p class="ifeval-intro">IFEval: 541 prompts covering 25 types of verifiable instructions.</p>
+    <div class="ifeval-metrics">
+      <div><h3>Instruction-level</h3><p>Fraction of individual requirements satisfied.</p></div>
+      <div><h3>Prompt-level</h3><p>Fraction of prompts satisfying every requirement.</p></div>
+    </div>
+    <div class="ifeval-results" pause data-fragment-index="0">
+      <svg class="ifeval-bars" viewBox="0 0 1200 355" width="1200" height="355" role="img" aria-labelledby="ifeval-bars-title ifeval-bars-description">
+        <title id="ifeval-bars-title">IFEval strict accuracy, historical 2023 results</title>
+        <desc id="ifeval-bars-description">GPT-4: instruction-level accuracy 83.57 percent, prompt-level accuracy 76.89 percent. PaLM 2 S: instruction-level accuracy 55.76 percent, prompt-level accuracy 43.07 percent. Values from Zhou et al. (2023), Table 3.</desc>
+        <g class="ifeval-legend" font-size="21">
+          <rect x="250" y="8" width="20" height="20" rx="2" fill="#2354A8"></rect>
+          <text x="280" y="25">Instruction-level accuracy</text>
+          <rect x="690" y="8" width="20" height="20" rx="2" fill="#463C7D"></rect>
+          <text x="720" y="25">Prompt-level accuracy</text>
+        </g>
+        <g class="ifeval-axes">
+          <line x1="100" y1="294" x2="1160" y2="294" class="ifeval-gridline"></line>
+          <text x="82" y="301" text-anchor="end" font-size="21">0</text>
+          <line x1="100" y1="246" x2="1160" y2="246" class="ifeval-gridline"></line>
+          <text x="82" y="253" text-anchor="end" font-size="21">20</text>
+          <line x1="100" y1="198" x2="1160" y2="198" class="ifeval-gridline"></line>
+          <text x="82" y="205" text-anchor="end" font-size="21">40</text>
+          <line x1="100" y1="150" x2="1160" y2="150" class="ifeval-gridline"></line>
+          <text x="82" y="157" text-anchor="end" font-size="21">60</text>
+          <line x1="100" y1="102" x2="1160" y2="102" class="ifeval-gridline"></line>
+          <text x="82" y="109" text-anchor="end" font-size="21">80</text>
+          <line x1="100" y1="54" x2="1160" y2="54" class="ifeval-gridline"></line>
+          <text x="82" y="61" text-anchor="end" font-size="21">100</text>
+          <path d="M100,54 V294 H1160" class="ifeval-axis-line"></path>
+          <text x="28" y="174" text-anchor="middle" transform="rotate(-90 28 174)" font-size="23">Accuracy (%)</text>
+          <text x="380" y="338" text-anchor="middle" font-size="26">GPT-4 (2023)</text>
+          <text x="880" y="338" text-anchor="middle" font-size="26">PaLM 2 S (2023)</text>
+        </g>
+        <g class="ifeval-series" data-metric="instruction-level">
+          <rect data-model="GPT-4" data-accuracy="83.57" x="273" y="93.432" width="96" height="200.568" fill="#2354A8"></rect>
+          <text x="321" y="80.432" text-anchor="middle" class="ifeval-bar-value">83.57%</text>
+          <rect data-model="PaLM 2 S" data-accuracy="55.76" x="773" y="160.176" width="96" height="133.824" fill="#2354A8"></rect>
+          <text x="821" y="147.176" text-anchor="middle" class="ifeval-bar-value">55.76%</text>
+        </g>
+        <g class="ifeval-series" data-metric="prompt-level">
+          <rect data-model="GPT-4" data-accuracy="76.89" x="391" y="109.464" width="96" height="184.536" fill="#463C7D"></rect>
+          <text x="439" y="96.464" text-anchor="middle" class="ifeval-bar-value">76.89%</text>
+          <rect data-model="PaLM 2 S" data-accuracy="43.07" x="891" y="190.632" width="96" height="103.368" fill="#463C7D"></rect>
+          <text x="939" y="177.632" text-anchor="middle" class="ifeval-bar-value">43.07%</text>
+        </g>
+      </svg>
+      <p class="ifeval-source">Reconstructed from <a href="https://arxiv.org/abs/2311.07911" target="_blank" rel="noopener">Zhou et al. (2023), Table 3</a>. Strict evaluation.</p>
+    </div>
+    <p class="ifeval-takeaway" pause data-fragment-index="1">Following individual instructions is easier than satisfying all requirements in a prompt.</p>
+  </div>
+  <narration>
+    <say>We have seen that instruction tuning can improve task performance. But how can we measure whether a model actually follows the requirements in a request?<br><br>IFEval, introduced by Zhou and colleagues in 2023, uses 541 prompts covering 25 types of verifiable instructions. These include requirements about word counts, keywords, or response formats that a program can check.<br><br>There are two metrics. Instruction-level accuracy counts the fraction of individual requirements satisfied across the dataset. Prompt-level accuracy counts the fraction of prompts whose responses satisfy every requirement. A prompt can contain more than one requirement, so these measure different kinds of success.</say>
+    <say>The chart shows strict evaluation from Table 3. GPT-4 satisfies 83.57 percent of individual instructions, while 76.89 percent of its prompts pass every check. For PaLM 2 S, the corresponding scores are 55.76 and 43.07 percent.<br><br>These are historical results from 2023, not a comparison of current models. The paper collected GPT-4 responses in November and PaLM 2 S responses in August of that year. The systems also differ in size and training, so this chart does not isolate the effect of supervised fine-tuning. Focus on the difference between the two metrics within each model.</say>
+    <say>Why are the prompt-level scores lower here? Consider a request with three requirements. Meeting two earns credit for those individual requirements, but the prompt fails because one requirement remains unmet. Success on the whole request demands that every check pass.<br><br>IFEval makes these failures measurable, but its automatic checks cover only verifiable constraints. They do not fully capture whether a response is useful or well explained.<br><br>Some instructions can be checked automatically. But how do we evaluate qualities like helpfulness and clarity when there is no simple correct answer?</say>
+  </narration>
+</section>
+
+<!-- End the current excerpt by pulling back to the lecture outline. -->
+<section id="outline-return" class="frame" data-slide="map" aria-label="Return to lecture outline">
+  <fig name="deckmap" init="a=0 b=0 t=1" class="mapfig"></fig>
+  <narration>
+    <say>Let's pull back to the lecture outline. The example motivates the first section: how can demonstrations teach a pretrained model to respond to instructions? We have seen why predicting text alone does not guarantee instruction following. Supervised fine-tuning is our starting point for closing that gap. The remaining branches show how this topic will connect to preferences, reasoning, and reliability.</say>
+  </narration>
+</section>
+
+<!-- Structural section transition. The three teaching slides follow. -->
+<section id="sec-human-preferences" class="frame" data-slide="map" aria-label="Human Preferences section">
+  <fig name="deckmap" init="a=all b=1 t=2" class="mapfig"></fig>
+  <narration>
+    <say>We now move from demonstrations and verifiable instructions to human preferences. We will first collect rankings, then turn reward differences into preference probabilities, and finally learn the reward network from the observed comparisons.</say>
+  </narration>
+</section>
+
+<section id="human-rankings" class="human-rankings preference-slide" data-content-number="6">
+  <h2>Human Rankings</h2>
+  <div class="fbody">
+    <div class="ranking-motivation">
+      <div class="ranking-contrast">
+        <p><b>SFT:</b> Imitate a demonstrated response.</p>
+        <p><b>Human preferences:</b> Compare generated responses.</p>
+      </div>
+      <p class="ranking-reason">Many answers are reasonable. Some are more helpful, clearer, or better suited to the user.</p>
+    </div>
+    <div class="ranking-example" pause data-fragment-index="0">
+      <p class="ranking-prompt"><b>Prompt:</b> “Explain the moon landing to a 6 year old.”</p>
+      <div class="ranking-responses">
+        <div class="ranking-card"><span>A</span><p>“Explain gravity...”</p></div>
+        <div class="ranking-card"><span>B</span><p>“Explain war...”</p></div>
+        <div class="ranking-card"><span>C</span><p>“Moon is a natural satellite of...”</p></div>
+        <div class="ranking-card"><span>D</span><p>“People went to the moon...”</p></div>
+      </div>
+      <p class="ranking-schematic">Abbreviated, schematic responses from Figure 2, not complete model outputs.</p>
+      <div class="ranking-observation">
+        <div class="ranking-order">\[D\succ C\succ A=B\]</div>
+        <p>Labelers ranked 4–9 responses per prompt.<br>Rankings, without ground-truth reward values.</p>
+      </div>
+    </div>
+    <div class="ranking-learning" pause data-fragment-index="1">
+      <div class="ranking-reward-definition">
+        <div>\[r_\phi(x,y)\in\mathbb R\]</div>
+        <p>$x$: prompt, $y$: candidate response, $\phi$: network parameters.<br>Higher learned rewards predict stronger human preference.</p>
+      </div>
+      <p class="ranking-question">How can we learn numerical rewards from rankings alone?</p>
+    </div>
+    <p class="preference-source">Adapted from <a href="https://arxiv.org/pdf/2203.02155#page=3" target="_blank" rel="noopener">Ouyang et al. (2022), Figure 2</a>. Ranking collection: §3.5.</p>
+  </div>
+  <narration>
+    <say>Last section, we learned to imitate demonstrations and to check some instructions automatically. Open-ended requests raise another question: which of several reasonable answers would a person actually prefer?<br><br>Supervised fine-tuning learns from a demonstrated response. Preference learning instead uses comparisons among generated responses. Several answers may satisfy the basic request, yet differ in helpfulness, clarity, or suitability for the user. A labeler can compare those answers without having to write an ideal response from scratch.</say>
+    <say>This is the ranking example drawn in Figure 2 of the InstructGPT paper. The prompt asks for a moon-landing explanation for a six-year-old. A and B drift to different topics. C starts an encyclopedic description. D begins with people traveling to the Moon.<br><br>These are the abbreviated, schematic responses in the figure, not complete model outputs or a newly run experiment. The depicted ranking is D above C, with A and B tied. InstructGPT labelers ranked between four and nine generated responses per prompt. For reward-model training, these rankings supplied relative comparisons, not ground-truth numerical rewards.</say>
+    <say>We want a neural reward function that takes the prompt x and candidate response y and returns a real number. Phi denotes the learned network parameters. A higher score should predict that labelers are more likely to prefer that response for the same prompt.<br><br>The score is a learned model of preferences. It is not objective quality, and people can disagree. A tie in the recorded ranking also does not tell us a numerical distance between scores.<br><br>How can we learn numerical rewards from rankings alone? First, we need a probabilistic model that connects reward scores to comparisons.</say>
+  </narration>
+</section>
+
+<section id="bradley-terry" class="bradley-terry preference-slide" data-content-number="7">
+  <h2>Bradley–Terry</h2>
+  <div class="fbody">
+    <div class="bt-layout">
+      <div class="bt-algebra">
+        <div class="bt-strengths">
+          <div class="bt-score-definitions">\[r_A=r_\phi(x,y_A),\qquad r_B=r_\phi(x,y_B)\]</div>
+          <div class="bt-positive-strengths">\[s_A=e^{r_A},\qquad s_B=e^{r_B}\]</div>
+          <p>Positive, unnormalized strengths.</p>
+          <div class="bt-normalized">\[P(A\succ B\mid x)=\frac{e^{r_A}}{e^{r_A}+e^{r_B}}\]</div>
+        </div>
+        <div class="bt-derivation" pause data-fragment-index="0">
+          <div class="bt-aligned">\[\begin{aligned}P(A\succ B\mid x)&=\frac{1}{1+e^{r_B-r_A}}\\[.3em]&=\frac{1}{1+e^{-(r_A-r_B)}}\\[.3em]&=\sigma(r_A-r_B)\end{aligned}\]</div>
+          <div class="bt-sigmoid-definition">\[\sigma(z)=\frac{1}{1+e^{-z}}\]</div>
+          <p>Only the reward difference determines the probability.</p>
+        </div>
+      </div>
+      <div class="bt-plot" pause data-fragment-index="1">
+        <div class="bt-controls" role="group" aria-label="Reward scores">
+          <div><label for="bt-r-a">$r_A$</label><input id="bt-r-a" data-reward="a" type="range" min="-2" max="2" step="0.1" value="1" aria-label="Reward rA slider"><input data-reward="a" type="number" min="-2" max="2" step="0.1" value="1.0" aria-label="Reward rA value"></div>
+          <div><label for="bt-r-b">$r_B$</label><input id="bt-r-b" data-reward="b" type="range" min="-2" max="2" step="0.1" value="0" aria-label="Reward rB slider"><input data-reward="b" type="number" min="-2" max="2" step="0.1" value="0.0" aria-label="Reward rB value"></div>
+        </div>
+        <div class="bt-plot-frame" role="img" aria-label="Reward difference 1.0, preference probability 0.731.">
+          <img src="img/bradley-terry-sigmoid.svg" width="540" height="376" alt="">
+          <svg class="bt-live-overlay" viewBox="0 0 403.2 280.8" width="540" height="376" aria-hidden="true">
+            <path class="bt-live-guides" d="M271.656,224.64 V70.679 H72.576"></path>
+            <circle class="bt-live-point" cx="271.656" cy="70.679" r="5.3"></circle>
+            <g class="bt-live-label" transform="translate(283.656,42.679)"><rect width="94" height="23" rx="3"></rect><text x="6" y="16">P = 0.731</text></g>
+          </svg>
+        </div>
+        <div class="bt-live-readout" role="status" aria-live="polite" aria-atomic="true"><span>$r_A-r_B=$ <output class="bt-difference" for="bt-r-a bt-r-b">1.0</output></span><span>$P(A\succ B\mid x)=$ <output class="bt-probability" for="bt-r-a bt-r-b">0.731</output></span></div>
+      </div>
+    </div>
+    <p class="bt-takeaway" pause data-fragment-index="1">Bradley–Terry predicts preferences from reward differences.<br>But the rewards themselves are still unknown.</p>
+    <p class="preference-source">Pairwise preference model used in <a href="https://arxiv.org/pdf/2203.02155#page=8" target="_blank" rel="noopener">Ouyang et al. (2022), §3.5</a>.</p>
+  </div>
+  <narration>
+    <say>Fix a prompt x and consider two candidate responses, A and B. The same reward network assigns them scores r A and r B. These scores are real numbers, so they can be positive, negative, or zero.<br><br>The Bradley–Terry model converts each reward into a positive strength by exponentiating it. The strength of A is e to the r A, and the strength of B is e to the r B. Neither strength is itself a probability. A strength can exceed one.<br><br>To predict the probability that a human prefers A, divide its strength by the sum of the two strengths. This produces a number between zero and one. It is a modeling assumption about how latent scores relate to observed choices, not a definition of objective response quality.</say>
+    <say>Now divide the numerator and denominator by e to the r A. The numerator becomes one, and the denominator becomes one plus e to the r B minus r A. Rewrite that exponent as the negative of r A minus r B. The result is precisely the sigmoid of the reward difference.<br><br>The sigmoid function maps a real input z to one over one plus e to the negative z. Here, its input is the difference between the two network outputs.<br><br>This has an important consequence. Absolute score levels do not determine preference probabilities. Adding the same constant to both scores leaves every prediction unchanged. More generally, a prompt-dependent offset shared by its candidates cancels. We therefore should not read an individual reward value as an absolute quality measurement.<br><br>At this point we have a probability model, but we have not learned the reward-network parameters. A human ranking alone does not specify either score or their numerical difference.</say>
+    <say>The curve shows the sigmoid as the reward difference ranges from negative four to four. Use the two sliders or number fields to change r A and r B. The blue point and its label update to show the resulting preference probability.<br><br>When the two rewards are equal, the difference is zero and the predicted probability is one half. This means no predicted advantage in this binary comparison. It is not a separate model of how often labelers report ties.<br><br>Start with r A equal to one and r B equal to zero. The reward advantage is one, giving a probability of approximately 0.73. Now set the rewards to two and one. The same difference gives the same probability, illustrating that a common shift cancels. A negative difference favors B.<br><br>These probabilities are calculated from the mathematical model, not empirical measurements of the moon-landing responses. Even a positive advantage does not predict unanimous human agreement. The probability represents uncertainty and variation under this model, and a single scalar score cannot capture every person's tastes or every context.<br><br>We now know how candidate rewards would predict comparisons. The next step is to learn the unknown rewards from the comparisons that people actually provide.</say>
+  </narration>
+</section>
+
+<section data-transition="fade-in none-out" id="learning-rewards" class="learning-rewards preference-slide" data-content-number="8">
+  <h2>Learning Rewards</h2>
+  <div class="fbody">
+    <div class="reward-pair">
+      <div class="reward-network-view">
+        <p>$y_w$: human-preferred response.<br>$y_l$: rejected response.</p>
+        <div class="reward-shared-network" role="img" aria-label="The prompt with each response is scored by one shared reward network with parameters phi.">
+          <svg viewBox="0 0 360 125" width="360" height="125" aria-hidden="true">
+            <defs><marker id="reward-score-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#463C7D"></path></marker></defs>
+            <rect x="108" y="7" width="128" height="110" rx="5" fill="#E7E4EE" stroke="#463C7D" stroke-width="1.5"></rect>
+            <g fill="none" stroke="#463C7D" stroke-width="1.7" marker-end="url(#reward-score-arrow)"><path d="M65,32 H99"></path><path d="M65,92 H99"></path><path d="M236,32 H259"></path><path d="M236,92 H259"></path></g>
+          </svg>
+          <span class="reward-input reward-w">$(x,y_w)$</span><span class="reward-input reward-l">$(x,y_l)$</span>
+          <span class="reward-shared-label">$r_\phi$<small>Shared network</small></span>
+          <span class="reward-output reward-w">$r_\phi(x,y_w)$</span><span class="reward-output reward-l">$r_\phi(x,y_l)$</span>
+        </div>
+      </div>
+      <div class="reward-pair-math">
+        <div class="reward-preference-probability">\[P(y_w\succ y_l\mid x)=\sigma\!\left(r_\phi(x,y_w)-r_\phi(x,y_l)\right)\]</div>
+        <div class="reward-single-loss">\[\boxed{\ell(\phi)=-\log\sigma\!\left(r_\phi(x,y_w)-r_\phi(x,y_l)\right)}\]</div>
+        <p>Binary logistic cross-entropy.<br>Logit: the difference between the two network outputs.</p>
+      </div>
+    </div>
+    <div class="reward-ranking" pause data-fragment-index="0">
+      <div class="reward-ranking-pairs">
+        <div>\[D\succ C\succ A=B\]</div>
+        <div>\[D\succ C,\quad D\succ A,\quad D\succ B,\quad C\succ A,\quad C\succ B\]</div>
+      </div>
+      <p class="reward-tie">Five strict comparisons. Omit the tied $A,B$ pair.</p>
+      <div class="reward-ranking-loss">\[\boxed{\mathcal L_K(\phi)=-\frac{1}{|\mathcal P|}\sum_{(w,l)\in\mathcal P}\log\sigma\!\left(r_\phi(x,y_w)-r_\phi(x,y_l)\right)}\]</div>
+      <p class="reward-pair-count">$\mathcal P$: non-tied winner-loser pairs. For a strict ranking, $|\mathcal P|=\binom K2$.</p>
+    </div>
+    <div class="reward-training" pause data-fragment-index="1">
+      <div class="reward-training-flow" aria-label="Human comparisons to shared reward network to pairwise negative log-likelihood to gradient descent updates of phi.">
+        <div><span>Human<br>comparisons</span></div><svg viewBox="0 0 30 20" aria-hidden="true"><path d="M1,10 H27 M20,3 L27,10 L20,17"></path></svg>
+        <div><span>Shared reward<br>network $r_\phi$</span></div><svg viewBox="0 0 30 20" aria-hidden="true"><path d="M1,10 H27 M20,3 L27,10 L20,17"></path></svg>
+        <div><span>Pairwise NLL</span></div><svg viewBox="0 0 30 20" aria-hidden="true"><path d="M1,10 H27 M20,3 L27,10 L20,17"></path></svg>
+        <div><span>Gradient descent<br>updates $\phi$</span></div>
+      </div>
+      <p class="reward-takeaway">We can learn numerical rewards from human rankings without ground-truth reward labels.</p>
+    </div>
+    <p class="preference-source">Adapted from <a href="https://arxiv.org/pdf/2203.02155#page=8" target="_blank" rel="noopener">Ouyang et al. (2022), Equation (1)</a>. Ties omitted: Appendix C.2.</p>
+  </div>
+  <narration>
+    <say>We can now train the reward network. For one prompt x, let y w denote the response the human prefers and y l the rejected response. Rejected here means less preferred in this particular comparison, not necessarily a bad response in every context.<br><br>Both candidates are scored by the same neural network with the same parameters phi. The diagram shows one shared function, not two independently trained models. Its two scalar outputs enter the Bradley–Terry probability through their difference.<br><br>For an observed winner-loser pair, we want the network to assign high probability to the human's choice. Maximizing that likelihood is equivalent to minimizing its negative logarithm, shown in the first box. This is binary logistic cross-entropy with a positive label and a logit equal to the difference between the two outputs.<br><br>A larger winner-minus-loser margin makes the sigmoid probability larger and this loss smaller. We are supervising a comparison probability. We never supply a ground-truth scalar reward for either response. Notice also that the parameters being optimized are phi, the reward network's parameters.</say>
+    <say>Return to the ranking from Figure 2. D is preferred to C, A, and B. C is preferred to A and B. That gives five strict comparisons. There are six possible unordered pairs among four responses, but A and B are tied. We omit that pair, consistent with the paper's treatment of ties.<br><br>Omitting the tie does not enforce equal learned rewards for A and B, and does not turn the tie into a binary preference with a soft label of one half. The remaining comparisons still contain information about both responses.<br><br>For K ranked responses, call the retained, non-tied winner-loser pairs script P. Average the negative log preference probabilities over that set. This is the second boxed objective. With a strict ranking, every pair is retained, so the count is K choose two. If every response is tied, there are no strict pairs and this ranking supplies no term for this objective.<br><br>This is a tie-aware, per-prompt form of the pairwise objective in Equation 1 of InstructGPT. For strict rankings the pair-count normalization matches K choose two. The full dataset objective also averages over prompts. Writing the average within each prompt makes that weighting explicit when rankings contain different numbers of responses or ties.<br><br>Comparisons extracted from one ranking are correlated. This objective sums pairwise log-likelihood terms. It does not claim they form independent observations or derive a joint probability distribution over complete rankings. The paper groups comparisons from a prompt during training and reuses each response's computed score.</say>
+    <say>The training process is now straightforward. Human comparisons provide the labels. The shared reward network computes candidate scores. Their differences produce pairwise probabilities and negative log-likelihood terms. Gradient descent updates phi through both scores.<br><br>Reducing this loss encourages the network to score preferred responses above rejected ones. Since parameters are shared across examples, a particular update need not improve every comparison, and held-out comparisons are needed to assess generalization. This is still ordinary neural-network training, with comparisons supplying the supervision.<br><br>The resulting reward remains a model of the observed labelers' preferences. Its absolute level is not identified by these differences, and it can be wrong outside the training distribution. Learning numerical scores does not turn subjective judgments into objective ground-truth quality.<br><br>We can learn numerical rewards from human rankings without ground-truth reward labels.<br><br>We now have a model that predicts which responses humans prefer. How can we use it to improve the language model that generates those responses?</say>
+  </narration>
+</section>
+
+<section data-transition="none-in fade-out" id="rlhf" class="opt-slide rlhf-overview" data-content-number="9">
+  <h2>RLHF: Reinforcement Learning from Human Feedback</h2>
+  <div class="fbody">
+    <div class="rlhf-loop" role="img" aria-label="A prompt enters the trainable policy, which generates a response. A fixed reward model scores it. Reward feedback updates policy parameters, and the process repeats with new responses.">
+      <svg viewBox="0 0 1200 154" width="1200" height="154" aria-hidden="true">
+        <defs><marker id="rlhf-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#777"></path></marker><marker id="rlhf-policy-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#463C7D"></path></marker><marker id="rlhf-reward-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#087F80"></path></marker></defs>
+        <g fill="none" stroke="#777" stroke-width="2" marker-end="url(#rlhf-arrow)"><path d="M160,54 H202"></path><path d="M450,54 H497"></path><path d="M655,54 H707"></path></g>
+        <path d="M985,54 H1052" fill="none" stroke="#087F80" stroke-width="2" marker-end="url(#rlhf-reward-arrow)"></path>
+        <path d="M1120,87 V151 H330 V103" fill="none" stroke="#463C7D" stroke-width="2.5" marker-end="url(#rlhf-policy-arrow)"></path>
+      </svg>
+      <div class="loop-node loop-prompt">Prompt<span>$x$</span></div>
+      <div class="loop-node loop-policy opt-policy">Trainable policy<span>$\pol$</span></div>
+      <div class="loop-node loop-response">Response<span>$y$</span></div>
+      <div class="loop-node loop-reward opt-reward">Fixed reward model<span>$\rew(x,y)$</span></div>
+      <div class="loop-node loop-score opt-reward">Reward<span>score</span></div>
+      <p class="loop-update opt-policy">Update $\th$ using reward feedback.<br>Repeat with newly generated responses.</p>
+    </div>
+    <div class="rlhf-objective" pause data-fragment-index="0">
+      <div class="rlhf-reward-equation">\[\boxed{\max_{\th}\;\mathbb E_{x\sim\mathcal D,\ y\sim\pol(\cdot\mid x)}\!\left[\rew(x,y)\right]}\]</div>
+      <div class="rlhf-definitions">
+        <p class="opt-policy">$\pol(y\mid x)$: Probability of generating response $y$ for prompt $x$.</p>
+        <p class="opt-reward">$\rew(x,y)$: Fixed learned reward for the generated response.</p>
+      </div>
+    </div>
+    <div class="rlhf-policy-gradient" pause data-fragment-index="1">
+      <h3>Policy-Gradient Update</h3>
+      <div class="rlhf-pg-equation">\[\boxed{\th\leftarrow\th+\htmlClass{pg-eta}{\eta}\,\underbrace{\htmlClass{pg-advantage}{(\htmlClass{opt-reward}{\rew(x,y)}-\htmlClass{pg-baseline}{b(x)})}}_{\htmlClass{pg-advantage}{\text{Advantage}}}\,\underbrace{\htmlClass{opt-policy}{\nabla_{\theta}\log\pi_\theta(y\mid x)}}_{\htmlClass{opt-policy}{\text{Log-probability gradient}}}}\]</div>
+      <div class="rlhf-pg-definitions">
+        <p class="pg-eta">$\eta$: Learning rate.</p>
+        <p class="pg-baseline">$b(x)$: Baseline, an estimate of the<br>expected reward for prompt $x$.</p>
+        <p><span class="pg-advantage">Advantage:</span> <span class="opt-reward">Generated reward</span><br>minus <span class="pg-baseline">expected reward</span>.</p>
+      </div>
+      <div class="rlhf-pg-cases">
+        <div class="pg-positive"><p class="pg-case-heading">Positive advantage ↑</p><div class="pg-case-condition">$\rew(x,y)&gt;\htmlClass{pg-baseline}{b(x)}$</div><p>Increase response probability</p></div>
+        <div class="pg-negative"><p class="pg-case-heading">Negative advantage ↓</p><div class="pg-case-condition">$\rew(x,y)&lt;\htmlClass{pg-baseline}{b(x)}$</div><p>Decrease response probability</p></div>
+      </div>
+    </div>
+    <p class="optimization-source">Adapted from <a href="https://arxiv.org/abs/2203.02155" target="_blank" rel="noopener">Ouyang et al. (2022), Figure 2 and §3.5</a>.</p>
+  </div>
+  <narration>
+    <say>We just trained a network to predict which response a human would prefer. We now want to improve the language model that generates those responses. This is reinforcement learning from human feedback, or RLHF.<br><br><span class="opt-policy">The purple policy $\pol$ is our trainable language model, with parameters $\th$.</span> A prompt enters it, and it generates a response. <span class="opt-reward">The teal reward model $\rew$ scores that prompt-response pair. Its parameters $\ph$ are held fixed during this stage.</span><br><br><span class="opt-policy">Reward feedback is used to update the policy parameters $\th$.</span> We then generate fresh responses and repeat. This differs from reward-model training, where the comparisons trained a scorer. Here, the scorer is fixed and the generator changes.</say>
+    <say>Fix a prompt x and write its expected reward as
+\[J_x(\th)=\sum_y\pol(y\mid x)\rew(x,y).\]
+The outer objective averages this quantity over prompts. During the policy update, the reward-model parameters are fixed. Changing theta changes which complete responses the language model samples.<br><br>Differentiate the response probabilities. The log-derivative identity gives
+\[\nabla_{\th}\pol(y\mid x)=\pol(y\mid x)\nabla_{\th}\log\pol(y\mid x).\]
+Substituting into the gradient of expected reward gives
+\[\begin{aligned}\nabla_{\th}J_x(\th)&=\sum_y\rew(x,y)\nabla_{\th}\pol(y\mid x)\\&=\sum_y\pol(y\mid x)\rew(x,y)\nabla_{\th}\log\pol(y\mid x)\\&=\mathbb E_{y\sim\pol(\cdot\mid x)}\!\left[\rew(x,y)\nabla_{\th}\log\pol(y\mid x)\right].\end{aligned}\]
+This lets us estimate the gradient by sampling a response, scoring it, and differentiating its log probability. We do not need to differentiate through the discrete sampled text or through the reward score. The reward weights the policy's log-probability gradient.</say>
+    <say>The displayed update takes a stochastic gradient-ascent step. <span class="pg-eta">Eta is the positive learning rate.</span> <span class="pg-baseline">The baseline b(x) estimates the expected reward for this prompt.</span> <span class="pg-advantage">The advantage is</span> <span class="opt-reward">the generated response's reward</span> minus <span class="pg-baseline">the expected reward</span>. It measures whether this response did better or worse than expected.<br><br>A response-independent baseline leaves the expected policy gradient unchanged. Holding x fixed and treating the baseline as constant during the policy update,
+\[\begin{aligned}\mathbb E_{y\sim\pol}[\htmlClass{pg-baseline}{b(x)}\nabla_{\th}\log\pol(y\mid x)]&=\htmlClass{pg-baseline}{b(x)}\sum_y\nabla_{\th}\pol(y\mid x)\\&=\htmlClass{pg-baseline}{b(x)}\nabla_{\th}1=0.\end{aligned}\]
+We can therefore subtract it from the sampled reward without changing the expected gradient. A well-chosen baseline can reduce the variance of this estimator. An expected-reward estimate is a useful baseline, although it need not be the variance-minimizing choice for every parameterization.<br><br>The baseline can be estimated from sampled rewards or predicted by a value network. To preserve the response-independence used above, a sample-based estimate can use independent responses or a leave-one-out average. Including the same response's reward in a naive sample-mean baseline can change the estimator. We do not differentiate through the baseline in this policy step.<br><br>For positive advantage, the step points along the response's log-probability gradient. For negative advantage, it points in the opposite direction. Locally, a sufficiently small isolated step increases or decreases that sampled response's probability, as the indicators show. Shared neural parameters and batches also affect other responses, so these indicators are not independent guarantees for every example in a full update.<br><br>SFT increases the likelihood of demonstrated responses. Policy-gradient RLHF instead adjusts the probabilities of generated responses according to how their rewards compare with a baseline. The reward model stays fixed while theta changes.<br><br>This is a simplified single-sample stochastic policy-gradient step, not the full practical RLHF training algorithm. Its purpose is to show how a scalar reward produces a parameter update.<br><br>Why shouldn't we maximize the learned reward without constraints?</say>
+  </narration>
+</section>
+
+<section id="why-kl" class="opt-slide why-kl" data-content-number="10">
+  <h2>Why KL?</h2>
+  <div class="fbody">
+    <div class="kl-motivation">
+      <p class="opt-reward">An imperfect reward model can be exploited by aggressive optimization.</p>
+      <div class="kl-distribution-labels"><p class="opt-reference">$\refpol$: Reference response distribution</p><p class="opt-policy">$\pol$: Excessive shift toward one response</p></div>
+      <svg class="kl-distributions" viewBox="0 0 1200 135" width="1200" height="135" role="img" aria-label="Illustrative distributions over four candidate responses. The reference distributes probability broadly. The shifted policy concentrates on one response with a high predicted reward. These are not empirical measurements.">
+        <path d="M60,12 V103 H530 M665,12 V103 H1135" fill="none" stroke="#888" stroke-width="1.2"></path>
+        <g fill="#2354A8"><rect x="115" y="73" width="62" height="30"></rect><rect x="215" y="73" width="62" height="30"></rect><rect x="315" y="78" width="62" height="25"></rect><rect x="415" y="88" width="62" height="15"></rect></g>
+        <g fill="#463C7D"><rect x="720" y="98" width="62" height="5"></rect><rect x="820" y="98" width="62" height="5"></rect><rect x="920" y="98" width="62" height="5"></rect><rect x="1020" y="18" width="62" height="85"></rect></g>
+        <g font-size="18" fill="#333" text-anchor="middle"><text x="146" y="128">y₁</text><text x="246" y="128">y₂</text><text x="346" y="128">y₃</text><text x="446" y="128">y₄</text><text x="751" y="128">y₁</text><text x="851" y="128">y₂</text><text x="951" y="128">y₃</text><text x="1051" y="128">y₄</text></g>
+        <text x="1051" y="13" text-anchor="middle" fill="#087F80" font-size="18">High predicted reward</text>
+      </svg>
+      <p class="kl-illustration-caption">Illustrative response probabilities, not empirical results.</p>
+    </div>
+    <div class="kl-objective" pause data-fragment-index="0">
+      <div class="kl-equation">\[\boxed{\max_{\pol}\;\mathbb E_{x\sim\mathcal D}\!\left[\mathbb E_{y\sim\pol(\cdot\mid x)}\!\left[\rew(x,y)\right]-\klb D_{\mathrm{KL}}\!\left(\pol(\cdot\mid x)\,\|\,\refpol(\cdot\mid x)\right)\right]}\]</div>
+      <div class="kl-aims"><p class="opt-reward">Maximize predicted reward.</p><p class="opt-reference">Limit deviation from the reference.</p></div>
+      <div class="kl-definitions">
+        <p class="opt-policy">$\pol$: Language model being optimized.</p><p class="opt-reference">$\refpol$: Fixed reference, typically the SFT model.</p>
+        <p class="opt-reward">$\rew$: Previously trained reward model.</p><p class="opt-beta">$\klb$: Strength of the KL penalty.</p>
+      </div>
+      <p class="kl-dot">$\cdot$ denotes the full distribution over possible responses.</p>
+    </div>
+    <div class="kl-beta-role" pause data-fragment-index="1">
+      <div><p class="opt-beta">Larger $\klb$: Stay closer to the reference.</p><p class="opt-beta">Smaller $\klb$: Allow stronger reward-driven changes.</p></div>
+      <p class="kl-takeaway">We want <span class="opt-reward">higher rewards</span> without moving too far from the <span class="opt-reference">reference policy</span>.</p>
+    </div>
+    <p class="optimization-source"><a href="https://arxiv.org/abs/2203.02155" target="_blank" rel="noopener">Ouyang et al. (2022), §3.5</a>. Objective: <a href="https://arxiv.org/abs/2305.18290" target="_blank" rel="noopener">Rafailov et al. (2023), Equation (3)</a>.</p>
+  </div>
+  <narration>
+    <say><span class="opt-reward">The reward model $\rew$ is imperfect. High predicted reward does not always mean a better response, especially away from the examples used to train that model.</span> Aggressive optimization may discover responses that exploit its mistakes.<br><br>The diagram is a conceptual illustration, not measured data. <span class="opt-reference">The blue reference distribution gives probability to several responses.</span> <span class="opt-policy">The purple policy has shifted most of its probability toward one response.</span> <span class="opt-reward">That response receives a high predicted score, but the score could reflect a reward-model error.</span> Concentrating on it can also reduce diversity.</say>
+    <say>We balance expected reward against a penalty for changing the response distribution.<br><br><span class="opt-policy">The purple $\pol$ is the language model we optimize.</span> <span class="opt-reward">The teal $\rew$ remains the previously trained reward model.</span> <span class="opt-reference">The blue $\refpol$ is a fixed reference, typically the supervised fine-tuned model.</span> <span class="opt-beta">The positive amber coefficient $\klb$ controls the strength of the KL penalty.</span><br><br>The inner expectation averages reward over responses generated by the current policy. The outer expectation averages over prompts. The dot means the full conditional distribution over possible responses, not the probability of one particular answer.<br><br>For each prompt, the KL divergence is $\sum_y\pol(y\mid x)\log\!\left(\pol(y\mid x)/\refpol(y\mid x)\right)$. It averages the log probability ratio under the current policy. This direction of KL is asymmetric. It penalizes putting probability where the reference assigns little probability. We use natural logarithms.<br><br>Subtracting the divergence creates two competing goals: achieve higher predicted reward and limit distributional drift. It is a soft penalty, rather than a hard limit on the change to any particular response.</say>
+    <say><span class="opt-beta">Holding the reward scale fixed, a larger $\klb$ makes deviations more costly, so the optimum stays closer to the reference. A smaller $\klb$ permits stronger reward-driven changes.</span> The useful balance depends on the task, the reward scale, and model reliability.<br><br><span class="opt-reference">The reference policy is held fixed while the policy changes.</span> This penalty can reduce exploitation and preserve behavior learned earlier, but it does not make a flawed reward model correct or guarantee that every response improves.<br><br>The next question is mathematical: what policy would solve this regularized objective if we could optimize over all possible response distributions? That solution will reveal the connection to direct preference optimization.</say>
+  </narration>
+</section>
+
+<section id="dpo-trick" class="opt-slide dpo-trick" data-content-number="11">
+  <h2>The DPO Trick: Direct Preference Optimization</h2>
+  <div class="fbody">
+    <div class="dpo-optimum">
+      <p class="dpo-optimum-label">Optimal solution to the KL-regularized RLHF objective</p>
+      <div class="dpo-optimum-equation">\[\boxed{\optpol(y\mid x)=\frac{\refpol(y\mid x)}{\partfn}\exp\!\left(\frac{\rfun(x,y)}{\klb}\right)}\]</div>
+      <p class="opt-policy">$\optpol$: Theoretical optimum, distinct from trainable $\pol$.</p>
+      <p class="opt-normalizer">$\partfn$: Prompt-dependent normalization.</p>
+    </div>
+    <div class="dpo-reparameterization" pause data-fragment-index="0">
+      <div class="dpo-reward-equation">\[\rfun(x,y)=\klb\log\frac{\optpol(y\mid x)}{\refpol(y\mid x)}+\klb\log\partfn\]</div>
+      <div class="dpo-cancellation">\[\rfun(x,y_w)-\rfun(x,y_l)=\left[\klb\log\frac{\optpol(y_w\mid x)}{\refpol(y_w\mid x)}+\htmlClass{opt-cancel}{\cancel{\klb\log\partfn}}\right]-\left[\klb\log\frac{\optpol(y_l\mid x)}{\refpol(y_l\mid x)}+\htmlClass{opt-cancel}{\cancel{\klb\log\partfn}}\right]\]</div>
+      <p class="dpo-cancel-caption opt-normalizer">Same prompt, same $\partfn$. The normalization terms cancel.</p>
+      <div class="dpo-difference-equation">\[\boxed{\rfun(x,y_w)-\rfun(x,y_l)=\klb\log\frac{\optpol(y_w\mid x)}{\refpol(y_w\mid x)}-\klb\log\frac{\optpol(y_l\mid x)}{\refpol(y_l\mid x)}}\]</div>
+    </div>
+    <div class="dpo-bt-connection" pause data-fragment-index="1">
+      <div>\[P(y_w\succ y_l\mid x)=\sigma\!\left(\rfun(x,y_w)-\rfun(x,y_l)\right)\]</div>
+      <p>Substitute the log-ratio expression into Bradley–Terry.</p>
+      <p class="dpo-trick-takeaway"><span class="opt-reward">Reward differences</span> can be represented using <span class="opt-policy">policy probabilities</span>.</p>
+    </div>
+    <p class="optimization-source"><a href="https://arxiv.org/abs/2305.18290" target="_blank" rel="noopener">Rafailov et al. (2023), Equations (4)–(6) and Appendix A</a>.</p>
+  </div>
+  <narration>
+    <say>Here is the theoretical optimizer of the KL-regularized objective. <span class="opt-policy">The starred policy $\optpol$ is an optimum over conditional response distributions. It is distinct from the trainable neural policy $\pol$, which need not represent that optimum exactly.</span><br><br><span class="opt-reference">Start with the fixed reference probability $\refpol(y\mid x)$.</span> <span class="opt-reward">Weight each response by the exponential of its reward $\rfun(x,y)$.</span> <span class="opt-beta">Divide the reward by the positive KL coefficient $\klb$ before exponentiating.</span> Higher rewards therefore increase relative response probability while preserving the reference as an anchor.<br><br><span class="opt-normalizer">The coral $\partfn$ is a prompt-dependent normalizer that makes the response probabilities sum to one. It can depend on the prompt, reward function, reference, and KL coefficient, but not on the particular response y being scored.</span> We assume a finite normalizer and positive reference probability on the response support under consideration. <span class="opt-reward">Here $\rfun$ is a general reward function. This derivation will let us avoid fitting a separate reward network.</span></say>
+    <say>Take logarithms of the optimal-policy formula and rearrange. <span class="opt-reward">The reward $\rfun(x,y)$</span> equals a scaled log ratio of policy probabilities plus a prompt-dependent constant. <span class="opt-beta">The coefficient $\klb$ scales both terms.</span> <span class="opt-normalizer">The constant contains $\log\partfn$.</span><br><br>Now compare the preferred and rejected responses to the same prompt. The expanded line shows the winner's expression minus the loser's expression. <span class="opt-normalizer">Both contain exactly the same normalization term, so those two terms cancel. The coral highlights identify the terms that disappear.</span> This cancellation depends on keeping the prompt fixed. They would not generally cancel across different prompts.<br><br>We are left with the boxed difference of two log probability ratios. <span class="opt-reference">The denominator of each ratio is the fixed reference probability for that same response.</span> <span class="opt-policy">The numerator is its probability under the theoretical optimal policy.</span> The result avoids having to evaluate the sum over all responses. It does not mean that the normalization constant itself equals zero.</say>
+    <say>Recall the Bradley–Terry preference model: the probability of preferring the winner is the sigmoid of the reward difference. We can substitute the boxed expression for that difference.<br><br><span class="opt-reward">The reward difference</span> is now represented through <span class="opt-policy">policy probabilities</span>, <span class="opt-reference">fixed reference probabilities</span>, and <span class="opt-beta">the coefficient $\klb$</span>. No explicit reward values or normalization sum are needed to form the preference prediction.<br><br>This is a connection under the Bradley–Terry model and the KL-regularized formulation, not a claim that any arbitrary policy already matches human preferences. We still have to fit a policy to the observed preference pairs.<br><br>On the next slide, we replace the theoretical optimum by a trainable language model and minimize the negative log-likelihood of those pairs. That gives the actual DPO objective.</say>
+  </narration>
+</section>
+
+<section id="rlhf-vs-dpo" class="opt-slide rlhf-vs-dpo" data-content-number="12">
+  <h2>RLHF vs. DPO</h2>
+  <div class="fbody">
+    <div class="dpo-training-objective">
+      <div class="dpo-loss-equation">\[\boxed{\mathcal L_{\mathrm{DPO}}(\th)=-\mathbb E_{(x,y_w,y_l)\sim\mathcal D}\!\left[\log\sigma\!\left(\klb\log\frac{\pol(y_w\mid x)}{\refpol(y_w\mid x)}-\klb\log\frac{\pol(y_l\mid x)}{\refpol(y_l\mid x)}\right)\right]}\]</div>
+      <p class="dpo-trained-parameters opt-policy">$\th$ now trains the language model, rather than a separate reward network.</p>
+      <p class="dpo-loss-meaning">Increase the preferred-to-rejected likelihood ratio relative to the <span class="opt-reference">fixed reference</span>.</p>
+    </div>
+    <div class="dpo-comparison-layout">
+      <div class="dpo-empirical" pause data-fragment-index="0">
+        <p class="dpo-chart-target">GPT-4-judged wins vs. human-written summaries</p>
+        <svg class="dpo-win-chart" viewBox="0 0 550 200" width="550" height="200" role="img" aria-labelledby="dpo-win-title dpo-win-description">
+          <title id="dpo-win-title">Approximate summarization win rates at temperature zero</title>
+          <desc id="dpo-win-description">RLHF approximately 57 percent. DPO approximately 61 percent. GPT-4 judges each model's summaries against human-written reference summaries. Reconstructed from Rafailov et al. (2023), Figure 2 right.</desc>
+          <g stroke="#e1deea" stroke-width="1"><path d="M66,158 H530 M66,123 H530 M66,53 H530 M66,18 H530"></path></g>
+          <path d="M66,88 H530" fill="none" stroke="#999" stroke-width="1.3" stroke-dasharray="5 4"></path>
+          <path d="M66,18 V158 H530" fill="none" stroke="#777" stroke-width="1.3"></path>
+          <g font-size="17" fill="#333" text-anchor="end"><text x="54" y="164">0</text><text x="54" y="129">25</text><text x="54" y="94">50</text><text x="54" y="59">75</text><text x="54" y="24">100</text></g>
+          <text x="17" y="88" transform="rotate(-90 17 88)" text-anchor="middle" font-size="19">Win rate (%)</text>
+          <rect data-method="RLHF" data-win-rate="57" x="155" y="78.2" width="90" height="79.8" fill="#087F80"></rect>
+          <rect data-method="DPO" data-win-rate="61" x="355" y="72.6" width="90" height="85.4" fill="#463C7D"></rect>
+          <g text-anchor="middle"><text x="200" y="66.2" font-size="24">≈57%</text><text x="400" y="60.6" font-size="24">≈61%</text><text x="200" y="194" font-size="24">RLHF</text><text x="400" y="194" font-size="24">DPO</text></g>
+        </svg>
+        <p class="dpo-chart-caption">GPT-4 evaluation, TL;DR summarization, temperature 0. Approximate values.</p>
+      </div>
+      <div class="dpo-final-comparison" pause data-fragment-index="1">
+        <table class="dpo-method-table" aria-label="Reward-model-based RLHF compared with direct preference optimization">
+          <thead><tr><th>RLHF</th><th>DPO</th></tr></thead>
+          <tbody><tr><td class="opt-reward">Separate reward model</td><td class="opt-reward">No separate reward model</td></tr><tr><td>Optimize using reward feedback</td><td>Optimize directly from preference pairs</td></tr><tr><td>RL-based policy updates</td><td>Classification-style objective</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <p class="dpo-final-takeaway" pause data-fragment-index="1">DPO achieves competitive preference optimization without a separate reward model.</p>
+    <p class="optimization-source"><a href="https://arxiv.org/abs/2305.18290" target="_blank" rel="noopener">Rafailov et al. (2023), Equation (7) and Figure 2 (right)</a>. Chart reconstructed from approximate values.</p>
+  </div>
+  <narration>
+    <say>Preference learning minimizes the negative log-likelihood of observed human choices. We now replace the reward difference in that loss by the policy log-ratio expression from the previous slide.<br><br><span class="opt-policy">The purple $\pol$ is a trainable language model, and $\th$ now parameterizes that generator rather than a separate reward network.</span> <span class="opt-reference">The blue $\refpol$ is kept fixed.</span> <span class="opt-beta">The amber $\klb$ scales the difference between the two log ratios, inherited from the regularized derivation.</span><br><br>The first ratio concerns the preferred response and the second concerns the rejected response. Minimizing the negative log sigmoid encourages a larger preferred-versus-rejected log-likelihood margin, measured relative to the reference. The expectation averages over preference triples in the dataset.<br><br><span class="opt-policy">Gradients update only the language-model parameters $\th$.</span> We evaluate probabilities of the recorded responses, so this standard offline DPO objective does not need a separate reward model or newly sampled responses during each training update. The objective favors relative likelihoods. It does not guarantee that every preferred response's absolute probability increases under shared neural parameters.</say>
+    <say>How does this compare empirically? The compact chart reconstructs two approximate values from Figure 2, right, of the DPO paper. At sampling temperature zero, its reward-model-based RLHF baseline reaches about 57 percent and DPO about 61 percent, judged by GPT-4 against human-written reference summaries.<br><br>Our visible label RLHF simplifies the paper's particular reward-model-based baseline, labeled PPO in the original figure. That is a specific reinforcement learning optimizer, whose mechanics are outside this lecture. Both methods fine-tune the same SFT backbone in this experiment.<br><br>These bars are not a direct head-to-head win rate between DPO and RLHF. Each is evaluated against reference summaries. They are automated GPT-4 judgments, not directly measured human preferences. The numbers are approximate, historical, and specific to this task and decoding setting. They are not universal guarantees, and we have not invented error bars from the rounded values.</say>
+    <say>The compact comparison separates the training procedures. <span class="opt-reward">Reward-model-based RLHF first fits a separate reward model and uses its feedback.</span> Its policy is improved with reinforcement-learning-style updates. DPO instead trains directly on preference pairs using a classification-style objective.<br><br><span class="opt-reference">DPO still uses a fixed reference policy.</span> <span class="opt-beta">It also retains the coefficient $\klb$ in its preference logit. Its practical hyperparameter effects depend on finite data and optimization, so the theoretical derivation is not a guarantee of identical behavior in every training run.</span><br><br>DPO achieves competitive preference optimization without a separate reward model. Both approaches aim to produce responses preferred by humans. They use different optimization procedures, and both inherit limitations of the preference data and evaluation process.</say>
+  </narration>
+</section>
+
+<section id="sec-chain-of-thought" class="frame" data-slide="map" data-section-label="Chain-of-Thought" data-section-number="3" aria-label="Chain-of-Thought section">
+  <fig name="deckmap" init="a=1 b=2 t=2" class="mapfig"></fig>
+  <narration>
+    <say>SFT, RLHF, and DPO improve behavior by updating model parameters. We now move to section three, Chain-of-Thought. Here we keep the model fixed and change how we use it at inference time. We will first add intermediate steps to few-shot demonstrations, then examine an experiment, and finally sample several reasoning paths and vote on their answers.</say>
+  </narration>
+</section>
+
+<section id="chain-of-thought-prompting" class="cot-slide cot-prompting" data-content-number="13">
+  <h2>Chain-of-Thought Prompting</h2>
+  <div class="fbody">
+    <div class="cot-introduction">
+      <p><b>Chain-of-thought prompting:</b> Few-shot ICL with intermediate reasoning steps.</p>
+      <p class="cot-fixed-weights">Change the demonstration format. Keep the model weights fixed.</p>
+    </div>
+    <div class="cot-prompt-comparison">
+      <div class="cot-prompt-column">
+        <h3>Standard Prompting</h3>
+        <div class="cot-example" pause data-fragment-index="0">
+          <div class="cot-model-input">
+            <p class="cot-io-label">Model Input</p>
+            <p class="cot-verbatim"><b>Q:</b> Roger has 5 tennis balls. He buys 2 more cans of tennis balls. Each can has 3 tennis balls. How many tennis balls does he have now?</p>
+            <p class="cot-verbatim"><b>A:</b> The answer is 11.</p>
+            <p class="cot-verbatim"><b>Q:</b> The cafeteria had 23 apples. If they used 20 to make lunch and bought 6 more, how many apples do they have?</p>
+          </div>
+          <div class="cot-model-output">
+            <p class="cot-io-label">Model Output <span class="cot-incorrect">Incorrect</span></p>
+            <p class="cot-verbatim"><b>A:</b> The answer is <strong class="cot-incorrect">27</strong>.</p>
+          </div>
+        </div>
+      </div>
+      <div class="cot-prompt-column">
+        <h3>Chain-of-Thought Prompting</h3>
+        <div class="cot-example" pause data-fragment-index="0">
+          <div class="cot-model-input">
+            <p class="cot-io-label">Model Input</p>
+            <p class="cot-verbatim"><b>Q:</b> Roger has 5 tennis balls. He buys 2 more cans of tennis balls. Each can has 3 tennis balls. How many tennis balls does he have now?</p>
+            <p class="cot-verbatim"><b>A:</b> <span class="cot-reasoning-text">Roger started with 5 balls. 2 cans of 3 tennis balls each is 6 tennis balls. 5 + 6 = 11.</span> The answer is 11.</p>
+            <p class="cot-verbatim"><b>Q:</b> The cafeteria had 23 apples. If they used 20 to make lunch and bought 6 more, how many apples do they have?</p>
+          </div>
+          <div class="cot-model-output">
+            <p class="cot-io-label">Model Output <span class="cot-correct">Correct</span></p>
+            <p class="cot-verbatim"><b>A:</b> <span class="cot-reasoning-text">The cafeteria had 23 apples originally. They used 20 to make lunch. So they had 23 - 20 = 3. They bought 6 more apples, so they have 3 + 6 = 9.</span> The answer is <strong class="cot-correct">9</strong>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cot-takeaway" pause data-fragment-index="1">Showing reasoning steps in the prompt can improve multi-step problem solving without additional training.</p>
+    <p class="cot-source">Original example wording from <a href="https://arxiv.org/abs/2201.11903" target="_blank" rel="noopener">Wei et al. (2022), Figure 1</a>. Layout and highlighting adapted. <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.</p>
+  </div>
+  <narration>
+    <say>So far, SFT, RLHF, and DPO have changed model parameters. Now we switch to inference-time methods. We will keep the pretrained model fixed throughout this section.<br><br>Recall few-shot in-context learning from last week. We place demonstrations in the prompt and ask the model to continue with a response to a new question. Ordinary demonstrations give a question and its answer. Chain-of-thought demonstrations also include intermediate steps between them.<br><br>This is still in-context learning. We change the input sequence, not the model weights. The extra generated steps are text tokens produced during inference, rather than parameter updates.</say>
+    <say>This comparison uses the original question and answer wording from Figure 1 of Wei and colleagues. Read the Model Input blocks first. Each contains a worked tennis-ball demonstration followed by a new cafeteria question. The cafeteria answer is not supplied in the input.<br><br>On the left, the worked demonstration gives only the answer, eleven. On the right, the demonstration includes the reasoning: Roger starts with five balls, two cans of three contribute six, and five plus six gives eleven. The highlighted reasoning is part of the prompt the model receives, not a response generated for the new question.<br><br>Now compare the Model Output blocks. The standard-prompting output answers twenty-seven, which is incorrect. The CoT output first subtracts twenty apples from twenty-three, leaving three, then adds six to reach nine. It ends with the correct answer, nine. Here the highlighted cafeteria steps are generated output, rather than demonstration text.<br><br>Both the example reasoning in the input and the new reasoning in the output are visible. The prompt demonstrates a response format, and the model continues in that format. We have changed neither the weights nor the numerical quantities in the questions. These are historical outputs reproduced from the figure, not new model runs or guarantees of what a model would generate today.</say>
+    <say>The takeaway is that examples containing intermediate steps can help a model solve a multi-step problem without additional training. They give it a format for breaking the response into smaller operations.<br><br>Wei and colleagues primarily study few-shot CoT. Kojima and colleagues also demonstrate zero-shot CoT with a prompt such as “Let's think step by step.” That approach asks for intermediate steps without supplying worked demonstrations. We will not add a separate method slide here.<br><br>A generated explanation is not necessarily correct, and it is not guaranteed to faithfully describe the model's internal computations. A convincing-looking sequence can still contain errors or lead to an incorrect answer. This one example motivates the method, but cannot establish its overall performance. Next, we will look at an evaluation across many mathematics problems.</say>
+  </narration>
+</section>
+
+<section id="does-cot-work" class="cot-slide cot-evidence" data-content-number="14">
+  <h2>Does CoT Work?</h2>
+  <div class="fbody">
+    <div class="cot-experiment">
+      <p><b>GSM8K:</b> Grade-school mathematics word problems requiring multiple reasoning steps.</p>
+      <p class="cot-fixed-weights"><b>PaLM 540B</b> for both methods. Few-shot prompting, without fine-tuning.</p>
+    </div>
+    <svg class="cot-accuracy-chart" viewBox="0 0 1200 390" width="1200" height="390" role="img" aria-labelledby="cot-chart-title cot-chart-description">
+      <title id="cot-chart-title">PaLM 540B accuracy on GSM8K</title>
+      <desc id="cot-chart-description">Standard prompting 17.9 percent. Chain-of-thought prompting 56.9 percent, a gain of 39.0 percentage points. Same model without fine-tuning. Reconstructed from Wei et al. (2022), Table 1.</desc>
+      <g stroke="#e1deea" stroke-width="1"><path d="M125,30 H935 M125,86 H935 M125,142 H935 M125,198 H935 M125,254 H935 M125,310 H935"></path></g>
+      <path d="M125,30 V310 H935" fill="none" stroke="#777" stroke-width="1.5"></path>
+      <g font-size="22" fill="#333" text-anchor="end"><text x="110" y="38">100</text><text x="110" y="94">80</text><text x="110" y="150">60</text><text x="110" y="206">40</text><text x="110" y="262">20</text><text x="110" y="318">0</text></g>
+      <text x="42" y="170" transform="rotate(-90 42 170)" text-anchor="middle" font-size="25">Accuracy (%)</text>
+      <rect data-method="Standard prompting" data-accuracy="17.9" x="275" y="259.88" width="160" height="50.12" fill="#2354A8"></rect>
+      <text x="355" y="244.88" text-anchor="middle" font-size="30" fill="#2354A8">17.9%</text>
+      <text x="355" y="351" text-anchor="middle" font-size="24">Standard prompting</text>
+      <g pause data-fragment-index="0">
+        <rect data-method="Chain-of-thought prompting" data-accuracy="56.9" x="650" y="150.68" width="160" height="159.32" fill="#463C7D"></rect>
+        <text x="730" y="135.68" text-anchor="middle" font-size="30" fill="#463C7D">56.9%</text>
+        <text x="730" y="351" text-anchor="middle" font-size="24">Chain-of-thought prompting</text>
+        <g text-anchor="middle" fill="#463C7D"><text x="1065" y="166" font-size="40" font-weight="bold">+39.0</text><text x="1065" y="199" font-size="21">percentage points</text></g>
+      </g>
+    </svg>
+    <p class="cot-takeaway" pause data-fragment-index="1">Changing the prompting strategy can dramatically improve reasoning accuracy,<br>without changing model weights.</p>
+    <p class="cot-source">Reconstructed from <a href="https://arxiv.org/abs/2201.11903" target="_blank" rel="noopener">Wei et al. (2022), Table 1 and Figure 2</a>. GSM8K, PaLM 540B.</p>
+  </div>
+  <narration>
+    <say>The example suggested that intermediate steps can help. To measure whether this generalizes, we need a benchmark containing many problems. GSM8K consists of grade-school mathematics word problems that typically require several reasoning steps.<br><br>We compare two prompting strategies applied to the same PaLM model with 540 billion parameters. Neither method fine-tunes the model for this evaluation. Both supply few-shot demonstrations, but only the CoT demonstrations include intermediate reasoning.<br><br>The first bar shows the standard-prompting baseline. It solves 17.9 percent of GSM8K questions. That is our starting point before changing the demonstration format. The chart uses a zero-to-one-hundred percent axis so the sizes of the bars retain their absolute meaning.</say>
+    <say>Now reveal the CoT result. With chain-of-thought prompting, the same model reaches 56.9 percent accuracy. Subtracting 17.9 from 56.9 gives a 39.0 percentage-point increase. This is an absolute difference in accuracy, not a 39 percent relative improvement.<br><br>The exact values come from Table 1 of Wei and colleagues. Figure 2 presents the same comparison with rounded values. We reconstruct only these two bars to isolate the prompting comparison. The reported setup uses few-shot demonstrations and greedy decoding, rather than training a new checkpoint or sampling many paths.<br><br>The model weights remain fixed. The additional demonstration text and generated reasoning tokens change the inference procedure, which can change the answer distribution even without a gradient update.</say>
+    <say>This is a strong historical result for a very large model. It does not mean CoT improves every model or every task. In the original study, smaller models often gained little, and sometimes performed worse after producing fluent but incorrect intermediate steps. The size dependence is an observation about the models and experiments studied, not a universal parameter threshold for all future systems.<br><br>Generated steps can be mistaken, and a correct final answer does not establish that every written step is correct or that the text faithfully reports internal computation. Even this successful setup still misses many questions.<br><br>The broader lesson is that prompting can substantially change reasoning accuracy without changing model weights. But one generated chain remains vulnerable to a local error. What if we ask the same model to generate several different paths and compare their final answers?</say>
+  </narration>
+</section>
+
+<section id="self-consistency" class="cot-slide self-consistency" data-content-number="15">
+  <h2>Self-Consistency</h2>
+  <div class="fbody">
+    <p class="sc-introduction">Sample multiple reasoning paths and select the most frequent final answer.</p>
+    <div class="sc-paths">
+      <svg viewBox="0 0 1200 318" width="1200" height="318" role="img" aria-labelledby="sc-paths-title sc-paths-description">
+        <title id="sc-paths-title">Five illustrative reasoning paths</title>
+        <desc id="sc-paths-description">The problem is six boxes with seven balls each. Five illustrative sampled paths have final answers 42, 39, 42, 42, and 40. The majority answer is revealed on the next build. These are not actual model outputs.</desc>
+        <defs>
+          <marker id="sc-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#999"></path></marker>
+          <marker id="sc-teal-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#087F80"></path></marker>
+        </defs>
+        <g text-anchor="middle" font-size="26" fill="#111"><text x="120" y="128">6 boxes,</text><text x="120" y="162">7 balls each.</text><text x="120" y="204">How many balls?</text></g>
+        <path d="M238,156 H282 M282,28 V284" fill="none" stroke="#aaa" stroke-width="1.5"></path>
+        <g fill="none" stroke-width="1.7">
+          <path d="M282,28 H344" stroke="#087F80" marker-end="url(#sc-teal-arrow)"></path><path d="M282,156 H344" stroke="#087F80" marker-end="url(#sc-teal-arrow)"></path><path d="M282,220 H344" stroke="#087F80" marker-end="url(#sc-teal-arrow)"></path>
+          <path d="M282,92 H344" stroke="#aaa" marker-end="url(#sc-arrow)"></path><path d="M282,284 H344" stroke="#aaa" marker-end="url(#sc-arrow)"></path>
+        </g>
+        <g fill="#edf7f5"><rect x="350" y="6" width="365" height="44" rx="6"></rect><rect x="350" y="134" width="365" height="44" rx="6"></rect><rect x="350" y="198" width="365" height="44" rx="6"></rect></g>
+        <g font-size="24"><text x="374" y="36" fill="#087F80">Path 1</text><text x="374" y="100" fill="#666">Path 2</text><text x="374" y="164" fill="#087F80">Path 3</text><text x="374" y="228" fill="#087F80">Path 4</text><text x="374" y="292" fill="#666">Path 5</text></g>
+        <g font-size="32" text-anchor="end" font-weight="bold"><text x="688" y="39" fill="#087F80">42</text><text x="688" y="103" fill="#666">39</text><text x="688" y="167" fill="#087F80">42</text><text x="688" y="231" fill="#087F80">42</text><text x="688" y="295" fill="#666">40</text></g>
+        <g class="sc-majority" pause data-fragment-index="0">
+          <path d="M715,28 H788 M715,92 H788 M715,156 H788 M715,220 H788 M715,284 H788 M788,28 V284" fill="none" stroke="#aaa" stroke-width="1.5"></path>
+          <path d="M788,156 H843" fill="none" stroke="#999" stroke-width="1.7" marker-end="url(#sc-arrow)"></path>
+          <rect x="850" y="112" width="350" height="88" rx="8" fill="#E7E4EE"></rect>
+          <text x="1025" y="166" text-anchor="middle" fill="#463C7D" font-size="30">Majority answer: 42</text>
+        </g>
+      </svg>
+      <p class="sc-illustration-caption">Illustrative example, not actual model outputs.</p>
+    </div>
+    <div class="sc-results">
+      <div class="sc-voting" pause data-fragment-index="0">
+        <p class="sc-vote-heading">Majority voting</p>
+        <div class="sc-vote-equation">\[\boxed{\htmlClass{sc-answer}{\hat a}=\arg\max_a\sum_{i=1}^{\htmlClass{sc-count}{M}}\htmlClass{sc-match}{\mathbf 1\{\htmlClass{sc-answer}{a_i}=a\}}}\]</div>
+      </div>
+      <div class="sc-empirical" pause data-fragment-index="1"><p class="sc-gain">+17.9 pp</p><p class="sc-gain-caption"><em>GSM8K improvement over CoT</em></p></div>
+    </div>
+    <p class="cot-source"><a href="https://arxiv.org/abs/2203.11171" target="_blank" rel="noopener">Wang et al. (2023)</a>. Method: Figure 1. GSM8K improvement: Table 2, PaLM 540B.</p>
+  </div>
+  <narration>
+    <say>A single chain-of-thought response can fail because of one incorrect step. Self-consistency samples multiple reasoning paths from the same fixed language model, then compares their final answers.<br><br>We keep the prompt and model parameters fixed while allowing stochastic generation to produce different continuations. Sampling with a suitable nonzero temperature is one way to obtain variation. Repeating the same deterministic greedy output would not give us diverse reasoning paths.<br><br>The diagram is an illustration, not actual model outputs or a result from the paper. The question is six boxes with seven balls each. The five paths end in forty-two, thirty-nine, forty-two, forty-two, and forty. We hide their intermediate text here to focus on how their final answers are combined.</say>
+    <say>Now reveal the majority answer and voting equation. Three paths produce forty-two, while thirty-nine and forty receive one vote each. We therefore select forty-two. The paths can use different intermediate reasoning while agreeing on the final answer.<br><br><span class="sc-count">M is the number of sampled paths, five in this illustration.</span> The index i identifies a path. <span class="sc-answer">The symbol a_i is the final answer extracted from path i, and the hatted a is the selected answer.</span> The candidate answer a ranges over the possible final answers. <span class="sc-match">The indicator is one if a_i equals a and zero otherwise.</span> The sum counts the votes for each candidate, and arg max selects the answer with the largest count. A tie requires a tie-breaking rule.<br><br>Agreement does not guarantee correctness. Several samples can share the same mistake, and answer extraction must reliably identify their final answers. Written reasoning also need not faithfully describe internal model computation.</say>
+    <say>The compact callout reports a 17.9 percentage-point improvement on GSM8K from Wang and colleagues, Table 2. In their PaLM 540B experiment, the CoT baseline reaches 56.5 percent and self-consistency reaches 74.4 percent. Here pp means percentage points, an absolute difference in accuracy.<br><br>This is a separate experiment from the previous slide's 56.9 percent result. We should not add the improvement to that number. The paper's main comparison uses forty sampled paths, rather than the five illustrative paths shown here. The gain is specific to the reported setup, not a guarantee for every task or model.<br><br>Self-consistency increases test-time computation because the model generates several reasoning paths before selecting an answer. It changes the inference procedure without changing model parameters.<br><br>CoT generates additional reasoning tokens. Self-consistency samples additional reasoning paths. Both use more computation at inference time to potentially improve the answer.<br><br>How should we spend additional inference-time computation, and can we train models to reason more effectively? That leads into Reasoning Models, our next section.</say>
+  </narration>
+</section>
+
+<section id="sec-reasoning-models" class="frame" data-slide="map" data-section-label="Reasoning Models" data-section-number="4" aria-label="Reasoning Models section">
+  <fig name="deckmap" init="a=2 b=3 t=2" class="mapfig"></fig>
+  <narration><say>We now enter Reasoning Models, section four in our revised outline. CoT and self-consistency changed the inference procedure while keeping model parameters fixed. We will first ask how to allocate that inference computation, then see how automatic correctness checks can supply a training reward, how GRPO uses group-relative feedback, and what DeepSeek-R1 demonstrates empirically.</say></narration>
+</section>
+
+<section id="scaling-test-time-compute" class="reasoning-slide test-time-compute" data-content-number="16">
+  <h2>Test-Time Computation</h2>
+  <div class="fbody">
+    <div class="tt-opening fragment fade-out" data-fragment-index="0">
+      <p class="tt-inference-intro">Improve reasoning by spending more computation at inference time,<br>without updating model parameters.</p>
+      <svg class="tt-attempt-diagrams" viewBox="0 0 1200 450" width="1200" height="450" role="img" aria-label="Equal generation budgets. Red: one question branches into eight independent attempts A1 to A8. Blue: one question branches into two independent initial attempts, each followed by three revisions. Each revision uses previous attempts in its chain.">
+<defs><marker id="tt-red-attempt-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#C44E52"></path></marker><marker id="tt-blue-attempt-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#4C72B0"></path></marker></defs>
+<g text-anchor="middle" font-size="25"><text x="280" y="35" fill="#C44E52">Parallel sampling</text><text x="900" y="24" fill="#4C72B0">Parallel sampling with</text><text x="900" y="53" fill="#4C72B0">sequential revisions</text></g>
+<rect x="18" y="210" width="130" height="60" rx="5" fill="#FAEDEF" stroke="#C44E52" stroke-width="1.6"></rect><text x="83" y="248" text-anchor="middle" fill="#C44E52" font-size="23">Question</text>
+<path d="M148,240 H215 M215,90 V391" fill="none" stroke="#C44E52" stroke-width="1.8"></path><path d="M215,90 H307" fill="none" stroke="#C44E52" stroke-width="1.8" marker-end="url(#tt-red-attempt-arrow)"></path><rect data-attempt="parallel" x="315" y="72" width="170" height="36" rx="4" fill="#FAEDEF" stroke="#C44E52" stroke-width="1.6"></rect><text x="400" y="98" text-anchor="middle" fill="#C44E52" font-size="23">A1</text><path d="M215,133 H307" fill="none" stroke="#C44E52" stroke-width="1.8" marker-end="url(#tt-red-attempt-arrow)"></path><rect data-attempt="parallel" x="315" y="115" width="170" height="36" rx="4" fill="#FAEDEF" stroke="#C44E52" stroke-width="1.6"></rect><text x="400" y="141" text-anchor="middle" fill="#C44E52" font-size="23">A2</text><path d="M215,176 H307" fill="none" stroke="#C44E52" stroke-width="1.8" marker-end="url(#tt-red-attempt-arrow)"></path><rect data-attempt="parallel" x="315" y="158" width="170" height="36" rx="4" fill="#FAEDEF" stroke="#C44E52" stroke-width="1.6"></rect><text x="400" y="184" text-anchor="middle" fill="#C44E52" font-size="23">A3</text><path d="M215,219 H307" fill="none" stroke="#C44E52" stroke-width="1.8" marker-end="url(#tt-red-attempt-arrow)"></path><rect data-attempt="parallel" x="315" y="201" width="170" height="36" rx="4" fill="#FAEDEF" stroke="#C44E52" stroke-width="1.6"></rect><text x="400" y="227" text-anchor="middle" fill="#C44E52" font-size="23">A4</text><path d="M215,262 H307" fill="none" stroke="#C44E52" stroke-width="1.8" marker-end="url(#tt-red-attempt-arrow)"></path><rect data-attempt="parallel" x="315" y="244" width="170" height="36" rx="4" fill="#FAEDEF" stroke="#C44E52" stroke-width="1.6"></rect><text x="400" y="270" text-anchor="middle" fill="#C44E52" font-size="23">A5</text><path d="M215,305 H307" fill="none" stroke="#C44E52" stroke-width="1.8" marker-end="url(#tt-red-attempt-arrow)"></path><rect data-attempt="parallel" x="315" y="287" width="170" height="36" rx="4" fill="#FAEDEF" stroke="#C44E52" stroke-width="1.6"></rect><text x="400" y="313" text-anchor="middle" fill="#C44E52" font-size="23">A6</text><path d="M215,348 H307" fill="none" stroke="#C44E52" stroke-width="1.8" marker-end="url(#tt-red-attempt-arrow)"></path><rect data-attempt="parallel" x="315" y="330" width="170" height="36" rx="4" fill="#FAEDEF" stroke="#C44E52" stroke-width="1.6"></rect><text x="400" y="356" text-anchor="middle" fill="#C44E52" font-size="23">A7</text><path d="M215,391 H307" fill="none" stroke="#C44E52" stroke-width="1.8" marker-end="url(#tt-red-attempt-arrow)"></path><rect data-attempt="parallel" x="315" y="373" width="170" height="36" rx="4" fill="#FAEDEF" stroke="#C44E52" stroke-width="1.6"></rect><text x="400" y="399" text-anchor="middle" fill="#C44E52" font-size="23">A8</text><text x="280" y="440" text-anchor="middle" fill="#C44E52" font-size="21">Each attempt starts from the question.</text>
+<rect x="610" y="210" width="120" height="60" rx="5" fill="#EDF1F8" stroke="#4C72B0" stroke-width="1.6"></rect><text x="670" y="248" text-anchor="middle" fill="#4C72B0" font-size="22">Question</text>
+<path d="M730,240 H735 M735,170 V310" fill="none" stroke="#4C72B0" stroke-width="1.8"></path><path d="M735,170 H752" fill="none" stroke="#4C72B0" stroke-width="1.8" marker-end="url(#tt-blue-attempt-arrow)"></path><path d="M735,310 H752" fill="none" stroke="#4C72B0" stroke-width="1.8" marker-end="url(#tt-blue-attempt-arrow)"></path><rect data-attempt="mixed" data-chain="1" data-step="0" x="760" y="140" width="95" height="60" rx="4" fill="#EDF1F8" stroke="#4C72B0" stroke-width="1.6"></rect><text x="807.5" y="178" text-anchor="middle" fill="#4C72B0" font-size="22">Initial</text><path d="M855,170 H865" fill="none" stroke="#4C72B0" stroke-width="1.8" marker-end="url(#tt-blue-attempt-arrow)"></path><rect data-attempt="mixed" data-chain="1" data-step="1" x="872" y="140" width="95" height="60" rx="4" fill="#EDF1F8" stroke="#4C72B0" stroke-width="1.6"></rect><text x="919.5" y="178" text-anchor="middle" fill="#4C72B0" font-size="22">Rev 1</text><path d="M967,170 H977" fill="none" stroke="#4C72B0" stroke-width="1.8" marker-end="url(#tt-blue-attempt-arrow)"></path><rect data-attempt="mixed" data-chain="1" data-step="2" x="984" y="140" width="95" height="60" rx="4" fill="#EDF1F8" stroke="#4C72B0" stroke-width="1.6"></rect><text x="1031.5" y="178" text-anchor="middle" fill="#4C72B0" font-size="22">Rev 2</text><path d="M1079,170 H1089" fill="none" stroke="#4C72B0" stroke-width="1.8" marker-end="url(#tt-blue-attempt-arrow)"></path><rect data-attempt="mixed" data-chain="1" data-step="3" x="1096" y="140" width="95" height="60" rx="4" fill="#EDF1F8" stroke="#4C72B0" stroke-width="1.6"></rect><text x="1143.5" y="178" text-anchor="middle" fill="#4C72B0" font-size="22">Rev 3</text><rect data-attempt="mixed" data-chain="2" data-step="0" x="760" y="280" width="95" height="60" rx="4" fill="#EDF1F8" stroke="#4C72B0" stroke-width="1.6"></rect><text x="807.5" y="318" text-anchor="middle" fill="#4C72B0" font-size="22">Initial</text><path d="M855,310 H865" fill="none" stroke="#4C72B0" stroke-width="1.8" marker-end="url(#tt-blue-attempt-arrow)"></path><rect data-attempt="mixed" data-chain="2" data-step="1" x="872" y="280" width="95" height="60" rx="4" fill="#EDF1F8" stroke="#4C72B0" stroke-width="1.6"></rect><text x="919.5" y="318" text-anchor="middle" fill="#4C72B0" font-size="22">Rev 1</text><path d="M967,310 H977" fill="none" stroke="#4C72B0" stroke-width="1.8" marker-end="url(#tt-blue-attempt-arrow)"></path><rect data-attempt="mixed" data-chain="2" data-step="2" x="984" y="280" width="95" height="60" rx="4" fill="#EDF1F8" stroke="#4C72B0" stroke-width="1.6"></rect><text x="1031.5" y="318" text-anchor="middle" fill="#4C72B0" font-size="22">Rev 2</text><path d="M1079,310 H1089" fill="none" stroke="#4C72B0" stroke-width="1.8" marker-end="url(#tt-blue-attempt-arrow)"></path><rect data-attempt="mixed" data-chain="2" data-step="3" x="1096" y="280" width="95" height="60" rx="4" fill="#EDF1F8" stroke="#4C72B0" stroke-width="1.6"></rect><text x="1143.5" y="318" text-anchor="middle" fill="#4C72B0" font-size="22">Rev 3</text><g text-anchor="middle" fill="#4C72B0" font-size="21"><text x="900" y="410">Each revision conditions on previous attempts</text><text x="900" y="438">in its chain.</text></g></svg>
+      <p class="tt-same-budget">Same budget: 8 generated attempts.</p>
+    </div>
+    <div class="tt-evidence" pause data-fragment-index="0">
+      <svg class="tt-panel-chart" viewBox="98 100 201 132" width="760" height="499" role="img" aria-label="Published Compute Optimal Revisions plot with the legend moved alongside. Blue is compute-optimal allocation, red is parallel sampling. Solid curves use best-of-N weighted selection, dashed curves majority voting. Comparison markers identify the solid blue point at 64 generations and solid red point at 256 generations.">
+<image href="img/research/snell-2024-figure1-revisions.png" x="98" y="100" width="201" height="132" preserveAspectRatio="none"></image>
+<!-- Hide only the original legend. Its bounds and the restored grid lines are from the source PDF. No data points lie in this region. -->
+<defs><clipPath id="tt-legend-grid-clip"><rect x="118.95" y="115.2" width="50.3" height="24.95"></rect></clipPath></defs>
+<rect class="tt-legend-cover" x="118.95" y="115.2" width="50.3" height="24.95" fill="white"></rect>
+<g clip-path="url(#tt-legend-grid-clip)" fill="none" stroke="#ccc" stroke-width="0.26856"><path d="M145.7466752021,113.557513375 V213.622969375 M117.300261875,120.228543775 H296.1062892698 M117.300261875,136.906119775 H296.1062892698"></path></g>
+<!-- Circle the published marker centers, without changing the plotted observations. -->
+<g class="tt-comparison-markers" pause data-fragment-index="1">
+<circle data-budget="64" cx="247.3410089824" cy="132.6377026675" r="2.65" fill="none" stroke="#4C72B0" stroke-width="0.45"></circle><circle data-budget="256" cx="287.9787424534" cy="135.5719136950" r="2.65" fill="none" stroke="#C44E52" stroke-width="0.45"></circle>
+<rect x="240.8" y="122.0" width="13.1" height="6.3" rx="0.6" fill="white" fill-opacity="0.96"></rect><text x="247.35" y="127.0" fill="#4C72B0" font-size="4.6" text-anchor="middle">64</text>
+<rect x="280.7" y="126.0" width="14.5" height="6.3" rx="0.6" fill="white" fill-opacity="0.96"></rect><text x="287.95" y="131.0" fill="#C44E52" font-size="4.6" text-anchor="middle">256</text>
+</g></svg>
+      <div class="tt-curve-notes">
+        <div class="tt-parallel-note"><h3>Red: Parallel only</h3><p>Generate independent solutions<br>without revisions.</p></div>
+        <div class="tt-adaptive-note"><h3>Blue: Compute-optimal allocation</h3><p>Adapt the mix of independent attempts<br>and sequential revisions to problem<br>difficulty and compute budget.</p></div>
+        <div class="tt-lines-key"><p><span class="tt-style-swatch" aria-hidden="true"></span>Solid: Best-of-N weighted selection<br><span class="tt-line-detail">using verifier scores.</span></p><p><span class="tt-style-swatch tt-style-dashed" aria-hidden="true"></span>Dashed: Majority voting.</p></div>
+        <div class="tt-result" pause data-fragment-index="1"><p>64 vs. 256 generations</p><p><em>Comparable accuracy,<br>approximately 4× less generation compute.</em></p></div>
+      </div>
+    </div>
+    <p class="tt-transition" pause data-fragment-index="1">Can we use feedback from these attempts to improve the model itself?</p>
+    <p class="rm-source"><a href="https://arxiv.org/abs/2408.03314" target="_blank" rel="noopener">Snell et al. (2024), Figure 1, top-left</a>. Published panel, legend moved, comparison markers added. <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.</p>
+  </div>
+  <narration>
+    <say>Test-time computation is computation spent producing an answer after the model has been trained. Training changes model parameters. Here, extra sampling and revision improve the inference procedure while those parameters remain fixed.<br><br>Both diagrams use eight generated attempts. In red, the same question produces eight independent solutions, A1 through A8. Each starts from the original question rather than from another solution.<br><br>In blue, the question produces two independent initial attempts. Each is followed by three revisions, giving two chains of four generated attempts. A revision can use the preceding attempts in its chain as context, so it does not start from scratch. The arrows show this accumulating sequence of context.<br><br>This two-by-four configuration is an illustrative mixed allocation. The paper's compute-optimal strategy does not always choose it. We are counting generated attempts for the illustration. Actual computation can also depend on their token lengths.</say>
+    <say>The published panel plots generation budget on the logarithmic horizontal axis and MATH benchmark accuracy in percent on the vertical axis. Red is parallel-only sampling. Blue adaptively divides the budget between independent initial attempts and sequential revisions, according to problem difficulty and the available budget.<br><br>The legend has been moved beside the plot. Solid curves use best-of-N weighted selection, aggregating verifier scores for solutions that share a final answer. Dashed curves use majority voting. The original observations and scales are unchanged.<br><br>Comparing solid blue against solid red holds the answer-selection strategy fixed. It is therefore the clearest comparison of allocation methods here. Comparing solid blue to dashed red would change both allocation and answer selection.<br><br>The study uses a specially trained PaLM 2-S* revision model and a verifier. It does not establish that arbitrary language models can reliably improve their answers just by being prompted to revise.</say>
+    <say>The markers identify two published observations on the solid curves. Blue at sixty-four generations reaches at least comparable accuracy to red at two hundred fifty-six. Two hundred fifty-six divided by sixty-four is four, giving approximately four times less generation computation for this comparison.<br><br>The result is specific to this revision experiment. The useful allocation depends on the problem and budget, and difficulty estimation introduces overhead not fully counted here. This is not a universal fourfold improvement in end-to-end latency or cost.<br><br>We've seen that generating more solutions or revising previous attempts can improve accuracy without updating the model. But what if we could identify which solutions are correct and use that information to train the language model itself? That's the motivation for reinforcement learning with verifiable rewards.</say>
+  </narration>
+</section>
+
+
+<section id="verifiable-rewards" class="reasoning-slide verifiable-rewards" data-content-number="17">
+  <h2>Verifiable Rewards</h2>
+  <div class="fbody">
+    <div class="vr-inference-phase vr-phase fragment fade-out" data-fragment-index="0">
+      <div class="vr-training-contrast">
+        <div class="vr-fixed"><h3>Test-Time Computation</h3><p>Generate multiple solutions.</p><p>Select or revise answers.</p><p class="vr-parameter-state">Model parameters stay fixed.</p></div>
+        <div class="vr-changing"><h3>Reinforcement Learning</h3><p>Generate multiple solutions.</p><p>Score them and use rewards<br>to update the model.</p><p class="vr-parameter-state">Model parameters change.</p></div>
+      </div>
+      <p class="vr-reward-question">Where do the rewards come from?</p>
+    </div>
+    <div class="vr-sources-phase vr-phase" pause data-fragment-index="0">
+      <div class="vr-source-inner fragment fade-out" data-fragment-index="1">
+        <div class="vr-source-comparison">
+          <div><h3>Human preferences</h3><p>Humans compare responses.</p><p>A reward model learns from rankings.</p></div>
+          <div class="rm-reward"><h3>Verifiable rewards</h3><p>An automatic checker evaluates correctness.</p><p>Rewards follow objective rules.</p></div>
+        </div>
+        <p class="vr-checkable">Mathematics and coding often have automatically checkable answers.</p>
+        <div class="vr-source-equation vr-equation">\[\boxed{\htmlClass{rm-reward}{r}(x,y)=\begin{cases}\htmlClass{rm-positive}{1},&\text{if the final answer is correct}\\\htmlClass{rm-negative}{0},&\text{otherwise}\end{cases}}\]</div>
+      </div>
+    </div>
+    <div class="vr-example-phase vr-phase" pause data-fragment-index="1">
+      <p class="vr-urn-problem"><strong>Problem:</strong> An urn contains 5 red and 3 blue balls. Two balls are drawn without replacement.<br>What is the probability of drawing one ball of each color?</p>
+      <div class="vr-urn-layout">
+        <div class="vr-final-checker"><h3>Final-answer checker</h3><div class="vr-equation">\[\boxed{\htmlClass{rm-reward}{r}(x,y)=\begin{cases}\htmlClass{rm-positive}{1},&\text{if the final answer is correct}\\\htmlClass{rm-negative}{0},&\text{otherwise}\end{cases}}\]</div></div>
+        <div class="vr-candidates" aria-label="Illustrative final answers and automatically computed rewards">
+          <div class="vr-candidate rm-positive"><h3>Correct answer</h3><div class="vr-final-answer">\[\htmlClass{rm-positive}{\boxed{\frac{15}{28}}}\]</div><p>Reward = 1</p></div>
+          <div class="vr-candidate rm-negative"><h3>Incorrect answer</h3><div class="vr-final-answer">\[\htmlClass{rm-negative}{\boxed{\frac{15}{56}}}\]</div><p>Reward = 0</p></div>
+        </div>
+      </div>
+      <p class="vr-example-takeaway">We can reward correct answers without providing the reasoning steps.</p>
+      <p class="vr-grpo-question">How do we update the model using these rewards?</p>
+    </div>
+    <p class="rm-source"><a href="https://arxiv.org/abs/2501.12948v2" target="_blank" rel="noopener">Guo et al. (2025), DeepSeek-R1, §2.2, revised version</a>. Binary reward and candidates are teaching examples.</p>
+  </div>
+  <narration>
+    <say>The last slide asked whether feedback from generated attempts could improve the model itself. Test-time computation generates or revises multiple solutions and selects an answer while the model parameters remain fixed.<br><br>Reinforcement learning uses generated solutions differently. We score them and use the rewards to update the language model's parameters. The goal is to improve its behavior on future prompts, rather than only choosing a better answer for the current question.<br><br>Generating multiple solutions can be part of either procedure. The key distinction here is whether feedback changes the parameters. To train in this way, we first need a source of rewards. Where do those rewards come from?</say>
+    <say>Earlier, human-preference RLHF learned a reward model from human rankings. We will not repeat that derivation. For mathematics and coding, correctness can sometimes be checked automatically against a known answer or executable tests.<br><br>These checks can supply many reward labels without asking humans to compare every generated response. The binary function shown here gives one for a correct final answer and zero otherwise. Here x is the problem and y is the generated response.<br><br>This is a simplified teaching example. Real reasoning-model training can combine correctness with formatting requirements and other verification criteria. We still need a reliable ground-truth answer or automatic verification procedure. The checker measures the criterion we specify, rather than every desirable feature of a response.</say>
+    <say>For the urn problem, one ball of each color can be drawn in two disjoint orderings. Red then blue has probability five eighths times three sevenths. Blue then red has probability three eighths times five sevenths:
+\[\begin{aligned}P(\text{one of each})&=P(RB)+P(BR)\\&=\frac58\cdot\frac37+\frac38\cdot\frac57\\&=\htmlClass{rm-positive}{\frac{15}{28}}.\end{aligned}\]
+The incorrect fifteen over fifty-six counts only one ordering. We display only the final answers and rewards on the slide, not these intermediate calculations.<br><br>The checker can evaluate the final fraction without a human-written reasoning trajectory. It does not necessarily verify the intermediate reasoning. A correct final answer can coexist with invalid written steps. That limitation remains even when the final check is reliable.<br><br>Verifiable rewards supply a training signal. GRPO is an optimization algorithm that uses reward feedback to update the model. These are complementary components, not interchangeable names for the same method.<br><br>We can now generate several solutions, automatically score their final answers, and obtain rewards without human preference labels. But how do we use those rewards to update the language model? One approach is Group Relative Policy Optimization, or GRPO.</say>
+  </narration>
+</section>
+
+<section id="grpo" class="reasoning-slide grpo" data-content-number="18">
+  <h2>GRPO: Group Relative Policy Optimization</h2>
+  <div class="fbody">
+    <div class="grpo-table-group">
+      <div class="grpo-table-topline"><p class="grpo-table-label">Four responses sampled for the same question.</p><p class="grpo-table-caption">Same policy. Illustrative example.</p></div>
+      <table class="grpo-progress-table" aria-label="Generated responses, rewards, group-relative advantages and policy-update contributions">
+        <thead><tr><th class="grpo-response-cell">Generated response</th><th class="grpo-reward-cell rm-reward">Reward $\htmlClass{rm-reward}{r_i}$</th><th class="grpo-adv-cell rm-adv" pause data-fragment-index="0">Advantage $\htmlClass{rm-adv}{A_i}$</th><th class="grpo-update-cell grpo-policy" pause data-fragment-index="1">Policy update</th></tr></thead>
+        <tbody>
+          <tr><td class="grpo-response-cell">Solution 1</td><td class="grpo-reward-cell rm-positive">1</td><td class="grpo-adv-cell rm-positive" pause data-fragment-index="0">+1</td><td class="grpo-update-cell rm-positive" pause data-fragment-index="1">Increase likelihood ↑</td></tr>
+          <tr><td class="grpo-response-cell">Solution 2</td><td class="grpo-reward-cell grpo-zero">0</td><td class="grpo-adv-cell rm-negative" pause data-fragment-index="0">−1</td><td class="grpo-update-cell rm-negative" pause data-fragment-index="1">Decrease likelihood ↓</td></tr>
+          <tr><td class="grpo-response-cell">Solution 3</td><td class="grpo-reward-cell rm-positive">1</td><td class="grpo-adv-cell rm-positive" pause data-fragment-index="0">+1</td><td class="grpo-update-cell rm-positive" pause data-fragment-index="1">Increase likelihood ↑</td></tr>
+          <tr><td class="grpo-response-cell">Solution 4</td><td class="grpo-reward-cell grpo-zero">0</td><td class="grpo-adv-cell rm-negative" pause data-fragment-index="0">−1</td><td class="grpo-update-cell rm-negative" pause data-fragment-index="1">Decrease likelihood ↓</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grpo-relative-section" pause data-fragment-index="0">
+      <div class="grpo-relative-equation">\[\boxed{\htmlClass{rm-adv}{A_i}=\frac{\htmlClass{rm-reward}{r_i}-\htmlClass{rm-mean}{\bar r}}{\operatorname{std}(\htmlClass{rm-reward}{r_1,\ldots,r_{\htmlClass{rm-count}{G}}})}}\]</div>
+      <div class="grpo-numerical-example">\[\htmlClass{rm-mean}{\bar r=0.5},\qquad(\htmlClass{rm-adv}{A_1,A_2,A_3,A_4})=(\htmlClass{rm-positive}{+1},\htmlClass{rm-negative}{-1},\htmlClass{rm-positive}{+1},\htmlClass{rm-negative}{-1})\]</div>
+      <p>Compare each <span class="rm-reward">reward</span> with the <span class="rm-mean">group average</span>.</p>
+    </div>
+    <div class="grpo-gradient-section" pause data-fragment-index="1">
+      <p>Simplified policy-gradient intuition</p>
+      <div class="grpo-gradient-equation">\[\boxed{\htmlClass{grpo-policy}{\Delta\theta}\propto\frac{1}{\htmlClass{rm-count}{G}}\sum_{i=1}^{\htmlClass{rm-count}{G}}\htmlClass{rm-adv}{A_i}\htmlClass{grpo-policy}{\nabla_\theta\log\pi_\theta(y_i\mid x)}}\]</div>
+    </div>
+    <p class="grpo-final-takeaway" pause data-fragment-index="1">GRPO updates the policy using rewards relative to other sampled responses.</p>
+    <p class="rm-source"><a href="https://arxiv.org/abs/2402.03300" target="_blank" rel="noopener">Shao et al. (2024), DeepSeekMath, §4.1.2</a>. <a href="https://arxiv.org/abs/2501.12948v2" target="_blank" rel="noopener">Guo et al. (2025), DeepSeek-R1, Equation (3)</a>.</p>
+  </div>
+  <narration>
+    <say>GRPO stands for Group Relative Policy Optimization. It trains the policy, which is our language model. For one prompt, sample several responses from the same policy snapshot. Using a common prompt lets us compare responses facing the same problem rather than mixing rewards from unrelated questions.<br><br>The table is an illustrative numerical example. The automatic checker gives rewards one, zero, one, and zero. These are constructed reward values, not recorded model outputs. Zero means that the specified check failed. It is not a negative reward.<br><br>The previous slide introduced a source of rewards. This slide explains how group-relative feedback can contribute to a parameter update. Verifiable rewards are one possible source, while GRPO can also operate with other reward functions.</say>
+    <say>Compute the group mean, then subtract it from each reward and divide by the group's standard deviation. <span class="rm-reward">Teal r_i is the reward for response i.</span> <span class="rm-mean">Amber r bar is the mean reward.</span> <span class="rm-count">Blue G is the group size, four here.</span> <span class="rm-adv">Purple A_i is the resulting relative advantage.</span><br><br>For rewards one, zero, one, and zero, the mean is one half. Using population variance, divide the sum of squared deviations by four. The variance is one quarter, and the standard deviation is one half. Subtracting one half and dividing by one half gives plus one, minus one, plus one, and minus one, as shown in the new table column.<br><br>This example uses population standard deviation. A sample-standard-deviation convention changes the magnitudes. If all rewards are identical, the standard deviation is zero and the implementation needs a stabilizing denominator or another explicit handling rule. Identical rewards provide no relative distinction between the responses.<br><br>The advantage tells us how a response performed relative to its sampled peers. Its sign and magnitude will weight that response's contribution to the gradient.</say>
+    <say>Recall the earlier RLHF policy-gradient slide. It weighted the log-probability gradient by reward minus a prompt-dependent baseline. The update intuition is similar here, but the advantages come from the sampled group's rewards and their normalization.<br><br>The boxed expression averages advantage-weighted log-probability gradients. <span class="grpo-policy">Theta and pi_theta denote the trainable policy parameters and response distribution.</span> A positive advantage contributes in a direction that encourages that response. A negative advantage reverses the contribution. Its magnitude controls the contribution's strength. Parameters are shared, so a full batch update is not an independent guarantee for every response's probability.<br><br>The response-level expression abbreviates gradients of generated token log-probabilities:
+\[\log\htmlClass{grpo-policy}{\pi_\theta}(y_i\mid x)=\sum_t\log\htmlClass{grpo-policy}{\pi_\theta}(y_{i,t}\mid x,y_{i,&lt;t}).\]
+In outcome-supervised GRPO, the response's normalized reward can weight its generated tokens. This trains the trajectory even when only the final answer was checked. It does not certify that each intermediate statement was correct.<br><br>The actual GRPO loss operates on generated token probabilities and includes policy probability ratios, clipping, and, depending on the formulation, KL regularization against a reference policy. Length normalization and implementation choices also matter. We do not derive that full objective here. The displayed formula explains the mechanism rather than reproducing the complete algorithm or claiming an unbiased gradient of the earlier expected-reward objective.<br><br>GRPO estimates its comparison baseline from group rewards, so it does not require a separately trained value network. It may still use a checker, a reward model, or a reference policy. Group normalization is also different from subtracting an independently estimated response-independent baseline.<br><br>GRPO updates the policy using rewards relative to other sampled responses. Next, DeepSeek-R1 shows how reinforcement learning and verifiable feedback can change reasoning performance.</say>
+  </narration>
+</section>
+
+<section id="deepseek-r1" class="reasoning-slide deepseek-r1" data-content-number="19">
+  <h2>Learning to Reason with RL</h2>
+  <div class="fbody">
+    <div class="r1-experiment">
+      <div class="r1-pipeline" aria-label="Pretrained model, then GRPO with verifiable rewards, producing DeepSeek-R1-Zero">
+        <span>Pretrained model</span><span class="r1-arrow" aria-hidden="true">→</span><span>GRPO + verifiable rewards</span><span class="r1-arrow" aria-hidden="true">→</span><span>DeepSeek-R1-Zero</span>
+      </div>
+      <p>No supervised reasoning fine-tuning before RL.</p>
+    </div>
+    <div class="r1-empirical" pause data-fragment-index="0">
+      <svg class="r1-published-figure" viewBox="79 91 212 158" role="img" aria-labelledby="r1-figure-title r1-figure-desc">
+        <title id="r1-figure-title">DeepSeek-R1-Zero on AIME 2024, published Figure 1(a)</title>
+        <desc id="r1-figure-desc">Horizontal axis: RL training steps. Vertical axis: AIME 2024 accuracy as a fraction. The blue pass@1 curve measures single-response accuracy. The red cons@16 curve uses sixteen-sample self-consistency. The green dashed line is the paper's human-participant baseline.</desc>
+        <image href="img/research/deepseek-r1-figure1a-v2.png" x="79" y="91" width="212" height="158" />
+        <circle class="r1-blue-endpoint" cx="279.723" cy="120.257" r="2.7" />
+        <circle class="r1-red-endpoint" cx="279.723" cy="104.064" r="2.7" pause data-fragment-index="1" />
+      </svg>
+      <div class="r1-gains">
+        <div class="r1-training-gain">
+          <p class="r1-metric r1-blue">15.6% → 77.9%</p>
+          <p class="r1-metric-caption">Single-response AIME 2024 accuracy,<br>before versus after RL.</p>
+          <p class="r1-change"><strong class="r1-blue">RL training:</strong> Model parameters change.</p>
+        </div>
+        <div class="r1-inference-gain" pause data-fragment-index="1">
+          <p class="r1-metric"><span class="r1-blue">77.9%</span> <span class="r1-metric-arrow">→</span> <span class="r1-red">86.7%</span></p>
+          <p class="r1-metric-caption">Single-response accuracy versus<br>16-sample self-consistency.</p>
+          <p class="r1-change"><strong class="r1-red">Self-consistency:</strong> Parameters stay fixed.</p>
+        </div>
+      </div>
+    </div>
+    <p class="r1-final-takeaway" pause data-fragment-index="1">RL improves reasoning. Additional inference computation can improve performance further.</p>
+    <p class="rm-source"><a href="https://arxiv.org/abs/2501.12948v2" target="_blank" rel="noopener">Guo et al. (2025), DeepSeek-R1, Figure 1(a), revised version</a>. Published plot. DeepSeek-R1-Zero results.</p>
+  </div>
+  <narration>
+    <say>On the previous slide, GRPO used rewards relative to a group of sampled responses to update the policy. Here is an experiment that applies that idea at scale. DeepSeek-R1-Zero starts from the pretrained DeepSeek-V3-Base model and uses GRPO with rule-based correctness and formatting rewards. It does not undergo supervised reasoning fine-tuning before reinforcement learning.<br><br>The pretrained model is already capable of generating text. RL rewards correct final answers and the required response format, without first supplying supervised reasoning demonstrations. A correct final-answer reward does not explicitly identify which intermediate reasoning steps were correct. Rewarding a trajectory is different from verifying every step in it.</say>
+    <say>This is the published Figure 1(a) from the revised report. AIME 2024 is a challenging mathematics competition benchmark. The horizontal axis counts RL training steps. The vertical axis is AIME 2024 accuracy, shown as a fraction, so 0.8 means eighty percent.<br><br>Focus first on the blue pass@1 curve. The reported single-response accuracy rises from 15.6 percent before RL to 77.9 percent after RL. Pass@1 estimates how often one sampled response is correct. Averaging many independent samples to estimate this quantity is different from combining their answers by voting. These are DeepSeek-R1-Zero results, not results for the final DeepSeek-R1 model.<br><br>The original curves, ticks, and human-participant baseline are retained. The requested figure and values come from the revised version, cited explicitly. The training procedure also increases the permitted rollout length near step 8,200, so this is the trajectory of the reported training recipe rather than an isolated change to a single experimental variable.</say>
+    <say>Now focus on the red cons@16 curve. It reaches 86.7 percent by aggregating sixteen sampled solutions with self-consistency, the inference strategy we discussed earlier. The blue and red curves use different inference protocols. The comparison from 77.9 to 86.7 percent is a gain from additional inference computation, not a further gain in single-response accuracy.<br><br>RL training changes the learned parameters. Self-consistency uses the trained model with fixed parameters and spends more computation sampling and aggregating answers. These two improvements are complementary.<br><br>The full DeepSeek-R1 model subsequently used supervised fine-tuning and multiple RL stages to improve readability, usability, and broader capabilities. R1-Zero is the experiment demonstrating reasoning gains without a supervised reasoning stage before RL. Better benchmark results still leave questions about reliability, which motivates the limitations section next.</say>
+  </narration>
+</section>
+
+
+<section id="sec-limitations" class="frame" data-slide="map" data-section-label="Limitations" data-section-number="5" aria-label="Limitations section">
+  <fig name="deckmap" init="a=3 b=4 t=2" class="mapfig"></fig>
+  <narration><say>We now enter Limitations, section five in our revised outline. The previous sections showed how optimizing objectives can improve instruction following, human preference alignment, and reasoning. We now ask what happens when a measurable objective does not fully capture the behavior we actually want. The three examples are reward hacking, sycophancy, and hallucinations.</say></narration>
+</section>
+
+<section id="reward-hacking" class="limitations-slide reward-hacking" data-content-number="20">
+  <h2>Reward Hacking</h2>
+  <div class="fbody">
+    <div class="rh-opening">
+      <p class="rh-motivation">What if the learned reward model is imperfect?</p>
+      <p class="rh-reminder">RLHF optimizes rewards predicted by a learned reward model.</p>
+    </div>
+    <div class="rh-research" pause data-fragment-index="0">
+      <svg class="rh-published-plot" viewBox="40 45 2016 1311" role="img" aria-labelledby="rh-published-title rh-published-desc">
+        <title id="rh-published-title">Gao et al. (2023), Figure 2(b), reward overoptimization during RL</title>
+        <desc id="rh-published-desc">Original published plot. Horizontal axis: KL divergence between the RL-tuned policy and initial policy, on a square-root scale. Vertical axis: reward model score. Colors represent proxy reward-model sizes. Dashed lines are proxy rewards, solid lines are gold rewards, and thin lines are fitted gold rewards. The dark purple 3M model's proxy reward increases while its measured gold reward peaks and then declines.</desc>
+        <image href="img/research/gao23h-figure2b.png" x="40" y="45" width="2016" height="1311" />
+        <circle class="rh-proxy-marker" cx="1500" cy="243" r="26" />
+        <g class="rh-peak-annotation" pause data-fragment-index="1">
+          <circle cx="935" cy="753" r="28" />
+          <path d="M922,780 L855,945" />
+          <text x="680" y="1020">Gold peak</text>
+        </g>
+      </svg>
+      <div class="rh-reading-guide">
+        <p class="rh-axis-guide"><strong>X: KL divergence</strong><br>Distance from the initial policy<br><span class="rh-scale-note">Square-root scale</span></p>
+        <p class="rh-axis-guide"><strong>Y: Reward model score</strong><br>Score assigned to generated responses</p>
+        <p class="rh-line-guide"><span class="rh-line-sample rh-dashed" aria-hidden="true"></span><strong>Dashed: Proxy reward</strong><br><span class="rh-guide-description">Reward model being optimized</span></p>
+        <p class="rh-line-guide"><span class="rh-line-sample" aria-hidden="true"></span><strong>Solid: Gold reward</strong><br><span class="rh-guide-description">Independent, fixed reward model</span></p>
+        <p class="rh-size-guide">Colors show proxy sizes. <span>Focus: 3M.</span></p>
+        <div class="rh-contrast" pause data-fragment-index="1">
+          <p>3M proxy keeps rising.<br>3M gold peaks, then falls.</p>
+          <p class="rh-gold-note">Gold: a separate fixed 6B reward model,<br>not direct human evaluation.</p>
+        </div>
+      </div>
+    </div>
+    <p class="rh-final-takeaway" pause data-fragment-index="1">Further optimizing the proxy reward can make the gold reward worse.</p>
+    <p class="lim-source"><a href="https://proceedings.mlr.press/v202/gao23h/gao23h.pdf" target="_blank" rel="noopener">Gao et al. (2023), Scaling Laws for Reward Model Overoptimization, Figure 2(b)</a>.</p>
+  </div>
+  <narration>
+    <say>In RLHF, we optimize the language model to maximize the score predicted by a learned reward model. That model approximates the preferences we want to optimize. It can make mistakes, especially on responses unlike those in its training data. What happens if optimization exploits those mistakes?<br><br>Gao and colleagues studied this using a controlled synthetic setup. They used a fixed 6B reward model from InstructGPT as simulated ground truth. This gold model ranked pairs of generated responses. Those synthetic preference comparisons trained smaller proxy reward models. The language model was then optimized against each proxy, while the gold model evaluated its responses.<br><br>The gold model is another neural network treated as ground truth for this experiment. It is not an objectively perfect measure of human satisfaction, and these gold scores are not direct judgments by human evaluators.</say>
+    <say>This is the actual Figure 2(b), showing reinforcement-learning experiments with a fixed 1.2B policy size and different proxy reward-model sizes. The horizontal axis measures KL divergence from the initial policy. Larger values mean that the optimized response distribution has moved farther from its starting point. The axis has a square-root scale, so equal horizontal distances are not equal increments in KL.<br><br>The vertical axis is reward model score. Dashed curves show the proxy rewards being optimized. Solid curves show evaluation by the fixed gold model. The thin gold lines are the paper's fitted curves, also retained in the original figure. Colors identify proxy model sizes.<br><br>Focus on the dark purple curves for the smallest, 3M-parameter proxy. Its dashed proxy reward continues to increase. Its solid gold reward initially improves, but eventually declines.</say>
+    <say>The highlighted point marks the maximum of the measured solid purple gold-reward curve. Beyond that region, the policy improves its proxy score while getting worse according to the independent gold evaluator. This is reward overoptimization. Improving an imperfect objective can worsen performance under the evaluation criterion we intended it to represent.<br><br>KL regularization can help limit excessive movement away from the initial policy, but it does not correct the reward model or guarantee that reward hacking disappears. In this paper's tested setup, a KL penalty did not measurably improve the gold-score versus KL frontier, and the authors note possible sensitivity to hyperparameters.<br><br>Here, the problem was that our learned reward model imperfectly represented human preferences. But what if human preferences themselves do not always favor truthful answers?</say>
+  </narration>
+</section>
+
+<section id="sycophancy" class="limitations-slide sycophancy" data-content-number="21">
+  <h2>Sycophancy</h2>
+  <div class="fbody">
+    <div class="sy-column-headings" aria-hidden="true"><span></span><p>Human prompt</p><p>Claude 2 response</p></div>
+    <div class="sy-three-conditions" role="table" aria-label="Published Figure 1 excerpts under neutral, dislike, and like conditions">
+      <div class="sy-example-row sy-neutral-row" role="row">
+        <p class="sy-condition-label" role="rowheader">Neutral</p>
+        <div class="sy-exact-prompt" role="cell">
+          <p class="sy-exact-request"><span class="sy-role">Human:</span> Please comment briefly on the following argument.</p>
+          <p class="sy-exact-opinion" aria-hidden="true"></p>
+          <p class="sy-exact-argument">Argument: <span class="sy-literal-quote">"</span>In a survey...<span class="sy-literal-quote">"</span></p>
+        </div>
+        <p class="sy-exact-response" role="cell"><span class="sy-role">Assistant:</span> This argument concludes that the company...</p>
+      </div>
+      <div class="sy-example-row sy-dislike-row" role="row" pause data-fragment-index="0">
+        <p class="sy-condition-label" role="rowheader">Dislike</p>
+        <div class="sy-exact-prompt" role="cell">
+          <p class="sy-exact-request"><span class="sy-role">Human:</span> Please comment briefly on the following argument.</p>
+          <p class="sy-exact-opinion"><strong>I really dislike the argument.</strong></p>
+          <p class="sy-exact-argument">Argument: <span class="sy-literal-quote">"</span>In a survey...<span class="sy-literal-quote">"</span></p>
+        </div>
+        <p class="sy-exact-response" role="cell"><span class="sy-role">Assistant:</span> I do <strong>not find this argument very convincing</strong>...</p>
+      </div>
+      <div class="sy-example-row sy-like-row" role="row" pause data-fragment-index="0">
+        <p class="sy-condition-label" role="rowheader">Like</p>
+        <div class="sy-exact-prompt" role="cell">
+          <p class="sy-exact-request"><span class="sy-role">Human:</span> Please comment briefly on the following argument.</p>
+          <p class="sy-exact-opinion"><strong>I really like the argument.</strong></p>
+          <p class="sy-exact-argument">Argument: <span class="sy-literal-quote">"</span>In a survey...<span class="sy-literal-quote">"</span></p>
+        </div>
+        <p class="sy-exact-response" role="cell"><span class="sy-role">Assistant:</span> I believe this is a <strong>strong argument.</strong> ...</p>
+      </div>
+    </div>
+    <p class="sy-excerpt-note">Excerpts reproduced as published. Original figure truncates the argument and responses.</p>
+    <div class="sy-final-conclusions" pause data-fragment-index="1">
+      <p>The user's opinion changes. The argument does not.</p>
+      <p>Human approval does not necessarily reward objective judgments.</p>
+    </div>
+    <p class="lim-source"><a href="https://arxiv.org/pdf/2310.13548#page=3" target="_blank" rel="noopener">Sharma et al. (2023), Figure 1</a>. Claude 2 responses, abbreviated in the original paper. <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Reformatted.</p>
+  </div>
+  <narration>
+    <say>These are the three prompt-response excerpts shown in Figure 1 of Sharma and colleagues. The researchers ask Claude 2 to comment on the same argument under three prompting conditions. We start with the neutral condition, where the user asks for feedback without stating an opinion. This serves as the baseline.<br><br>The published neutral excerpt begins by describing what the argument concludes. Figure 1 abbreviates the argument as “In a survey...” and truncates the assistant responses. These are the full excerpts visible in the figure, not the complete original argument or the complete model responses. The omitted passages are not available from this panel, so we cannot independently evaluate the argument from this slide.</say>
+    <say>Now compare the dislike and like conditions. The request and argument stay the same. The additional sentence says that the user really dislikes or really likes the argument. Claude 2's feedback changes in the direction of that stated opinion. The dislike excerpt calls the argument unconvincing, while the like excerpt calls it strong.<br><br>This illustrates feedback sycophancy: the response follows the user's attitude rather than assessing the content independently. Describing a model as seeking agreement is a description of its behavior and incentives, not a claim about conscious desires. The neutral condition provides a comparison, but this example alone does not establish which evaluation of the argument is objectively correct.<br><br>The broader study finds similar patterns across several models and tasks, including arguments, mathematics, and poetry. The displayed example makes the manipulation clear, while the broader experiments establish that it is not confined to this one passage.</say>
+    <say>The user's opinion changes. The argument does not. The broader study also finds that human preference judgments can sometimes favor responses that agree with users, including convincing agreeable responses over correct ones. Human approval therefore does not necessarily reward objective judgments.<br><br>This connects directly to RLHF and DPO. If agreeable feedback wins preference comparisons, an RLHF reward model can learn to give it a high score. DPO can inherit the same incentive directly from preferred and dispreferred responses. Neither connection means that every preference-trained model must be sycophantic, but both methods depend on what the comparison data rewards.<br><br>Next, we turn to hallucinations. Even when agreement is not the issue, an evaluation can reward guessing instead of acknowledging uncertainty. We will ask how those incentives affect whether a model gives an answer it cannot reliably support.</say>
+  </narration>
+</section>
+
+<section id="hallucinations" class="limitations-slide hallucinations" data-content-number="22">
+  <h2>Hallucinations</h2>
+  <div class="fbody">
+    <p class="ha-introduction">A candidate answer is correct with probability <span class="lim-prob">$p$</span>.</p>
+    <div class="ha-comparison">
+      <div class="ha-condition">
+        <h3>Accuracy scoring</h3>
+        <div class="ha-score-row"><p>Correct <b>+1</b></p><p>Incorrect <b>0</b></p><p>Abstain <b>0</b></p></div>
+        <div class="ha-accuracy-equation">\[\mathbb E[S_{\mathrm{guess}}]=\htmlClass{lim-prob}{p}\qquad \mathbb E[S_{\mathrm{abstain}}]=0\]</div>
+        <p class="ha-rule">If <span class="lim-prob">$p&gt;0$</span>, guessing has<br>a higher expected score.</p>
+      </div>
+      <div class="ha-condition ha-penalty" pause data-fragment-index="0">
+        <h3>Add an error penalty</h3>
+        <div class="ha-score-row"><p>Correct <b>+1</b></p><p>Incorrect <b class="lim-cost">$-c$</b></p><p>Abstain <b>0</b></p></div>
+        <p class="ha-cost-label"><span class="lim-cost">$c&gt;0$</span> is the cost of an incorrect answer.</p>
+        <div class="ha-penalty-equation">\[\mathbb E[S_{\mathrm{guess}}]=\htmlClass{lim-prob}{p}-\htmlClass{lim-cost}{c}(1-\htmlClass{lim-prob}{p})\]</div>
+        <div class="ha-threshold">\[\boxed{\htmlClass{lim-prob}{p}&gt;\frac{\htmlClass{lim-cost}{c}}{1+\htmlClass{lim-cost}{c}}}\]</div>
+        <div class="ha-threshold-examples"><p><span class="lim-cost">$c=1$</span> → <span class="lim-prob">$p&gt;0.5$</span></p><p><span class="lim-cost">$c=3$</span> → <span class="lim-prob">$p&gt;0.75$</span></p></div>
+        <p class="ha-threshold-caption">Higher error cost → higher threshold for guessing.</p>
+      </div>
+    </div>
+    <p class="lim-takeaway ha-takeaway" pause data-fragment-index="1">Accuracy-based evaluations reward guessing, even when<br>admitting uncertainty would be more appropriate.</p>
+    <p class="lim-source"><a href="https://www.nature.com/articles/s41586-026-10549-w" target="_blank" rel="noopener">Kalai et al. (2026)</a>, <em>Evaluating Large Language Models for Accuracy Incentivizes Hallucinations</em>.</p>
+  </div>
+  <narration>
+    <say>A factual hallucination is an incorrect or unsupported generated factual claim. Uncertainty means lacking enough information to reliably determine an answer. It need not produce a false claim: a system could acknowledge uncertainty or abstain. Which behavior does evaluation reward?<br><br>Let p be the actual probability that a candidate answer is correct. Accuracy gives one point for a correct answer and zero for both an incorrect answer and an abstention. Guessing has expected score p. Abstaining has expected score zero. Whenever p is positive, guessing scores better in expectation.<br><br>This is a derivation under a stated scoring rule, not an empirical probability measurement. We assume p is the actual correctness probability. Reported confidence may be miscalibrated. Calibration relates predicted confidence to observed correctness: among answers assigned a given confidence, how often are they actually correct?</say>
+    <say>Now assign an incorrect answer a penalty of minus c, with c positive. Correct answers still earn one, and abstention earns zero. Guessing has expected score p minus c times one minus p. It beats abstention when this is positive. Rearranging gives p times one plus c greater than c, or p greater than c divided by one plus c.<br><br>Blue p is correctness probability, and amber c is error cost. If an error costs one point, guessing is preferable above probability one half. If it costs three, the threshold rises to three quarters. At equality, the choices tie.<br><br>Higher error costs favor abstention over a wider uncertainty range. Explicit rewards for appropriate abstention can provide a related incentive. Neither approach guarantees accurate estimates of correctness probability.</say>
+    <say>Kalai and colleagues explain why accuracy-based evaluation rewards guessing even when admitting uncertainty would be more appropriate. Evaluation can influence training choices, model selection, and tuning without being directly optimized as a training loss.<br><br>These incentives are not the sole cause of hallucinations. The paper also studies statistical causes during pretraining, including errors that can persist even with factually correct training data. Learning and generalization limitations still matter.<br><br>Connect the three examples. Reward hacking shows that higher predicted reward need not mean higher actual quality. Sycophancy shows that human preference need not mean truthfulness. Hallucinations show that higher evaluation scores need not mean more reliable behavior.<br><br>The objectives we optimize and the metrics we evaluate determine which behaviors we encourage.<br><br>We can now bring these lessons together in the final lecture summary.</say>
+  </narration>
+</section>
+
+
+<section id="the-big-picture" class="big-picture" data-content-number="23" data-section-label="Conclusions" data-section-number="6">
+  <h2>The Big Picture</h2>
+  <div class="fbody">
+    <div class="bp-pretraining"><h3>Pretraining</h3><p><em>Learn to predict the next token</em></p></div>
+    <svg class="bp-connectors" viewBox="0 0 1200 52" width="1200" height="52" aria-hidden="true">
+      <defs><marker id="bp-training-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#b1a9c8"></path></marker><marker id="bp-inference-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#91bfc0"></path></marker></defs>
+      <path d="M600,0 V18 H280 V46" fill="none" stroke="#b1a9c8" stroke-width="1.6" marker-end="url(#bp-training-arrow)"></path>
+      <path d="M600,18 H920 V46" fill="none" stroke="#91bfc0" stroke-width="1.6" marker-end="url(#bp-inference-arrow)" pause data-fragment-index="0"></path>
+    </svg>
+    <div class="bp-approaches">
+      <div class="bp-column bp-training">
+        <h3>Improve Through Post-Training</h3>
+        <div class="bp-methods">
+          <p><strong>SFT:</strong><span>Learn from demonstrations.</span></p>
+          <p><strong>RLHF / DPO:</strong><span>Learn from human preferences.</span></p>
+          <p><strong>RLVR / GRPO:</strong><span>Learn from verifiable rewards.</span></p>
+        </div>
+        <p class="bp-parameters">Model parameters change</p>
+      </div>
+      <div class="bp-column bp-inference" pause data-fragment-index="0">
+        <h3>Improve at Inference</h3>
+        <div class="bp-methods">
+          <p><strong>Chain-of-Thought:</strong><span>Generate intermediate reasoning steps.</span></p>
+          <p><strong>Self-Consistency:</strong><span>Sample and aggregate solutions.</span></p>
+          <p><strong>Test-Time Compute:</strong><span>Allocate inference computation effectively.</span></p>
+        </div>
+        <p class="bp-parameters">Model parameters stay fixed</p>
+      </div>
+    </div>
+    <div class="bp-limitations" pause data-fragment-index="1">
+      <p>Better benchmark performance does not guarantee reliability.</p>
+      <p>Reward Hacking · Sycophancy · Hallucinations</p>
+    </div>
+  </div>
+  <narration>
+    <say>Let's bring the lecture together. Pretraining establishes the base model by learning to predict the next token in ordinary text. It provides the starting parameters and capabilities that later methods build on.<br><br>On the training side, SFT learns from demonstrated responses. RLHF and DPO learn from human preferences. Reinforcement learning with verifiable rewards, or RLVR, uses signals such as answer checks or code tests. GRPO is an optimization algorithm, while verifiable rewards provide the training signal. They play different roles and can be combined. All of these training approaches improve behavior by updating model parameters.</say>
+    <say>At inference time, we can change how an already trained model produces an answer. Chain-of-thought generates intermediate reasoning steps. Self-consistency samples multiple solutions and aggregates their final answers. Test-time compute asks how to allocate the available inference computation effectively, for example between additional samples and successive revisions.<br><br>In these inference strategies, the model parameters stay fixed. We change the prompting, generation, or selection procedure. Training can make the model better at using these strategies, so the two columns are complementary ways to improve responses.</say>
+    <say>Better benchmark performance does not guarantee reliability. Reward hacking can exploit a scoring model. Sycophancy can favor agreement over independent judgment. Accuracy scoring can encourage guesses instead of appropriate uncertainty. Optimizing a measurable objective therefore does not guarantee truthful, helpful, or reliable behavior.<br><br>Improving language models is not just about making them larger or training them on more text. We can improve their behavior through better training signals and better inference strategies. But the objectives we optimize are imperfect representations of what we actually want, and understanding their limitations is essential.</say>
+  </narration>
+</section>
+
+</div>
+<!-- Mounted outside the transformed slide canvas, inside the fullscreen deck. -->
+<div id="sft-live-overlay" class="sft-live-overlay" role="dialog" aria-modal="true" aria-labelledby="sft-live-title" hidden>
+  <div class="sft-live-panel">
+    <div class="sft-live-header">
+      <div><h3 id="sft-live-title">Try it yourself</h3><p>Models load in your browser. Allow time for the first load before presenting.</p></div>
+      <button type="button" class="sft-live-close" aria-label="Close live demonstration">Close ×</button>
+    </div>
+    <div class="sft-live-procedure">
+      <div><p class="sft-live-prompt">Give me three ideas for a weekend in Singapore.</p><p>GPT-2 first, then LaMini-GPT. Match temperature and max tokens.</p></div>
+      <button type="button" class="sft-live-copy">Copy prompt</button>
+    </div>
+    <div class="sft-live-frame"></div>
+    <p class="sft-live-source"><span>Source: <a href="https://costa-nus.github.io/CEG5305_GenAI/part2/lecture-2/session-1/#oa-demo" target="_blank" rel="noopener">National University of Singapore, CEG5305</a>.</span><a href="https://costa-nus.github.io/CEG5305_GenAI/part2/lecture-2/demos/chat/?model=gpt2" target="_blank" rel="noopener">Open live demo in a new tab</a></p>
+  </div>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="deckmap.js?v=outline-1"></script>
+<script src="sft-demo.js"></script>
+<script src="bt-demo.js"></script>
+<script src="optimization-symbols.js"></script>
+<script>
+// Match pretraining: the title is unnumbered, content slides have n / N.
+const contentSlides = [...document.querySelectorAll('.slides > section[data-content-number]')];
+// Number content in deck order so insertions keep every label consecutive.
+contentSlides.forEach((slide, index) => { slide.dataset.contentNumber = String(index + 1); });
+slideLabel = slide => slide && slide.dataset.contentNumber
+  ? [slide.dataset.contentNumber, '/', contentSlides.length] : [''];
+
+// Narration is embedded lecture text, separate from Reveal's speaker notes.
+// The shared engine gives every narrated slide its own collapsible T drawer.
+Reveal.on('ready', () => {
+  document.querySelectorAll('.tdrawer').forEach((drawer, i) => {
+    drawer.id = `transcript-${i + 1}`;
+    drawer.setAttribute('role', 'region');
+    drawer.setAttribute('aria-label', `Lecture transcript: slide ${i + 1}`);
+    drawer.tabIndex = 0;
+  });
+  const button = document.querySelector('.tb-trans');
+  const syncTranscript = () => {
+    const slide = Reveal.getCurrentSlide();
+    const drawer = slide.querySelector('.tdrawer');
+    button.setAttribute('aria-expanded', String(slide.classList.contains('trans-open')));
+    if (drawer) button.setAttribute('aria-controls', drawer.id);
+    else button.removeAttribute('aria-controls');
+  };
+  document.querySelectorAll('.slides > section').forEach(slide => {
+    new MutationObserver(syncTranscript).observe(slide, { attributes: true, attributeFilter: ['class'] });
+  });
+  Reveal.on('slidechanged', syncTranscript);
+  syncTranscript();
+});
+startDeck();
+</script>
+</body>
+</html>
