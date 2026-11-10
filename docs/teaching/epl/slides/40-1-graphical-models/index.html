@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Graphical Models I</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<link rel="stylesheet" href="../shared/deck.css">
+<style>
+/* Deck-local layout.  Beamer's lists: bullets in the structure colour, enumerate
+   items in numbered balls, the second level at \small. */
+.fbody ul, .fbody ol { margin: 0 0 0 1.15em; padding: 0; }
+.fbody li { margin: 0 0 6px; }
+.fbody li:last-child { margin-bottom: 0; }
+.fbody li::marker { color: var(--struct); }
+.fbody li ul { list-style-type: disc; }
+.fbody li > ul, .fbody li > ol { font-size: 0.9em; margin-top: 5px; }
+.fbody ol.en { list-style: none; margin-left: 0; counter-reset: en; }
+.fbody ol.en > li { counter-increment: en; position: relative; padding-left: 1.5em; }
+.fbody ol.en > li::before { content: counter(en); position: absolute; left: 0.1em; top: 0.28em; width: 1.25em; height: 1.25em;
+  line-height: 1.25em; border-radius: 50%; background: var(--struct); color: #fff; font-size: 0.72em; text-align: center; }
+.fbody ol.en.spread > li { margin-bottom: 18px; }
+.fbody ol.en.spread > li:last-child { margin-bottom: 0; }
+/* a lead-in line and the list under it */
+.fbody p:has(+ ul), .fbody p:has(+ ol) { margin-bottom: 6px; }
+.grp > :last-child { margin-bottom: 0; }
+/* lines that follow one another without a gap (Beamer's \\ or a paragraph without parskip) */
+.tight > p { margin-bottom: 2px; }
+.tight > p:last-child { margin-bottom: 0; }
+.center { text-align: center; }
+/* a row below other body content takes the height that is left */
+.fbody:has(> .row) { display: flex; flex-direction: column; }
+.fbody > .row { flex: 1 1 auto; height: auto; min-height: 0; }
+/* Beamer's \vrule between two columns */
+.col.vr { border-left: 1.5px solid #000; padding-left: 22px; }
+/* Beamer's columns[T]: two top-aligned columns, balanced with the rest of the body as one block */
+.pair { display: grid; grid-template-columns: 1fr 1fr; column-gap: 30px; align-items: start; }
+.pair > * > :last-child { margin-bottom: 0; }
+.pair .katex-display { margin: 10px 0; }
+/* labels inside a graph's nodes: no halo, centred on the node */
+.fig .lab .nd { display: block; line-height: 1; text-shadow: none; }
+/* an emoji's glyph sits a quarter em above the middle of its line box */
+.fig .lab .nd.em { position: relative; top: 0.22em; }
+/* emoji in running text, at the source's point size over the text's 11 pt, kept with its word */
+.nb { white-space: nowrap; }
+.emo { line-height: 1; }
+.e16 { font-size: 1.45em; }
+.e12 { font-size: 1.09em; }
+.e10 { font-size: 0.91em; }
+/* the weather chain's transition matrix (slide 17), Beamer's {c|ccc} array */
+table.wxm { border-collapse: collapse; font-size: inherit; }
+table.wxm th, table.wxm td { padding: 3px 15px; text-align: center; font-weight: normal; }
+table.wxm th { border-right: 1.2px solid #000; }
+table.wxm tr:first-child > * { border-bottom: 1.2px solid #000; }
+table.wxm .me { font-size: 0.95em; line-height: 1; text-shadow: none; }
+/* slide 10: the water's dashes run along their path; print keeps them still */
+.flow { stroke-dasharray: 8 10; animation: flow .6s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -18; } }
+.print-pdf .flow { animation: none; }
+.fig[data-fig="flow"] .lab .nd { text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 2px #fff; }
+/* slide 29: the simulation's sliders centred under its pictures */
+section.sim .knobs { justify-content: center; margin: 2px 0 8px; }
+/* tables with Beamer's |l|c|l| rules */
+table.grid { border-collapse: collapse; margin: 0 auto; }
+table.grid th, table.grid td { border: 1.3px solid #000; padding: 1px 10px; text-align: left; font-weight: normal; }
+table.grid th { font-weight: bold; }
+table.grid .c { text-align: center; }
+table.grid tr.dbl > * { border-bottom: 4px double #000; }
+/* full slides (25, 30): closer displays, sublists and table rows */
+section.full .katex-display { margin: 2px 0; }
+section.full .fbody li > ul { margin-top: 0; }
+section.full table.grid { line-height: 1.12; }
+/* full slides: closer paragraphs and list items */
+section.tight .fbody p, section.tight .fbody ul { margin-bottom: 6px; }
+section.tight .fbody li { margin-bottom: 2px; }
+/* two groups stacked in one column of a pair */
+.pair .grp + .grp { margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1 -->
+<section class="frame">
+  <div class="titlebox">
+    <div class="t">Probabilistic Machine Learning</div>
+    <div class="st">Graphical Models I: Introduction and Independence</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Farzad Farnoud</div>
+    <div class="i">University of Virginia</div>
+    <div class="d">11/25/2025</div>
+  </div>
+</section>
+
+<!-- 2: Outline -->
+<section class="frame" data-slide="map">
+  <ol class="toc" hidden>
+    <li><a href="#/sec-bn">Bayesian Networks</a></li>
+    <li><a href="#/sec-mrf">Markov Random Fields</a></li>
+    <li><a href="#/sec-sum">Comparison and Summary</a></li>
+  </ol>
+  <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
+</section>
+
+<!-- 3 -->
+<section>
+  <h2>Why Graphical Models?</h2>
+  <div class="grp">
+    <p><b>Key idea:</b> Use graphs to represent probability distributions</p>
+    <ul>
+      <li>Nodes = random variables</li>
+      <li>Edges = cause/effect or mutual influence relationships</li>
+      <li>Structure reveals independence properties</li>
+    </ul>
+  </div>
+  <div class="grp">
+    <p><b>Why?</b></p>
+    <ul>
+      <li>Represent complex probabilistic relationships in high dimensions</li>
+      <li>Represent <b>conditional independence</b></li>
+      <li>Enable efficient <b>inference</b> and <b>learning</b></li>
+      <li>Foundational in modern ML: model description, sampling, variational inference</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ Bayesian Networks ============ -->
+
+<!-- 4 -->
+<section id="sec-bn">
+  <h2>Three Types of Graphical Models</h2>
+  <ol class="en spread">
+    <li><b>Bayesian Networks</b> (Directed)
+      <ul>
+        <li>Directed acyclic graphs (DAGs)</li>
+        <li>Natural for causal relationships</li>
+      </ul>
+    </li>
+    <li><b>Markov Random Fields</b> (Undirected)
+      <ul>
+        <li>Undirected graphs</li>
+        <li>Suitable for co-influence, non-causal relationships</li>
+        <li>Example: Image pixels, social networks</li>
+      </ul>
+    </li>
+    <li><b>Factor Graphs</b>
+      <ul>
+        <li>Flexible representation for both BN and MRF</li>
+      </ul>
+    </li>
+  </ol>
+</section>
+
+<!-- 5 -->
+<section>
+  <h2>Bayesian Networks</h2>
+  <div class="pair" style="grid-template-columns: 3fr 2fr; align-items: center">
+    <div>
+      <div class="grp">
+        <p><b>Definition:</b> A Bayesian network consists of:</p>
+        <ul>
+          <li>A directed acyclic graph (DAG) $G$</li>
+          <li>Nodes $x_1,\ldots,x_m$ represent random variables</li>
+          <li>Edges represent direct dependencies</li>
+        </ul>
+      </div>
+      <div class="grp">
+        <p><b>Key property - Factorization:</b></p>
+        \[p(x_1,\ldots,x_m) = \prod_{i=1}^{m} p(x_i | \pa(x_i))\]
+        <p>where $\pa(x_i)$ = parents of $x_i$ in $G$</p>
+      </div>
+    </div>
+    <fig name="bn4" style="justify-self: center"></fig>
+  </div>
+  <p>$p(x_1,x_2,x_3,x_4) = p(x_1)p(x_2|x_1)p(x_3|x_1)p(x_4|x_1,x_3)$</p>
+</section>
+
+<!-- 6 -->
+<section>
+  <h2>From a complete graph to a smaller Bayesian Network</h2>
+  <column>
+    <p><b>Complete Graph:</b></p>
+    <fig name="complete" style="margin:0 auto"></fig>
+    <div class="small">\[\begin{aligned}
+      p(x_1,x_2,x_3,x_4) &= p(x_1)p(x_2|x_1)\\
+      &\phantom{=}\textcolor{#0000FF}{p(x_3|x_1,x_2)}\\
+      &\phantom{=}\textcolor{#FF0000}{p(x_4|x_1,x_2,x_3)}
+    \end{aligned}\]</div>
+    <p class="small"><b>No independence:</b> Can represent any distribution</p>
+  </column>
+  <column class="vr">
+    <p><b>Bayesian Network:</b></p>
+    <fig name="bnsmall" style="margin:0 auto"></fig>
+    <div class="small">\[\begin{aligned}
+      p(x_1,x_2,x_3,x_4) &= p(x_1)p(x_2|x_1)\\
+      &\phantom{=}\,\textcolor{#0000FF}{p(x_3|x_1)}\\
+      &\phantom{=}\,\textcolor{#FF0000}{p(x_4|x_1,x_3)}
+    \end{aligned}\]</div>
+    <p class="small"><b>Encodes:</b> <span style="color:#0000FF">$x_3 \independent x_2 | x_1$</span> and <span style="color:#FF0000">$x_4 \independent x_2 | x_1,x_3$</span></p>
+  </column>
+  <p style="margin:14px 0 0"><b>Key insight:</b> BNs obtained by removing <span style="color:#BF0040">missing edges</span> $\rightarrow$ independence</p>
+</section>
+
+<!-- 7 -->
+<section>
+  <h2>Example: Traffic and Punctuality</h2>
+  <fig name="traffic" style="margin:0 auto" data-nudge='{"trn-A":[0,-9],"trn-B":[0,-6],"trn-C":[0,-7],"trn-T":[-2,-15]}'></fig>
+  <ul>
+    <li>$T$: Traffic (heavy or not)</li>
+    <li>$A$: Alice late (yes/no)</li>
+    <li>$B$: Bob late (yes/no)</li>
+    <li>$C$: Charlie (Bob's son) late (yes/no)</li>
+  </ul>
+  <div class="grp">
+    <p><b>Factorization:</b></p>
+    \[p(T,A,B,C) = p(T) \cdot p(C) \cdot p(A|T) \cdot p(B|T,C)\]
+  </div>
+</section>
+
+<!-- 8 -->
+<section>
+  <h2>Independence in the Traffic Example</h2>
+  <fig name="traffic8" style="margin:0 auto" data-nudge='{"trn-A":[0,-8],"trn-B":[0,-3],"trn-C":[0,-4],"trn-T":[0,-11]}'></fig>
+  <table class="grid" style="width: 100%">
+    <tr><th>Statement</th><th class="c">Answer</th><th>Reason</th></tr>
+    <tr><td>1. $A \independent B$</td><td class="c"><span pause data-fragment-index="1">FALSE</span></td><td><span pause data-fragment-index="1">Dependence through $T$</span></td></tr>
+    <tr><td>2. $A \independent B | T$</td><td class="c"><span pause data-fragment-index="2">TRUE</span></td><td><span pause data-fragment-index="2">$T$ already provides all information in $A$ relevant to $B$</span></td></tr>
+    <tr><td>3. $T \independent C$</td><td class="c"><span pause data-fragment-index="3">TRUE</span></td><td><span pause data-fragment-index="3">Independent</span></td></tr>
+    <tr><td>4. $T \independent C | B$</td><td class="c"><span pause data-fragment-index="4">FALSE</span></td><td><span pause data-fragment-index="4">Explaining away!</span></td></tr>
+    <tr><td>5. $A \independent C$</td><td class="c"><span pause data-fragment-index="5">TRUE</span></td><td><span pause data-fragment-index="5">Independent</span></td></tr>
+    <tr><td>6. $A \independent C | T$</td><td class="c"><span pause data-fragment-index="6">TRUE</span></td><td><span pause data-fragment-index="6">Independent</span></td></tr>
+    <tr><td>7. $A \independent C | B$</td><td class="c"><span pause data-fragment-index="7">FALSE</span></td><td><span pause data-fragment-index="7">Explaining away!</span></td></tr>
+  </table>
+</section>
+
+<!-- 9 -->
+<section>
+  <h2>Conditional Independence in BNs</h2>
+  <p><b>Key Question:</b> Given a BN, when is $X \independent Z | Y$?</p>
+  <div class="grp">
+    <p><b>Three basic structures:</b></p>
+    <ol class="en">
+      <li><b>Chain:</b> $X \to Y \to Z$
+        <ul>
+          <li>$X \not\independent Z$ (information flows through $Y$)</li>
+          <li>$X \independent Z | Y$ ($Y$ blocks info flow; it already provides all information in $X$ relevant to $Z$)</li>
+        </ul>
+      </li>
+      <li><b>Fork:</b> $X \leftarrow Y \to Z$
+        <ul>
+          <li>$X \not\independent Z$ (common cause induces dependence)</li>
+          <li>$X \independent Z | Y$ ($Y$ blocks info flow)</li>
+        </ul>
+      </li>
+      <li><b>Collider (v-structure):</b> $X \to Y \leftarrow Z$
+        <ul>
+          <li>$X \independent Z$ (independent causes)</li>
+          <li>$X \not\independent Z | Y$ (conditioning bounces info back along the path)</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+  <div class="tight">
+    <p><b>Collider example:</b> Talent $\to$ Success $\leftarrow$ Luck</p>
+    <p>Observing success induces dependence between talent and luck</p>
+  </div>
+</section>
+
+<!-- 10 -->
+<section>
+  <h2>d-Separation</h2>
+  <column>
+    <p><b>General rule for independence:</b> d-separation</p>
+    <p>Sets of RVs $\mathcal{X}$ and $\mathcal{Z}$ are <b>d-separated</b> by $\mathcal{Y}$ if every path between $\mathcal{X}$ and $\mathcal{Z}$ is <em>blocked</em> by $\mathcal{Y}$</p>
+    <div class="grp">
+      <p><b>A path is blocked by $\mathcal{Y}$ if:</b></p>
+      <ul>
+        <li>The path contains a chain $\cdots \to Y \to \cdots$ or fork $\cdots \leftarrow Y \to \cdots$ where $Y \in \mathcal{Y}$, OR</li>
+        <li>The path contains a collider $\cdots \to Y \leftarrow \cdots$ where $Y \notin \mathcal{Y}$ and no descendant of $Y$ is in $\mathcal{Y}$</li>
+      </ul>
+    </div>
+    <div class="grp">
+      <p><b>Theorem:</b> If $\mathcal{X}$ and $\mathcal{Z}$ are d-separated by $\mathcal{Y}$, then</p>
+      \[\mathcal{X} \independent \mathcal{Z} | \mathcal{Y}\]
+      <p>for any distribution that factorizes according to the graph.</p>
+    </div>
+  </column>
+  <fig name="flow"></fig>
+</section>
+
+<!-- 11 -->
+<section>
+  <h2>d-Separation Examples</h2>
+  <block title="Blocking rules" class="small" style="position:absolute; top:0; right:0; width:400px">
+    <p>A path is blocked by $\mathcal{Y}$ if it has a node $Y$ that is:</p>
+    <ul>
+      <li>in a chain $\to Y \to$ or a fork $\leftarrow Y \to$, with $Y \in \mathcal{Y}$</li>
+      <li>a collider $\to Y \leftarrow$, with neither $Y$ nor a descendant of $Y$ in $\mathcal{Y}$</li>
+    </ul>
+  </block>
+  <p><b>Example 1:</b> Is $T \independent C$ in the traffic network?</p>
+  <fig name="dsep" style="margin:0 0 0 280px"></fig>
+  <p pause><b>Yes!</b> $B$ blocks the path</p>
+  <div class="tight">
+    <p><b>Example 2:</b> Is $A \independent B | T$?</p>
+    <p pause><b>Yes!</b> Path $A \leftarrow T \to B$ is blocked by $T$ (chain)</p>
+  </div>
+  <div class="tight">
+    <p><b>Example 3:</b> Is $A \independent B$ (unconditionally)?</p>
+    <p pause><b>No!</b> Path $A \leftarrow T \to B$ is not blocked (nothing in conditioning set)</p>
+  </div>
+</section>
+
+<!-- 12 -->
+<section>
+  <h2>d-Separation: Collider Example</h2>
+  <p><b>Example 4:</b> Is $T \independent C | B$?</p>
+  <fig name="dsepB" style="margin:0 auto"></fig>
+  <div class="tight">
+    <p><b>No!</b> Path $T \to B \leftarrow C$ has collider $B$</p>
+    <p>$B$ is in conditioning set $\to$ path is <em>not</em> blocked!</p>
+  </div>
+  <div class="grp">
+    <p><b>Key insight:</b> Observing $B$ creates dependence!</p>
+    <ul>
+      <li>If Bob is late, either traffic was heavy OR Charlie biked</li>
+      <li>Knowing traffic helps predict Charlie's choice</li>
+    </ul>
+  </div>
+  <div class="tight">
+    <p><b>Example 5:</b> Is $A \independent \{B,C\} | T$?</p>
+    <p><b>Yes!</b> All paths from $A$ to $\{B,C\}$ go through $T$, which blocks them</p>
+  </div>
+</section>
+
+<!-- 13 -->
+<section>
+  <h2>d-Separation: More Examples</h2>
+  <p><b>Example 6:</b> Complex network</p>
+  <fig name="complex" style="margin:0 auto"></fig>
+  <ul>
+    <li>Is $A \independent B$? <span pause><b>Yes!</b></span></li>
+    <li>Is $A \independent B | D$? <span pause><b>No!</b> Path $A \to C \to D \leftarrow B$ <br>has collider $D$, which we observe $\to$ opens path</span></li>
+    <li>Is $A \independent B | E$? <span pause><b>No!</b> Path $A \to C \to D \to E$ <br>has a collider with descendant $E$ observed $\to$ opens path</span></li>
+    <li>Is $A \independent E | D$? <span pause><b>Yes!</b> Path blocked at $D$</span></li>
+  </ul>
+</section>
+
+<!-- 14 -->
+<section>
+  <h2>d-Separation: Real-World Example</h2>
+  <div class="pair" style="grid-template-columns: 1fr auto; align-items: center">
+    <div class="grp">
+      <p><b>Questions:</b></p>
+      <ol class="en">
+        <li>Are Genes and Smoking independent?
+          <div pause><b>Yes!</b></div></li>
+        <li>Are X-ray and Dyspnea independent?
+          <div pause><b>No!</b> Path X-ray $\leftarrow$ Cancer $\to$ Dyspnea (fork)</div></li>
+        <li>Are X-ray and Dyspnea independent given Cancer?
+          <div pause><b>Yes!</b> Cancer blocks the only path</div></li>
+        <li>Are Genes and Smoking independent given Cancer?
+          <div pause><b>No!</b> Cancer is collider, observing it opens path! <br>(Explaining away: if cancer and non-smoker $\to$ likely genetic)</div></li>
+      </ol>
+    </div>
+    <div>
+      <p><b>Causal Health Model</b></p>
+      <fig name="health" style="margin:0 auto"></fig>
+    </div>
+  </div>
+</section>
+
+<!-- 15 -->
+<section>
+  <h2>Markov Blanket</h2>
+  <p><b>Markov Blanket</b> of node $X$: minimal set that makes $X$ independent of all other nodes</p>
+  <fig name="blanket" style="margin:0 auto"></fig>
+  <div class="tight">
+    <p><b>Markov Blanket of $X$</b> = {parents, children, co-parents}</p>
+    <p>Above: $\mb(X) = \{p_1, p_2, c_1, c_2, s\}$</p>
+  </div>
+  <p><b>Property:</b> $X \independent \text{(all other nodes)} | \mb(X)$</p>
+  <p><b>Critical for:</b> Gibbs sampling (sample each variable given its Markov blanket)</p>
+</section>
+
+<!-- 16 -->
+<section>
+  <h2>Markov Models: Chain Bayesian Networks</h2>
+  <div class="grp">
+    <p><b>Sequential data:</b> Many processes evolve over time</p>
+    <ul>
+      <li>Weather prediction: today's weather $\to$ tomorrow's</li>
+      <li>Stock prices, speech recognition, gene sequences</li>
+    </ul>
+  </div>
+  <div class="grp">
+    <p><b>Markov property:</b> Future depends only on present</p>
+    \[p(x_t | x_1, \ldots, x_{t-1}) = p(x_t | x_{t-1})\]
+  </div>
+  <div class="grp">
+    <p><b>This is just a chain Bayesian Network!</b></p>
+    <fig name="chain" style="margin:0 auto"></fig>
+  </div>
+  <div class="grp">
+    <p><b>Factorization:</b></p>
+    \[p(x_1, \ldots, x_T) = p(x_1) \prod_{t=2}^T p(x_t | x_{t-1})\]
+  </div>
+</section>
+
+<!-- 17 -->
+<section class="tight">
+  <h2>Markov Model Example: Weather</h2>
+  <p>Consider a Markov chain $x_1\to x_2 \to x_3 \to \cdots$ modeling daily weather; each $x_t$ can be
+    <span class="nb"><span class="emo e16">☀️</span> Sunny,</span> <span class="nb"><span class="emo e16">☁️</span> Cloudy,</span> <span class="nb"><span class="emo e16">🌧️</span> Rainy.</span> These are the <b>states</b>.</p>
+  <p><b>Transition probabilities:</b> $p(x_t | x_{t-1})$. Can be shown as a graph or matrix if independent of $t$:</p>
+  <fig name="weather" style="margin:0 auto"></fig>
+  <p><b>Example:</b> $p(x_1 = {}$<span class="emo e10">☀️</span>$, x_2 = {}$<span class="emo e10">☁️</span>$, x_3 = {}$<span class="emo e10">🌧️</span>$) = p(x_1 = {}$<span class="emo e10">☀️</span>$) \times 0.2 \times 0.3$</p>
+  <p class="center"><alert>Graph above is NOT a GM. It's a state transition graph</alert></p>
+</section>
+
+<!-- 18 -->
+<section>
+  <h2>Example: Hidden Markov Models</h2>
+  <p><b>Problem:</b> Often we don't observe states directly!</p>
+  <div class="grp">
+    <p><b>Examples:</b></p>
+    <ul>
+      <li><b>Speech:</b> Hidden = phonemes, Observed = acoustic signals</li>
+      <li><b>Robot localization:</b> Hidden = position, Observed = sensors</li>
+      <li><b>Bioinformatics:</b> Hidden = DNA structure, Observed = measurements</li>
+    </ul>
+  </div>
+  <div class="grp">
+    <p><b>Solution: Hidden Markov Model (another special BN!)</b></p>
+    <div class="pair" style="grid-template-columns: auto 1fr; column-gap: 24px; align-items: center">
+      <fig name="hmm"></fig>
+      <div>
+        <p><b>Factorization:</b></p>
+        \[p(x_{1:T}, z_{1:T}) = p(z_1) p(x_1|z_1) \prod_{t=2}^T p(z_t|z_{t-1}) p(x_t|z_t)\]
+        <p>Gray nodes = observed, white nodes = hidden</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 19 -->
+<section>
+  <h2>HMM Example: Robot Localization</h2>
+  <p><b>Scenario:</b> Robot in hallway uses sensors to figure out location</p>
+  <div class="tight">
+    <p><b>Hidden states:</b> Position $z_t \in \{$Room 1, Room 2, Room 3$\}$</p>
+    <p><b>Observations:</b> Sensor $x_t \in \{$<span class="emo e12">🚪</span> door, <span class="emo e12">🧱</span> wall$\}$</p>
+  </div>
+  <div class="pair">
+    <div>
+      <p><b>Transitions:</b> $p(z_t | z_{t-1})$</p>
+      \[\begin{bmatrix}
+      0.7 & 0.3 & 0 \\
+      0.2 & 0.6 & 0.2 \\
+      0 & 0.3 & 0.7
+      \end{bmatrix}\]
+      <p class="small">Robot mostly stays put, sometimes moves to adjacent room</p>
+    </div>
+    <div>
+      <p><b>Emissions:</b> $p(x_t | z_t)$</p>
+      \[\begin{bmatrix}
+      0.9 & 0.1 \\
+      0.2 & 0.8 \\
+      0.8 & 0.2
+      \end{bmatrix}\]
+      <p class="small">Rooms 1,3: usually see door<br>Room 2: usually see wall</p>
+    </div>
+  </div>
+  <div class="tight">
+    <p><b>Key question:</b> Given sensor sequence, where is robot?</p>
+    <p><b>Answer:</b> Use BN inference! (Forward algorithm, Viterbi, etc.)</p>
+  </div>
+</section>
+
+<!-- 20 -->
+<section>
+  <h2>Bayesian Networks: Applications in Modern ML</h2>
+  <div class="grp">
+    <p><b>Classical Applications:</b></p>
+    <ul>
+      <li><b>Medical Diagnosis:</b> Symptom → Disease reasoning with uncertainty</li>
+      <li><b>Speech Recognition (HMMs):</b> Foundation of early systems (<em>now replaced by deep learning, but concepts persist</em>)</li>
+    </ul>
+  </div>
+  <div class="grp">
+    <p><b>Modern Applications:</b></p>
+    <ul>
+      <li><b>Causal Inference:</b> Discovering cause-effect relationships from data</li>
+      <li><b>Reinforcement Learning:</b> MDPs and POMDPs for sequential decisions</li>
+      <li><b>Probabilistic Programming:</b> Flexible Bayesian models (Pyro, Stan)</li>
+      <li><b>Explainable AI:</b> Interpretable reasoning under uncertainty</li>
+    </ul>
+  </div>
+  <div class="grp">
+    <p><b>Connection to Deep Learning:</b></p>
+    <ul>
+      <li>Variational Autoencoders (VAEs) = neural nets + latent variable models</li>
+      <li>Bayesian neural networks use same inference principles (VI, MCMC)</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ Markov Random Fields ============ -->
+
+<!-- 21 -->
+<section id="sec-mrf">
+  <h2>Introduction to Markov Random Fields</h2>
+  <p><b>Recall:</b> Bayesian Networks use <em>directed</em> edges for causal relationships</p>
+  <p><b>But what if relationships are symmetric/non-causal?</b></p>
+  <div class="grp">
+    <p><b>Examples:</b></p>
+    <ul>
+      <li><b>Images:</b> Adjacent pixels tend to have similar colors</li>
+      <li><b>Social networks:</b> Friends tend to have similar opinions</li>
+      <li><b>Spatial data:</b> Nearby locations have correlated properties</li>
+    </ul>
+  </div>
+  <div class="grp">
+    <p><b>Solution: Markov Random Fields (MRFs)</b></p>
+    <ul>
+      <li>Use <em>undirected</em> graphs</li>
+      <li>Edges represent mutual influence or correlation, not causation</li>
+    </ul>
+  </div>
+  <div class="grp">
+    <p><b>Key difference:</b></p>
+    <ul>
+      <li>BN: "Traffic may <em>cause</em> Alice to be late"</li>
+      <li>MRF: "Alice and Bob are friends, influencing each others' opinions"</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 22 -->
+<section>
+  <h2>Motivating Example: Political Affiliations</h2>
+  <p><b>Question:</b> Given a friendship network, how can we model political affiliations, knowing that friends tend to share similar views?</p>
+  <fig name="friends" style="margin:0 auto" data-nudge='{"frn-1":[1,-6],"frn-2":[0,-13],"frn-3":[0,-7],"frn-4":[1,-7],"frn-5":[0,-8]}'></fig>
+  <div class="tight">
+    <p><b>Setup:</b> Each person $x_i \in \{0, 1\}$ (party affiliation); Edges = friendships</p>
+    <p><b>Goal:</b> Define $p(x_1, \ldots, x_5)$ that assigns higher probability to configurations where friends agree</p>
+    <p><b>Challenge:</b> No natural causal direction $\Rightarrow$ BN doesn't fit well!</p>
+  </div>
+</section>
+
+<!-- 23 -->
+<section>
+  <h2>MRF Solution: Potential Functions</h2>
+  <p><b>Idea:</b> Define <em>potential functions</em> that favor agreement</p>
+  <div class="pair">
+    <div>
+      <p><b>Pairwise potential</b> (for edges):</p>
+      \[\psi_{ij}(x_i, x_j) = \begin{cases}
+      1 & x_i = x_j \\
+      0.5 & x_i \neq x_j
+      \end{cases}\]
+      <p>Friends agreeing is twice as “compatible”</p>
+      <p><b>Applies to edges:</b> $(1,2), (1,4), (3,4)$</p>
+    </div>
+    <div>
+      <p><b>Triple potential</b> (for clique $\{2,3,5\}$):</p>
+      \[\psi_{235}(x_2, x_3, x_5) = \begin{cases}
+      1 & \text{all same} \\
+      0.3 & \text{one differs}
+      \end{cases}\]
+      <p>Three mutual friends have stronger group dynamics!</p>
+      <p><b>Note:</b> $x_2, x_3, x_5$ form a <em>clique</em> (all pairwise connected)</p>
+    </div>
+  </div>
+  <p><b>Key insight:</b> Potentials are NOT probabilities—they encode “compatibility” of configurations</p>
+</section>
+
+<!-- 24 -->
+<section>
+  <h2>MRF Solution: The Distribution</h2>
+  <div class="grp">
+    <p><b>Distribution:</b> Product of all potentials, normalized</p>
+    \[p(x_1,\ldots,x_5) = \frac{1}{Z} \psi_{12} \cdot \psi_{14} \cdot \psi_{34} \cdot \psi_{235}\]
+    <p>where $Z = \displaystyle\sum_{\text{all } 2^5 \text{ configs}} \psi_{12} \cdot \psi_{14} \cdot \psi_{34} \cdot \psi_{235}$ &emsp;(partition function)</p>
+  </div>
+  <fig name="configs" style="margin:0 auto" data-nudge='{"cfn-1":[0,-4],"cfn-1b":[1,-6],"cfn-2":[0,-7],"cfn-2b":[1,-6],"cfn-3":[0,-4],"cfn-3b":[1,-3],"cfn-4":[0,-3],"cfn-4b":[0,-3],"cfn-5":[0,-3],"cfn-5b":[0,-4]}'></fig>
+  <p>Configuration on the left is 2.4 times more likely than the right!</p>
+  <p><b>Result:</b> Configurations where friends agree have higher probability! <span style="color:#00FF00">✓</span></p>
+</section>
+
+<!-- 25 -->
+<section class="tight full">
+  <h2>MRF: Formal Definition</h2>
+  <div class="grp">
+    <p><b>Markov Random Field</b> consists of:</p>
+    <ul>
+      <li>Undirected graph $G$ with nodes $x_1, \ldots, x_m$</li>
+      <li><b>Potential functions</b> $\psi_C(x_C)$ for each clique $C$</li>
+      <li><b>Partition function</b> $Z$ for normalization</li>
+    </ul>
+  </div>
+  <div class="grp">
+    <p><b>Factorization:</b></p>
+    \[p(x_1, \ldots, x_m) = \frac{1}{Z} \prod_{C \in \text{cliques}} \psi_C(x_C)\]
+    <p>where $Z = \sum_{x_1, \ldots, x_m} \prod_{C} \psi_C(x_C)$</p>
+  </div>
+  <div class="grp">
+    <p><b>Key concepts:</b></p>
+    <ul>
+      <li><b>Clique:</b> Set of nodes with edges between all pairs</li>
+      <li><b>Potential $\psi_C$:</b> Non-negative function encoding compatibility
+        <ul>
+          <li>Higher values = more “compatible” configurations</li>
+          <li>NOT probabilities (don't need to sum to 1)</li>
+        </ul>
+      </li>
+      <li><b>Partition function $Z$:</b> Normalizes to make it a valid distribution
+        <ul>
+          <li>Often intractable to compute!</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- 26 -->
+<section>
+  <h2>Independence in Markov Random Fields</h2>
+  <p><b>MRF independence rule:</b> Simpler than BNs!</p>
+  <div class="grp">
+    <p style="margin-bottom:2px"><b>Theorem (Global Markov Property):</b></p>
+    <p>For disjoint sets $A$, $B$, $C$, if $C$ separates $A$ from $B$ (removing $C$ disconnects $A$ and $B$), then:</p>
+    \[A \independent B | C\]
+  </div>
+  <p><b>Example:</b> $x_1 \independent \{x_3, x_5\} | \{x_2,  x_4\}$ in the graph below:</p>
+  <fig name="friendsObs" style="margin:0 auto" data-nudge='{"frn-1":[1,-6],"frn-2":[1,-10],"frn-3":[0,-4],"frn-4":[1,-4],"frn-5":[1,-5]}'></fig>
+</section>
+
+<!-- 27 -->
+<section>
+  <h2>Energy-Based Models</h2>
+  <p><b>Consider MRF with potentials $\psi_C(x_C) > 0$.</b></p>
+  <div class="grp">
+    <p><b>Key insight:</b> Take the logarithm!</p>
+    \[p(\bx) = \frac{1}{Z} \prod_{C} \psi_C(x_C)  = \frac{1}{Z} \exp\left( \sum_C \log \psi_C(x_C) \right) = \frac{1}{Z} \exp\left( -E(\bm{x}) \right)\]
+    <p>where $E(\bm{x}) = -\sum_C \log \psi_C(x_C)$ is the <b>energy function</b></p>
+  </div>
+  <div class="grp">
+    <p><b>Energy-Based Model (EBM):</b></p>
+    \[\boxed{p(\bm{x})\propto e^{-E(\bm{x})}}\]
+  </div>
+  <ul>
+    <li>Low energy $\Leftrightarrow$ High probability (preferred configurations)</li>
+    <li>High energy $\Leftrightarrow$ Low probability (unlikely configurations)</li>
+    <li>Finding most likely state = <b>minimizing energy</b></li>
+    <li>$\nabla_x \log p(x) = -\nabla_x E(x)$ : score function</li>
+  </ul>
+</section>
+
+<!-- 28 -->
+<section class="tight">
+  <h2>Application: Image Denoising with MRFs</h2>
+  <p><b>Task:</b> Remove noise from black/white image</p>
+  <div class="pair" style="grid-template-columns: 65fr 35fr; align-items: center">
+    <div class="grp">
+      <p><b>Setup:</b></p>
+      <ul>
+        <li>$x_i \in \{-1, +1\}$: true pixel</li>
+        <li>$y_i \in \{-1, +1\}$: observed noisy pixel</li>
+        <li>Neighboring pixels tend to have same color</li>
+      </ul>
+    </div>
+    <fig name="denoise" style="margin:0 auto"></fig>
+  </div>
+  <div class="grp">
+    <p><b>Energy function:</b></p>
+    \[E(x, y) = -\sum_i \alpha_i x_i - \sum_{(i,j) \in \text{neighbors}} \beta_{ij} x_i x_j - \sum_i \zeta_i x_i y_i\]
+  </div>
+  <ul>
+    <li>$\alpha_i$: bias for pixel $i$ ($\alpha_i > 0$ favors $x_i=+1$)</li>
+    <li>$\beta_{ij} > 0$: neighbors prefer to match</li>
+    <li>$\zeta_i > 0$: assumes noise is less likely than correct observation</li>
+  </ul>
+  <p><b>Denoising:</b> Find $\arg\max_x p(x | y)$ (balance smoothness + observation)</p>
+</section>
+
+<!-- 29 -->
+<section class="sim">
+  <h2>Simulation: Denoising by Iterated Conditional Modes</h2>
+  <fig name="icm" init="p=0.1 zeta=2.5 k=0" style="margin:0 auto"></fig>
+  <knob param="zeta" min="0" max="5" step="0.1" digits="1">$\zeta$</knob>
+  <knob param="p" min="0" max="0.3" step="0.01" digits="2">noise $p$</knob>
+  <knob param="k" min="0" max="8" step="1" digits="0">sweeps</knob>
+  <div class="row" style="height:auto">
+    <div class="col">
+      <block title="Iterated conditional modes (ICM)" class="small">
+        <p>Slide 28's energy with $\alpha_i = 0$, $\beta_{ij} = 1$, $\zeta_i = \zeta$. Visit the pixels in turn, giving each its lower-energy value given the rest:</p>
+        <p class="center">$x_i \leftarrow \operatorname{sign}\big(\sum_{j \in N(i)} x_j + \zeta\, y_i\big)$ (a tie keeps $x_i$)</p>
+        <p>No step raises $E(x, y)$, so ICM stops at a local minimum.</p>
+      </block>
+    </div>
+    <div class="col small">
+      <p pause="k=1">One sweep with $\zeta = 2.5$: a pixel changes only if all its neighbors disagree with it</p>
+      <p pause="k=2">A second sweep changes nothing: a local minimum</p>
+      <p pause="zeta=1 k=6">$\zeta = 1$: three disagreeing neighbors overrule $y_i$; less noise is left, but the eyebrows erode</p>
+      <p pause="zeta=4.5">$\zeta > 4$: no neighborhood overrules $y_i$, so $x = y$</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Comparison and Summary ============ -->
+
+<!-- 30 -->
+<section id="sec-sum" class="tight full">
+  <h2>MRF vs Bayesian Network</h2>
+  <table class="grid" style="width: 96%">
+    <tr class="dbl"><th>Property</th><th>Bayesian Network</th><th>Markov Random Field</th></tr>
+    <tr><td>Graph type</td><td>Directed (DAG)</td><td>Undirected</td></tr>
+    <tr><td>Edges mean</td><td>Causal influence</td><td>Mutual correlation</td></tr>
+    <tr><td>Factorization</td><td>$\prod_i p(x_i | \pa(x_i))$</td><td>$\frac{1}{Z}\prod_C \psi_C(x_C)$</td></tr>
+    <tr><td>Local terms</td><td>Conditional probabilities</td><td>Potential functions</td></tr>
+    <tr><td>Normalization</td><td>Automatic (CPDs)</td><td>Need partition function $Z$</td></tr>
+    <tr><td>Computing $Z$</td><td>Not needed</td><td>Often intractable!</td></tr>
+    <tr><td>Natural for</td><td>Causal models</td><td>Spatial/symmetric data</td></tr>
+    <tr><td>Examples</td><td>Traffic $\to$ Late</td><td>Pixels, social nets</td></tr>
+  </table>
+  <div class="grp">
+    <p><b>Key insight:</b></p>
+    <ul>
+      <li>BNs: "Parent <em>causes</em> child" $\to$ $p(\text{child}|\text{parent})$</li>
+      <li>MRFs: "Neighbors <em>correlate</em>" $\to$ $\psi(\text{neighbors})$</li>
+    </ul>
+  </div>
+  <div class="grp">
+    <p><b>Can convert between them:</b></p>
+    <ul>
+      <li>BN $\to$ MRF: "Moralization" (connect parents, drop directions)</li>
+      <li>MRF $\to$ BN: Not always possible (may lose independence)</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 31 -->
+<section>
+  <h2>Summary: Graphical Models</h2>
+  <div class="grp">
+    <p><b>Three types of graphical models:</b></p>
+    <ul>
+      <li><b>Bayesian Networks:</b> Directed graphs for causal relationships
+        <ul>
+          <li>Factorization: $p(x_1,\ldots,x_m) = \prod_i p(x_i | \pa(x_i))$</li>
+          <li>Examples: Traffic model, Markov chains, HMMs</li>
+        </ul>
+      </li>
+      <li><b>Markov Random Fields:</b> Undirected graphs for correlations
+        <ul>
+          <li>Factorization: $p(x_1,\ldots,x_m) = \frac{1}{Z}\prod_C \psi_C(x_C)$</li>
+          <li>Examples: Image denoising, social networks</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+  <div class="grp">
+    <p><b>Independence properties:</b></p>
+    <ul>
+      <li><b>d-separation:</b> Determines all conditional independence in BNs</li>
+      <li><b>Markov blanket:</b> Minimal conditioning set for independence</li>
+      <li>Graph structure reveals independence $\to$ enables efficient computation</li>
+    </ul>
+  </div>
+  <p><b>Next lecture:</b> Parameter estimation and inference in GMs</p>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="../shared/deckmap.js"></script>
+<script src="figs.js"></script>
+<script>startDeck();</script>
+</body>
+</html>
