@@ -167,21 +167,93 @@ FIGS.traffic = trafficFig(K * 0.7, 2, 1.22, 'left');
 FIGS.traffic8 = trafficFig(K * 0.6, 2.5, 1.4, 'below');
 
 // Slide 10: information as water on the three structures and on a collider with a child W, the
-// node in question unobserved (left) and observed (right).  The water runs from X along the path,
-// through the nodes and under the edges, as dashes that the CSS class "flow" moves (print keeps them
-// still).  An observed chain or fork node is a dam; at a collider the water pours out through an
-// unobserved Y (and its unobserved child), and pools in an observed Y or an observed child, whose dam
-// at its bottom sends it back up to Z.  Z turns blue when the water reaches it.
+// node in question unobserved (left) and observed (right).  A timed story plays in all eight panels
+// at once: a stream leaves X with droplets riding in it, at speed V.  An observed chain or fork node
+// is a dam: the stream stops at its wall and piles up there, rippling.  At a collider the stream
+// pours out through an unobserved Y (and its unobserved child), its droplets fading as they fall;
+// an observed Y or an observed child, with a dam at its bottom, fills with water and sends the
+// stream back up to Z.  Z fills when the stream reaches it.  The scene holds, fades and starts
+// again, from the beginning each time the slide is entered.  Print shows the completed state.
 {
   const s = K * 0.52, d = 0.74, gap = 1.75, low = 0.85, kid = 1.35, r = d * s / 2, drop = 28;
   const WATER = '#2E86DE', WET = '#D4E9FA', DAM = '#8B5A2B';
+  const V = 115, GD = 15, DR = 3.2, POOL = 0.7, HOLD = 1.6, FADE = 0.6, RIP = 0.75;
   const PW = 2 * gap * s + d * s + 8, CG = 34, HH = 30, RL = 26, RG = 8;
   const RH = [RL + 2 * r + 4, RL + 2 * r + 4, RL + low * s + 2 * r + drop + 4, RL + (low + kid) * s + 2 * r + drop + 4];
   const W = 2 * PW + CG, H = HH + RH.reduce((a, b) => a + b) + 3 * RG;
   const kinds = [['Chain', [['X', 'Y'], ['Y', 'Z']]], ['Fork', [['Y', 'X'], ['Y', 'Z']]],
     ['Collider', [['X', 'Y'], ['Z', 'Y']]], ['Collider with a child $W$', [['X', 'Y'], ['Z', 'Y'], ['Y', 'W']]]];
   const txt = (h, size) => `<span style="font-size:${size}px">${h}</span>`;
+  const clamp01 = u => Math.max(0, Math.min(1, u));
+  // a polyline's cumulative lengths, and its point at arc length u
+  const cumOf = pts => pts.reduce((c, q, i) => (c.push(i ? c[i - 1] + Math.hypot(q[0] - pts[i - 1][0], q[1] - pts[i - 1][1]) : 0), c), []);
+  const at = (pts, cum, u) => {
+    let i = 1;
+    while (i < pts.length - 1 && cum[i] < u) i++;
+    const f = (u - cum[i - 1]) / ((cum[i] - cum[i - 1]) || 1);
+    return [pts[i - 1][0] + f * (pts[i][0] - pts[i - 1][0]), pts[i - 1][1] + f * (pts[i][1] - pts[i - 1][1])];
+  };
+  // the stream's head: V per second, waiting POOL seconds where a pool fills
+  const frontAt = (a, t) => {
+    const u = V * t;
+    if (a.pauseAt == null || u < a.pauseAt) return Math.min(u, a.L);
+    return Math.min(Math.max(a.pauseAt, u - V * POOL), a.L);
+  };
+  const tEnd = a => (a.L + (a.pauseAt == null ? 0 : V * POOL)) / V;
+  let T = 0;   // one cycle, set by the slowest panel
+  const segPath = (cx, cy, lv) => {   // the part of a node's disc below the level lv
+    const dy = Math.max(-r, Math.min(r, lv - cy)), dx = Math.sqrt(Math.max(0, r * r - dy * dy));
+    if (dx < 0.5) return 'M0,0';
+    return `M${(cx - dx).toFixed(1)},${lv.toFixed(1)}A${r},${r} 0 ${dy < 0 ? 1 : 0} 0 ${(cx + dx).toFixed(1)},${lv.toFixed(1)}Z`;
+  };
+  function update(panels, t) {
+    const op = t > T - FADE ? clamp01((T - t) / FADE) : 1;
+    for (const a of panels) {
+      const front = frontAt(a, t);
+      a.body.setAttribute('stroke-dasharray', `${front.toFixed(1)} ${a.L + 60}`);
+      a.body.setAttribute('stroke-opacity', 0.25 * op);
+      a.core.setAttribute('stroke-dasharray', `${front.toFixed(1)} ${a.L + 60}`);
+      a.core.setAttribute('stroke-opacity', 0.35 * op);
+      const phase = (V * t) % GD;
+      a.drops.forEach((e, j) => {
+        const u = phase + j * GD;
+        let o = u <= front - 2 ? op : 0;
+        if (o && a.outlet != null && u > a.outlet) o *= clamp01(1 - (u - a.outlet) / (a.L - a.outlet));
+        if (o) { const [px, py] = at(a.pts, a.cum, u); e.setAttribute('cx', px.toFixed(1)); e.setAttribute('cy', py.toFixed(1)); }
+        e.setAttribute('opacity', o.toFixed(2));
+      });
+      if (a.zwet) a.zwet.setAttribute('opacity', (clamp01((front - (a.L - r)) / r) * op).toFixed(2));
+      if (a.npool) {   // the observed node fills from its bottom to just above its middle
+        const f = clamp01((t - a.pauseAt / V) / POOL);
+        a.npool.setAttribute('d', segPath(a.bot[0], a.bot[1], a.bot[1] + r - f * 1.15 * r));
+        a.npool.setAttribute('fill-opacity', 0.35 * op);
+      }
+      if (a.dpool) {   // water piling up against the dam, with ripples off the wall
+        const ta = a.L / V, f = clamp01((t - ta) / 0.8), [wx, wy] = a.wall;
+        a.dpool.setAttribute('d', f > 0.02 ? `M${wx},${wy - 16 * f}A${22 * f},${16 * f} 0 0 0 ${wx},${wy + 16 * f}Z` : 'M0,0');
+        a.dpool.setAttribute('fill-opacity', 0.3 * op);
+        const q = t > ta ? ((t - ta) % RIP) / RIP : -1;
+        a.ripple.setAttribute('r', q < 0 ? 0 : (3 + 15 * q).toFixed(1));
+        a.ripple.setAttribute('opacity', q < 0 ? 0 : ((1 - q) * 0.7 * op).toFixed(2));
+      }
+    }
+  }
+  function run(root) {
+    if (root._flowRun) return;
+    root._flowRun = true;
+    let t0 = 0, was = false;
+    const tick = now => {
+      if (!root.isConnected) { root._flowRun = false; return; }
+      const on = !!root.closest('section.present');
+      if (on && !was) t0 = now;
+      was = on;
+      if (on && root._flow) update(root._flow, ((now - t0) / 1000) % T);
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
   FIGS.flow = { size: [Math.ceil(W), Math.ceil(H)], draw(g) {
+    const panels = [];
     let top = HH;
     ['Unobserved', 'Observed'].forEach((h, col) =>
       g.label(`wh${col}`, txt(h, 22), [col * (PW + CG) + PW / 2, HH - 6], 'b'));
@@ -192,7 +264,7 @@ FIGS.traffic8 = trafficFig(K * 0.6, 2.5, 1.4, 'below');
         const key = `w${row}${col}`, wet = !obs !== v;
         const nodes = { X: { at: [0, 0], tex: '$X$', d, fill: WET },
           Y: { at: [gap, v ? -low : 0], tex: '$Y$', d, hatch: obs && !child ? XC.b30 : null },
-          Z: { at: [2 * gap, 0], tex: '$Z$', d, fill: wet ? WET : '#fff' } };
+          Z: { at: [2 * gap, 0], tex: '$Z$', d } };
         if (child) nodes.W = { at: [gap, -low - kid], tex: '$W$', d, hatch: obs ? XC.b30 : null };
         // two passes: the nodes' fills first, then the water over them, then the edges, outlines and
         // hatching over the water, so the water is seen to run through a node
@@ -204,20 +276,24 @@ FIGS.traffic8 = trafficFig(K * 0.6, 2.5, 1.4, 'below');
         const [x, y, z] = ['X', 'Y', 'Z'].map(k => P(nodes[k].at));
         const below = q => [q[0], q[1] + r + drop];
         const bot = v && (child ? P(nodes.W.at) : y);   // a collider's bottom node: Y, or its child W
-        let pts;
-        if (!v) pts = obs ? [x, [y[0] - r - 10, y[1]]] : [x, y, z];
-        else if (obs) {     // down to the dam at the bottom of the observed node and back up to Z
-          const foot = bot[1] + r - 6;
-          pts = [x, [y[0] - 5, y[1]], [bot[0] - 5, foot], [bot[0] + 5, foot], [y[0] + 5, y[1]], z];
-          const lv = bot[1] - 0.15 * r, dx = Math.sqrt(r * r - (lv - bot[1]) ** 2);
-          g.el('path', { d: `M${bot[0] - dx},${lv}A${r},${r} 0 1 0 ${bot[0] + dx},${lv}Z`, fill: WATER, 'fill-opacity': 0.35, stroke: 'none' });
-        } else pts = child ? [x, y, bot, below(bot)] : [x, y, below(y)];
-        const wj = { stroke: WATER, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
-        g.path(pts, { ...wj, 'stroke-width': 16, 'stroke-opacity': 0.22 });
-        g.path(pts, { ...wj, cls: 'flow', 'stroke-width': 6 });
-        if (!v && obs) {   // the dam, and the water standing against it
+        const a = { bot };
+        if (!v) a.pts = obs ? [x, [y[0] - r - 10, y[1]]] : [x, y, z];
+        else if (obs) a.pts = [x, [y[0] - 5, y[1]], [bot[0] - 5, bot[1] + r - 6], [bot[0] + 5, bot[1] + r - 6], [y[0] + 5, y[1]], z];
+        else a.pts = child ? [x, y, bot, below(bot)] : [x, y, below(y)];
+        a.cum = cumOf(a.pts); a.L = a.cum[a.cum.length - 1];
+        if (v && obs) a.pauseAt = a.cum[2];
+        if (v && !obs) a.outlet = a.cum[a.cum.length - 2] + r;
+        if (wet) a.zwet = g.el('circle', { cx: z[0], cy: z[1], r: r - 1, fill: WET, opacity: 0 });
+        if (v && obs) a.npool = g.el('path', { d: 'M0,0', fill: WATER, 'fill-opacity': 0, stroke: 'none' });
+        const wj = { stroke: WATER, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-dasharray': `0 ${a.L + 60}` };
+        a.body = g.path(a.pts, { ...wj, 'stroke-width': 16, 'stroke-opacity': 0 });
+        a.core = g.path(a.pts, { ...wj, 'stroke-width': 6, 'stroke-opacity': 0 });
+        a.drops = Array.from({ length: Math.ceil(a.L / GD) + 1 }, () => g.el('circle', { cx: x[0], cy: x[1], r: DR, fill: WATER, opacity: 0 }));
+        if (!v && obs) {   // the dam, the water piling up against it, and its ripple
           const wx = y[0] - r - 7;
-          g.el('path', { d: `M${wx - 20},${y[1]}a20,13 0 0 0 20,13v-13z`, fill: WATER, 'fill-opacity': 0.3, stroke: 'none' });
+          a.wall = [wx - 1, y[1]];
+          a.dpool = g.el('path', { d: 'M0,0', fill: WATER, 'fill-opacity': 0, stroke: 'none' });
+          a.ripple = g.el('circle', { cx: wx - 2, cy: y[1], r: 0, fill: 'none', stroke: WATER, 'stroke-width': 1.5, opacity: 0 });
           g.el('rect', { x: wx - 1, y: y[1] - 20, width: 8, height: 40, rx: 2, fill: DAM });
         }
         if (v && obs) g.el('rect', { x: bot[0] - 20, y: bot[1] + r - 1, width: 40, height: 8, rx: 2, fill: DAM });
@@ -226,9 +302,14 @@ FIGS.traffic8 = trafficFig(K * 0.6, 2.5, 1.4, 'below');
           const [cx, cy] = P(nodes[k].at);
           g.el('path', { d: hatchD(cx, cy, r, 7.5), stroke: nodes[k].hatch, 'stroke-width': 1, fill: 'none' });
         }
+        panels.push(a);
       });
       top += RH[row] + RG;
     });
+    T = Math.max(...panels.map(tEnd)) + HOLD + FADE;
+    g.root._flow = panels;
+    if (PRINT) update(panels, T - FADE - 0.05);
+    else { update(panels, 0); run(g.root); }
   } };
 }
 

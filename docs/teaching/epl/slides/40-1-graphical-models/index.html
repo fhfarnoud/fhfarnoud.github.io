@@ -54,10 +54,6 @@ table.wxm th, table.wxm td { padding: 3px 15px; text-align: center; font-weight:
 table.wxm th { border-right: 1.2px solid #000; }
 table.wxm tr:first-child > * { border-bottom: 1.2px solid #000; }
 table.wxm .me { font-size: 0.95em; line-height: 1; text-shadow: none; }
-/* slide 10: the water's dashes run along their path; print keeps them still */
-.flow { stroke-dasharray: 8 10; animation: flow .6s linear infinite; }
-@keyframes flow { to { stroke-dashoffset: -18; } }
-.print-pdf .flow { animation: none; }
 .fig[data-fig="flow"] .lab .nd { text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 2px #fff; }
 /* slide 29: the simulation's sliders centred under its pictures */
 section.sim .knobs { justify-content: center; margin: 2px 0 8px; }
