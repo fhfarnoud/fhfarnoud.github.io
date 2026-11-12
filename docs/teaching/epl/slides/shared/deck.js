@@ -658,6 +658,7 @@ function sceneFig(f) {
 }
 
 const FIGS = {};    // name -> { init(root), render(root, p) } or { size, draw(g, p) }; duration?, linear?, enter?
+// duration: ms of a step's tween, or a function (from, to) of the two states giving it
 const ICONS = {};   // name -> function(svg), for <svg class="icon" data-icon="name">
 
 // "n / N", with N counted before reveal wraps the slides into print pages.
@@ -680,13 +681,19 @@ function draw(root, p) {
   FIGS[root.dataset.fig].render(root, p);
   syncKnobs(root, p);
 }
-function show(root, from) {
+// stepKeys: the parameters the build step being taken sets.  A value set with a
+// slider (st.user) stays through later steps, except a step that sets it.
+function show(root, from, stepKeys) {
   const fig = FIGS[root.dataset.fig], target = stateFor(root);
   let st = live.get(root);
   if (!st) { st = {}; live.set(root, st); }
   cancelAnimationFrame(st.raf);
+  for (const k in st.user || {}) {
+    if (stepKeys && stepKeys.has(k)) delete st.user[k];
+    else target[k] = st.user[k];
+  }
   if (!from) { draw(root, target); st.p = target; return; }
-  const t0 = performance.now(), D = fig.duration || 900;
+  const t0 = performance.now(), D = (typeof fig.duration === 'function' ? fig.duration(from, target) : fig.duration) || 900;
   const step = now => {
     const u = clamp((now - t0) / D), e = fig.linear ? u : ease(u), p = {};
     for (const k in target) p[k] = typeof target[k] === 'number' && k in from
@@ -701,7 +708,8 @@ const figsIn = slide => slide ? slide.querySelectorAll('.fig[data-fig]') : [];
 // Live sliders: <div class="knobs" data-for="FIG"><label>…<input type="range"
 // data-param="rho" …><output></output></label></div>.  Moving one redraws the
 // figure named in data-for (default: the slide's first figure) at the current
-// state with that parameter replaced; the next fragment step takes over again.
+// state with that parameter replaced.  The value stays through later build
+// steps until one that sets the same parameter, or until the slide is left.
 function knobsFor(root) {
   const slide = root.closest('section');
   return [...slide.querySelectorAll('.knobs')].filter(k =>
@@ -731,6 +739,7 @@ function wireKnobs() {
         const p = Object.assign({}, st.p || stateFor(root), { [inp.dataset.param]: val() });
         if (out) out.textContent = fmt(val(), +(inp.dataset.digits ?? 2));
         FIGS[name].render(root, p); st.p = p; live.set(root, st);
+        st.user = Object.assign(st.user || {}, { [inp.dataset.param]: val() });
       };
       inp.addEventListener('input', upd);
       // Arrow keys belong to the slider while it has focus, not to reveal.
@@ -1425,13 +1434,22 @@ async function startDeck(opts = {}) {
   Reveal.on('ready', () => { document.querySelectorAll('.fig[data-fig]').forEach(r => show(r));
     document.documentElement.dataset.deckReady = '1'; });
   Reveal.on('slidechanged', e => figsIn(e.currentSlide).forEach(root => {
+    const st0 = live.get(root);
+    if (st0) st0.user = {};   // a slider's value does not outlast the visit
     const fig = FIGS[root.dataset.fig], forward = !e.previousSlide ||
       Reveal.getIndices(e.previousSlide).h < Reveal.getIndices(e.currentSlide).h;
     const noSteps = !e.currentSlide.querySelector('.fragment.visible[data-set]');
     if (fig.enter && forward && noSteps) show(root, Object.assign(stateFor(root), fig.enter));
     else show(root);
   }));
-  const step = () => figsIn(Reveal.getCurrentSlide()).forEach(root => show(root, (live.get(root) || {}).p));
+  const step = e => figsIn(Reveal.getCurrentSlide()).forEach(root => {
+    const keys = new Set();
+    (e.fragments || [e.fragment]).forEach(f => {
+      if (f && f.dataset.set && (!f.dataset.for || f.dataset.for === root.dataset.fig))
+        Object.keys(JSON.parse(f.dataset.set)).forEach(k => keys.add(k));
+    });
+    show(root, (live.get(root) || {}).p, keys);
+  });
   Reveal.on('fragmentshown', step);
   Reveal.on('fragmenthidden', step);
   // Printing: each page is a clone with its own set of visible fragments.

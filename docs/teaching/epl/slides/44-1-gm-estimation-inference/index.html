@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Graphical Models II</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<link rel="stylesheet" href="../shared/deck.css">
+<style>
+/* Deck-local.  \setbeamercovered{transparent=10}: a build step not yet reached is drawn at 10% opacity,
+   live and in print, instead of hidden. */
+.reveal .slides section .fragment:not(.visible):not(.custom) { opacity: .1; visibility: inherit; }
+/* \pause between the rows of one formula: \htmlClass{uK}{...} parts are covered (10%) until the
+   slide's empty step marker .sK is visible */
+.mark { display: none; }
+.reveal .slides section .u2, .reveal .slides section .u3, .reveal .slides section .u4,
+.reveal .slides section .u5 { opacity: .1; transition: opacity .2s ease; }
+.reveal .slides section:has(.s2.visible) .u2, .reveal .slides section:has(.s3.visible) .u3,
+.reveal .slides section:has(.s4.visible) .u4, .reveal .slides section:has(.s5.visible) .u5 { opacity: 1; }
+/* lists: Beamer's itemize and enumerate, bullets and numbers in the structure colour */
+.fbody ul, .fbody ol { list-style: none; display: block; margin: 0 0 14px; padding: 0; text-align: left; }
+.fbody li { position: relative; margin: 0 0 6px; padding-left: 1.2em; }
+.fbody ul > li::before { content: ''; position: absolute; left: .32em; top: .48em; width: .36em; height: .36em;
+  border-radius: 50%; background: var(--struct); }
+.fbody ol { counter-reset: en; }
+.fbody ol > li { counter-increment: en; padding-left: 1.45em; }
+.fbody ol > li::before { content: counter(en); position: absolute; left: .1em; top: .28em; width: 1.6em; height: 1.6em;
+  line-height: 1.6em; font-size: .62em; font-weight: bold; text-align: center; border-radius: 50%;
+  background: var(--struct); color: #fff; }
+.fbody li ul, .fbody li ol { margin: 4px 0 2px; font-size: .9em; }
+.fbody li li { margin-bottom: 3px; }
+.fbody li li::before { width: .3em; height: .3em; top: .52em; }
+.center { text-align: center; }
+/* a full slide whose figure needs the room: closer paragraphs and items */
+section.tight .fbody p, section.tight .fbody ul { margin-bottom: 6px; }
+section.tight .fbody li { margin-bottom: 2px; }
+/* \small and \footnotesize around a formula */
+.eq-small { font-size: .91em; }
+.eq-foot { font-size: .82em; }
+/* two side-by-side columns (Beamer columns), balanced as one block */
+.pair { display: grid; grid-template-columns: 58fr 38fr; column-gap: 4%; align-items: start; }
+.pair.even { grid-template-columns: 1fr 1fr; align-items: center; }
+.pair > div > :last-child { margin-bottom: 0; }
+.pair p.center { margin-bottom: 6px; }
+/* the data table of "The Big Picture" (|c|c|c|c|c| with \hline), at the share of the slide it has in the source */
+table.data { border-collapse: collapse; margin: 0 auto; font-size: 25px; line-height: 1.15; }
+table.data td, table.data th { border-left: 1px solid #000; border-right: 1px solid #000; padding: 0 14px;
+  text-align: center; font-weight: normal; }
+table.data thead th { border-top: 1px solid #000; border-bottom: 1px solid #000; }
+table.data tbody tr:last-child td { border-bottom: 1px solid #000; }
+/* \referenceframe: a plain frame, the title centred in bold gray with "(For Reference)" under it,
+   the text small and gray */
+section.ref .reftitle { position: absolute; left: 40px; right: 40px; top: 30px; text-align: center;
+  font-size: 37px; font-weight: bold; color: #4d4d4d; }
+section.ref .refsub { position: absolute; left: 0; right: 0; top: 88px; text-align: center; font-size: 23px; color: #808080; }
+section.ref .fbody { top: 140px; color: #666; font-size: 24.5px; }
+section.ref .fbody.foot { font-size: 22px; }
+section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subbody is \small */
+.fbody > div > p + ul, .fbody > div > p + ol { margin-top: -6px; }
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<!-- 1 -->
+<section class="frame">
+  <div class="titlebox">
+    <div class="t">Probabilistic Machine Learning</div>
+    <div class="st">Graphical Models II: Parameter Estimation and Inference</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Farzad Farnoud</div>
+    <div class="i">University of Virginia</div>
+    <div class="d">11/12/2026</div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section>
+  <h2>Recap: Graphical Models I</h2>
+  <p><b>What we covered:</b></p>
+  <ul>
+    <li><b>Bayesian Networks:</b> DAGs encoding conditional independence
+      <ul><li>$p(\bx) = \prod_i p(x_i | \pa(x_i))$</li></ul></li>
+    <li><b>Markov Random Fields:</b> Undirected graphs for correlations
+      <ul><li>$p(\bx) = \frac{1}{Z}\prod_C \psi_C(x_C)$</li></ul></li>
+    <li><b>Factorization:</b> Joint distribution is product of local factors</li>
+    <li><b>Independence:</b> BNs: d-separation; MRFs: separation; Both: Markov blanket</li>
+  </ul>
+  <p pause data-fragment-index="1"><b>Today’s focus:</b></p>
+  <ol pause data-fragment-index="1">
+    <li>How to <b>learn parameters</b> from data?</li>
+    <li>How to perform <b>inference</b> (compute probabilities)?</li>
+  </ol>
+  <p pause data-fragment-index="1">Graph structure reveals independence $\to$ enables efficient learning &amp; inference!</p>
+</section>
+
+<!-- Outline -->
+<section class="frame" data-slide="map">
+  <ol class="toc" hidden>
+    <li><a href="#/sec-pe">Parameter Estimation</a></li>
+    <li><a href="#/sec-inf">Inference</a></li>
+    <li data-map-num="0"><a href="#/sec-sum">Summary</a></li>
+  </ol>
+  <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+</section>
+
+<!-- ============ Parameter estimation ============ -->
+
+<!-- 3 -->
+<section id="sec-pe">
+  <h2>Parameter Estimation: Complexity</h2>
+  <p><b>The curse of dimensionality:</b> A general joint distribution over $m$ variables, each with $k$ values, requires: $k^m - 1$ parameters!</p>
+  <p><b>Example:</b> $m = 100$ binary variables: $2^{100} \approx 10^{30}$ parameters!</p>
+  <p pause data-fragment-index="1"><b>Graphical models reduce this dramatically:</b></p>
+  <ul pause data-fragment-index="1">
+    <li><b>BN:</b> $\sum_{i=1}^m k^{|\text{pa}(x_i)|}(k-1) \approx m \cdot k^{d+1}$, $d = \max_i |\text{pa}(x_i)|$<br>
+      <b>Example:</b> $m=100$, binary, $d=3$: only $100 \times 2^4 = 1600$ parameters</li>
+    <li><b>MRF:</b> $\sum_{C} k^{|C|} \approx (\text{\# cliques}) \times k^{c}$, $c$ = max clique size</li>
+  </ul>
+  <p pause data-fragment-index="2"><b>Learning complexity:</b></p>
+  <ul pause data-fragment-index="2">
+    <li><b>BNs:</b> Each CPD can be learned <em>separately</em> $\to$ simple counting!</li>
+    <li><b>MRFs:</b> Parameters coupled through $Z(\theta)$ $\to$ complex but can still use sampling or other computational methods.</li>
+  </ul>
+</section>
+
+<!-- 4 -->
+<section>
+  <h2>Parameter Estimation: The Big Picture</h2>
+  <div class="pair">
+    <div>
+      <p class="center"><b>1. The Model (Graph)</b></p>
+      <fig name="biggraph" style="margin:0 auto"></fig>
+    </div>
+    <div>
+      <p class="center"><b>2. The Data</b></p>
+      <table class="data">
+        <thead><tr><th>$i$</th><th>$T$</th><th>$C$</th><th>$A$</th><th>$B$</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+          <tr><td>2</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+          <tr><td>3</td><td>1</td><td>1</td><td>1</td><td>0</td></tr>
+          <tr><td>$\vdots$</td><td>$\vdots$</td><td>$\vdots$</td><td>$\vdots$</td><td>$\vdots$</td></tr>
+          <tr><td>100</td><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p><b>8 Unknown Parameters (CPDs):</b> $P(T)$, $P(C)$, $P(A|T)$, $P(B|T,C)$</p>
+  <p><b>Goal:</b> Estimate parameters of CPDs from the data.</p>
+  <p><b>Key Question:</b> Can joint optimization problem over 8 parameters be decomposed into smaller independent problems?</p>
+  <p pause><b>Answer:</b> Yes! Graph structure tells us how.</p>
+</section>
+
+<!-- 5 -->
+<section>
+  <h2>Maximum Likelihood Estimation (MLE)</h2>
+  <p><b>Goal:</b> Find parameters $\btheta$ that maximize the probability of the data $\cD$.</p>
+  \[\hat{\btheta}_{\text{MLE}} = \argmax_{\btheta} p(\cD; \btheta)\]
+  <p><b>Likelihood Function:</b> Assuming i.i.d. samples $\cD = \{\bx^{(1)}, \dots, \bx^{(N)}\}$:</p>
+  \[L(\btheta) = \prod_{i=1}^N p(\bx^{(i)}; \btheta)\]
+  <p><b>Log-Likelihood:</b> Easier to maximize sum than product:</p>
+  \[\ell(\btheta) = \sum_{i=1}^N \log p(\bx^{(i)}; \btheta)\]
+  <p pause data-fragment-index="1"><b>For Bayesian Networks:</b> $p(\bx;\btheta) = \prod_j p(x_j | \pa(x_j); \btheta_j)$</p>
+  <div pause data-fragment-index="1">\[\ell(\btheta) = \sum_{i=1}^N \sum_{j=1}^m \log p(x_j^{(i)} | \pa(x_j)^{(i)}; \btheta_j)\]</div>
+</section>
+
+<!-- 6 -->
+<section>
+  <h2>MLE Decomposition</h2>
+  <p>Rearranging the sums:</p>
+  \[\ell(\btheta) = \sum_{j=1}^m \underbrace{\left[ \sum_{i=1}^N \log p(x_j^{(i)} | \pa(x_j)^{(i)}; \btheta_j) \right]}_{\substack{\text{Local Log-Likelihood} \\ \text{for node } j}}\]
+  <p><b>Key Insight:</b></p>
+  <ul>
+    <li>The global objective decomposes into a sum of local objectives.</li>
+    <li>We can maximize each term <b>independently</b>!</li>
+  </ul>
+  <p pause data-fragment-index="1"><b>Implication:</b> To learn parameters for node $X_j$, we only need data for:</p>
+  <ol pause data-fragment-index="1">
+    <li>$X_j$ itself and</li>
+    <li>its parents $\pa(X_j)$</li>
+  </ol>
+</section>
+
+<!-- 7 -->
+<section>
+  <h2>MLE Solution: Just Counting!</h2>
+  <p><b>Model:</b> Discrete variables. Parameter $\theta_{jlk} = p(X_j = k | \pa(X_j) = l)$.</p>
+  <p><b>Constraint:</b> $\sum_k \theta_{jlk} = 1$ for each parent config $l$.</p>
+  <p pause data-fragment-index="1"><b>Solution:</b></p>
+  <div pause data-fragment-index="1">\[\hat{\theta}_{jlk} = \frac{N_{jlk}}{\sum_{k'} N_{jlk'}} = \frac{N_{jlk}}{N_{jl}}\]</div>
+  <p pause data-fragment-index="1">where:</p>
+  <ul pause data-fragment-index="1">
+    <li>$N_{jlk}$: Count of times $X_j=k$ AND $\pa(X_j)=l$ in dataset.</li>
+    <li>$N_{jl}$: Count of times $\pa(X_j)=l$.</li>
+  </ul>
+  <div pause data-fragment-index="1">
+    <p><b>Example:</b> Traffic ($T$) $\to$ Alice Late ($A$)</p>
+    <ul>
+      <li>Data: 100 days. 70 days $T=0$. Alice late ($A=1$) on 10 of those.</li>
+      <li>$\hat{\theta}_{A=1|T=0} = \frac{10}{70} = 0.14$.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 8 -->
+<section>
+  <h2>Bayesian Parameter Estimation</h2>
+  <p><b>Bayesian View:</b> Parameters are random variables! We add them to the graph as parents of the variables they govern.</p>
+  <fig name="bayesparams" style="margin:0 auto"></fig>
+  <p><b>Prior:</b> $p(\btheta) = p(\theta_T)p(\btheta_A)p(\btheta_B)$ (no incoming edges to parameter nodes)</p>
+</section>
+
+<!-- not in the source: plate notation -->
+<section>
+  <h2>Plate Notation</h2>
+  <p>With $N$ samples, the graph has one copy of $T, A, B$ per sample, all sharing the parameters. For $N = 3$:</p>
+  <fig name="platedemo" init="c=0" style="margin:0 auto"></fig>
+  \[p(\cD, \btheta) = p(\btheta) \prod_{i=1}^{3} p(T_i|\theta_T)\, p(A_i|T_i, \btheta_A)\, p(B_i|T_i, \btheta_B)\]
+  <p pause="c=1"><b>Plate:</b> a box around one copy stands for all the copies, as the product over $i$ does; the number in its corner counts them, and an edge from outside the box goes to every copy.</p>
+</section>
+
+<!-- 9 -->
+<section>
+  <h2>Posterior Distribution</h2>
+  <p>Given data $\cD$ ($N$ samples), we want $p(\btheta | \cD)$.</p>
+  <fig name="posterior" style="margin:0 auto"></fig>
+  <p><b>Decomposition:</b> By Markov blanket,</p>
+  \[p(\btheta|\cD) = p(\theta_T|T_1^N) p(\btheta_A|A_1^N, T_1^N) p(\btheta_B|B_1^N, T_1^N)\]
+  <p><b>Implication:</b> To learn distribution of $\btheta_j$ corresponding to node $X_j$, we need data for:</p>
+  <ol>
+    <li>$X_j$ itself and</li>
+    <li>its parents $\pa(X_j)$</li>
+  </ol>
+</section>
+
+<!-- 10 -->
+<section>
+  <h2>Predicting Future Outcomes</h2>
+  <p>We can also predict the next observation $(T_{n+1}, A_{n+1}, B_{n+1})$.</p>
+  <fig name="predict" style="margin:0 auto"></fig>
+  <div>
+    <p><b>Prediction:</b> Two options</p>
+    <ol>
+      <li>True Bayes: Integrate out parameters $p(A_{n+1}|T_{n+1}, \cD) = \int p(A_{n+1}|T_{n+1}, \btheta_A) p(\btheta_A|\cD) d\btheta_A$</li>
+      <li>Use point estimate (e.g., MAP)</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ Inference ============ -->
+
+<!-- 11 -->
+<section id="sec-inf">
+  <h2>Inference: What and Why?</h2>
+  <p><b>Setup:</b> We now have a trained model with all parameters (In the Bayesian case, parameters become part of the graph).</p>
+  <p><b>Inference question:</b> What is $p(\text{query} | \text{evidence})$?</p>
+  <div>
+    <p><b>Example:</b> Traffic network with Rain 🌧️</p>
+    <ul>
+      <li><b>Evidence:</b> Bob is late $B=1$ 🏃‍♂️</li>
+      <li><b>Query:</b> Is traffic heavy? $p(T=1 | B=1)$ 🚥</li>
+    </ul>
+  </div>
+  <fig name="traffic" style="margin:0 auto"></fig>
+</section>
+
+<!-- 12 -->
+<section>
+  <h2>The Challenge: Exponential Complexity</h2>
+  <p><b>⚠️ Problem:</b> Naive computation is exponential!</p>
+  <p><b>To compute</b> $p(T=1 | B=1)$:</p>
+  <div class="eq-small">\[p(T=1 | B=1) = \frac{p(T=1,B=1)}{p(B=1)}=\frac{\sum_{r,c} p(R=r, T=1, C=c, B=1)}{\sum_{r,t,c} p(R=r, T=t, C=c, B=1)}\]</div>
+  <p><b>Must sum over all combinations of $R$ and $C$:</b></p>
+  <p><b>General case:</b> $m$ hidden binary variables $\to$ $2^m$ combinations</p>
+  <p pause><b>💡 Solution:</b> Exploit graph structure to avoid redundant computation</p>
+</section>
+
+<!-- 13 -->
+<section>
+  <h2>Simplifying the Problem</h2>
+  <p><b>Goal:</b> Compute posterior $p(T | B=1)$.</p>
+  \[p(T=t | B=1) = \frac{p(T=t, B=1)}{p(B=1)}\]
+  <p><b>Observation:</b> The denominator $p(B=1)$ is the same for all $t$.</p>
+  \[p(B=1) = \sum_{t'} p(T=t', B=1)\]
+  <p pause data-fragment-index="1"><b>Strategy:</b></p>
+  <ol pause data-fragment-index="1">
+    <li>Compute the <b>numerator</b> (joint probability) for each value of $T$: \[\alpha_0 = p(T=0, B=1), \quad \alpha_1 = p(T=1, B=1)\]</li>
+    <li><b>Normalize</b> to get probabilities: \[p(T=1 | B=1) = \frac{\alpha_1}{\alpha_0 + \alpha_1}\]</li>
+  </ol>
+  <p pause data-fragment-index="1"><b>Conclusion:</b> Only compute joint probability $p(T, B=1)$.<br>Same approach works for unconditional queries, e.g., $p(T)$.</p>
+</section>
+
+<!-- 14 -->
+<section>
+  <h2>Variable Elimination: A Concrete Example</h2>
+  <p><b>Task:</b> Compute both numerators $\alpha_t = p(T=t, B=1)$, $t \in \{0, 1\}$, efficiently.</p>
+  <p><b>Naive Summation:</b> $\alpha_t = \sum_c \sum_r p(R=r, T=t, C=c, B=1)$</p>
+  <p><b>Elimination:</b> Factorize distribution and eliminate variables one at a time.</p>
+  <p pause data-fragment-index="1"><b>Step 1: Eliminate $R$ (Sum over $r$)</b>: Group terms involving $R$:</p>
+  <div pause data-fragment-index="1">\[\alpha_t = \sum_c p(C=c) p(B=1|T=t, C=c) \underbrace{\left[ \sum_r p(R=r) p(T=t|R=r) \right]}_{m(T=t)}\]</div>
+  <p pause data-fragment-index="2"><b>Step 2: Eliminate $C$ (Sum over $c$)</b>: Use the result $m(T=t)$ in the remaining sum:</p>
+  <div pause data-fragment-index="2">\[\alpha_t = m(T=t) \sum_c p(C=c) p(B=1|T=t, C=c)\]</div>
+  <p pause data-fragment-index="2"><b>Result:</b> For each $t$, replaced a sum over $R \times C$ pairs with two smaller sums.</p>
+</section>
+
+<!-- 15 -->
+<section>
+  <h2>Elimination order matters</h2>
+  <p><b>Example:</b> Chain $x_1 \to x_2 \to x_3 \to x_4$. Compute $p(x_4)$.</p>
+  <div class="eq-foot">\[\begin{aligned}
+    p(x_4) &= \sum_{x_1,x_2,x_3}p(x_1)p(x_2|x_1)p(x_3|x_2)p(x_4|x_3) \\
+    &\htmlClass{u2}{{}= \sum_{x_3}\sum_{x_2}\sum_{x_1}p(x_1)p(x_2|x_1)p(x_3|x_2)p(x_4|x_3)} \\
+    &\htmlClass{u3}{{}= \sum_{x_3} p(x_4|x_3) \sum_{x_2} p(x_3|x_2) \underbrace{\sum_{x_1} p(x_1) p(x_2|x_1)}_{m_1(x_2)}} \\
+    &\htmlClass{u4}{{}= \sum_{x_3} p(x_4|x_3) \underbrace{\sum_{x_2} p(x_3|x_2) m_1(x_2)}_{m_2(x_3)}} \\
+    &\htmlClass{u5}{{}= \sum_{x_3} p(x_4|x_3) m_2(x_3)}
+  \end{aligned}\]</div>
+  <span class="mark s2" pause data-fragment-index="1"></span>
+  <span class="mark s3" pause data-fragment-index="2"></span>
+  <span class="mark s4" pause data-fragment-index="3"></span>
+  <span class="mark s5" pause data-fragment-index="4"></span>
+  <p pause data-fragment-index="4">Now only $O(k^2)$ operations! <b>Massive savings</b> compared to naive $k^4$.</p>
+</section>
+
+<!-- 16 -->
+<section>
+  <h2>Bad Elimination Order</h2>
+  <p><b>Same Example:</b> Chain $x_1 \to x_2 \to x_3 \to x_4$. Compute $p(x_4)$.</p>
+  <p><b>Bad Idea:</b> Eliminate $x_2$ first</p>
+  <div class="eq-foot">\[\begin{aligned}
+    p(x_4) &= \sum_{x_1,x_2,x_3}p(x_1)p(x_2|x_1)p(x_3|x_2)p(x_4|x_3) \\
+    &= \sum_{x_1}\sum_{x_3}p(x_1)p(x_4|x_3)\sum_{x_2}p(x_2|x_1)p(x_3|x_2) \\
+    &= \sum_{x_1} p(x_1) \sum_{x_3} p(x_4|x_3) {\color{blue}\underbrace{\sum_{x_2} p(x_2|x_1) p(x_3|x_2)}_{m_1(x_1, x_3)}} \\
+    &= \sum_{x_1} p(x_1) {\color{red}\underbrace{\sum_{x_3} p(x_4|x_3) {\color{blue}m_1(x_1, x_3)}}_{m_2(x_1, x_4)}} \sum_{x_1} p(x_1) {\color{red}m_2(x_1, x_4)}
+  \end{aligned}\]</div>
+  <p><b>Problem:</b> Computing $m_1$ requires summing over $x_2$ <b>for each</b> pair $(x_1, x_3)$! Complexity $O(k^3)$.</p>
+</section>
+
+<!-- 17: reference frame -->
+<section class="ref">
+  <div class="reftitle">Variable Elimination: The General Algorithm</div>
+  <div class="refsub">(For Reference)</div>
+  <div class="fbody foot">
+    <p><b>The Recipe:</b> To compute $p(X_{\text{query}} | X_{\text{evidence}})$:</p>
+    <ol>
+      <li><b>Initialize:</b> Start with all factors (or CPDs) in the graph.</li>
+      <li><b>Evidence:</b> Fix values of observed variables (sum contains a single term).</li>
+      <li><b>Order:</b> Choose an elimination ordering for hidden variables.</li>
+      <li><b>Eliminate:</b> For each variable $Z$ in the ordering:
+        <ul>
+          <li><b>Collect:</b> Find all factors that mention $Z$. Let $q$ be the set of variables other than $Z$ in these factors.</li>
+          <li><b>Multiply:</b> Multiply them to form a temporary factor $\psi(Z,q)$.</li>
+          <li><b>Sum:</b> Find $m(q)=\sum_z \psi(Z=z,q)$ for all possible values of $q$.</li>
+          <li><b>Update:</b> Replace old factors with $m(q)$.</li>
+        </ul></li>
+      <li><b>Normalize:</b> Multiply remaining factors and normalize.</li>
+    </ol>
+    <p><b>Note:</b> Complexity depends on elimination order! Finding optimal order is NP-hard.</p>
+  </div>
+</section>
+
+<!-- 18 -->
+<section class="tight">
+  <h2>Sum-Product Algorithm: Message Passing on Trees</h2>
+  <p><b>💡 Key idea:</b> On trees, we can find optimal elimination order by systematically passing messages towards the query node.</p>
+  <p><b>Example:</b> Tree MRF, compute marginal at $x_4$.</p>
+  <fig name="tree" init="m=0" style="margin:0 auto"></fig>
+  <p><b>Messages flow toward query node $x_4$:</b></p>
+  <ul pause="m=1" data-fragment-index="1">
+    <li>$m_{1 \to 3}(x_3) = \sum_{x_1} \psi(x_1, x_3)$</li>
+    <li>$m_{2 \to 3}(x_3) = \sum_{x_2} \psi(x_2, x_3)$</li>
+    <li>$m_{3 \to 4}(x_4) = \sum_{x_3} \psi(x_3, x_4) \cdot m_{1 \to 3}(x_3) \cdot m_{2 \to 3}(x_3)$</li>
+    <li>$m_{5 \to 4}(x_4) = \sum_{x_5} \psi(x_4, x_5)$</li>
+  </ul>
+  <p pause data-fragment-index="1"><b>Final marginal:</b> $p(x_4) \propto m_{3 \to 4}(x_4) \cdot m_{5 \to 4}(x_4)$</p>
+</section>
+
+<!-- 19: reference frame -->
+<section class="ref">
+  <div class="reftitle">Sum-Product Algorithm</div>
+  <div class="refsub">(For Reference)</div>
+  <div class="fbody">
+    <p><b>Message from node $i$ to node $j$:</b></p>
+    \[m_{i \to j}(x_j) = \sum_{x_i} \psi(x_i) \psi(x_i, x_j) \prod_{k \in N(i) \setminus j} m_{k \to i}(x_i)\]
+    <p>where $N(i)$ = neighbors of node $i$</p>
+    <p><b>Marginal at node $j$ (after all messages received):</b></p>
+    \[p(x_j) \propto \psi(x_j) \prod_{i \in N(j)} m_{i \to j}(x_j)\]
+    <p><b>All marginals on tree MRFs:</b> Send all possible messages on each edge in both directions.</p>
+    <p><b>For general graphs:</b> keep passing messages in loops: loopy belief propagation (approximate)</p>
+  </div>
+</section>
+
+<!-- 20 -->
+<section>
+  <h2>Finding the Most Likely Configuration</h2>
+  <p><b>Different question:</b> Instead of probabilities, find best configuration</p>
+  <div>
+    <p><b>Example:</b> Image denoising</p>
+    <ul>
+      <li><b>Observed:</b> Noisy image pixels</li>
+      <li><b>Goal:</b> Find most likely clean image</li>
+    </ul>
+  </div>
+  \[\bx^* = \argmax_{\bx} p(\bx | \text{noisy pixels})\]
+  <p><b>💡 Key insight:</b> Replace $\sum$ with $\max$!</p>
+  <div class="pair even">
+    <div>
+      <p><b>Sum-product:</b></p>
+      \[m_{i \to j} = \sum_{x_i} \cdots\]
+      <p>Computes probabilities</p>
+    </div>
+    <div>
+      <p><b>Max-product:</b></p>
+      \[m_{i \to j} = \max_{x_i} \cdots\]
+      <p>Finds best config</p>
+    </div>
+  </div>
+  <p><b>Bonus:</b> Need to backtrack to recover actual configuration</p>
+</section>
+
+<!-- 21: reference frame -->
+<section class="ref">
+  <div class="reftitle">Max-Product Algorithm</div>
+  <div class="refsub">(For Reference)</div>
+  <div class="fbody">
+    <p><b>Message from node $i$ to node $j$:</b></p>
+    \[m_{i \to j}(x_j) = \max_{x_i} \psi(x_i) \psi(x_i, x_j) \prod_{k \in N(i) \setminus j} m_{k \to i}(x_i)\]
+    <p><b>Find maximum at node $j$:</b></p>
+    \[\max_{x_j} p(x_j) = \max_{x_j} \left[\psi(x_j) \prod_{i \in N(j)} m_{i \to j}(x_j)\right]\]
+    <p><b>Backtracking to recover $\bx^*$:</b></p>
+    <ol>
+      <li>Store: $\psi_j(x_j) = \argmax_{x_i} [\text{message terms}]$ during forward pass</li>
+      <li>Start at any node: $x_j^* = \argmax_{x_j} p(x_j)$</li>
+      <li>Trace back using stored pointers $\psi_i$</li>
+    </ol>
+    <p><b>Application:</b> Viterbi algorithm for HMMs (special case of max-product on chain)</p>
+  </div>
+</section>
+
+<!-- 22 -->
+<section id="sec-sum">
+  <h2>Summary: What We Learned</h2>
+  <div>
+    <p><b>Part I: Parameter Estimation</b></p>
+    <ul>
+      <li><b>Key insight:</b> Graph structure $\to$ learn each node locally</li>
+      <li>Only need data from node and its parents</li>
+      <li>Works for both MLE and Bayesian approaches</li>
+    </ul>
+  </div>
+  <div>
+    <p><b>Part II: Inference</b></p>
+    <ul>
+      <li><b>Challenge:</b> Naive approach is exponential</li>
+      <li><b>Solution:</b> Exploit structure via variable elimination / message passing</li>
+      <li>Max-product: Find most likely configuration</li>
+    </ul>
+  </div>
+  <p><b>Big picture:</b> Graph structure enables both efficient learning and inference!</p>
+</section>
+
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/contrib/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="../shared/deckmap.js"></script>
+<script src="figs.js"></script>
+<script>startDeck();</script>
+</body>
+</html>

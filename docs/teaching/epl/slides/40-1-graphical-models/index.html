@@ -55,7 +55,7 @@ table.wxm th { border-right: 1.2px solid #000; }
 table.wxm tr:first-child > * { border-bottom: 1.2px solid #000; }
 table.wxm .me { font-size: 0.95em; line-height: 1; text-shadow: none; }
 .fig[data-fig="flow"] .lab .nd { text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 2px #fff; }
-/* slide 29: the simulation's sliders centred under its pictures */
+/* slide 30: the simulation's sliders centred under its pictures */
 section.sim .knobs { justify-content: center; margin: 2px 0 8px; }
 /* tables with Beamer's |l|c|l| rules */
 table.grid { border-collapse: collapse; margin: 0 auto; }
@@ -656,6 +656,33 @@ section.tight .fbody li { margin-bottom: 2px; }
 </section>
 
 <!-- 28 -->
+<section>
+  <h2>Boltzmann distribution: a gas in gravity</h2>
+  <column>
+    <p class="opener">The energy of slide 27 comes from physics, where it sets how gas molecules spread out.</p>
+    <block title="Boltzmann distribution">
+      \[p(x) \propto e^{-E(x)/k_B T} \qquad (\textsf{slide 27: } k_B T = 1)\]
+      <p>$T$: temperature; $k_B$: Boltzmann's constant</p>
+    </block>
+    <p>Mass $m$ at height $h$: $E(h) = mgh$, so $p(h) \propto e^{-mgh/k_B T}$</p>
+    <p pause="heavy=1">Mass $3m$: $E(h) = 3mgh$, so $p(h)$ falls three times as fast</p>
+    <p pause="T=2.5">Higher $T$ flattens both profiles<span pause="T=0.6">; lower $T$ crowds the molecules at the floor, where $E$ is lowest</span></p>
+    <p pause>Ideal gas: no interactions, so $p(h_1, \ldots, h_N) = \prod_i p(h_i)$, an MRF with no edges</p>
+  </column>
+  <fig name="gas" init="T=1 heavy=0"></fig>
+  <p class="caption" style="max-width:512px">Not to scale: for nitrogen at 0&nbsp;°C, the density falls by a factor of $e$ every 8&nbsp;km of height</p>
+  <knob param="T" min="0.6" max="3" step="0.1" digits="1">temperature $T$</knob>
+  <drawer>
+    <p>The animation moves each molecule freely under gravity, bouncing off the walls. At random times, once a second on average, a collision with the rest of the gas replaces its velocity $v$ by a fresh draw from the Maxwell distribution, each component $\sim \mathcal{N}(0, k_B T/m)$.</p>
+    <p>Take the Boltzmann distribution of a molecule's state, height $h$ and vertical velocity $v$:</p>
+    \[p(h, v) \propto e^{-(mgh + mv^2/2)/k_B T} = \underbrace{e^{-mgh/k_B T}}_{\propto\, p(h)}\;\underbrace{e^{-mv^2/2k_B T}}_{\textsf{Maxwell}}\]
+    <p><b>Free flight</b> for a time $t$ maps $(h, v)$ to $(h + vt - \tfrac{1}{2}gt^2,\; v - gt)$. Its Jacobian determinant is 1 and it keeps the energy $mgh + mv^2/2$, as does a bounce ($v \to -v$), so it carries $p(h, v)$ to itself.</p>
+    <p><b>A collision</b> keeps $h$ and draws $v$ from the Maxwell distribution, which is $p(v \mid h)$, so it carries $p(h, v)$ to itself too.</p>
+    <p>Neither step changes $p(h, v)$, so it is the long-run distribution, and the heights follow $p(h) \propto e^{-mgh/k_B T}$. The horizontal motion is the same with $g = 0$.</p>
+  </drawer>
+</section>
+
+<!-- 29 -->
 <section class="tight">
   <h2>Application: Image Denoising with MRFs</h2>
   <p><b>Task:</b> Remove noise from black/white image</p>
@@ -682,33 +709,32 @@ section.tight .fbody li { margin-bottom: 2px; }
   <p><b>Denoising:</b> Find $\arg\max_x p(x | y)$ (balance smoothness + observation)</p>
 </section>
 
-<!-- 29 -->
+<!-- 30 -->
 <section class="sim">
   <h2>Simulation: Denoising by Iterated Conditional Modes</h2>
-  <fig name="icm" init="p=0.1 zeta=2.5 k=0" style="margin:0 auto"></fig>
+  <fig name="icm" init="p=0.08 zeta=1 k=0" style="margin:0 auto"></fig>
   <knob param="zeta" min="0" max="5" step="0.1" digits="1">$\zeta$</knob>
-  <knob param="p" min="0" max="0.3" step="0.01" digits="2">noise $p$</knob>
-  <knob param="k" min="0" max="8" step="1" digits="0">sweeps</knob>
+  <knob param="p" min="0" max="0.2" step="0.01" digits="2">noise $p$</knob>
+  <knob param="k" min="0" max="10" step="1" digits="0">sweeps</knob>
   <div class="row" style="height:auto">
     <div class="col">
       <block title="Iterated conditional modes (ICM)" class="small">
-        <p>Slide 28's energy with $\alpha_i = 0$, $\beta_{ij} = 1$, $\zeta_i = \zeta$. Visit the pixels in turn, giving each its lower-energy value given the rest:</p>
+        <p>Slide 29's energy with $\alpha_i = 0$, $\beta_{ij} = 1$, $\zeta_i = \zeta$. Visit the pixels one at a time, in a new random order each sweep, giving each its lower-energy value given the rest:</p>
         <p class="center">$x_i \leftarrow \operatorname{sign}\big(\sum_{j \in N(i)} x_j + \zeta\, y_i\big)$ (a tie keeps $x_i$)</p>
         <p>No step raises $E(x, y)$, so ICM stops at a local minimum.</p>
       </block>
     </div>
     <div class="col small">
-      <p pause="k=1">One sweep with $\zeta = 2.5$: a pixel changes only if all its neighbors disagree with it</p>
-      <p pause="k=2">A second sweep changes nothing: a local minimum</p>
-      <p pause="zeta=1 k=6">$\zeta = 1$: three disagreeing neighbors overrule $y_i$; less noise is left, but the eyebrows erode</p>
-      <p pause="zeta=4.5">$\zeta > 4$: no neighborhood overrules $y_i$, so $x = y$</p>
+      <p pause="k=1">Sweep 1: a scratch's end pixel has three disagreeing neighbors, which outweigh $y_i$ when $\zeta < 2$</p>
+      <p pause="k=2">Each flip makes a new end, so the scratches shrink from their ends, sweep after sweep</p>
+      <p pause="k=9">Sweep 9 changes nothing: a local minimum; the eyebrows, one pixel thick like the scratches, shrank too</p>
     </div>
   </div>
 </section>
 
 <!-- ============ Comparison and Summary ============ -->
 
-<!-- 30 -->
+<!-- 31 -->
 <section id="sec-sum" class="tight full">
   <h2>MRF vs Bayesian Network</h2>
   <table class="grid" style="width: 96%">
@@ -738,7 +764,7 @@ section.tight .fbody li { margin-bottom: 2px; }
   </div>
 </section>
 
-<!-- 31 -->
+<!-- 32 -->
 <section>
   <h2>Summary: Graphical Models</h2>
   <div class="grp">
