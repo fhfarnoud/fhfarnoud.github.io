@@ -70,6 +70,27 @@ section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subb
 .exrow > .fig { margin: -10px 0; }
 /* "Reading the Max-Product Messages": the sum-product and max-product readings side by side */
 .par2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; align-items: start; }
+/* the BN, MRF and factor graph slides: a figure row inside the text, and two figures side by side */
+.row.fg-row { height: auto; align-items: center; margin-bottom: 14px; }
+.row.fg-pair { height: auto; justify-content: center; gap: 70px; margin-bottom: 14px; }
+.row.fg-pair p.center { margin: 4px 0 0; }
+/* the hidden Markov model slides: on "Inference in Hidden Markov Models" the model's text beside
+   the graph; on "Sum-Product on an HMM" the two recursions side by side, a size smaller */
+.hmpair { display: grid; grid-template-columns: 1fr auto; column-gap: 28px; align-items: center; margin: 0 0 6px; }
+.hmpair > div > :last-child { margin-bottom: 0; }
+.hmrec .katex-display { font-size: .9em; }
+.hmrec p { margin-bottom: 0; }
+/* the two worked examples: the text (the example, the steps) a size smaller than the body, beside
+   the model's two tables over the trellis */
+.hmrow { display: flex; gap: 24px; align-items: center; justify-content: space-between; height: 100%; }
+.hmsteps { flex: 1 1 0; min-width: 0; font-size: 24px; line-height: 1.25; }
+.hmsteps p { margin: 0 0 11px; }
+.hmsteps .hmcont { display: inline-block; padding-left: 1.8em; }   /* a computation's second line */
+.hmright { flex: none; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.hmtabs { display: flex; gap: 22px; }
+table.vals.hm { font-size: 22px; margin: 0; }
+table.vals.hm th, table.vals.hm td { padding: 2px 10px; }
+table.vals.hm td:first-child, table.vals.hm th:first-child { text-align: left; padding-left: 4px; }
 </style>
 </head>
 <body>
@@ -379,6 +400,73 @@ section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subb
   </div>
 </section>
 
+<!-- not in the source: BNs, MRFs and factor graphs, leading to message passing on a tree -->
+
+<section>
+  <h2>Moralization: From a BN to an MRF</h2>
+  <p><b>Goal:</b> message passing, coming up, is stated for MRFs. To run it on a BN, first write the BN as an MRF.</p>
+  <p><b>Each CPD becomes a potential</b> on $x_i$ and its parents, so they must form a clique: $p(B|T,C)$ needs the clique $\{T, C, B\}$.</p>
+  <div class="row fg-row">
+    <div class="col">
+      <p><b>Moralization:</b></p>
+      <ol>
+        <li pause="mo=1" data-fragment-index="1"><b>Marry the parents:</b> join every two parents of a common child, here $T$ and $C$.</li>
+        <li pause="mo=2" data-fragment-index="2"><b>Drop the directions.</b></li>
+      </ol>
+    </div>
+    <fig name="fgmoral" init="mo=0"></fig>
+  </div>
+  <p pause data-fragment-index="2"><b>Potentials:</b> $\psi(R) = p(R)$, $\psi(R,T) = p(T|R)$, $\psi(C) = p(C)$, $\psi(T,C,B) = p(B|T,C)$; their product is $p$, so $Z = 1$.</p>
+  <p pause data-fragment-index="3"><b>Lost independence:</b> in the BN, $T \independent C$: the only path between them, $T \to B \leftarrow C$, meets the unobserved collider $B$. The distribution is unchanged, but in the moral graph $T$ and $C$ are adjacent, so the graph no longer shows $T \independent C$.</p>
+</section>
+
+<section>
+  <h2>Factor Graphs</h2>
+  <p><b>One MRF graph, two factorizations:</b> in both, every pair of $T, C, B$ shares a potential, so both give the moral graph’s triangle.</p>
+  <div class="row fg-pair">
+    <div><fig name="fgtri" init="v=0 c=0"></fig><p class="center">(a) one potential: $\psi(T,C,B)$</p></div>
+    <div><fig name="fgtri" init="v=1 c=0"></fig><p class="center">(b) three potentials: $\psi(T,C)\,\psi(T,B)\,\psi(C,B)$</p></div>
+  </div>
+  <p pause="c=1" data-fragment-index="1"><b>Factor graph:</b> variable nodes (circles) and factor nodes (squares); each factor $f$ is joined to the variables it depends on, $x_f$, and $p(\bx) \propto \prod_{f} f(x_f)$.</p>
+  <p pause data-fragment-index="1"><b>MRF to factor graph:</b> one factor node per potential, joined to its variables.</p>
+  <p pause data-fragment-index="2">The two factor graphs differ: (a) has no cycle; (b) has the cycle $T$, $\psi(T,C)$, $C$, $\psi(C,B)$, $B$, $\psi(T,B)$. The traffic network is (a), with $\psi(T,C,B) = p(B|T,C)$.</p>
+</section>
+
+<section>
+  <h2>From a BN to a Factor Graph</h2>
+  <p><b>BN to factor graph:</b> one factor node per CPD $p(x_i | \pa(x_i))$, joined to $x_i$ and its parents.</p>
+  <p><b>Example:</b> the traffic network, $p(R,T,C,B) = p(R)\,p(T|R)\,p(C)\,p(B|T,C)$: four factors.</p>
+  <fig name="fgbn" init="f=0" style="margin:0 auto"></fig>
+  <p pause="f=1" data-fragment-index="1">The directions are gone, as in the moral graph, but $p(B|T,C)$ stays one node, joined to $T$, $C$ and $B$; $p(R)$ and $p(C)$ are joined to one variable each.</p>
+  <p pause data-fragment-index="2">The CPDs multiply to a normalized distribution, so $\propto$ becomes $=$: $p(\bx) = \prod_f f(x_f)$, with $Z = 1$.</p>
+</section>
+
+<section>
+  <h2>Moral Graph vs. Factor Graph: Which Is a Tree?</h2>
+  <p>Message passing, coming up, is exact on a <b>tree</b>: a connected graph with no cycle. A connected graph on $n$ nodes is a tree exactly when it has $n-1$ edges.</p>
+  <div class="row fg-pair">
+    <div><fig name="fgcmp" init="v=0 h=0"></fig><p class="center">Moral graph: 4 nodes, 4 edges</p></div>
+    <div><fig name="fgcmp" init="v=1 h=0"></fig><p class="center">Factor graph: 4 + 4 nodes, 7 edges</p></div>
+  </div>
+  <p pause="h=1" data-fragment-index="1"><b>Moral graph:</b> not a tree. Marrying $T$ and $C$ closed the cycle $T, B, C$; a node with two parents always does, since it and its parents form a triangle.</p>
+  <p pause="h=2" data-fragment-index="2"><b>Factor graph:</b> a tree; $T$, $C$ and $B$ are joined only through the one factor node $p(B|T,C)$.</p>
+</section>
+
+<section>
+  <h2>Variable Elimination as Messages on the Factor Graph</h2>
+  <div class="row fg-row">
+    <div class="col">
+      <p><b class="qry">Query</b> $\qry{T}$, <b class="evd">evidence</b> $\evd{B=1}$, on the factor graph of the traffic network.</p>
+      <p><b>Branches:</b> removing $T$ splits the tree in two, one part through $p(T|R)$ and one through $p(B|T,C)$.</p>
+    </div>
+    <fig name="fgmsg" init="ms=0"></fig>
+  </div>
+  <p pause="ms=1" data-fragment-index="1">The two sums of variable elimination are one per branch; $\msg{m_1(\qry{t})}$ is the $\msg{m(\qry{T=t})}$ of “Variable Elimination: A Concrete Example”:</p>
+  <div pause data-fragment-index="1">\[\alpha_t = p(\qry{T=t}, \evd{B=1}) = \underbrace{\sum_r p(R=r)\,p(\qry{T=t}|R=r)}_{\msg{m_1(\qry{t})}}\;\htmlClass{u2}{\underbrace{\sum_c p(C=c)\,p(\evd{B=1}|\qry{T=t},C=c)}_{\msg{m_2(\qry{t})}}}\]</div>
+  <span class="mark s2" pause="ms=2" data-fragment-index="2"></span>
+  <p pause data-fragment-index="2">Each sum uses only its branch’s factors and reaches $\qry{T}$ along one edge: a <b><span class="msg">message</span></b>. On any tree, eliminating from the leaves toward the query is passing such <span class="msg">messages</span>.</p>
+</section>
+
 <!-- 18 -->
 <section class="tight">
   <h2>Sum-Product Algorithm: Message Passing on Trees</h2>
@@ -478,6 +566,146 @@ section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subb
       <li>Trace back using stored pointers $\psi_i$</li>
     </ol>
     <p><b>Application:</b> Viterbi algorithm for HMMs (special case of max-product on chain)</p>
+  </div>
+</section>
+
+<!-- ============ Hidden Markov models: forward-backward and Viterbi ============ -->
+
+<!-- not in the source: the HMM as an MRF on the chain of hidden states -->
+<section>
+  <h2>Inference in Hidden Markov Models</h2>
+  <div class="hmpair">
+    <div>
+      <p><b>Model:</b> hidden states $x_1^T = (x_1, \dots, x_T)$ form a Markov chain; each observation $\evd{y_t}$ depends on $x_t$ alone:</p>
+      \[p(x_1^T, \evd{y_1^T}) = p(x_1) \prod_{t=2}^{T} p(x_t | x_{t-1}) \prod_{t=1}^{T} p(\evd{y_t} | x_t)\]
+    </div>
+    <fig name="hmmgraph" init="e=0"></fig>
+  </div>
+  <div pause="e=1">
+    <p><b class="evd">Evidence:</b> with $\evd{y_1^T}$ observed, each $p(\evd{y_t}|x_t)$ is a function of $x_t$ alone, a node potential $\psi(x_t)$; $\psi(x_1)$ also takes the factor $p(x_1)$:</p>
+    \[p(x_1^T | \evd{y_1^T}) \propto \prod_{t=1}^{T} \psi(x_t) \prod_{t=2}^{T} \psi(x_{t-1}, x_t), \qquad \psi(x_{t-1}, x_t) = p(x_t | x_{t-1})\]
+    <p>This is an MRF on the chain of hidden states (right), a tree, so the sum-product and max-product algorithms apply:</p>
+  </div>
+  <ul pause>
+    <li><b>Posterior marginal</b> $p(\qry{x_t} | \evd{y_1^T})$: sum-product, the <b>forward-backward algorithm</b></li>
+    <li><b>Most likely sequence</b> $\argmax_{\qry{x_1^T}} p(\qry{x_1^T} | \evd{y_1^T})$: max-product, the <b>Viterbi algorithm</b></li>
+  </ul>
+</section>
+
+<!-- not in the source: sum-product on the chain, the forward-backward algorithm -->
+<section>
+  <h2>Sum-Product on an HMM: The Forward-Backward Algorithm</h2>
+  <p><b class="qry">Query:</b> $p(\qry{x_t} | \evd{y_1^T})$. On the chain each node has at most two neighbors, so the product in the sum-product <span class="msg">message</span> has at most one factor:</p>
+  <fig name="hmmfb" init="f=0 b=0" style="margin:0 auto"></fig>
+  <div class="pair even hmrec">
+    <div pause="f=1">
+      <p><b class="msg">Forward</b> (from $x_1$; none into $x_1$):</p>
+      \[\msg{m_{t-1\to t}(x_t)} = \sum_{x_{t-1}} \psi(x_{t-1})\, p(x_t | x_{t-1})\, \msg{m_{t-2\to t-1}(x_{t-1})}\]
+    </div>
+    <div pause="b=1">
+      <p><b class="msg">Backward</b> (from $x_T$; none into $x_T$):</p>
+      \[\msg{m_{t+1\to t}(x_t)} = \sum_{x_{t+1}} \psi(x_{t+1})\, p(x_{t+1} | x_t)\, \msg{m_{t+2\to t+1}(x_{t+1})}\]
+    </div>
+  </div>
+  <div pause>
+    <p><b class="qry">Marginal</b>, its three factors read as probabilities:</p>
+    \[p(\qry{x_t} | \evd{y_1^T}) \propto \underbrace{\msg{m_{t-1\to t}(\qry{x_t})}}_{p(\qry{x_t},\, \evd{y_1^{t-1}})}\, \underbrace{\psi(\qry{x_t})}_{p(\evd{y_t} | \qry{x_t})}\, \underbrace{\msg{m_{t+1\to t}(\qry{x_t})}}_{p(\evd{y_{t+1}^T} | \qry{x_t})} = p(\qry{x_t}, \evd{y_1^T})\]
+    <p>Normalizing divides by $p(\evd{y_1^T})$. One pass each way gives the messages at every $t$, and so every marginal: $O(Tk^2)$ with $k$ values for each $x_t$, against $k^T$ sequences in the naive sum.</p>
+  </div>
+  <drawer>
+    <p><b>Forward messages</b>, by induction. With $\psi(x_1) = p(x_1)\,p(\evd{y_1}|x_1)$,</p>
+    \[\msg{m_{1\to2}(x_2)} = \sum_{x_1} p(x_1)\, p(\evd{y_1}|x_1)\, p(x_2|x_1) = p(x_2, \evd{y_1}).\]
+    <p>If $\msg{m_{t-2\to t-1}(x_{t-1})} = p(x_{t-1}, \evd{y_1^{t-2}})$, then, since $\evd{y_{t-1}}$ depends only on $x_{t-1}$ and $x_t$ only on $x_{t-1}$,</p>
+    \[\begin{aligned}\msg{m_{t-1\to t}(x_t)} &= \sum_{x_{t-1}} p(x_{t-1}, \evd{y_1^{t-2}})\, p(\evd{y_{t-1}}|x_{t-1})\, p(x_t|x_{t-1}) \\ &= \sum_{x_{t-1}} p(x_{t-1}, x_t, \evd{y_1^{t-1}}) = p(x_t, \evd{y_1^{t-1}}).\end{aligned}\]
+    <p><b>Backward messages</b>, by induction from $t = T-1$ down: $\msg{m_{T\to T-1}(x_{T-1})} = \sum_{x_T} p(\evd{y_T}|x_T)\, p(x_T|x_{T-1}) = p(\evd{y_T}|x_{T-1})$, and if $\msg{m_{t+2\to t+1}(x_{t+1})} = p(\evd{y_{t+2}^T}|x_{t+1})$,</p>
+    \[\msg{m_{t+1\to t}(x_t)} = \sum_{x_{t+1}} p(\evd{y_{t+1}}|x_{t+1})\, p(x_{t+1}|x_t)\, p(\evd{y_{t+2}^T}|x_{t+1}) = p(\evd{y_{t+1}^T}|x_t).\]
+    <p><b>The product:</b> given $x_t$, the evidence before $t$, at $t$ and after $t$ are independent ($x_t$ separates them on the chain), so</p>
+    \[p(x_t, \evd{y_1^{t-1}})\, p(\evd{y_t}|x_t)\, p(\evd{y_{t+1}^T}|x_t) = p(x_t, \evd{y_1^T}).\]
+    <p><b>Notation:</b> Ch. 12 writes $\alpha_t(i) = \msg{m_{t-1\to t}(x_t{=}i)}$ and $\beta_t(i) = \msg{m_{t+1\to t}(x_t{=}i)}$; many texts take $\alpha_t(i) = p(x_t{=}i, \evd{y_1^t})$, which includes $\psi(x_t)$.</p>
+  </drawer>
+</section>
+
+<!-- not in the source: forward-backward on a trellis (the numbers computed in exact fractions) -->
+<section>
+  <h2>Forward-Backward: A Worked Example</h2>
+  <div class="hmrow">
+    <div class="hmsteps">
+      <p><b>Example:</b> on days $t = 1, 2, 3$ a patient is healthy or sick, $x_t \in \{H, S\}$, with $p(x_1{=}H) = 0.5$, and coughs or not, $\evd{y_t} \in \{\evd{C}, \evd{N}\}$. Observed: $\evd{y_1^3 = (N, C, N)}$, a cough on day 2 only.</p>
+      <p><b>Trellis:</b> in each node $\psi(x_t) = p(\evd{y_t}|x_t)$ (on day 1 times $0.5$); left of it the forward <span class="msg">message</span> into it, right of it the backward one.</p>
+      <p pause="k=1"><b class="msg">Forward:</b> $\msg{m_{1\to2}(H)} = 0.4 \cdot 0.75 + 0.2 \cdot 0.25 = \msg{0.35}$</p>
+      <p pause="k=2">$\msg{m_{2\to3}(H)} = 0.2 \cdot 0.75 \cdot \msg{0.35} + 0.6 \cdot 0.25 \cdot \msg{0.25} = \msg{0.09}$</p>
+      <p pause="k=3"><b class="msg">Backward:</b> $\msg{m_{3\to2}(H)} = 0.8 \cdot 0.75 + 0.4 \cdot 0.25 = \msg{0.7}$</p>
+      <p pause="k=4">$\msg{m_{2\to1}(H)} = 0.2 \cdot 0.75 \cdot \msg{0.7} + 0.6 \cdot 0.25 \cdot \msg{0.5} = \msg{0.18}$</p>
+      <p pause="k=5"><b class="qry">Marginals</b> (between the rows): on day 2, $\msg{0.35} \cdot 0.2 \cdot \msg{0.7} = 0.049$ and $\msg{0.25} \cdot 0.6 \cdot \msg{0.5} = 0.075$, so $p(\qry{x_2{=}S} | \evd{y_1^3}) = 0.075 / 0.124 = \qry{0.60}$. Each day's two products sum to $p(\evd{y_1^3}) = 0.124$.</p>
+    </div>
+    <div class="hmright">
+      <div class="hmtabs">
+        <table class="vals hm">
+          <thead><tr><th>$p(x_t | x_{t-1})$</th><th>$H$</th><th>$S$</th></tr></thead>
+          <tbody><tr><td>$x_{t-1}{=}H$</td><td>0.75</td><td>0.25</td></tr>
+            <tr><td>$x_{t-1}{=}S$</td><td>0.25</td><td>0.75</td></tr></tbody>
+        </table>
+        <table class="vals hm">
+          <thead><tr><th>$p(\evd{y_t} | x_t)$</th><th>$\evd{C}$</th><th>$\evd{N}$</th></tr></thead>
+          <tbody><tr><td>$x_t{=}H$</td><td>0.2</td><td>0.8</td></tr>
+            <tr><td>$x_t{=}S$</td><td>0.6</td><td>0.4</td></tr></tbody>
+        </table>
+      </div>
+      <fig name="fbtrellis" init="k=0"></fig>
+    </div>
+  </div>
+</section>
+
+<!-- not in the source: max-product on the chain, the Viterbi algorithm -->
+<section>
+  <h2>Max-Product on an HMM: The Viterbi Algorithm</h2>
+  <p><b class="qry">Query:</b> the most likely sequence $(\qry{x_1^*}, \dots, \qry{x_T^*}) = \argmax_{x_1^T} p(x_1^T | \evd{y_1^T})$, which also maximizes $p(x_1^T, \evd{y_1^T}) = p(x_1^T | \evd{y_1^T})\, p(\evd{y_1^T})$.</p>
+  <fig name="hmmvit" init="f=0 b=0" style="margin:0 auto"></fig>
+  <div pause="f=1">
+    <p><b class="msg">Forward</b> (toward $x_T$; none into $x_1$), the forward message with the sum replaced by a max:</p>
+    \[\msg{m_{t-1\to t}(x_t)} = \max_{x_{t-1}} \psi(x_{t-1})\, p(x_t | x_{t-1})\, \msg{m_{t-2\to t-1}(x_{t-1})} = \max_{x_1^{t-1}} p(x_1^{t-1}, x_t, \evd{y_1^{t-1}})\]
+    <p><b>Back-pointer:</b> $b_t(x_t)$, the $x_{t-1}$ that attains this max, kept for each value of $x_t$.</p>
+  </div>
+  <p pause="b=1"><b class="qry">Backtrack:</b> $\qry{x_T^*} = \argmax_{x_T} \psi(x_T)\, \msg{m_{T-1\to T}(x_T)}$, then $\qry{x_{t-1}^*} = b_t(\qry{x_t^*})$ for $t = T, \dots, 2$.</p>
+  <p pause><b>Cost:</b> one pass, $O(Tk^2)$ with $k$ values for each $x_t$, against comparing $k^T$ sequences.</p>
+  <drawer>
+    <p><b>The max-product messages</b>, by induction, as the forward messages with $\max$ in place of $\sum$:</p>
+    \[\msg{m_{1\to2}(x_2)} = \max_{x_1} p(x_1)\, p(\evd{y_1}|x_1)\, p(x_2|x_1) = \max_{x_1} p(x_1, x_2, \evd{y_1}).\]
+    <p>If $\msg{m_{t-2\to t-1}(x_{t-1})} = \max_{x_1^{t-2}} p(x_1^{t-1}, \evd{y_1^{t-2}})$, then, since the factors $p(\evd{y_{t-1}}|x_{t-1})\, p(x_t|x_{t-1})$ do not depend on $x_1^{t-2}$ and are not negative,</p>
+    \[\begin{aligned}\msg{m_{t-1\to t}(x_t)} &= \max_{x_{t-1}} p(\evd{y_{t-1}}|x_{t-1})\, p(x_t|x_{t-1}) \max_{x_1^{t-2}} p(x_1^{t-1}, \evd{y_1^{t-2}}) \\ &= \max_{x_1^{t-1}} p(x_1^{t-1}, x_t, \evd{y_1^{t-1}}).\end{aligned}\]
+    <p><b>Backtracking:</b> $\psi(x_T)\, \msg{m_{T-1\to T}(x_T)} = \max_{x_1^{T-1}} p(x_1^T, \evd{y_1^T})$, the probability of the best sequence that ends in $x_T$ (with the evidence); its max over $x_T$ is that of the best sequence, and $\qry{x_T^*}$ is its last state. The best sequence that ends in $x_t$ has $b_t(x_t)$ as its state at $t-1$, and its part up to $t-1$ is the best sequence that ends there; so $b_t(\qry{x_t^*})$ is the best sequence's state at $t - 1$.</p>
+    <p><b>Notation:</b> Ch. 12 writes the max-product message as $\delta_t(i) = \msg{m_{t-1\to t}(x_t{=}i)}$; the slide “Max-Product Algorithm” calls the stored pointers $\psi_j$.</p>
+  </drawer>
+</section>
+
+<!-- not in the source: Viterbi on the same trellis -->
+<section>
+  <h2>Viterbi: A Worked Example</h2>
+  <div class="hmrow">
+    <div class="hmsteps">
+      <p><b>Same example:</b> $p(x_1{=}H) = 0.5$ and $\evd{y_1^3 = (N, C, N)}$. Which sequence of states is most likely?</p>
+      <p><b>Trellis:</b> in each node $\psi(x_t)$; left of it the <span class="msg">max-product message</span> into it; a thick edge is a back-pointer.</p>
+      <p pause="k=1">$\msg{m_{1\to2}(H)} = \max(0.4 \cdot 0.75,\, 0.2 \cdot 0.25)$<br><span class="hmcont">$= \max(0.3,\, 0.05) = \msg{0.3}$, so $b_2(H) = H$</span></p>
+      <p pause="k=2">$\msg{m_{2\to3}(H)} = \max(0.2 \cdot 0.75 \cdot \msg{0.3},\, 0.6 \cdot 0.25 \cdot \msg{0.15})$<br><span class="hmcont">$= \max(0.045,\, 0.0225) = \msg{0.045}$, so $b_3(H) = H$</span></p>
+      <p pause="k=3">$\max_{x_3} \psi(x_3)\, \msg{m_{2\to3}(x_3)} = \max(0.8 \cdot \msg{0.045},\, 0.4 \cdot \msg{0.0675})$<br><span class="hmcont">$= \max(0.036,\, 0.027)$, so $\qry{x_3^* = H}$</span></p>
+      <p pause="k=4"><b class="qry">Backtrack:</b> $\qry{x_2^*} = b_3(H) = H$, $\qry{x_1^*} = b_2(H) = H$; the sequence $\qry{H, H, H}$ has $p(\qry{HHH}, \evd{y_1^3}) = 0.036$</p>
+      <p pause="k=5">The most likely state of each day (ringed; forward-backward) gives $H, S, H$, with $p(HSH, \evd{y_1^3}) = 0.012$: here the most likely sequence is not the sequence of most likely states.</p>
+    </div>
+    <div class="hmright">
+      <div class="hmtabs">
+        <table class="vals hm">
+          <thead><tr><th>$p(x_t | x_{t-1})$</th><th>$H$</th><th>$S$</th></tr></thead>
+          <tbody><tr><td>$x_{t-1}{=}H$</td><td>0.75</td><td>0.25</td></tr>
+            <tr><td>$x_{t-1}{=}S$</td><td>0.25</td><td>0.75</td></tr></tbody>
+        </table>
+        <table class="vals hm">
+          <thead><tr><th>$p(\evd{y_t} | x_t)$</th><th>$\evd{C}$</th><th>$\evd{N}$</th></tr></thead>
+          <tbody><tr><td>$x_t{=}H$</td><td>0.2</td><td>0.8</td></tr>
+            <tr><td>$x_t{=}S$</td><td>0.6</td><td>0.4</td></tr></tbody>
+        </table>
+      </div>
+      <fig name="vittrellis" init="k=0"></fig>
+    </div>
   </div>
 </section>
 

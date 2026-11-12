@@ -1,6 +1,7 @@
 // Figures of the Graphical Models II deck (parameter estimation and inference),
-// redrawn from the six TikZ pictures of src/40-GMs-Slides-2.tex, plus two that are not in it
-// (the animation of "Plate Notation" and the chain of "Elimination order matters").  Every node
+// redrawn from the six TikZ pictures of src/40-GMs-Slides-2.tex, plus some that are not in it
+// (the animation of "Plate Notation", the chain of "Elimination order matters" and the five
+// figures of the BN, MRF and factor graph slides, at the end).  Every node
 // sits at its TikZ coordinate (the old "below left of" placement puts a node
 // at node distance d along the diagonal, d / sqrt 2 across and down), each
 // curved edge is TikZ's out/in curve (control points 0.3915 of the chord
@@ -335,3 +336,395 @@ FIGS.tree = {
     msg(5, 4, 0, 1, 'above', `$m_{5 \\to 4}(${x4})$`);
   }
 };
+
+// =====================================================================================================
+// BEGIN factor-graph slides: "Moralization: From a BN to an MRF", "Factor Graphs", "From a BN to a
+// Factor Graph", "Moral Graph vs. Factor Graph: Which Is a Tree?", "Variable Elimination as Messages
+// on the Factor Graph".  The traffic network of "Inference: What and Why?" at its coordinates (R, T,
+// C, B, node distance 2.5cm), its moral graph, its factor graph, and the triangle T, C, B under two
+// factorizations.  A factor node is a small filled black square, its function as its label.  The edge
+// moralization adds and the highlights are orange (FG_EMPH), none of the three role colours; the
+// query, the evidence and the messages take ROLE and QRY.
+Object.assign(MACROS, { '\\independent': '\\perp\\!\\!\\!\\perp' });
+const FG_EMPH = '#E07800';
+const FGX = { R: [-2.5, 0], T: [0, 0], C: [2 * d25, 0], B: [d25, -d25] };      // the traffic network (cm)
+// its factor nodes: p(T|R) on R - T, nearer R (room for its message to T), p(B|T,C) at the centroid of
+// T, C, B, p(R) and p(C) above R and C
+const FGF = { fR: [-2.5, 1.1], fT: [-1.5, 0], fC: [2 * d25, 1.1], fB: [d25, -d25 / 3] };
+const FG_SQ = 0.24;                                                          // a factor square's side (cm)
+const fgLerp = (a, b, u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+
+// Drawing helpers on a gm() picture G (scene g): all positions in px unless named cm.
+function fgKit(g, G) {
+  const U = G.U, pt = G.pt, P = G.P;
+  const K = {
+    U, P, pt,
+    // the point on the circle (centre c, radius R) toward q
+    rim(c, R, q) { const dx = q[0] - c[0], dy = q[1] - c[1], L = Math.hypot(dx, dy) || 1; return [c[0] + dx / L * R, c[1] + dy / L * R]; },
+    line(a, b, st = {}) {
+      g.el('line', { x1: a[0].toFixed(2), y1: a[1].toFixed(2), x2: b[0].toFixed(2), y2: b[1].toFixed(2),
+        stroke: st.color || '#000', 'stroke-width': pt(st.lw ?? 0.8), 'stroke-dasharray': st.dash || null,
+        'stroke-linecap': st.cap || null, opacity: st.opacity ?? 1 });
+    },
+    // a polyline (px points) as a wide translucent band: a highlight under the marks drawn after it
+    band(pts, st = {}) {
+      const d = pts.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(2) + ',' + q[1].toFixed(2)).join('') + (st.close ? 'Z' : '');
+      g.el('path', { d, fill: 'none', stroke: st.color || FG_EMPH, 'stroke-width': (st.w ?? 0.3) * U,
+        'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-opacity': st.so ?? 0.3, opacity: st.opacity ?? 1 });
+    },
+    // the shaft from a to the circle (centre c, radius R), 1pt short of it, with a stealth' head of
+    // opacity st.head (0: a plain line; the shaft then runs to the tip)
+    arrowTo(a, c, R, st = {}) {
+      const col = st.color || '#000', w = st.lw ?? 0.8, hop = st.head ?? 1, opa = st.opacity ?? 1;
+      const q = K.rim(c, R, a), dx = q[0] - a[0], dy = q[1] - a[1], L = Math.hypot(dx, dy) || 1, u = [dx / L, dy / L];
+      const s1 = pt(1) * hop, tip = [q[0] - u[0] * s1, q[1] - u[1] * s1];
+      const back = G.head(tip, u, w, col, hop * opa);
+      K.line(a, [tip[0] - u[0] * back * hop, tip[1] - u[1] * back * hop], { color: col, lw: w, opacity: opa });
+    },
+    // a factor node: a filled square of side FG_SQ cm centred at c (px), scaled by k
+    square(c, st = {}) {
+      const h = FG_SQ * U / 2 * (st.k ?? 1);
+      g.el('rect', { x: (c[0] - h).toFixed(2), y: (c[1] - h).toFixed(2), width: (2 * h).toFixed(2), height: (2 * h).toFixed(2),
+        fill: st.color || '#000', stroke: 'none', opacity: st.opacity ?? 1 });
+    },
+    // a variable node: role 'qry' (the deck's QRY), 'evd' (gm's obs style, the label green) or none
+    node(key, at, r, label, role) {
+      G.node(key, at, r, label, role === 'qry' ? QRY : role === 'evd' ? { obs: true, lc: ROLE.evd } : {});
+    }
+  };
+  return K;
+}
+
+// The traffic network as a BN (f = 0) morphing into its factor graph (f = 1): the arrowheads fade,
+// p(T|R) appears halfway along R - T, the middles of T -> B and C -> B are drawn into one point,
+// p(B|T,C), and p(R), p(C) rise out of R and C.  o: f, mo (0 to 2: the moral graph's new edge T - C
+// fades in, then the arrowheads fade out; only with f = 0), hlM (the cycle T, B, C highlighted),
+// hlF (the factor node p(B|T,C) and its edges highlighted), q (T as the query), e (B = 1, evidence).
+function fgTraffic(g, G, K, o = {}) {
+  const f = clamp(o.f ?? 0), mo = o.mo ?? 0, U = K.U, P = K.P;
+  const r = 0.4, rB = o.e ? 0.675 : 0.4;
+  const c = k => P(FGX[k]), Rad = k => (k === 'B' ? rB : r) * U;
+  const head = (1 - f) * (1 - clamp(mo - 1));
+  const qB1 = P(fgLerp(fgLerp(FGX.T, FGX.B, 0.5), FGF.fB, f)), qB2 = P(fgLerp(fgLerp(FGX.C, FGX.B, 0.5), FGF.fB, f));
+  const fR = P(fgLerp(FGX.R, FGF.fR, f)), fC = P(fgLerp(FGX.C, FGF.fC, f)), fT = P(FGF.fT), fB = P(FGF.fB);
+  // highlights, under everything
+  if (o.hlM != null) K.band([c('T'), c('B'), c('C')], { close: true, opacity: clamp(o.hlM) });
+  if (o.hlF != null) { K.band([c('T'), fB, c('C')], { opacity: clamp(o.hlF) }); K.band([fB, c('B')], { opacity: clamp(o.hlF) }); }
+  if (o.under) o.under();
+  // the moral graph's new edge
+  if (o.mo != null) {
+    const a = K.rim(c('T'), Rad('T'), c('C')), b = K.rim(c('C'), Rad('C'), c('T'));
+    K.line(a, b, { color: FG_EMPH, lw: 1.2, dash: `${(0.12 * U).toFixed(1)} ${(0.08 * U).toFixed(1)}`, opacity: o.moOp ?? (0.1 + 0.9 * clamp(mo)) });
+  }
+  // the edges; the factor graph's edges to p(R) and p(C) only while they are drawn
+  if (f > 0.001) { K.line(c('R'), fR); K.line(c('C'), fC); }
+  K.arrowTo(c('R'), c('T'), Rad('T'), { head });
+  K.line(c('T'), qB1); K.arrowTo(qB1, c('B'), Rad('B'), { head });
+  K.line(c('C'), qB2); K.arrowTo(qB2, c('B'), Rad('B'), { head });
+  // the factor nodes; p(B|T,C) only once the two edges are nearly drawn into it
+  const fo = clamp(f * 3), fbo = clamp((f - 0.5) / 0.4);
+  for (const q of [fR, fC, fT]) K.square(q, { opacity: fo, k: 0.4 + 0.6 * f });
+  K.square(fB, { opacity: fbo, k: 0.4 + 0.6 * fbo });
+  // the variable nodes
+  K.node('R', FGX.R, r, '$R$');
+  K.node('T', FGX.T, r, '$T$', o.q ? 'qry' : null);
+  K.node('C', FGX.C, r, '$C$');
+  K.node('B', FGX.B, rB, o.e ? '$B{=}1$' : '$B$', o.e ? 'evd' : null);
+  // the factors' labels: p(R) left of its square, p(C) right, p(T|R) below, p(B|T,C) below right
+  const gap = K.pt(3) + FG_SQ * U / 2, st = { fs: 9, opacity: clamp(2 * f - 1) };
+  G.lab('f-R', '$p(R)$', [fR[0] - gap, fR[1]], 'r', st);
+  G.lab('f-C', '$p(C)$', [fC[0] + gap, fC[1]], 'l', st);
+  G.lab('f-T', '$p(T|R)$', [fT[0], fT[1] + gap], 't', st);
+  G.lab('f-B', '$p(B|T,C)$', [fB[0] + gap, fB[1] + K.pt(1)], 'tl', st);
+}
+
+// Slide "Moralization: From a BN to an MRF": mo = 0 the BN (the new edge covered), 1 the parents T, C
+// of B married (dashed orange), 2 the directions dropped: the moral graph.
+const BOX_FGM = [-2.95, -d25 - 0.45, 2 * d25 + 0.45, 0.45];
+FIGS.fgmoral = {
+  size: gmSize(BOX_FGM, 0.7, 100),
+  draw(g, p) {
+    const G = gm(g, { s: 0.7, k: 100, box: BOX_FGM }), K = fgKit(g, G);
+    fgTraffic(g, G, K, { mo: p.mo ?? 0 });
+  }
+};
+
+// Slide "Factor Graphs": the triangle T, C, B (c = 0, the same MRF graph for both) becomes a factor
+// graph (c = 1).  v = 0, one potential psi(T,C,B): the middles of the three edges are drawn into the
+// centroid, where the square appears; v = 1, three pairwise potentials: a square appears halfway
+// along each edge.
+const BOX_FGT = [-1.45, -d25 - 0.45, 2 * d25 + 1.6, 0.85];
+FIGS.fgtri = {
+  size: gmSize(BOX_FGT, 0.62, 100),
+  duration: 1400,
+  draw(g, p) {
+    const s = 0.62, G = gm(g, { s, k: 100, box: BOX_FGT }), K = fgKit(g, G), P = K.P, U = K.U;
+    const c = clamp(p.c ?? 0), r = 0.4, X = FGX;
+    const mid = (a, b) => fgLerp(X[a], X[b], 0.5), cen = FGF.fB;
+    const gap = K.pt(3) + FG_SQ * U / 2, st = { fs: 9, opacity: clamp(2 * c - 1) };
+    if ((p.v ?? 0) === 0) {
+      const sq = P(cen);
+      for (const [a, b] of [['T', 'C'], ['T', 'B'], ['C', 'B']]) {
+        const m = P(fgLerp(mid(a, b), cen, c));
+        K.line(P(X[a]), m); K.line(m, P(X[b]));
+      }
+      const so = clamp((c - 0.5) / 0.4);   // the square once the three edges are nearly drawn into it
+      K.square(sq, { opacity: so, k: 0.4 + 0.6 * so });
+      for (const k of ['T', 'C', 'B']) K.node(k, X[k], r, `$${k}$`);
+      G.lab('psi', '$\\psi(T,C,B)$', [sq[0] + gap, sq[1] + K.pt(1)], 'tl', st);
+    } else {
+      for (const [a, b] of [['T', 'C'], ['T', 'B'], ['C', 'B']]) K.line(P(X[a]), P(X[b]));
+      const mTC = P(mid('T', 'C')), mTB = P(mid('T', 'B')), mCB = P(mid('C', 'B'));
+      for (const q of [mTC, mTB, mCB]) K.square(q, { opacity: clamp(c * 3), k: 0.4 + 0.6 * c });
+      for (const k of ['T', 'C', 'B']) K.node(k, X[k], r, `$${k}$`);
+      G.lab('psiTC', '$\\psi(T,C)$', [mTC[0], mTC[1] - gap], 'b', st);
+      // outside the triangle, a little below their squares, clear of the edges rising to T and C
+      G.lab('psiTB', '$\\psi(T,B)$', [mTB[0] - gap, mTB[1] + K.pt(4)], 'r', st);
+      G.lab('psiCB', '$\\psi(C,B)$', [mCB[0] + gap, mCB[1] + K.pt(4)], 'l', st);
+    }
+  }
+};
+
+// Slide "From a BN to a Factor Graph": the traffic network as a BN (f = 0) morphing into its factor
+// graph (f = 1).
+const BOX_FGB = [-3.75, -d25 - 0.5, 2 * d25 + 1.25, FGF.fR[1] + 0.3];
+FIGS.fgbn = {
+  size: gmSize(BOX_FGB, 0.7, 100),
+  duration: 1600,
+  draw(g, p) {
+    const G = gm(g, { s: 0.7, k: 100, box: BOX_FGB }), K = fgKit(g, G);
+    fgTraffic(g, G, K, { f: p.f ?? 0 });
+  }
+};
+
+// Slide "Moral Graph vs. Factor Graph: Which Is a Tree?": v = 0 the moral graph (its cycle T, B, C
+// highlighted from h = 1), v = 1 the factor graph (p(B|T,C) and its three edges highlighted from h = 2).
+const BOX_FGCMP = [-3.75, -d25 - 0.5, 2 * d25 + 1.25, FGF.fR[1] + 0.3];
+FIGS.fgcmp = {
+  size: gmSize(BOX_FGCMP, 0.56, 100),
+  draw(g, p) {
+    const s = 0.56, G = gm(g, { s, k: 100, box: BOX_FGCMP }), K = fgKit(g, G), h = p.h ?? 0;
+    if ((p.v ?? 0) === 0) fgTraffic(g, G, K, { mo: 2, moOp: 1, hlM: clamp(h) });
+    else fgTraffic(g, G, K, { f: 1, hlF: clamp(h - 1) });
+  }
+};
+
+// Slide "Variable Elimination as Messages on the Factor Graph": the factor graph with the query T and
+// the evidence B = 1; the branch through p(T|R) and its message m_1(t) to T (ms = 1), then the branch
+// through p(B|T,C) and m_2(t) (ms = 2).  Each branch is a light blue band; each message a blue arrow
+// 0.2cm off its edge, 3pt short of its ends; before its step both are covered (10%), as on "Sum-Product
+// Algorithm: Message Passing on Trees".
+const BOX_FGS = [-3.75, -d25 - 0.8, 2 * d25 + 1.25, FGF.fR[1] + 0.3];
+FIGS.fgmsg = {
+  size: gmSize(BOX_FGS, 0.68, 100),
+  draw(g, p) {
+    const G = gm(g, { s: 0.68, k: 100, box: BOX_FGS }), K = fgKit(g, G), P = K.P, U = K.U;
+    const o1 = 0.1 + 0.9 * clamp(p.ms ?? 0), o2 = 0.1 + 0.9 * clamp((p.ms ?? 0) - 1);
+    const bands = () => {
+      K.band([P(FGF.fR), P(FGX.R), P(FGF.fT)], { color: ROLE.msg, w: 1.05, so: 0.13, opacity: clamp(p.ms ?? 0) });
+      K.band([P(FGF.fC), P(FGX.C), P(FGF.fB), P(FGX.B)], { color: ROLE.msg, w: 1.05, so: 0.13, opacity: clamp((p.ms ?? 0) - 1) });
+    };
+    fgTraffic(g, G, K, { f: 1, q: true, e: true, under: bands });
+    // a message from the factor at a (cm) to T, 0.2cm off the edge on the side above it
+    // (side 1: the traveller's left, -1: right; in px, y down)
+    const msg = (a, key, s2, opa, anchor, side, lo) => {
+      const A = P(a), T = P(FGX.T), dx = T[0] - A[0], dy = T[1] - A[1], L = Math.hypot(dx, dy), u = [dx / L, dy / L];
+      const n = [side * u[1], -side * u[0]], sh = 0.2 * U;
+      const p0 = [A[0] + u[0] * (FG_SQ * U / 2) + n[0] * sh, A[1] + u[1] * (FG_SQ * U / 2) + n[1] * sh];
+      const p1 = [T[0] - u[0] * 0.4 * U + n[0] * sh, T[1] - u[1] * 0.4 * U + n[1] * sh];
+      G.arrow(p0, p1, { color: ROLE.msg, lw: 1.2, s0: 3, s1: 3, opacity: opa });
+      const m = [(p0[0] + p1[0]) / 2 + n[0] * K.pt(4), (p0[1] + p1[1]) / 2 + n[1] * K.pt(4)];
+      G.lab(key, s2, [m[0] + (lo?.[0] ?? 0), m[1] + (lo?.[1] ?? 0)], anchor, { fs: 10, color: ROLE.msg, opacity: opa });
+    };
+    // the query's value t red inside the blue labels (figure labels are typeset without trust: \textcolor, not \qry)
+    const t = `\\textcolor{${ROLE.qry}}{t}`;
+    msg(FGF.fT, 'm1', `$m_1(${t})$`, o1, 'b', 1);
+    msg(FGF.fB, 'm2', `$m_2(${t})$`, o2, 'bl', -1);
+  }
+};
+// END factor-graph slides
+// =====================================================================================================
+
+// =====================================================================================================
+// Hidden Markov models: forward-backward and Viterbi (not in the source; five figures for the slides
+// "Inference in Hidden Markov Models", "Sum-Product on an HMM: The Forward-Backward Algorithm",
+// "Forward-Backward: A Worked Example", "Max-Product on an HMM: The Viterbi Algorithm" and "Viterbi:
+// A Worked Example").  The observations y_t take gm's obs style, the query QRY, messages ROLE.msg;
+// a stored back-pointer is a thick black edge, and the Viterbi path, the answer, is red.  Figure
+// labels are typeset without trust, so a label takes its colour from st.color, and a part of
+// another colour is \textcolor.
+const HM_GRAY = '#A8A8A8';
+
+// The HMM as a chain, in TikZ cm on gm()'s scale (\scalebox 0.6 of 92 px per cm, as the tree of
+// "Sum-Product Algorithm: Message Passing on Trees").  cols: [x, the node's TeX label (null for a
+// column of dots), the observation's label]; the hidden nodes at y = 0, the observations at y = -Y,
+// both of radius o.R.
+//   o.dir   the edges directed (the Bayesian network) while e < 1/2, undirected after; with
+//           o.psi, each vertical edge carries psi(x_t) (the factor p(y_t | x_t) with y_t fixed),
+//           fading in with e
+//   o.query the columns drawn as the query; o.fwd / o.bwd the labels of the messages toward
+//           column o.to from the left (state f) and from the right (state b), covered (10%) until
+//           the state reaches 1; the forward label sits on the edge into column o.fwdLab (default
+//           o.to), the backward one on the edge into o.to; o.back the label of the back-pointers
+//           read along the answer (state b), red arrows under the chain pointing left, on the
+//           edge left of column o.backLab
+function hmChain(o) {
+  const s = 0.6, k = 92, R = o.R ?? 0.4, Y = o.Y ?? 1.9;
+  const xs = o.cols.map(c => c[0]);
+  const box = [xs[0] - R - 0.05, -Y - R - 0.05, xs[xs.length - 1] + R + (o.psi ? 1.6 : 0.05), o.top ?? R + 0.05];
+  return {
+    size: gmSize(box, s, k),
+    draw(g, p) {
+      const G = gm(g, { s, k, box }), U = G.U, cols = o.cols;
+      const e = clamp(p.e ?? 0), dir = o.dir && e < 0.5;
+      const isDots = i => cols[i][1] == null;
+      // the chain's edges: node border to node border, or to 0.32 cm short of a column of dots
+      const end = (i, j) => {
+        const [a, b] = [G.P([cols[i][0], 0]), G.P([cols[j][0], 0])], u = Math.sign(b[0] - a[0]);
+        const ra = (isDots(i) ? 0.32 : R) * U, rb = (isDots(j) ? 0.32 : R) * U;
+        return [[a[0] + u * ra, a[1]], [b[0] - u * rb, b[1]]];
+      };
+      for (let i = 0; i + 1 < cols.length; i++) {
+        const [a, b] = end(i, i + 1);
+        G.arrow(a, b, dir && !isDots(i + 1) ? {} : { arrow: false, s1: 0 });
+      }
+      cols.forEach(([x, lab, ylab], i) => {
+        if (isDots(i)) {
+          G.lab('d' + i, '$\\cdots$', G.P([x, 0]), 'c');
+          G.lab('dy' + i, '$\\cdots$', G.P([x, -Y]), 'c');
+          return;
+        }
+        G.node('x' + i, [x, 0], R, lab, (o.query || []).includes(i) ? QRY : {});
+        G.node('y' + i, [x, -Y], R, ylab, { obs: true, lc: ROLE.evd });
+        const a = G.P([x, -R]), b = G.P([x, -Y + R]);
+        G.arrow(a, b, dir ? {} : { arrow: false, s1: 0 });
+        if (o.psi) G.lab('psi' + i, `$\\psi(${lab.slice(1, -1)})$`, [a[0] + G.pt(4), (a[1] + b[1]) / 2], 'l',
+          { color: ROLE.evd, opacity: e });
+      });
+      // messages: 0.2 cm off the edge and 8pt short of its ends, as on the tree's slide
+      const sh = 0.2 * U, isep = G.pt(10 / 3);
+      const msg = (i, j, side, col, opa, lab, key) => {
+        const [a, b] = end(i, j), off = side === 'above' ? -sh : sh;
+        G.arrow([a[0], a[1] + off], [b[0], b[1] + off], { color: col, lw: 1.2, s0: 8, s1: 8, opacity: opa });
+        if (lab) G.lab(key, lab, [(a[0] + b[0]) / 2, a[1] + off + (side === 'above' ? -isep : isep)],
+          side === 'above' ? 'b' : 't', { fs: 10, color: col, opacity: opa });
+      };
+      const fo = 0.1 + 0.9 * clamp(p.f ?? 0), bo = 0.1 + 0.9 * clamp(p.b ?? 0), fl = o.fwdLab ?? o.to;
+      if (o.fwd) for (let i = 0; i < o.to; i++) msg(i, i + 1, 'above', ROLE.msg, fo, i + 1 === fl ? o.fwd : null, 'mf' + i);
+      if (o.bwd) for (let i = cols.length - 1; i > o.to; i--) msg(i, i - 1, 'above', ROLE.msg, bo, i - 1 === o.to ? o.bwd : null, 'mb' + i);
+      if (o.back) for (let i = cols.length - 1; i > 0; i--) msg(i, i - 1, 'below', ROLE.qry, bo, i === o.backLab ? o.back : null, 'bk' + i);
+    }
+  };
+}
+// Slide "Inference in Hidden Markov Models": the HMM (a Bayesian network), then (e = 1) the
+// observed y_t fixed, each p(y_t | x_t) a node potential psi(x_t), and the chain undirected
+FIGS.hmmgraph = hmChain({ dir: true, psi: true, Y: 1.9,
+  cols: [[0, '$x_1$', '$y_1$'], [2, '$x_2$', '$y_2$'], [4, '$x_3$', '$y_3$'], [5.6, null], [7.2, '$x_T$', '$y_T$']] });
+// Slides "Sum-Product on an HMM" and "Max-Product on an HMM": x_1, ..., x_{t-1}, x_t, x_{t+1}, ..., x_T,
+// the three middle ones apart so that the labels of the messages next to x_t fit
+const HM_COLS = [[0, '$x_1$', '$y_1$'], [1.5, null], [3.0, '$x_{t-1}$', '$y_{t-1}$'], [5.9, '$x_t$', '$y_t$'],
+  [8.8, '$x_{t+1}$', '$y_{t+1}$'], [10.3, null], [11.8, '$x_T$', '$y_T$']];
+// the messages toward the query x_t, forward (f) and backward (b)
+// (the query x_t red inside the blue labels: \textcolor, since figure labels are typeset without trust)
+FIGS.hmmfb = hmChain({ R: 0.5, Y: 1.3, top: 0.8, query: [3], to: 3, cols: HM_COLS,
+  fwd: `$m_{t-1\\to t}(\\textcolor{${ROLE.qry}}{x_t})$`, bwd: `$m_{t+1\\to t}(\\textcolor{${ROLE.qry}}{x_t})$` });
+// the max-product messages toward x_T (f), then the back-pointers read from x_T back to x_1 (b);
+// every hidden node is part of the query, the most likely sequence
+FIGS.hmmvit = hmChain({ R: 0.5, Y: 1.3, top: 0.8, query: [0, 2, 3, 4, 6], to: 6, cols: HM_COLS,
+  fwd: '$m_{t-1\\to t}(x_t)$', fwdLab: 3, back: '$b_t(x_t^*)$', backLab: 3 });
+
+// The trellis of the worked examples: days t = 1, 2, 3 across, the states H (top) and S (bottom),
+// every transition an edge, the observed y_t above each day, psi(x_t) in each node.  The numbers
+// are those of the slides' arithmetic, computed in exact fractions.
+const HMX = {
+  y: ['N', 'C', 'N'],
+  psi: [['0.4', '0.2'], ['0.2', '0.6'], ['0.8', '0.4']],          // [day][H, S]
+  fw: [null, ['0.35', '0.25'], ['0.09', '0.13']],                   // m_{t-1 -> t}(x_t)
+  bw: [['0.18', '0.26'], ['0.7', '0.5'], null],                     // m_{t+1 -> t}(x_t)
+  post: [['0.58', '0.42'], ['0.40', '0.60'], ['0.58', '0.42']],    // p(x_t | y_1^3), rounded
+  vm: [null, ['0.3', '0.15'], ['0.045', '0.0675']],                 // max-product messages
+  bp: [null, [0, 1], [0, 1]],                                       // back-pointers [day][H, S]: 0 = H, 1 = S
+  fin: ['0.036', '0.027'],                                          // psi(x_3) m_{2 -> 3}(x_3)
+  path: [0, 0, 0], mpm: [0, 1, 0]                                   // Viterbi H H H; each most likely: H S H
+};
+// The state k is the build step.  mode 'fb': 1, 2 the forward messages into days 2 and 3, 3, 4 the
+// backward messages into days 2 and 1, each step's four edges blue while it is the current one; 5
+// the posteriors p(x_t | y_1^3), between the rows.  mode 'vit': 1, 2 the max-product messages, each
+// step's four edges blue while it is the current one, and from that step on the edge that attains
+// each max (its back-pointer) thick black, the others faded; 3 the scores psi(x_3) m(x_3) of the best
+// sequence ending in each state, right of day 3; 4 the backtrack (the path and its nodes red); 5
+// the states that are each most likely (forward-backward), ringed.  A number not yet reached is
+// covered (10%), as the deck's covered build steps are.
+function hmTrellis(mode) {
+  const s = 0.6, k = 92, D = 3.4, GAP = 2.75, R = 0.55, YO = 1.75;
+  const X = [0, D, 2 * D], YS = [0, -GAP];
+  const box = [-1.4, -GAP - 1.2, 2 * D + (mode === 'vit' ? 1.9 : 1.1), YO + 0.45];
+  return {
+    size: gmSize(box, s, k),
+    draw(g, p) {
+      const G = gm(g, { s, k, box }), kk = p.k ?? 0, r = R * G.U;
+      const on = i => 0.1 + 0.9 * clamp(kk - i + 1);        // a number of step i: covered until then
+      const act = i => clamp(1 - Math.abs(kk - i));          // step i is the current one
+      G.lab('rH', '$H$', G.P([-1.3, 0]), 'l');
+      G.lab('rS', '$S$', G.P([-1.3, -GAP]), 'l');
+      G.lab('ry', '$y_t$', G.P([-1.3, YO]), 'l', { color: ROLE.evd });
+      X.forEach((x, t) => G.node('o' + t, [x, YO], 0.4, `$${HMX.y[t]}$`, { obs: true, lc: ROLE.evd }));
+      const node = (t, j) => G.P([X[t], YS[j]]);
+      const edge = (t, i, j, st) => {
+        const a = node(t, i), b = node(t + 1, j), dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+        G.arrow([a[0] + dx / L * r, a[1] + dy / L * r], [b[0] - dx / L * r, b[1] - dy / L * r], Object.assign({ arrow: false, s1: 0 }, st));
+      };
+      const pr = clamp(kk - 3);                              // the backtrack
+      for (let t = 0; t < 2; t++) for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+        if (mode === 'vit') {
+          const win = HMX.bp[t + 1][j] === i, done = clamp(kk - t), path = HMX.path[t] === i && HMX.path[t + 1] === j;
+          edge(t, i, j, { color: HM_GRAY, lw: 0.7, opacity: win ? 1 : 1 - 0.5 * done });
+          if (act(t + 1) > 0.01) edge(t, i, j, { color: ROLE.msg, lw: 1.1, opacity: act(t + 1) });
+          if (win && done > 0.01) edge(t, i, j, { color: '#000', lw: 2.2, opacity: done });
+          if (path && pr > 0.01) edge(t, i, j, { color: ROLE.qry, lw: 2.6, opacity: pr });
+        } else {
+          edge(t, i, j, { color: HM_GRAY, lw: 0.7 });
+          const a = Math.max(...(t === 0 ? [1, 4] : [2, 3]).map(act));
+          if (a > 0.01) edge(t, i, j, { color: ROLE.msg, lw: 1.4, opacity: a });
+        }
+      }
+      // the nodes, psi inside; in the Viterbi trellis the path's nodes turn into query nodes
+      for (let t = 0; t < 3; t++) for (let j = 0; j < 2; j++) {
+        const q = mode === 'vit' && HMX.path[t] === j && pr > 0.5, [cx, cy] = node(t, j);
+        G.node(`n${t}${j}`, [X[t], YS[j]], R, null, q ? { ...QRY, lw: 1.4 } : {});
+        G.lab(`psi${t}${j}`, `$${HMX.psi[t][j]}$`, [cx, cy], 'c', { color: ROLE.evd });
+        if (mode === 'vit' && HMX.mpm[t] === j)
+          g.el('circle', { cx, cy, r: r + 6, fill: 'none', stroke: ROLE.qry, 'stroke-width': 2, 'stroke-dasharray': '6 4', opacity: clamp(kk - 4) });
+      }
+      // a number beside a node, at its upper flank (H) or lower flank (S), clear of the edges, which
+      // leave the node at its middle: left the message from the left, right the message from the
+      // right (in the Viterbi trellis, the final score, both clear of the rings)
+      const off = mode === 'vit' ? 11 : 3;
+      const side = (t, j, dx, s2, color, opa, key) => {
+        const [cx, cy] = node(t, j), y = j === 0 ? cy - r * 0.78 : cy + r * 0.78;
+        G.lab(key, s2, [cx + dx * (r + off), y], dx < 0 ? 'r' : 'l', { color, opacity: opa });
+      };
+      for (let j = 0; j < 2; j++) {
+        if (mode === 'fb') {
+          side(1, j, -1, `$${HMX.fw[1][j]}$`, ROLE.msg, on(1), `f1${j}`);
+          side(2, j, -1, `$${HMX.fw[2][j]}$`, ROLE.msg, on(2), `f2${j}`);
+          side(1, j, 1, `$${HMX.bw[1][j]}$`, ROLE.msg, on(3), `b1${j}`);
+          side(0, j, 1, `$${HMX.bw[0][j]}$`, ROLE.msg, on(4), `b0${j}`);
+          for (let t = 0; t < 3; t++) {
+            const [cx, cy] = node(t, j);
+            G.lab(`p${t}${j}`, `$${HMX.post[t][j]}$`, [cx, j === 0 ? cy + r + 6 : cy - r - 6], j === 0 ? 't' : 'b',
+              { color: ROLE.qry, opacity: on(5) });
+          }
+        } else {
+          side(1, j, -1, `$${HMX.vm[1][j]}$`, ROLE.msg, on(1), `f1${j}`);
+          side(2, j, -1, `$${HMX.vm[2][j]}$`, ROLE.msg, on(2), `f2${j}`);
+          side(2, j, 1, `$${HMX.fin[j]}$`, '#000', on(3), `fin${j}`);
+        }
+      }
+    }
+  };
+}
+FIGS.fbtrellis = hmTrellis('fb');
+FIGS.vittrellis = hmTrellis('vit');
+// END hidden Markov model slides
+// =====================================================================================================
