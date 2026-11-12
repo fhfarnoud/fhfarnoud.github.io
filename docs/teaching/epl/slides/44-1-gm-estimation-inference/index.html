@@ -401,73 +401,6 @@ table.vals.hm td:first-child, table.vals.hm th:first-child { text-align: left; p
   </div>
 </section>
 
-<!-- not in the source: BNs, MRFs and factor graphs, leading to message passing on a tree -->
-
-<section>
-  <h2>Moralization: From a BN to an MRF</h2>
-  <p><b>Goal:</b> message passing, coming up, is stated for MRFs. To run it on a BN, first write the BN as an MRF.</p>
-  <p><b>Each CPD becomes a potential</b> on $x_i$ and its parents, so they must form a clique: $p(B|T,C)$ needs the clique $\{T, C, B\}$.</p>
-  <div class="row fg-row">
-    <div class="col">
-      <p><b>Moralization:</b></p>
-      <ol>
-        <li pause="mo=1" data-fragment-index="1"><b>Marry the parents:</b> join every two parents of a common child, here $T$ and $C$.</li>
-        <li pause="mo=2" data-fragment-index="2"><b>Drop the directions.</b></li>
-      </ol>
-    </div>
-    <fig name="fgmoral" init="mo=0"></fig>
-  </div>
-  <p pause data-fragment-index="2"><b>Potentials:</b> $\psi(R) = p(R)$, $\psi(R,T) = p(T|R)$, $\psi(C) = p(C)$, $\psi(T,C,B) = p(B|T,C)$; their product is $p$, so $Z = 1$.</p>
-  <p pause data-fragment-index="3"><b>Lost independence:</b> in the BN, $T \independent C$: the only path between them, $T \to B \leftarrow C$, meets the unobserved collider $B$. The distribution is unchanged, but in the moral graph $T$ and $C$ are adjacent, so the graph no longer shows $T \independent C$.</p>
-</section>
-
-<section>
-  <h2>Factor Graphs</h2>
-  <p><b>One MRF graph, two factorizations:</b> in both, every pair of $T, C, B$ shares a potential, so both give the moral graph’s triangle.</p>
-  <div class="row fg-pair">
-    <div><fig name="fgtri" init="v=0 c=0"></fig><p class="center">(a) one potential: $\psi(T,C,B)$</p></div>
-    <div><fig name="fgtri" init="v=1 c=0"></fig><p class="center">(b) three potentials: $\psi(T,C)\,\psi(T,B)\,\psi(C,B)$</p></div>
-  </div>
-  <p pause="c=1" data-fragment-index="1"><b>Factor graph:</b> variable nodes (circles) and factor nodes (squares); each factor $f$ is joined to the variables it depends on, $x_f$, and $p(\bx) \propto \prod_{f} f(x_f)$.</p>
-  <p pause data-fragment-index="1"><b>MRF to factor graph:</b> one factor node per potential, joined to its variables.</p>
-  <p pause data-fragment-index="2">The two factor graphs differ: (a) has no cycle; (b) has the cycle $T$, $\psi(T,C)$, $C$, $\psi(C,B)$, $B$, $\psi(T,B)$. The traffic network is (a), with $\psi(T,C,B) = p(B|T,C)$.</p>
-</section>
-
-<section>
-  <h2>From a BN to a Factor Graph</h2>
-  <p><b>BN to factor graph:</b> one factor node per CPD $p(x_i | \pa(x_i))$, joined to $x_i$ and its parents.</p>
-  <p><b>Example:</b> the traffic network, $p(R,T,C,B) = p(R)\,p(T|R)\,p(C)\,p(B|T,C)$: four factors.</p>
-  <fig name="fgbn" init="f=0" style="margin:0 auto"></fig>
-  <p pause="f=1" data-fragment-index="1">The directions are gone, as in the moral graph, but $p(B|T,C)$ stays one node, joined to $T$, $C$ and $B$; $p(R)$ and $p(C)$ are joined to one variable each.</p>
-  <p pause data-fragment-index="2">The CPDs multiply to a normalized distribution, so $\propto$ becomes $=$: $p(\bx) = \prod_f f(x_f)$, with $Z = 1$.</p>
-</section>
-
-<section>
-  <h2>Moral Graph vs. Factor Graph: Which Is a Tree?</h2>
-  <p>Message passing, coming up, is exact on a <b>tree</b>: a connected graph with no cycle. A connected graph on $n$ nodes is a tree exactly when it has $n-1$ edges.</p>
-  <div class="row fg-pair">
-    <div><fig name="fgcmp" init="v=0 h=0"></fig><p class="center">Moral graph: 4 nodes, 4 edges</p></div>
-    <div><fig name="fgcmp" init="v=1 h=0"></fig><p class="center">Factor graph: 4 + 4 nodes, 7 edges</p></div>
-  </div>
-  <p pause="h=1" data-fragment-index="1"><b>Moral graph:</b> not a tree. Marrying $T$ and $C$ closed the cycle $T, B, C$; a node with two parents always does, since it and its parents form a triangle.</p>
-  <p pause="h=2" data-fragment-index="2"><b>Factor graph:</b> a tree; $T$, $C$ and $B$ are joined only through the one factor node $p(B|T,C)$.</p>
-</section>
-
-<section>
-  <h2>Variable Elimination as Messages on the Factor Graph</h2>
-  <div class="row fg-row">
-    <div class="col">
-      <p><b class="qry">Query</b> $\qry{T}$, <b class="evd">evidence</b> $\evd{B=1}$, on the factor graph of the traffic network.</p>
-      <p><b>Branches:</b> removing $T$ splits the tree in two, one part through $p(T|R)$ and one through $p(B|T,C)$.</p>
-    </div>
-    <fig name="fgmsg" init="ms=0"></fig>
-  </div>
-  <p pause="ms=1" data-fragment-index="1">The two sums of variable elimination are one per branch; $\msg{m_1(\qry{t})}$ is the $\msg{m(\qry{T=t})}$ of “Variable Elimination: A Concrete Example”:</p>
-  <div pause data-fragment-index="1">\[\alpha_t = p(\qry{T=t}, \evd{B=1}) = \underbrace{\sum_r p(R=r)\,p(\qry{T=t}|R=r)}_{\msg{m_1(\qry{t})}}\;\htmlClass{u2}{\underbrace{\sum_c p(C=c)\,p(\evd{B=1}|\qry{T=t},C=c)}_{\msg{m_2(\qry{t})}}}\]</div>
-  <span class="mark s2" pause="ms=2" data-fragment-index="2"></span>
-  <p pause data-fragment-index="2">Each sum uses only its branch’s factors and reaches $\qry{T}$ along one edge: a <b><span class="msg">message</span></b>. On any tree, eliminating from the leaves toward the query is passing such <span class="msg">messages</span>.</p>
-</section>
-
 <!-- 18 -->
 <section class="tight">
   <h2>Sum-Product Algorithm: Message Passing on Trees</h2>
@@ -593,10 +526,77 @@ table.vals.hm td:first-child, table.vals.hm th:first-child { text-align: left; p
 </section>
 
 
+<!-- ============ Optional material: BNs, MRFs and factor graphs; message passing on a tree ============ -->
+
+<section id="sec-opt">
+  <h2>Moralization: From a BN to an MRF</h2>
+  <p><b>Goal:</b> message passing (the sum-product and max-product algorithms) is stated for MRFs. To run it on a BN, first write the BN as an MRF.</p>
+  <p><b>Each CPD becomes a potential</b> on $x_i$ and its parents, so they must form a clique: $p(B|T,C)$ needs the clique $\{T, C, B\}$.</p>
+  <div class="row fg-row">
+    <div class="col">
+      <p><b>Moralization:</b></p>
+      <ol>
+        <li pause="mo=1" data-fragment-index="1"><b>Marry the parents:</b> join every two parents of a common child, here $T$ and $C$.</li>
+        <li pause="mo=2" data-fragment-index="2"><b>Drop the directions.</b></li>
+      </ol>
+    </div>
+    <fig name="fgmoral" init="mo=0"></fig>
+  </div>
+  <p pause data-fragment-index="2"><b>Potentials:</b> $\psi(R) = p(R)$, $\psi(R,T) = p(T|R)$, $\psi(C) = p(C)$, $\psi(T,C,B) = p(B|T,C)$; their product is $p$, so $Z = 1$.</p>
+  <p pause data-fragment-index="3"><b>Lost independence:</b> in the BN, $T \independent C$: the only path between them, $T \to B \leftarrow C$, meets the unobserved collider $B$. The distribution is unchanged, but in the moral graph $T$ and $C$ are adjacent, so the graph no longer shows $T \independent C$.</p>
+</section>
+
+<section>
+  <h2>Factor Graphs</h2>
+  <p><b>One MRF graph, two factorizations:</b> in both, every pair of $T, C, B$ shares a potential, so both give the moral graph’s triangle.</p>
+  <div class="row fg-pair">
+    <div><fig name="fgtri" init="v=0 c=0"></fig><p class="center">(a) one potential: $\psi(T,C,B)$</p></div>
+    <div><fig name="fgtri" init="v=1 c=0"></fig><p class="center">(b) three potentials: $\psi(T,C)\,\psi(T,B)\,\psi(C,B)$</p></div>
+  </div>
+  <p pause="c=1" data-fragment-index="1"><b>Factor graph:</b> variable nodes (circles) and factor nodes (squares); each factor $f$ is joined to the variables it depends on, $x_f$, and $p(\bx) \propto \prod_{f} f(x_f)$.</p>
+  <p pause data-fragment-index="1"><b>MRF to factor graph:</b> one factor node per potential, joined to its variables.</p>
+  <p pause data-fragment-index="2">The two factor graphs differ: (a) has no cycle; (b) has the cycle $T$, $\psi(T,C)$, $C$, $\psi(C,B)$, $B$, $\psi(T,B)$. The traffic network is (a), with $\psi(T,C,B) = p(B|T,C)$.</p>
+</section>
+
+<section>
+  <h2>From a BN to a Factor Graph</h2>
+  <p><b>BN to factor graph:</b> one factor node per CPD $p(x_i | \pa(x_i))$, joined to $x_i$ and its parents.</p>
+  <p><b>Example:</b> the traffic network, $p(R,T,C,B) = p(R)\,p(T|R)\,p(C)\,p(B|T,C)$: four factors.</p>
+  <fig name="fgbn" init="f=0" style="margin:0 auto"></fig>
+  <p pause="f=1" data-fragment-index="1">The directions are gone, as in the moral graph, but $p(B|T,C)$ stays one node, joined to $T$, $C$ and $B$; $p(R)$ and $p(C)$ are joined to one variable each.</p>
+  <p pause data-fragment-index="2">The CPDs multiply to a normalized distribution, so $\propto$ becomes $=$: $p(\bx) = \prod_f f(x_f)$, with $Z = 1$.</p>
+</section>
+
+<section>
+  <h2>Moral Graph vs. Factor Graph: Which Is a Tree?</h2>
+  <p>Message passing is exact on a <b>tree</b>: a connected graph with no cycle. A connected graph on $n$ nodes is a tree exactly when it has $n-1$ edges.</p>
+  <div class="row fg-pair">
+    <div><fig name="fgcmp" init="v=0 h=0"></fig><p class="center">Moral graph: 4 nodes, 4 edges</p></div>
+    <div><fig name="fgcmp" init="v=1 h=0"></fig><p class="center">Factor graph: 4 + 4 nodes, 7 edges</p></div>
+  </div>
+  <p pause="h=1" data-fragment-index="1"><b>Moral graph:</b> not a tree. Marrying $T$ and $C$ closed the cycle $T, B, C$; a node with two parents always does, since it and its parents form a triangle.</p>
+  <p pause="h=2" data-fragment-index="2"><b>Factor graph:</b> a tree; $T$, $C$ and $B$ are joined only through the one factor node $p(B|T,C)$.</p>
+</section>
+
+<section>
+  <h2>Variable Elimination as Messages on the Factor Graph</h2>
+  <div class="row fg-row">
+    <div class="col">
+      <p><b class="qry">Query</b> $\qry{T}$, <b class="evd">evidence</b> $\evd{B=1}$, on the factor graph of the traffic network.</p>
+      <p><b>Branches:</b> removing $T$ splits the tree in two, one part through $p(T|R)$ and one through $p(B|T,C)$.</p>
+    </div>
+    <fig name="fgmsg" init="ms=0"></fig>
+  </div>
+  <p pause="ms=1" data-fragment-index="1">The two sums of variable elimination are one per branch; $\msg{m_1(\qry{t})}$ is the $\msg{m(\qry{T=t})}$ of “Variable Elimination: A Concrete Example”:</p>
+  <div pause data-fragment-index="1">\[\alpha_t = p(\qry{T=t}, \evd{B=1}) = \underbrace{\sum_r p(R=r)\,p(\qry{T=t}|R=r)}_{\msg{m_1(\qry{t})}}\;\htmlClass{u2}{\underbrace{\sum_c p(C=c)\,p(\evd{B=1}|\qry{T=t},C=c)}_{\msg{m_2(\qry{t})}}}\]</div>
+  <span class="mark s2" pause="ms=2" data-fragment-index="2"></span>
+  <p pause data-fragment-index="2">Each sum uses only its branch’s factors and reaches $\qry{T}$ along one edge: a <b><span class="msg">message</span></b>. On any tree, eliminating from the leaves toward the query is passing such <span class="msg">messages</span>.</p>
+</section>
+
 <!-- ============ Optional material: hidden Markov models, forward-backward and Viterbi ============ -->
 
 <!-- not in the source: the HMM as an MRF on the chain of hidden states -->
-<section id="sec-opt">
+<section>
   <h2>Inference in Hidden Markov Models</h2>
   <div class="hmpair">
     <div>
