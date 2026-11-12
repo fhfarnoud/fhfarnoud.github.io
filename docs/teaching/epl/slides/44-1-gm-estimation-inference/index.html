@@ -606,7 +606,8 @@ table.vals.hm td:first-child, table.vals.hm th:first-child { text-align: left; p
     <fig name="hmmgraph" init="e=0"></fig>
   </div>
   <div pause="e=1">
-    <p><b class="evd">Evidence:</b> with $\evd{y_1^T}$ observed, each $p(\evd{y_t}|x_t)$ is a function of $x_t$ alone, a node potential $\psi(x_t)$; $\psi(x_1)$ also takes the factor $p(x_1)$:</p>
+    <p><b class="evd">Evidence:</b> with $\evd{y_1^T}$ observed, each $p(\evd{y_t}|x_t)$ is a function of $x_t$ alone, so it becomes a node potential:</p>
+    \[\psi(x_t) = p(\evd{y_t} | x_t) \;\; (t = 2, \dots, T), \qquad \psi(x_1) = p(\evd{y_1} | x_1)\, p(x_1)\]
     \[p(x_1^T | \evd{y_1^T}) \propto \prod_{t=1}^{T} \psi(x_t) \prod_{t=2}^{T} \psi(x_{t-1}, x_t), \qquad \psi(x_{t-1}, x_t) = p(x_t | x_{t-1})\]
     <p>This is an MRF on the chain of hidden states (right), a tree, so the sum-product and max-product algorithms apply:</p>
   </div>
