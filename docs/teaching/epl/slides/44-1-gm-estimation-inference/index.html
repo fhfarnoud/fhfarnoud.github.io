@@ -58,6 +58,18 @@ section.ref .fbody { top: 140px; color: #666; font-size: 24.5px; }
 section.ref .fbody.foot { font-size: 22px; }
 section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subbody is \small */
 .fbody > div > p + ul, .fbody > div > p + ol { margin-top: -6px; }
+/* from "Inference: What and Why?" on, the evidence (observed values) in green, the query in red and
+   messages in blue: \evd{...}, \qry{...} and \msg{...} in math, class evd / qry / msg on words; the
+   figures take the same colours from ROLE in figs.js */
+.evd { color: #0A8A3A; }
+.qry { color: #C62828; }
+.msg { color: #1F5FD1; }
+/* "Elimination order matters": the chain beside the example line, its height overhanging the line's */
+.exrow { display: flex; align-items: center; justify-content: space-between; margin: 0 0 14px; }
+.exrow > p { margin: 0; }
+.exrow > .fig { margin: -10px 0; }
+/* "Reading the Max-Product Messages": the sum-product and max-product readings side by side */
+.par2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; align-items: start; }
 </style>
 </head>
 <body>
@@ -257,12 +269,12 @@ section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subb
 <section id="sec-inf">
   <h2>Inference: What and Why?</h2>
   <p><b>Setup:</b> We now have a trained model with all parameters (In the Bayesian case, parameters become part of the graph).</p>
-  <p><b>Inference question:</b> What is $p(\text{query} | \text{evidence})$?</p>
+  <p><b>Inference question:</b> What is $p(\qry{\text{query}} | \evd{\text{evidence}})$?</p>
   <div>
     <p><b>Example:</b> Traffic network with Rain 🌧️</p>
     <ul>
-      <li><b>Evidence:</b> Bob is late $B=1$ 🏃‍♂️</li>
-      <li><b>Query:</b> Is traffic heavy? $p(T=1 | B=1)$ 🚥</li>
+      <li><b class="evd">Evidence:</b> Bob is late $\evd{B=1}$ 🏃‍♂️</li>
+      <li><b class="qry">Query:</b> Is traffic heavy? $p(\qry{T=1} | \evd{B=1})$ 🚥</li>
     </ul>
   </div>
   <fig name="traffic" style="margin:0 auto"></fig>
@@ -272,8 +284,8 @@ section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subb
 <section>
   <h2>The Challenge: Exponential Complexity</h2>
   <p><b>⚠️ Problem:</b> Naive computation is exponential!</p>
-  <p><b>To compute</b> $p(T=1 | B=1)$:</p>
-  <div class="eq-small">\[p(T=1 | B=1) = \frac{p(T=1,B=1)}{p(B=1)}=\frac{\sum_{r,c} p(R=r, T=1, C=c, B=1)}{\sum_{r,t,c} p(R=r, T=t, C=c, B=1)}\]</div>
+  <p><b>To compute</b> $p(\qry{T=1} | \evd{B=1})$:</p>
+  <div class="eq-small">\[p(\qry{T=1} | \evd{B=1}) = \frac{p(\qry{T=1},\evd{B=1})}{p(\evd{B=1})}=\frac{\sum_{r,c} p(R=r, \qry{T=1}, C=c, \evd{B=1})}{\sum_{r,t,c} p(R=r, T=t, C=c, \evd{B=1})}\]</div>
   <p><b>Must sum over all combinations of $R$ and $C$:</b></p>
   <p><b>General case:</b> $m$ hidden binary variables $\to$ $2^m$ combinations</p>
   <p pause><b>💡 Solution:</b> Exploit graph structure to avoid redundant computation</p>
@@ -282,41 +294,45 @@ section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subb
 <!-- 13 -->
 <section>
   <h2>Simplifying the Problem</h2>
-  <p><b>Goal:</b> Compute posterior $p(T | B=1)$.</p>
-  \[p(T=t | B=1) = \frac{p(T=t, B=1)}{p(B=1)}\]
-  <p><b>Observation:</b> The denominator $p(B=1)$ is the same for all $t$.</p>
-  \[p(B=1) = \sum_{t'} p(T=t', B=1)\]
+  <p><b>Goal:</b> Compute posterior $p(\qry{T} | \evd{B=1})$.</p>
+  \[p(\qry{T=t} | \evd{B=1}) = \frac{p(\qry{T=t}, \evd{B=1})}{p(\evd{B=1})}\]
+  <p><b>Observation:</b> The denominator $p(\evd{B=1})$ is the same for all $t$.</p>
+  \[p(\evd{B=1}) = \sum_{t'} p(T=t', \evd{B=1})\]
   <p pause data-fragment-index="1"><b>Strategy:</b></p>
   <ol pause data-fragment-index="1">
-    <li>Compute the <b>numerator</b> (joint probability) for each value of $T$: \[\alpha_0 = p(T=0, B=1), \quad \alpha_1 = p(T=1, B=1)\]</li>
-    <li><b>Normalize</b> to get probabilities: \[p(T=1 | B=1) = \frac{\alpha_1}{\alpha_0 + \alpha_1}\]</li>
+    <li>Compute the <b>numerator</b> (joint probability) for each value of $\qry{T}$: \[\alpha_0 = p(\qry{T=0}, \evd{B=1}), \quad \alpha_1 = p(\qry{T=1}, \evd{B=1})\]</li>
+    <li><b>Normalize</b> to get probabilities: \[p(\qry{T=1} | \evd{B=1}) = \frac{\alpha_1}{\alpha_0 + \alpha_1}\]</li>
   </ol>
-  <p pause data-fragment-index="1"><b>Conclusion:</b> Only compute joint probability $p(T, B=1)$.<br>Same approach works for unconditional queries, e.g., $p(T)$.</p>
+  <p pause data-fragment-index="1"><b>Conclusion:</b> Only compute joint probability $p(\qry{T}, \evd{B=1})$.<br>Same approach works for unconditional <span class="qry">queries</span>, e.g., $p(\qry{T})$.</p>
 </section>
 
 <!-- 14 -->
 <section>
   <h2>Variable Elimination: A Concrete Example</h2>
-  <p><b>Task:</b> Compute both numerators $\alpha_t = p(T=t, B=1)$, $t \in \{0, 1\}$, efficiently.</p>
-  <p><b>Naive Summation:</b> $\alpha_t = \sum_c \sum_r p(R=r, T=t, C=c, B=1)$</p>
-  <p><b>Elimination:</b> Factorize distribution and eliminate variables one at a time.</p>
-  <p pause data-fragment-index="1"><b>Step 1: Eliminate $R$ (Sum over $r$)</b>: Group terms involving $R$:</p>
-  <div pause data-fragment-index="1">\[\alpha_t = \sum_c p(C=c) p(B=1|T=t, C=c) \underbrace{\left[ \sum_r p(R=r) p(T=t|R=r) \right]}_{m(T=t)}\]</div>
-  <p pause data-fragment-index="2"><b>Step 2: Eliminate $C$ (Sum over $c$)</b>: Use the result $m(T=t)$ in the remaining sum:</p>
-  <div pause data-fragment-index="2">\[\alpha_t = m(T=t) \sum_c p(C=c) p(B=1|T=t, C=c)\]</div>
-  <p pause data-fragment-index="2"><b>Result:</b> For each $t$, replaced a sum over $R \times C$ pairs with two smaller sums.</p>
+  <p><b>Task:</b> Compute both numerators $\alpha_t = p(\qry{T=t}, \evd{B=1})$, $t \in \{0, 1\}$, efficiently.</p>
+  <p><b>Naive Summation:</b> $\alpha_t = \sum_c \sum_r p(R=r, \qry{T=t}, C=c, \evd{B=1})$</p>
+  <p pause data-fragment-index="1"><b>Step 1: Factorize</b> according to the graph:</p>
+  <div pause data-fragment-index="1">\[\alpha_t = \sum_c \sum_r p(R=r)\, p(\qry{T=t}|R=r)\, p(C=c)\, p(\evd{B=1}|\qry{T=t}, C=c)\]</div>
+  <p pause data-fragment-index="2"><b>Step 2: Eliminate $R$ (Sum over $r$)</b>: Move the sum over $r$ inside, next to the terms involving $R$:</p>
+  <div pause data-fragment-index="2">\[\alpha_t = \sum_c p(C=c) p(\evd{B=1}|\qry{T=t}, C=c) \underbrace{\left[ \sum_r p(R=r) p(\qry{T=t}|R=r) \right]}_{\msg{m(\qry{T=t})}}\]</div>
+  <p pause data-fragment-index="3"><b>Step 3: Eliminate $C$ (Sum over $c$)</b>: Use the result $\msg{m(\qry{T=t})}$ in the remaining sum:</p>
+  <div pause data-fragment-index="3">\[\alpha_t = \msg{m(\qry{T=t})} \sum_c p(C=c) p(\evd{B=1}|\qry{T=t}, C=c)\]</div>
+  <p pause data-fragment-index="3"><b>Result:</b> For each $t$, replaced a sum over $R \times C$ pairs with two smaller sums.</p>
 </section>
 
 <!-- 15 -->
 <section>
   <h2>Elimination order matters</h2>
-  <p><b>Example:</b> Chain $x_1 \to x_2 \to x_3 \to x_4$. Compute $p(x_4)$.</p>
+  <div class="exrow">
+    <p><b>Example:</b> Chain $x_1 \to x_2 \to x_3 \to \qry{x_4}$. Compute $p(\qry{x_4})$.</p>
+    <fig name="chain"></fig>
+  </div>
   <div class="eq-foot">\[\begin{aligned}
-    p(x_4) &= \sum_{x_1,x_2,x_3}p(x_1)p(x_2|x_1)p(x_3|x_2)p(x_4|x_3) \\
-    &\htmlClass{u2}{{}= \sum_{x_3}\sum_{x_2}\sum_{x_1}p(x_1)p(x_2|x_1)p(x_3|x_2)p(x_4|x_3)} \\
-    &\htmlClass{u3}{{}= \sum_{x_3} p(x_4|x_3) \sum_{x_2} p(x_3|x_2) \underbrace{\sum_{x_1} p(x_1) p(x_2|x_1)}_{m_1(x_2)}} \\
-    &\htmlClass{u4}{{}= \sum_{x_3} p(x_4|x_3) \underbrace{\sum_{x_2} p(x_3|x_2) m_1(x_2)}_{m_2(x_3)}} \\
-    &\htmlClass{u5}{{}= \sum_{x_3} p(x_4|x_3) m_2(x_3)}
+    p(\qry{x_4}) &= \sum_{x_1,x_2,x_3}p(x_1)p(x_2|x_1)p(x_3|x_2)p(\qry{x_4}|x_3) \\
+    &\htmlClass{u2}{{}= \sum_{x_3}\sum_{x_2}\sum_{x_1}p(x_1)p(x_2|x_1)p(x_3|x_2)p(\qry{x_4}|x_3)} \\
+    &\htmlClass{u3}{{}= \sum_{x_3} p(\qry{x_4}|x_3) \sum_{x_2} p(x_3|x_2) \underbrace{\sum_{x_1} p(x_1) p(x_2|x_1)}_{\msg{m_1(x_2)}}} \\
+    &\htmlClass{u4}{{}= \sum_{x_3} p(\qry{x_4}|x_3) \underbrace{\sum_{x_2} p(x_3|x_2) \msg{m_1(x_2)}}_{\msg{m_2(x_3)}}} \\
+    &\htmlClass{u5}{{}= \sum_{x_3} p(\qry{x_4}|x_3) \msg{m_2(x_3)}}
   \end{aligned}\]</div>
   <span class="mark s2" pause data-fragment-index="1"></span>
   <span class="mark s3" pause data-fragment-index="2"></span>
@@ -328,15 +344,16 @@ section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subb
 <!-- 16 -->
 <section>
   <h2>Bad Elimination Order</h2>
-  <p><b>Same Example:</b> Chain $x_1 \to x_2 \to x_3 \to x_4$. Compute $p(x_4)$.</p>
+  <p><b>Same Example:</b> Chain $x_1 \to x_2 \to x_3 \to \qry{x_4}$. Compute $p(\qry{x_4})$.</p>
   <p><b>Bad Idea:</b> Eliminate $x_2$ first</p>
   <div class="eq-foot">\[\begin{aligned}
-    p(x_4) &= \sum_{x_1,x_2,x_3}p(x_1)p(x_2|x_1)p(x_3|x_2)p(x_4|x_3) \\
-    &= \sum_{x_1}\sum_{x_3}p(x_1)p(x_4|x_3)\sum_{x_2}p(x_2|x_1)p(x_3|x_2) \\
-    &= \sum_{x_1} p(x_1) \sum_{x_3} p(x_4|x_3) {\color{blue}\underbrace{\sum_{x_2} p(x_2|x_1) p(x_3|x_2)}_{m_1(x_1, x_3)}} \\
-    &= \sum_{x_1} p(x_1) {\color{red}\underbrace{\sum_{x_3} p(x_4|x_3) {\color{blue}m_1(x_1, x_3)}}_{m_2(x_1, x_4)}} \sum_{x_1} p(x_1) {\color{red}m_2(x_1, x_4)}
+    p(\qry{x_4}) &= \sum_{x_1,x_2,x_3}p(x_1)p(x_2|x_1)p(x_3|x_2)p(\qry{x_4}|x_3) \\
+    &= \sum_{x_1}\sum_{x_3}p(x_1)p(\qry{x_4}|x_3)\sum_{x_2}p(x_2|x_1)p(x_3|x_2) \\
+    &= \sum_{x_1} p(x_1) \sum_{x_3} p(\qry{x_4}|x_3) \msg{\underbrace{\sum_{x_2} p(x_2|x_1) p(x_3|x_2)}_{m_1(x_1, x_3)}} \\
+    &= \sum_{x_1} p(x_1) \msg{\underbrace{\sum_{x_3} p(\qry{x_4}|x_3) m_1(x_1, x_3)}_{m_2(x_1, \qry{x_4})}} \\
+    &= \sum_{x_1} p(x_1) \msg{m_2(x_1, \qry{x_4})}
   \end{aligned}\]</div>
-  <p><b>Problem:</b> Computing $m_1$ requires summing over $x_2$ <b>for each</b> pair $(x_1, x_3)$! Complexity $O(k^3)$.</p>
+  <p><b>Problem:</b> Computing $\msg{m_1}$ requires summing over $x_2$ <b>for each</b> pair $(x_1, x_3)$! Complexity $O(k^3)$.</p>
 </section>
 
 <!-- 17: reference frame -->
@@ -344,17 +361,17 @@ section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subb
   <div class="reftitle">Variable Elimination: The General Algorithm</div>
   <div class="refsub">(For Reference)</div>
   <div class="fbody foot">
-    <p><b>The Recipe:</b> To compute $p(X_{\text{query}} | X_{\text{evidence}})$:</p>
+    <p><b>The Recipe:</b> To compute $p(\qry{X_{\text{query}}} | \evd{X_{\text{evidence}}})$:</p>
     <ol>
       <li><b>Initialize:</b> Start with all factors (or CPDs) in the graph.</li>
-      <li><b>Evidence:</b> Fix values of observed variables (sum contains a single term).</li>
+      <li><b class="evd">Evidence:</b> Fix values of observed variables (sum contains a single term).</li>
       <li><b>Order:</b> Choose an elimination ordering for hidden variables.</li>
-      <li><b>Eliminate:</b> For each variable $Z$ in the ordering:
+      <li><b>Eliminate:</b> For each variable $V$ in the ordering:
         <ul>
-          <li><b>Collect:</b> Find all factors that mention $Z$. Let $q$ be the set of variables other than $Z$ in these factors.</li>
-          <li><b>Multiply:</b> Multiply them to form a temporary factor $\psi(Z,q)$.</li>
-          <li><b>Sum:</b> Find $m(q)=\sum_z \psi(Z=z,q)$ for all possible values of $q$.</li>
-          <li><b>Update:</b> Replace old factors with $m(q)$.</li>
+          <li><b>Collect:</b> Find all factors that mention $V$. Let $q$ be the set of variables other than $V$ in these factors.</li>
+          <li><b>Multiply:</b> Multiply them to form a temporary factor $\psi(V,q)$.</li>
+          <li><b>Sum:</b> Find $\msg{m(q)}=\sum_v \psi(V=v,q)$ for all possible values of $q$.</li>
+          <li><b>Update:</b> Replace old factors with $\msg{m(q)}$.</li>
         </ul></li>
       <li><b>Normalize:</b> Multiply remaining factors and normalize.</li>
     </ol>
@@ -365,17 +382,29 @@ section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subb
 <!-- 18 -->
 <section class="tight">
   <h2>Sum-Product Algorithm: Message Passing on Trees</h2>
-  <p><b>💡 Key idea:</b> On trees, we can find optimal elimination order by systematically passing messages towards the query node.</p>
-  <p><b>Example:</b> Tree MRF, compute marginal at $x_4$.</p>
+  <p><b>💡 Key idea:</b> On trees, we can find optimal elimination order by systematically passing <span class="msg">messages</span> towards the <span class="qry">query</span> node.</p>
+  <p><b>Example:</b> Tree MRF, compute marginal at $\qry{x_4}$.</p>
   <fig name="tree" init="m=0" style="margin:0 auto"></fig>
-  <p><b>Messages flow toward query node $x_4$:</b></p>
+  <p><b><span class="msg">Messages</span> flow toward <span class="qry">query</span> node $\qry{x_4}$:</b></p>
   <ul pause="m=1" data-fragment-index="1">
-    <li>$m_{1 \to 3}(x_3) = \sum_{x_1} \psi(x_1, x_3)$</li>
-    <li>$m_{2 \to 3}(x_3) = \sum_{x_2} \psi(x_2, x_3)$</li>
-    <li>$m_{3 \to 4}(x_4) = \sum_{x_3} \psi(x_3, x_4) \cdot m_{1 \to 3}(x_3) \cdot m_{2 \to 3}(x_3)$</li>
-    <li>$m_{5 \to 4}(x_4) = \sum_{x_5} \psi(x_4, x_5)$</li>
+    <li>$\msg{m_{1 \to 3}(x_3)} = \sum_{x_1} \psi(x_1, x_3)$</li>
+    <li>$\msg{m_{2 \to 3}(x_3)} = \sum_{x_2} \psi(x_2, x_3)$</li>
+    <li>$\msg{m_{3 \to 4}(\qry{x_4})} = \sum_{x_3} \psi(x_3, \qry{x_4}) \cdot \msg{m_{1 \to 3}(x_3)} \cdot \msg{m_{2 \to 3}(x_3)}$</li>
+    <li>$\msg{m_{5 \to 4}(\qry{x_4})} = \sum_{x_5} \psi(\qry{x_4}, x_5)$</li>
   </ul>
-  <p pause data-fragment-index="1"><b>Final marginal:</b> $p(x_4) \propto m_{3 \to 4}(x_4) \cdot m_{5 \to 4}(x_4)$</p>
+  <p pause data-fragment-index="1"><b>Final marginal:</b> $p(\qry{x_4}) \propto \msg{m_{3 \to 4}(\qry{x_4})} \cdot \msg{m_{5 \to 4}(\qry{x_4})}$</p>
+</section>
+
+<!-- not in the source: reading the messages -->
+<section>
+  <h2>Reading the Sum-Product Messages</h2>
+  <fig name="tree" init="m=1" style="margin:0 auto"></fig>
+  <p><b>Intuition</b> (roughly speaking):</p>
+  <ul>
+    <li>$\msg{m_{2 \to 3}(x_3)}$: how plausible each value of $x_3$ is from $x_2$'s point of view, with every value of $x_2$ considered.</li>
+    <li>$\msg{m_{3 \to 4}(\qry{x_4})}$: how plausible each value of $\qry{x_4}$ is from the point of view of $x_3$'s subtree $\{x_1, x_2, x_3\}$, with every configuration of the subtree considered: \[\msg{m_{3 \to 4}(\qry{x_4})} = \sum_{x_1, x_2, x_3} \psi(x_1, x_3)\, \psi(x_2, x_3)\, \psi(x_3, \qry{x_4})\]</li>
+  </ul>
+  <p><span class="msg">Messages</span> are weights, not probabilities: only their ratios across values matter.</p>
 </section>
 
 <!-- 19: reference frame -->
@@ -383,13 +412,13 @@ section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subb
   <div class="reftitle">Sum-Product Algorithm</div>
   <div class="refsub">(For Reference)</div>
   <div class="fbody">
-    <p><b>Message from node $i$ to node $j$:</b></p>
-    \[m_{i \to j}(x_j) = \sum_{x_i} \psi(x_i) \psi(x_i, x_j) \prod_{k \in N(i) \setminus j} m_{k \to i}(x_i)\]
+    <p><b><span class="msg">Message</span> from node $i$ to node $j$:</b></p>
+    \[\msg{m_{i \to j}(x_j)} = \sum_{x_i} \psi(x_i) \psi(x_i, x_j) \prod_{k \in N(i) \setminus j} \msg{m_{k \to i}(x_i)}\]
     <p>where $N(i)$ = neighbors of node $i$</p>
-    <p><b>Marginal at node $j$ (after all messages received):</b></p>
-    \[p(x_j) \propto \psi(x_j) \prod_{i \in N(j)} m_{i \to j}(x_j)\]
-    <p><b>All marginals on tree MRFs:</b> Send all possible messages on each edge in both directions.</p>
-    <p><b>For general graphs:</b> keep passing messages in loops: loopy belief propagation (approximate)</p>
+    <p><b>Marginal at node $j$ (after all <span class="msg">messages</span> received):</b></p>
+    \[p(\qry{x_j}) \propto \psi(\qry{x_j}) \prod_{i \in N(j)} \msg{m_{i \to j}(\qry{x_j})}\]
+    <p><b>All marginals on tree MRFs:</b> Send all possible <span class="msg">messages</span> on each edge in both directions.</p>
+    <p><b>For general graphs:</b> keep passing <span class="msg">messages</span> in loops: loopy belief propagation (approximate)</p>
   </div>
 </section>
 
@@ -404,21 +433,33 @@ section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subb
       <li><b>Goal:</b> Find most likely clean image</li>
     </ul>
   </div>
-  \[\bx^* = \argmax_{\bx} p(\bx | \text{noisy pixels})\]
+  \[\qry{\bx^*} = \argmax_{\qry{\bx}} p(\qry{\bx} | \evd{\text{noisy pixels}})\]
   <p><b>💡 Key insight:</b> Replace $\sum$ with $\max$!</p>
   <div class="pair even">
     <div>
       <p><b>Sum-product:</b></p>
-      \[m_{i \to j} = \sum_{x_i} \cdots\]
+      \[\msg{m_{i \to j}} = \sum_{x_i} \cdots\]
       <p>Computes probabilities</p>
     </div>
     <div>
       <p><b>Max-product:</b></p>
-      \[m_{i \to j} = \max_{x_i} \cdots\]
+      \[\msg{m_{i \to j}} = \max_{x_i} \cdots\]
       <p>Finds best config</p>
     </div>
   </div>
   <p><b>Bonus:</b> Need to backtrack to recover actual configuration</p>
+</section>
+
+<!-- not in the source: reading the max-product messages, against "Reading the Sum-Product Messages" -->
+<section>
+  <h2>Reading the Max-Product Messages</h2>
+  <fig name="tree" init="m=1" style="margin:0 auto"></fig>
+  <p><b>Intuition</b> (roughly speaking):</p>
+  <div class="par2">
+    <p><b>Sum-product:</b> $\msg{m_{i \to j}(x_j)}$: how plausible each value of $x_j$ is from $i$'s side, all configurations of that side added up</p>
+    <p><b>Max-product:</b> $\msg{m_{i \to j}(x_j)}$: how plausible each value of $x_j$ is from $i$'s side, counting only that side's best configuration</p>
+  </div>
+  <p><b>Example:</b> on the tree above, $\msg{m_{3 \to 4}(\qry{x_4})} = \max_{x_1, x_2, x_3} \psi(x_1, x_3)\, \psi(x_2, x_3)\, \psi(x_3, \qry{x_4})$: the weight of the best configuration of $x_3$'s subtree for each value of $\qry{x_4}$.</p>
 </section>
 
 <!-- 21: reference frame -->
@@ -426,14 +467,14 @@ section.ref .fbody.foot li ul { font-size: 24.5px; }   /* itemize/enumerate subb
   <div class="reftitle">Max-Product Algorithm</div>
   <div class="refsub">(For Reference)</div>
   <div class="fbody">
-    <p><b>Message from node $i$ to node $j$:</b></p>
-    \[m_{i \to j}(x_j) = \max_{x_i} \psi(x_i) \psi(x_i, x_j) \prod_{k \in N(i) \setminus j} m_{k \to i}(x_i)\]
+    <p><b><span class="msg">Message</span> from node $i$ to node $j$:</b></p>
+    \[\msg{m_{i \to j}(x_j)} = \max_{x_i} \psi(x_i) \psi(x_i, x_j) \prod_{k \in N(i) \setminus j} \msg{m_{k \to i}(x_i)}\]
     <p><b>Find maximum at node $j$:</b></p>
-    \[\max_{x_j} p(x_j) = \max_{x_j} \left[\psi(x_j) \prod_{i \in N(j)} m_{i \to j}(x_j)\right]\]
-    <p><b>Backtracking to recover $\bx^*$:</b></p>
+    \[\max_{\qry{x_j}} p(\qry{x_j}) = \max_{\qry{x_j}} \left[\psi(\qry{x_j}) \prod_{i \in N(j)} \msg{m_{i \to j}(\qry{x_j})}\right]\]
+    <p><b>Backtracking to recover $\qry{\bx^*}$:</b></p>
     <ol>
-      <li>Store: $\psi_j(x_j) = \argmax_{x_i} [\text{message terms}]$ during forward pass</li>
-      <li>Start at any node: $x_j^* = \argmax_{x_j} p(x_j)$</li>
+      <li>Store: $\psi_j(x_j) = \argmax_{x_i} [\msg{\text{message terms}}]$ during forward pass</li>
+      <li>Start at any node: $\qry{x_j^*} = \argmax_{\qry{x_j}} p(\qry{x_j})$</li>
       <li>Trace back using stored pointers $\psi_i$</li>
     </ol>
     <p><b>Application:</b> Viterbi algorithm for HMMs (special case of max-product on chain)</p>

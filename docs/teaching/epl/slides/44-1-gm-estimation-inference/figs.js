@@ -1,5 +1,6 @@
 // Figures of the Graphical Models II deck (parameter estimation and inference),
-// redrawn from the six TikZ pictures of src/40-GMs-Slides-2.tex.  Every node
+// redrawn from the six TikZ pictures of src/40-GMs-Slides-2.tex, plus two that are not in it
+// (the animation of "Plate Notation" and the chain of "Elimination order matters").  Every node
 // sits at its TikZ coordinate (the old "below left of" placement puts a node
 // at node distance d along the diagonal, d / sqrt 2 across and down), each
 // curved edge is TikZ's out/in curve (control points 0.3915 of the chord
@@ -15,17 +16,23 @@ Object.assign(MACROS, {
   // Beamer sets \text in math in the sans-serif text font
   '\\text': '\\textsf{#1}',
   '\\pa': '\\text{pa}', '\\mb': '\\text{mb}', '\\cD': '\\mathcal{D}', '\\cN': '\\mathcal{N}',
-  '\\btheta': '\\boldsymbol{\\theta}', '\\bx': '\\mathbf{x}', '\\argmax': '\\operatorname*{arg\\,max}'
+  '\\btheta': '\\boldsymbol{\\theta}', '\\bx': '\\mathbf{x}', '\\argmax': '\\operatorname*{arg\\,max}',
+  // from "Inference: What and Why?" on: the query in red, the evidence in green, messages in blue
+  // (.qry, .evd and .msg in index.html)
+  '\\qry': '\\htmlClass{qry}{#1}', '\\evd': '\\htmlClass{evd}{#1}', '\\msg': '\\htmlClass{msg}{#1}'
 });
 
-// TikZ colours
-const TZ = {
-  green: '#00B300',      // green!70!black
-  blue: '#0000FF',       // draw=blue
-  hatch: '#B3B3FF',      // pattern color=blue!30, and fill=blue!30
-  yellow: '#FFFFB3',     // fill=yellow!30
-  red: '#FF0000'
+// The colours of the roles.  An observed node (data, evidence) is hatched in a light tint of the
+// evidence green, with an outline of it; the query node has a red outline and label on a light
+// red fill; messages are blue; the edges from the parameters are gray.  The math takes the same
+// colours from .evd, .qry and .msg in index.html.
+const ROLE = {
+  evd: '#0A8A3A', evdHatch: '#93CBA7',
+  qry: '#C62828', qryFill: '#F8DEDE',
+  msg: '#1F5FD1',
+  param: '#777777'
 };
+const QRY = { fill: ROLE.qryFill, stroke: ROLE.qry, lc: ROLE.qry };   // the query node's style
 const CM = 28.45;        // pt per cm
 
 // A graphical-model drawing in TikZ coordinates (cm, y up), on the scene g.
@@ -33,7 +40,7 @@ const CM = 28.45;        // pt per cm
 //   o.k     px per TikZ cm at scale 1 (75); o.lab the px size of an 11pt label (26), o.minfs the
 //           smallest label (22)
 // node(key, [x, y], r, label, st): a circle of radius r cm; st.fill, st.stroke,
-//   st.obs (hatched, blue outline: the obs style), st.fs (label size in pt, 11)
+//   st.obs (hatched, green outline: the obs style), st.fs (label size in pt, 11), st.lc (label colour)
 // edge(a, b, st), bend(a, b, out, in, st): arrows between nodes (st.color,
 //   st.lw in pt, st.arrow false for a plain line), as TikZ's -> with stealth'
 //   and shorten >=1pt; bend leaves a at angle out and enters b at angle in.
@@ -59,7 +66,7 @@ function gm(g, o) {
     node(key, at, r, label, st = {}) {
       const [cx, cy] = P(at), R = r * U;
       N[key] = { at, r, c: [cx, cy], R };
-      const lw = pt(st.lw ?? 0.8), stroke = st.obs ? TZ.blue : st.stroke || '#000';
+      const lw = pt(st.lw ?? 0.8), stroke = st.obs ? ROLE.evd : st.stroke || '#000';
       g.el('circle', { cx, cy, r: R, fill: st.fill || '#fff', stroke: 'none', opacity: op });
       if (st.obs) {   // pattern=north west lines: lines along NW-SE every 3pt / sqrt 2, 0.4pt wide (pattern space, unscaled)
         const sp = 2.12 / (CM * s) * U, w = Math.max(0.6, 0.4 / (CM * s) * U);
@@ -68,10 +75,10 @@ function gm(g, o) {
           const h = Math.sqrt(Math.max(0, R * R - c * c)), mx = cx + c / Math.SQRT2, my = cy - c / Math.SQRT2;
           d += `M${(mx - h / Math.SQRT2).toFixed(2)},${(my - h / Math.SQRT2).toFixed(2)}L${(mx + h / Math.SQRT2).toFixed(2)},${(my + h / Math.SQRT2).toFixed(2)}`;
         }
-        g.el('path', { d, stroke: TZ.hatch, 'stroke-width': w.toFixed(2), fill: 'none', opacity: op });
+        g.el('path', { d, stroke: ROLE.evdHatch, 'stroke-width': w.toFixed(2), fill: 'none', opacity: op });
       }
       g.el('circle', { cx, cy, r: R, fill: 'none', stroke, 'stroke-width': lw, opacity: op });
-      if (label) lab('n-' + key, label, [cx, cy], 'c', { fs: st.fs });
+      if (label) lab('n-' + key, label, [cx, cy], 'c', { fs: st.fs, color: st.lc });
       return N[key];
     },
     // the point on node k's border at angle deg (TikZ: counter-clockwise from east)
@@ -153,9 +160,9 @@ FIGS.bayesparams = {
       const [x, y] = G.border(k, 0);
       G.lab('p-' + k, s2, [x + isep, y], 'l');
     }
-    G.bend('tT', 'T', 180, 0, { color: TZ.green });
-    G.bend('tB', 'B', 180, 90, { color: TZ.green });
-    G.bend('tA', 'A', 180, 0, { color: TZ.green });
+    G.bend('tT', 'T', 180, 0, { color: ROLE.param });
+    G.bend('tB', 'B', 180, 90, { color: ROLE.param });
+    G.bend('tA', 'A', 180, 0, { color: ROLE.param });
   }
 };
 
@@ -196,7 +203,7 @@ FIGS.platedemo = {
     // a parameter's edge: down from the parameter at a to the trunk height h, across, and down
     // into the node at b, entering it from above (centres in cm, radii in cm)
     const wire = (a, ra, b, rb, h) => {
-      const [ax, ay] = G.P(a), [bx, by] = G.P(b), hy = G.P([0, h])[1], col = TZ.green, lw = G.pt(0.8);
+      const [ax, ay] = G.P(a), [bx, by] = G.P(b), hy = G.P([0, h])[1], col = ROLE.param, lw = G.pt(0.8);
       const tip = by - rb * U - G.pt(1), back = G.head([bx, tip], [0, 1], 0.8, col, 1), y0 = ay + ra * U;
       const span = Math.abs(bx - ax), s = Math.sign(bx - ax), q = Math.min(0.3 * U, span / 2);
       const f = v => v.toFixed(2);
@@ -241,9 +248,9 @@ FIGS.posterior = {
     G.node('tT', tT, 0.45, '$\\theta_T$');
     G.node('tB', tB, 0.45, '$\\btheta_B$');
     G.node('tA', tA, 0.45, '$\\btheta_A$');
-    G.bend('tT', 'T', 180, 0, { color: TZ.green });
-    G.bend('tB', 'B', 180, 90, { color: TZ.green });
-    G.bend('tA', 'A', 180, 0, { color: TZ.green });
+    G.bend('tT', 'T', 180, 0, { color: ROLE.param });
+    G.bend('tB', 'B', 180, 90, { color: ROLE.param });
+    G.bend('tA', 'A', 180, 0, { color: ROLE.param });
   }
 };
 
@@ -258,17 +265,17 @@ FIGS.predict = {
     G.node('tT', tT, 0.46, '$\\theta_T$');
     G.node('tB', tB, 0.46, '$\\btheta_B$');
     G.node('tA', tA, 0.46, '$\\btheta_A$');
-    G.bend('tT', 'T', 180, 0, { color: TZ.green });
-    G.bend('tB', 'B', 180, 90, { color: TZ.green });
-    G.bend('tA', 'A', 180, 0, { color: TZ.green });
+    G.bend('tT', 'T', 180, 0, { color: ROLE.param });
+    G.bend('tB', 'B', 180, 90, { color: ROLE.param });
+    G.bend('tA', 'A', 180, 0, { color: ROLE.param });
     const t1 = [6.5, 0];
     G.node('t1', t1, 0.55, '$T_{n+1}$', { fs: 9 });
     G.node('a1', [t1[0] - d25, -d25], 0.55, '$A_{n+1}$', { fs: 9 });
     G.node('b1', [t1[0] + d25, -d25], 0.55, '$B_{n+1}$', { fs: 9 });
     G.edge('t1', 'b1'); G.edge('t1', 'a1');
-    G.bend('tT', 't1', 0, 180, { color: TZ.green });
-    G.bend('tB', 'b1', 0, 180, { color: TZ.green });
-    G.bend('tA', 'a1', 0, 90, { color: TZ.green });
+    G.bend('tT', 't1', 0, 180, { color: ROLE.param });
+    G.bend('tB', 'b1', 0, 180, { color: ROLE.param });
+    G.bend('tA', 'a1', 0, 90, { color: ROLE.param });
   }
 };
 
@@ -278,38 +285,53 @@ FIGS.traffic = {
   size: gmSize(BOX_INF, 0.7, 100),
   draw(g) {
     const G = gm(g, { s: 0.7, k: 100, box: BOX_INF });
-    G.node('T', [0, 0], 0.4, '$T$', { fill: TZ.yellow });
+    G.node('T', [0, 0], 0.4, '$T$', QRY);
     G.node('R', [-2.5, 0], 0.4, '$R$');
-    G.node('B', [d25, -d25], 0.675, '$B=1$', { fill: TZ.hatch });
+    G.node('B', [d25, -d25], 0.675, '$B=1$', { obs: true, lc: ROLE.evd });
     G.node('C', [2 * d25, 0], 0.4, '$C$');
     G.edge('R', 'T'); G.edge('T', 'B'); G.edge('C', 'B');
   }
 };
 
+// Slide "Elimination order matters" (not in the source): the chain x1 -> x2 -> x3 -> x4, the query
+// x4, in the size of the tree below (node distance 2cm)
+const BOX_CHAIN = [-0.42, -0.42, 6.42, 0.42];
+FIGS.chain = {
+  size: gmSize(BOX_CHAIN, 0.6, 92),
+  draw(g) {
+    const G = gm(g, { s: 0.6, k: 92, box: BOX_CHAIN });
+    for (let i = 1; i <= 4; i++) G.node('x' + i, [2 * (i - 1), 0], 0.4, `$x_${i}$`, i === 4 ? QRY : {});
+    for (let i = 1; i < 4; i++) G.edge('x' + i, 'x' + (i + 1));
+  }
+};
+
 // Slide "Sum-Product Algorithm: Message Passing on Trees" (\scalebox{0.6}): a tree MRF, and on the
-// click (m = 1, the \pause inside the picture) the messages toward x4, red, very thick, 0.2cm off
+// click (m = 1, the \pause inside the picture) the messages toward x4, blue, very thick, 0.2cm off
 // their edges and 10pt short of the nodes; before it they are covered (10% opacity, as the deck's
-// \setbeamercovered{transparent=10}).
+// \setbeamercovered{transparent=10}).  "Reading the Sum-Product Messages" and
+// "Reading the Max-Product Messages" show it again with init m = 1.
 const BOX_TREE = [-0.42, -2.92, 7.92, 0.9];
 FIGS.tree = {
   size: gmSize(BOX_TREE, 0.6, 92, 2),
   draw(g, p) {
     const G = gm(g, { s: 0.6, k: 92, pad: 2, box: BOX_TREE });
     const X = { 1: [0, 0], 3: [2.5, 0], 2: [2.5, -2.5], 4: [5, 0], 5: [7.5, 0] };
-    for (const i of [1, 3, 2, 4, 5]) G.node('x' + i, X[i], 0.4, `$x_${i}$`, i === 4 ? { fill: TZ.yellow } : {});
+    for (const i of [1, 3, 2, 4, 5]) G.node('x' + i, X[i], 0.4, `$x_${i}$`, i === 4 ? QRY : {});
     for (const [a, b] of [[1, 3], [2, 3], [3, 4], [4, 5]]) G.edge('x' + a, 'x' + b, { arrow: false, s1: 0 });
     const o = 0.1 + 0.9 * clamp(p.m ?? 0), sh = 0.2 * G.U, isep = G.pt(10 / 3);
     const msg = (a, b, dx, dy, side, s2) => {
       const A = G.P(X[a]), B = G.P(X[b]), dX = B[0] - A[0], dY = B[1] - A[1], L = Math.hypot(dX, dY), u = [dX / L, dY / L];
       const R = 0.4 * G.U, p0 = [A[0] + u[0] * R + dx * sh, A[1] + u[1] * R - dy * sh], p1 = [B[0] - u[0] * R + dx * sh, B[1] - u[1] * R - dy * sh];
-      G.arrow(p0, p1, { color: TZ.red, lw: 1.2, s0: 10, s1: 10, opacity: o });
+      G.arrow(p0, p1, { color: ROLE.msg, lw: 1.2, s0: 10, s1: 10, opacity: o });
       const m = [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2];
-      if (side === 'above') G.lab(`m${a}${b}`, s2, [m[0], m[1] - isep], 'b', { fs: 10, color: TZ.red, opacity: o });
-      else G.lab(`m${a}${b}`, s2, [m[0] + isep, m[1]], 'l', { fs: 10, color: TZ.red, opacity: o });
+      if (side === 'above') G.lab(`m${a}${b}`, s2, [m[0], m[1] - isep], 'b', { fs: 10, color: ROLE.msg, opacity: o });
+      else G.lab(`m${a}${b}`, s2, [m[0] + isep, m[1]], 'l', { fs: 10, color: ROLE.msg, opacity: o });
     };
     msg(1, 3, 0, 1, 'above', '$m_{1 \\to 3}(x_3)$');
     msg(2, 3, 1, 0, 'right', '$m_{2 \\to 3}(x_3)$');
-    msg(3, 4, 0, 1, 'above', '$m_{3 \\to 4}(x_4)$');
-    msg(5, 4, 0, 1, 'above', '$m_{5 \\to 4}(x_4)$');
+    // the query x4 red inside the blue labels (figure labels are typeset without trust: \textcolor, not \qry)
+    const x4 = `\\textcolor{${ROLE.qry}}{x_4}`;
+    msg(3, 4, 0, 1, 'above', `$m_{3 \\to 4}(${x4})$`);
+    msg(5, 4, 0, 1, 'above', `$m_{5 \\to 4}(${x4})$`);
   }
 };
