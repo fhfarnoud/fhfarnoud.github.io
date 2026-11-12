@@ -544,3 +544,187 @@ FIGS.fgmsg = {
 };
 // END factor-graph slides
 // =====================================================================================================
+
+// =====================================================================================================
+// Hidden Markov models: forward-backward and Viterbi (not in the source; five figures for the slides
+// "Inference in Hidden Markov Models", "Sum-Product on an HMM: The Forward-Backward Algorithm",
+// "Forward-Backward: A Worked Example", "Max-Product on an HMM: The Viterbi Algorithm" and "Viterbi:
+// A Worked Example").  The observations y_t take gm's obs style, the query QRY, messages ROLE.msg;
+// a stored back-pointer is a thick black edge, and the Viterbi path, the answer, is red.  Figure
+// labels are typeset without trust, so a label takes its colour from st.color, and a part of
+// another colour is \textcolor.
+const HM_GRAY = '#A8A8A8';
+
+// The HMM as a chain, in TikZ cm on gm()'s scale (\scalebox 0.6 of 92 px per cm, as the tree of
+// "Sum-Product Algorithm: Message Passing on Trees").  cols: [x, the node's TeX label (null for a
+// column of dots), the observation's label]; the hidden nodes at y = 0, the observations at y = -Y,
+// both of radius o.R.
+//   o.dir   the edges directed (the Bayesian network) while e < 1/2, undirected after; with
+//           o.psi, each vertical edge carries psi(x_t) (the factor p(y_t | x_t) with y_t fixed),
+//           fading in with e
+//   o.query the columns drawn as the query; o.fwd / o.bwd the labels of the messages toward
+//           column o.to from the left (state f) and from the right (state b), covered (10%) until
+//           the state reaches 1; the forward label sits on the edge into column o.fwdLab (default
+//           o.to), the backward one on the edge into o.to; o.back the label of the back-pointers
+//           read along the answer (state b), red arrows under the chain pointing left, on the
+//           edge left of column o.backLab
+function hmChain(o) {
+  const s = 0.6, k = 92, R = o.R ?? 0.4, Y = o.Y ?? 1.9;
+  const xs = o.cols.map(c => c[0]);
+  const box = [xs[0] - R - 0.05, -Y - R - 0.05, xs[xs.length - 1] + R + (o.psi ? 1.6 : 0.05), o.top ?? R + 0.05];
+  return {
+    size: gmSize(box, s, k),
+    draw(g, p) {
+      const G = gm(g, { s, k, box }), U = G.U, cols = o.cols;
+      const e = clamp(p.e ?? 0), dir = o.dir && e < 0.5;
+      const isDots = i => cols[i][1] == null;
+      // the chain's edges: node border to node border, or to 0.32 cm short of a column of dots
+      const end = (i, j) => {
+        const [a, b] = [G.P([cols[i][0], 0]), G.P([cols[j][0], 0])], u = Math.sign(b[0] - a[0]);
+        const ra = (isDots(i) ? 0.32 : R) * U, rb = (isDots(j) ? 0.32 : R) * U;
+        return [[a[0] + u * ra, a[1]], [b[0] - u * rb, b[1]]];
+      };
+      for (let i = 0; i + 1 < cols.length; i++) {
+        const [a, b] = end(i, i + 1);
+        G.arrow(a, b, dir && !isDots(i + 1) ? {} : { arrow: false, s1: 0 });
+      }
+      cols.forEach(([x, lab, ylab], i) => {
+        if (isDots(i)) {
+          G.lab('d' + i, '$\\cdots$', G.P([x, 0]), 'c');
+          G.lab('dy' + i, '$\\cdots$', G.P([x, -Y]), 'c');
+          return;
+        }
+        G.node('x' + i, [x, 0], R, lab, (o.query || []).includes(i) ? QRY : {});
+        G.node('y' + i, [x, -Y], R, ylab, { obs: true, lc: ROLE.evd });
+        const a = G.P([x, -R]), b = G.P([x, -Y + R]);
+        G.arrow(a, b, dir ? {} : { arrow: false, s1: 0 });
+        if (o.psi) G.lab('psi' + i, `$\\psi(${lab.slice(1, -1)})$`, [a[0] + G.pt(4), (a[1] + b[1]) / 2], 'l',
+          { color: ROLE.evd, opacity: e });
+      });
+      // messages: 0.2 cm off the edge and 8pt short of its ends, as on the tree's slide
+      const sh = 0.2 * U, isep = G.pt(10 / 3);
+      const msg = (i, j, side, col, opa, lab, key) => {
+        const [a, b] = end(i, j), off = side === 'above' ? -sh : sh;
+        G.arrow([a[0], a[1] + off], [b[0], b[1] + off], { color: col, lw: 1.2, s0: 8, s1: 8, opacity: opa });
+        if (lab) G.lab(key, lab, [(a[0] + b[0]) / 2, a[1] + off + (side === 'above' ? -isep : isep)],
+          side === 'above' ? 'b' : 't', { fs: 10, color: col, opacity: opa });
+      };
+      const fo = 0.1 + 0.9 * clamp(p.f ?? 0), bo = 0.1 + 0.9 * clamp(p.b ?? 0), fl = o.fwdLab ?? o.to;
+      if (o.fwd) for (let i = 0; i < o.to; i++) msg(i, i + 1, 'above', ROLE.msg, fo, i + 1 === fl ? o.fwd : null, 'mf' + i);
+      if (o.bwd) for (let i = cols.length - 1; i > o.to; i--) msg(i, i - 1, 'above', ROLE.msg, bo, i - 1 === o.to ? o.bwd : null, 'mb' + i);
+      if (o.back) for (let i = cols.length - 1; i > 0; i--) msg(i, i - 1, 'below', ROLE.qry, bo, i === o.backLab ? o.back : null, 'bk' + i);
+    }
+  };
+}
+// Slide "Inference in Hidden Markov Models": the HMM (a Bayesian network), then (e = 1) the
+// observed y_t fixed, each p(y_t | x_t) a node potential psi(x_t), and the chain undirected
+FIGS.hmmgraph = hmChain({ dir: true, psi: true, Y: 1.9,
+  cols: [[0, '$x_1$', '$y_1$'], [2, '$x_2$', '$y_2$'], [4, '$x_3$', '$y_3$'], [5.6, null], [7.2, '$x_T$', '$y_T$']] });
+// Slides "Sum-Product on an HMM" and "Max-Product on an HMM": x_1, ..., x_{t-1}, x_t, x_{t+1}, ..., x_T,
+// the three middle ones apart so that the labels of the messages next to x_t fit
+const HM_COLS = [[0, '$x_1$', '$y_1$'], [1.5, null], [3.0, '$x_{t-1}$', '$y_{t-1}$'], [5.9, '$x_t$', '$y_t$'],
+  [8.8, '$x_{t+1}$', '$y_{t+1}$'], [10.3, null], [11.8, '$x_T$', '$y_T$']];
+// the messages toward the query x_t, forward (f) and backward (b)
+// (the query x_t red inside the blue labels: \textcolor, since figure labels are typeset without trust)
+FIGS.hmmfb = hmChain({ R: 0.5, Y: 1.3, top: 0.8, query: [3], to: 3, cols: HM_COLS,
+  fwd: `$m_{t-1\\to t}(\\textcolor{${ROLE.qry}}{x_t})$`, bwd: `$m_{t+1\\to t}(\\textcolor{${ROLE.qry}}{x_t})$` });
+// the max-product messages toward x_T (f), then the back-pointers read from x_T back to x_1 (b);
+// every hidden node is part of the query, the most likely sequence
+FIGS.hmmvit = hmChain({ R: 0.5, Y: 1.3, top: 0.8, query: [0, 2, 3, 4, 6], to: 6, cols: HM_COLS,
+  fwd: '$m_{t-1\\to t}(x_t)$', fwdLab: 3, back: '$b_t(x_t^*)$', backLab: 3 });
+
+// The trellis of the worked examples: days t = 1, 2, 3 across, the states H (top) and S (bottom),
+// every transition an edge, the observed y_t above each day, psi(x_t) in each node.  The numbers
+// are those of the slides' arithmetic, computed in exact fractions.
+const HMX = {
+  y: ['N', 'C', 'N'],
+  psi: [['0.4', '0.2'], ['0.2', '0.6'], ['0.8', '0.4']],          // [day][H, S]
+  fw: [null, ['0.35', '0.25'], ['0.09', '0.13']],                   // m_{t-1 -> t}(x_t)
+  bw: [['0.18', '0.26'], ['0.7', '0.5'], null],                     // m_{t+1 -> t}(x_t)
+  post: [['0.58', '0.42'], ['0.40', '0.60'], ['0.58', '0.42']],    // p(x_t | y_1^3), rounded
+  vm: [null, ['0.3', '0.15'], ['0.045', '0.0675']],                 // max-product messages
+  bp: [null, [0, 1], [0, 1]],                                       // back-pointers [day][H, S]: 0 = H, 1 = S
+  fin: ['0.036', '0.027'],                                          // psi(x_3) m_{2 -> 3}(x_3)
+  path: [0, 0, 0], mpm: [0, 1, 0]                                   // Viterbi H H H; each most likely: H S H
+};
+// The state k is the build step.  mode 'fb': 1, 2 the forward messages into days 2 and 3, 3, 4 the
+// backward messages into days 2 and 1, each step's four edges blue while it is the current one; 5
+// the posteriors p(x_t | y_1^3), between the rows.  mode 'vit': 1, 2 the max-product messages, each
+// step's four edges blue while it is the current one, and from that step on the edge that attains
+// each max (its back-pointer) thick black, the others faded; 3 the scores psi(x_3) m(x_3) of the best
+// sequence ending in each state, right of day 3; 4 the backtrack (the path and its nodes red); 5
+// the states that are each most likely (forward-backward), ringed.  A number not yet reached is
+// covered (10%), as the deck's covered build steps are.
+function hmTrellis(mode) {
+  const s = 0.6, k = 92, D = 3.4, GAP = 2.75, R = 0.55, YO = 1.75;
+  const X = [0, D, 2 * D], YS = [0, -GAP];
+  const box = [-1.4, -GAP - 1.2, 2 * D + (mode === 'vit' ? 1.9 : 1.1), YO + 0.45];
+  return {
+    size: gmSize(box, s, k),
+    draw(g, p) {
+      const G = gm(g, { s, k, box }), kk = p.k ?? 0, r = R * G.U;
+      const on = i => 0.1 + 0.9 * clamp(kk - i + 1);        // a number of step i: covered until then
+      const act = i => clamp(1 - Math.abs(kk - i));          // step i is the current one
+      G.lab('rH', '$H$', G.P([-1.3, 0]), 'l');
+      G.lab('rS', '$S$', G.P([-1.3, -GAP]), 'l');
+      G.lab('ry', '$y_t$', G.P([-1.3, YO]), 'l', { color: ROLE.evd });
+      X.forEach((x, t) => G.node('o' + t, [x, YO], 0.4, `$${HMX.y[t]}$`, { obs: true, lc: ROLE.evd }));
+      const node = (t, j) => G.P([X[t], YS[j]]);
+      const edge = (t, i, j, st) => {
+        const a = node(t, i), b = node(t + 1, j), dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy);
+        G.arrow([a[0] + dx / L * r, a[1] + dy / L * r], [b[0] - dx / L * r, b[1] - dy / L * r], Object.assign({ arrow: false, s1: 0 }, st));
+      };
+      const pr = clamp(kk - 3);                              // the backtrack
+      for (let t = 0; t < 2; t++) for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+        if (mode === 'vit') {
+          const win = HMX.bp[t + 1][j] === i, done = clamp(kk - t), path = HMX.path[t] === i && HMX.path[t + 1] === j;
+          edge(t, i, j, { color: HM_GRAY, lw: 0.7, opacity: win ? 1 : 1 - 0.5 * done });
+          if (act(t + 1) > 0.01) edge(t, i, j, { color: ROLE.msg, lw: 1.1, opacity: act(t + 1) });
+          if (win && done > 0.01) edge(t, i, j, { color: '#000', lw: 2.2, opacity: done });
+          if (path && pr > 0.01) edge(t, i, j, { color: ROLE.qry, lw: 2.6, opacity: pr });
+        } else {
+          edge(t, i, j, { color: HM_GRAY, lw: 0.7 });
+          const a = Math.max(...(t === 0 ? [1, 4] : [2, 3]).map(act));
+          if (a > 0.01) edge(t, i, j, { color: ROLE.msg, lw: 1.4, opacity: a });
+        }
+      }
+      // the nodes, psi inside; in the Viterbi trellis the path's nodes turn into query nodes
+      for (let t = 0; t < 3; t++) for (let j = 0; j < 2; j++) {
+        const q = mode === 'vit' && HMX.path[t] === j && pr > 0.5, [cx, cy] = node(t, j);
+        G.node(`n${t}${j}`, [X[t], YS[j]], R, null, q ? { ...QRY, lw: 1.4 } : {});
+        G.lab(`psi${t}${j}`, `$${HMX.psi[t][j]}$`, [cx, cy], 'c', { color: ROLE.evd });
+        if (mode === 'vit' && HMX.mpm[t] === j)
+          g.el('circle', { cx, cy, r: r + 6, fill: 'none', stroke: ROLE.qry, 'stroke-width': 2, 'stroke-dasharray': '6 4', opacity: clamp(kk - 4) });
+      }
+      // a number beside a node, at its upper flank (H) or lower flank (S), clear of the edges, which
+      // leave the node at its middle: left the message from the left, right the message from the
+      // right (in the Viterbi trellis, the final score, both clear of the rings)
+      const off = mode === 'vit' ? 11 : 3;
+      const side = (t, j, dx, s2, color, opa, key) => {
+        const [cx, cy] = node(t, j), y = j === 0 ? cy - r * 0.78 : cy + r * 0.78;
+        G.lab(key, s2, [cx + dx * (r + off), y], dx < 0 ? 'r' : 'l', { color, opacity: opa });
+      };
+      for (let j = 0; j < 2; j++) {
+        if (mode === 'fb') {
+          side(1, j, -1, `$${HMX.fw[1][j]}$`, ROLE.msg, on(1), `f1${j}`);
+          side(2, j, -1, `$${HMX.fw[2][j]}$`, ROLE.msg, on(2), `f2${j}`);
+          side(1, j, 1, `$${HMX.bw[1][j]}$`, ROLE.msg, on(3), `b1${j}`);
+          side(0, j, 1, `$${HMX.bw[0][j]}$`, ROLE.msg, on(4), `b0${j}`);
+          for (let t = 0; t < 3; t++) {
+            const [cx, cy] = node(t, j);
+            G.lab(`p${t}${j}`, `$${HMX.post[t][j]}$`, [cx, j === 0 ? cy + r + 6 : cy - r - 6], j === 0 ? 't' : 'b',
+              { color: ROLE.qry, opacity: on(5) });
+          }
+        } else {
+          side(1, j, -1, `$${HMX.vm[1][j]}$`, ROLE.msg, on(1), `f1${j}`);
+          side(2, j, -1, `$${HMX.vm[2][j]}$`, ROLE.msg, on(2), `f2${j}`);
+          side(2, j, 1, `$${HMX.fin[j]}$`, '#000', on(3), `fin${j}`);
+        }
+      }
+    }
+  };
+}
+FIGS.fbtrellis = hmTrellis('fb');
+FIGS.vittrellis = hmTrellis('vit');
+// END hidden Markov model slides
+// =====================================================================================================
