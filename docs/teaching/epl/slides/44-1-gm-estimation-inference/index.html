@@ -135,6 +135,7 @@ table.vals.hm td:first-child, table.vals.hm th:first-child { text-align: left; p
     <li><a href="#/sec-pe">Parameter Estimation</a></li>
     <li><a href="#/sec-inf">Inference</a></li>
     <li data-map-num="0"><a href="#/sec-sum">Summary</a></li>
+    <li data-map-num="3"><a href="#/sec-opt">Optional Material</a></li>
   </ol>
   <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
   <span pause="t=2"></span>
@@ -569,10 +570,33 @@ table.vals.hm td:first-child, table.vals.hm th:first-child { text-align: left; p
   </div>
 </section>
 
-<!-- ============ Hidden Markov models: forward-backward and Viterbi ============ -->
+<!-- 22 -->
+<section id="sec-sum">
+  <h2>Summary: What We Learned</h2>
+  <div>
+    <p><b>Part I: Parameter Estimation</b></p>
+    <ul>
+      <li><b>Key insight:</b> Graph structure $\to$ learn each node locally</li>
+      <li>Only need data from node and its parents</li>
+      <li>Works for both MLE and Bayesian approaches</li>
+    </ul>
+  </div>
+  <div>
+    <p><b>Part II: Inference</b></p>
+    <ul>
+      <li><b>Challenge:</b> Naive approach is exponential</li>
+      <li><b>Solution:</b> Exploit structure via variable elimination / message passing</li>
+      <li>Max-product: Find most likely configuration</li>
+    </ul>
+  </div>
+  <p><b>Big picture:</b> Graph structure enables both efficient learning and inference!</p>
+</section>
+
+
+<!-- ============ Optional material: hidden Markov models, forward-backward and Viterbi ============ -->
 
 <!-- not in the source: the HMM as an MRF on the chain of hidden states -->
-<section>
+<section id="sec-opt">
   <h2>Inference in Hidden Markov Models</h2>
   <div class="hmpair">
     <div>
@@ -708,29 +732,6 @@ table.vals.hm td:first-child, table.vals.hm th:first-child { text-align: left; p
     </div>
   </div>
 </section>
-
-<!-- 22 -->
-<section id="sec-sum">
-  <h2>Summary: What We Learned</h2>
-  <div>
-    <p><b>Part I: Parameter Estimation</b></p>
-    <ul>
-      <li><b>Key insight:</b> Graph structure $\to$ learn each node locally</li>
-      <li>Only need data from node and its parents</li>
-      <li>Works for both MLE and Bayesian approaches</li>
-    </ul>
-  </div>
-  <div>
-    <p><b>Part II: Inference</b></p>
-    <ul>
-      <li><b>Challenge:</b> Naive approach is exponential</li>
-      <li><b>Solution:</b> Exploit structure via variable elimination / message passing</li>
-      <li>Max-product: Find most likely configuration</li>
-    </ul>
-  </div>
-  <p><b>Big picture:</b> Graph structure enables both efficient learning and inference!</p>
-</section>
-
 </div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
