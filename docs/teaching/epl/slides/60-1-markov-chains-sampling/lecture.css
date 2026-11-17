@@ -1,0 +1,528 @@
+
+/* Deck-local layout.  Beamer's lists: bullets in the structure colour, enumerate
+   items in numbered balls, the second level at \small. */
+.fbody ul, .fbody ol { margin: 0 0 0 1.15em; padding: 0; }
+.fbody li { margin: 0 0 6px; }
+.fbody li:last-child { margin-bottom: 0; }
+.fbody li::marker { color: var(--struct); }
+.fbody li ul { list-style-type: disc; }
+.fbody li > ul, .fbody li > ol { font-size: 0.9em; margin-top: 5px; }
+.fbody ol.en { list-style: none; margin-left: 0; counter-reset: en; }
+.fbody ol.en > li { counter-increment: en; position: relative; padding-left: 1.5em; }
+.fbody ol.en > li::before { content: counter(en); position: absolute; left: 0.1em; top: 0.28em; width: 1.25em; height: 1.25em;
+  line-height: 1.25em; border-radius: 50%; background: var(--struct); color: #fff; font-size: 0.72em; text-align: center; }
+.fbody ol.en.spread > li { margin-bottom: 18px; }
+.fbody ol.en.spread > li:last-child { margin-bottom: 0; }
+/* a lead-in line and the list under it */
+.fbody p:has(+ ul), .fbody p:has(+ ol) { margin-bottom: 6px; }
+.grp > :last-child { margin-bottom: 0; }
+/* lines that follow one another without a gap (Beamer's \\ or a paragraph without parskip) */
+.tight > p { margin-bottom: 2px; }
+.tight > p:last-child { margin-bottom: 0; }
+.center { text-align: center; }
+/* a row below other body content takes the height that is left */
+.fbody:has(> .row) { display: flex; flex-direction: column; }
+.fbody > .row { flex: 1 1 auto; height: auto; min-height: 0; }
+/* Beamer's \vrule between two columns */
+.col.vr { border-left: 1.5px solid #000; padding-left: 22px; }
+/* Beamer's columns[T]: two top-aligned columns, balanced with the rest of the body as one block */
+.pair { display: grid; grid-template-columns: 1fr 1fr; column-gap: 30px; align-items: start; }
+.pair > * > :last-child { margin-bottom: 0; }
+.pair .katex-display { margin: 10px 0; }
+/* labels inside a graph's nodes: no halo, centred on the node */
+.fig .lab .nd { display: block; line-height: 1; text-shadow: none; }
+/* an emoji's glyph sits a quarter em above the middle of its line box */
+.fig .lab .nd.em { position: relative; top: 0.22em; }
+/* emoji in running text, at the source's point size over the text's 11 pt, kept with its word */
+.nb { white-space: nowrap; }
+.emo { line-height: 1; }
+.e16 { font-size: 1.45em; }
+.e12 { font-size: 1.09em; }
+.e10 { font-size: 0.91em; }
+/* the weather chain's transition matrix (slide 17), Beamer's {c|ccc} array */
+table.wxm { border-collapse: collapse; font-size: inherit; }
+table.wxm th, table.wxm td { padding: 3px 15px; text-align: center; font-weight: normal; }
+table.wxm th { border-right: 1.2px solid #000; }
+table.wxm tr:first-child > * { border-bottom: 1.2px solid #000; }
+table.wxm .me { font-size: 0.95em; line-height: 1; text-shadow: none; }
+.fig[data-fig="flow"] .lab .nd { text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 2px #fff; }
+/* slide 30: the simulation's sliders centred under its pictures */
+section.sim .knobs { justify-content: center; margin: 2px 0 8px; }
+/* tables with Beamer's |l|c|l| rules */
+table.grid { border-collapse: collapse; margin: 0 auto; }
+table.grid th, table.grid td { border: 1.3px solid #000; padding: 1px 10px; text-align: left; font-weight: normal; }
+table.grid th { font-weight: bold; }
+table.grid .c { text-align: center; }
+table.grid tr.dbl > * { border-bottom: 4px double #000; }
+/* full slides (25, 30): closer displays, sublists and table rows */
+section.full .katex-display { margin: 2px 0; }
+section.full .fbody li > ul { margin-top: 0; }
+section.full table.grid { line-height: 1.12; }
+/* full slides: closer paragraphs and list items */
+section.tight .fbody p, section.tight .fbody ul { margin-bottom: 6px; }
+section.tight .fbody li { margin-bottom: 2px; }
+/* two groups stacked in one column of a pair */
+.pair .grp + .grp { margin-top: 24px; }
+
+/* Lecture-local layouts. The shared Madrid frame and palette stay unchanged. */
+.pair { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:32px; align-items:center; }
+.pair.wide-figure { grid-template-columns: 0.85fr 1.15fr; }
+.pair > * { min-width:0; }
+.fbody .spaced > li { margin-bottom:17px; }
+.fbody .figure-wrap { margin:0 auto; width:max-content; max-width:100%; }
+.fbody .fig { margin:auto; }
+.fbody .lab { font-size:20px; }
+.knobs { justify-content:center; flex-wrap:wrap; }
+.knobs label { font-size:19px; }
+.knobs input[type=range] { width:150px; }
+.figure-caption { font-size:20px; text-align:center; margin:8px 0 0; color:#555; }
+.exercise .fbody { font-size:29px; }
+.exercise .prompt { font-size:32px; margin:0 0 26px; }
+.activity-time { color:var(--struct); font-size:22px; margin-bottom:14px; }
+.reference .fbody { font-size:24px; }
+.reference h3 { color:var(--struct); font-size:28px; font-weight:normal; margin:0 0 12px; }
+.reference p { margin-bottom:20px; }
+.reveal table.compare { width:100%; border-collapse:collapse; font-size:24px; }
+table.compare th { color:var(--struct); font-weight:bold; border-bottom:2px solid var(--struct); }
+table.compare td,table.compare th { padding:13px 17px; text-align:left; }
+table.compare tbody tr { border-bottom:1px solid #d5d1df; }
+.metric { color:var(--pred); font-weight:bold; }
+.eq-small { font-size:0.9em; }
+.tight .fbody p { margin-bottom:10px; }
+.appendix-link { color:var(--struct); }
+
+.demo-controls { display:flex; justify-content:center; flex-wrap:wrap; gap:7px; margin:10px 0 0; }
+.demo-controls button { font:18px KaTeX_SansSerif,Arial,sans-serif; color:var(--struct); background:#f6f4f9; border:1px solid #b6afca; border-radius:5px; padding:7px 10px; cursor:pointer; }
+.demo-controls button:hover, .demo-controls button[aria-pressed="true"] { background:var(--struct); color:#fff; }
+.demo-controls button:focus-visible, .state-hit:focus-visible { outline:3px solid var(--postC); outline-offset:3px; }
+.state-hit { cursor:pointer; }
+.sampler-layout { grid-template-columns: 0.9fr 1.1fr; gap:20px; }
+.sampler-layout ol { font-size:25px; }
+.sampler-layout .spaced > li { margin-bottom:15px; }
+.proof-lines .katex-display { margin:13px 0; }
+.example-gap { display:inline-block; width:35px; }
+.reveal .fbody { bottom:50px; }
+@media print { .demo-controls { display:none; } }
+.deck-print .demo-controls { display:none; }
+/* The transition matrix uses the weather-chain table style from Graphical Models I. */
+table.transition-matrix { border-collapse:collapse; font-size:26px; line-height:1.25; text-shadow:none; }
+table.transition-matrix th, table.transition-matrix td { padding:5px 18px; font-weight:normal; text-align:center; }
+table.transition-matrix th:first-child { border-right:1.2px solid #222; }
+table.transition-matrix thead { border-bottom:1.2px solid #222; }
+table.transition-matrix tr.selected.row0 { background:#e5ecf8; color:var(--prior); }
+table.transition-matrix tr.selected.row1 { background:#fff0ce; color:var(--postC); }
+/* Leave equations at course size and keep a consistent plot/controls stack. */
+#metropolis .figure-caption { font-size:18px; line-height:1.2; margin-top:6px; }
+#metropolis .demo-controls { margin-top:4px; gap:5px; }
+#metropolis .demo-controls button { font-size:17px; padding:6px 8px; }
+/* First content slide: diagram, Markov property, then parallel definitions. */
+#markov-property .intro-body { display:flex; flex-direction:column; gap:12px; }
+#markov-property .intro-body > .fig { flex:0 0 145px; margin:0 auto; }
+#markov-property .intro-property .block { margin:0; font-size:25px; }
+#markov-property .intro-property .bb { padding:8px 14px 10px; }
+#markov-property .intro-property .bb p { margin:0; }
+#markov-property .intro-property .katex-display { margin:3px 0 8px; }
+#markov-property .intro-grid { display:grid; grid-template-columns:1fr 1fr; gap:40px; font-size:24px; line-height:1.25; }
+#markov-property .intro-grid h3 { margin:0 0 8px; color:var(--struct); font-size:27px; font-weight:bold; }
+#markov-property .intro-grid p { margin:0 0 10px; }
+#markov-property .intro-grid p.intro-examples { margin:0 0 3px; }
+#markov-property .intro-grid li { margin-bottom:4px; }
+#markov-property .intro-grid p.intro-transition { margin-bottom:0; }
+#markov-property .intro-grid .katex-display { margin:7px 0 12px; }
+
+#markov-property .intro-body { gap:10px; }
+#markov-property .intro-definition { margin:0; font-size:24px; line-height:1.25; }
+#markov-property .intro-grid { margin-top:14px; grid-template-columns:0.8fr 1.2fr; }
+#markov-property .intro-grid p.intro-transition { margin-bottom:10px; }
+#markov-property .intro-grid { line-height:1.2; }
+#markov-property .intro-grid p:last-child { margin-bottom:0; }
+#markov-property .intro-property .katex-display { margin-bottom:7px; }
+#markov-property .intro-property .bb { padding-bottom:7px; }
+
+/* Patient example: preserve the two columns with a little more breathing room. */
+#transitions .pair > div:first-child p { margin-bottom:24px; }
+#transitions .pair > div:first-child p:last-child { margin-bottom:0; }
+#transitions .transition-explanation { min-height:2.6em; }
+/* Three applications, on the same course canvas and role palette. */
+#markov-practice .practice-body { display:flex; flex-direction:column; gap:12px; }
+#markov-practice .practice-layout { display:grid; grid-template-columns:820px 352px; gap:28px; }
+#markov-practice h3 { margin:0 0 6px; color:var(--struct); font-size:27px; font-weight:bold; }
+#markov-practice .practice-rule { font-size:21px; margin:0 0 6px; }
+#markov-practice .practice-examples { border-left:1px solid #d5d1df; padding-left:18px; display:flex; flex-direction:column; justify-content:space-between; }
+#markov-practice .practice-examples .fig { margin:0; }
+#markov-practice .practice-examples p { font-size:18px; text-align:center; margin:4px 0 0; }
+#markov-practice .practice-question { font-size:29px; color:var(--struct); margin:10px 0 0; text-align:center; }
+#markov-practice .practice-controls { display:flex; align-items:center; gap:10px; margin:8px 0 0; }
+#markov-practice .practice-controls button { font:20px KaTeX_SansSerif,Arial,sans-serif; color:var(--struct); background:#f6f4f9; border:1px solid #b6afca; border-radius:5px; padding:7px 18px; cursor:pointer; }
+#markov-practice .practice-controls button:hover, #markov-practice .practice-controls button[aria-pressed="true"] { background:var(--struct); color:#fff; }
+#markov-practice .practice-controls button:disabled { opacity:.45; cursor:default; }
+#markov-practice .practice-controls button:focus-visible { outline:3px solid var(--postC); outline-offset:3px; }
+#markov-practice .practice-status { font-size:19px; margin-left:5px; color:#555; }
+@media print { #markov-practice .practice-controls { display:none; } }
+.deck-print #markov-practice .practice-controls { display:none; }
+/* Patient-example derivation: one stable equation area, synchronized with the chart. */
+#state-distribution .distribution-layout { grid-template-columns:600px 560px; gap:40px; align-items:start; }
+#state-distribution .distribution-left { font-size:26px; padding-top:16px; }
+#state-distribution .distribution-left > p { margin-bottom:18px; }
+#state-distribution .distribution-initial { color:var(--struct); min-height:40px; margin-top:28px; }
+#state-distribution .distribution-equations { min-height:265px; font-size:27px; }
+#state-distribution .distribution-equations .katex-display { margin:24px 0; text-align:left; }
+#state-distribution .distribution-equations .katex-display > .katex { text-align:left; }
+#state-distribution .distribution-equations .distribution-step-label { font-size:24px; color:var(--struct); margin:0 0 18px; }
+#state-distribution .distribution-equations .distribution-result { margin-top:30px; }
+#state-distribution .distribution-mark { display:none; }
+#state-distribution .distribution-start { align-items:center; margin-top:2px; }
+#state-distribution .distribution-start span { font-size:21px; }
+#state-distribution .knobs { margin-top:12px; }
+#state-distribution .distribution-explore { text-align:center; color:#666; font-size:17px; margin:4px 0; }
+#state-distribution .figure-caption { font-size:19px; margin-top:6px; }
+#state-distribution input:disabled { opacity:.4; cursor:default; }
+/* Leave the comparison legend and the concluding question clear of the controls. */
+#convergence .pair { align-items:start; }
+#convergence .pair > div:first-child { padding-top:12px; }
+#convergence .block { font-size:26px; }
+#convergence .demo-controls { gap:6px; }
+#convergence .demo-controls button { font-size:17px; padding:7px 9px; }
+#convergence .convergence-question { text-align:center; color:var(--struct); font-size:27px; margin:10px 0 0; }
+/* Distinguish the definitions, then solve the patient example in one equation area. */
+#stationary .stationary-body { display:flex; flex-direction:column; gap:8px; }
+#stationary .stationary-definitions { align-items:stretch; }
+#stationary .stationary-definitions .block { font-size:24px; margin:0; }
+#stationary .stationary-definitions .katex-display { margin:7px 0; font-size:25px; }
+#stationary .stationary-relationship { font-size:24px; margin:0; line-height:1.25; }
+#stationary .stationary-example { margin:8px auto 0; width:100%; max-width:1080px; text-align:center; }
+#stationary h3 { font-size:28px; color:var(--struct); margin:0 0 8px; font-weight:bold; }
+#stationary .stationary-work { display:flex; flex-direction:column; gap:6px; font-size:30px; }
+#stationary .stationary-stage p { font-size:25px; margin:0; }
+#stationary .stationary-stage .katex-display { margin:8px 0; }
+#stationary .stationary-answer { color:var(--struct); font-size:32px; }
+/* A shared clock makes the three convergence behaviors directly comparable. */
+#chain-convergence .convergence-cases-body { display:flex; flex-direction:column; gap:10px; }
+#chain-convergence .convergence-cases-body > * { flex-shrink:0; }
+#chain-convergence .convergence-definition { font-size:25px; margin:0; padding:6px 0; }
+#chain-convergence .convergence-definition b { color:var(--struct); }
+#chain-convergence .block { margin:0; font-size:24px; }
+#chain-convergence .block p { margin:0; }
+#chain-convergence .convergence-cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:15px; }
+#chain-convergence .convergence-card { border:1px solid #c8c2d8; border-radius:7px; padding:10px 6px 5px; }
+#chain-convergence h3 { font-size:25px; color:var(--struct); text-align:center; margin:0 0 7px; font-weight:bold; }
+#chain-convergence .convergence-card > p { font-size:21px; line-height:1.25; min-height:54px; margin:0 8px 2px; text-align:center; }
+#chain-convergence .convergence-card .fig { margin:12px auto; }
+#chain-convergence .convergence-case-controls { display:flex; gap:8px; justify-content:center; align-items:center; margin:10px 0 0; }
+#chain-convergence button { font:18px KaTeX_SansSerif,Arial,sans-serif; color:var(--struct); background:#f6f4f9; border:1px solid #b6afca; border-radius:5px; padding:7px 12px; cursor:pointer; }
+#chain-convergence button:hover, #chain-convergence button[aria-pressed="true"] { color:#fff; background:var(--struct); }
+#chain-convergence button:focus-visible { outline:3px solid var(--postC); outline-offset:3px; }
+#chain-convergence button:disabled { opacity:.4; cursor:default; }
+#chain-convergence .convergence-case-time { font-size:21px; min-width:110px; margin-left:6px; }
+#chain-convergence .convergence-guarantee .block { font-size:23px; }
+#chain-convergence .convergence-guarantee .bb { font-size:22px; }
+#chain-convergence .convergence-sufficiency { font-size:19px; margin-top:7px!important; color:#555; }
+@media print { #chain-convergence .convergence-case-controls { display:none; } }
+.deck-print #chain-convergence .convergence-case-controls { display:none; }
+/* One trajectory, shown as transitions, recorded visits, then frequencies. */
+#frequencies .frequency-body { display:flex; flex-direction:column; gap:6px; }
+#frequencies .frequency-body > * { flex-shrink:0; }
+#frequencies .frequency-question { font-size:28px; margin:0; }
+#frequencies .frequency-controls { margin:0; gap:8px; }
+#frequencies .frequency-controls button { font-size:18px; padding:7px 13px; }
+#frequencies .frequency-controls button:disabled { opacity:.4; cursor:default; }
+#frequencies .frequency-formula { font-size:24px; }
+#frequencies .frequency-formula .katex-display { margin:4px 0; }
+#frequencies .frequency-takeaway { font-size:24px; line-height:1.25; color:var(--struct); text-align:center; margin:0; }
+/* Detailed balance: expected patient flows, then a proof and a compact application. */
+#detailed-balance .balance-body, #balance-proof .balance-proof-body { display:flex; flex-direction:column; gap:10px; }
+#detailed-balance .balance-body > *, #balance-proof .balance-proof-body > * { flex-shrink:0; }
+#detailed-balance .balance-intro { font-size:27px; margin:0; }
+#detailed-balance .balance-marker { display:none; }
+#detailed-balance .balance-generalization { align-items:center; gap:32px; }
+#detailed-balance h3 { font-size:23px; font-weight:normal; color:var(--struct); text-align:center; margin:0 0 10px; }
+#detailed-balance .balance-generalization .katex-display { margin:8px 0; font-size:26px; }
+#detailed-balance .balance-generalization .block { font-size:24px; margin:0; }
+#detailed-balance .balance-distinction { font-size:24px; border-top:1px solid #d5d1df; padding-top:10px; }
+#detailed-balance .balance-distinction p { margin:0 0 6px; }
+#detailed-balance .balance-distinction b { color:var(--struct); }
+#balance-proof .block { font-size:24px; margin:0; }
+#balance-proof .balance-proof-body { gap:6px; }
+#balance-proof .block p { margin:0; }
+#balance-proof .balance-proof-columns { align-items:start; gap:40px; }
+#balance-proof h3 { font-size:25px; font-weight:bold; color:var(--struct); margin:0 0 8px; }
+#balance-proof .balance-short-proof { font-size:25px; }
+#balance-proof .balance-short-proof .katex-display { margin:10px 0; }
+#balance-proof .balance-reason { font-size:19px; color:#555; margin:0 0 4px; text-align:center; }
+#balance-proof .balance-proof-result { font-size:24px; color:var(--struct); text-align:center; margin:10px 0 0; }
+#balance-proof .balance-application { text-align:center; font-size:25px; border-left:1px solid #d5d1df; padding-left:20px; }
+#balance-proof .balance-application .katex-display { margin:4px 0; }
+#balance-proof .balance-condition { font-size:18px; color:#555; margin:0; }
+#balance-proof .balance-mcmc-question { font-size:25px; color:var(--struct); text-align:center; border-top:1px solid #d5d1df; padding-top:10px; margin:0; }
+/* Basic methods follow the notes, with separate reading slides for the derivations. */
+.basic-body { display:flex; flex-direction:column; gap:10px; font-size:25px; }
+.basic-body > * { flex-shrink:0; }
+.basic-body p { margin:0 0 12px; }
+.basic-body h3 { color:var(--struct); font-size:25px; font-weight:bold; margin:0 0 12px; }
+.basic-body .sampling-lead { font-size:27px; margin:0; }
+.sampling-two-columns { display:grid; grid-template-columns:550px 620px; gap:30px; align-items:start; }
+.sampling-two-columns > *, .sampling-proof-layout > * { min-width:0; }
+.basic-body .katex-display { font-size:25px; margin:10px 0; }
+.basic-body .block { font-size:24px; margin:12px 0; }
+.basic-body .block p { margin:0 0 6px; }
+.basic-body .block p:last-child { margin-bottom:0; }
+.basic-body .sampling-small { font-size:21px; line-height:1.3; }
+.basic-body .figure-caption { font-size:19px; margin:6px 0 0; }
+.basic-body .knobs { gap:12px; }
+.basic-body .knobs label { font-size:19px; }
+.sampling-difficulties { font-size:23px; }
+.sampling-difficulties > li { margin-bottom:12px!important; }
+.sampling-difficulties .katex-display { font-size:23px; }
+.sampling-motivation .bayes-rule .katex-display { margin:0 0 8px; font-size:26px; }
+.sampling-motivation .block { margin:12px 0 0; }
+.sampling-motivation .posterior-examples { margin:6px 0 0; }
+.sampling-algorithm { font-size:24px; }
+.sampling-algorithm > li { margin-bottom:12px!important; }
+.sampling-local-controls { display:flex; justify-content:center; margin-top:8px; }
+.sampling-local-controls button { font:18px KaTeX_SansSerif,Arial,sans-serif; color:var(--struct); background:#f6f4f9; border:1px solid #b6afca; border-radius:5px; padding:7px 12px; cursor:pointer; }
+.sampling-local-controls button:hover { background:var(--struct); color:#fff; }
+.sampling-local-controls button:focus-visible { outline:3px solid var(--postC); outline-offset:3px; }
+#inverse-cdf .sampling-algorithm { margin-bottom:16px; }
+#inverse-cdf .sampling-small p { margin:8px 0 0; }
+#rejection .envelope-derivation .katex-display { font-size:24px; margin:8px 0; }
+#rejection .rejection-algorithm { font-size:23px; margin-top:14px; }
+#rejection .rejection-algorithm > li { margin-bottom:8px!important; }
+#rejection .sampling-normalization { border-top:1px solid #d5d1df; padding-top:8px; font-size:20px; line-height:1.25; }
+#rejection .sampling-normalization p { margin:0 0 5px; }
+.sampling-proof-layout { display:grid; grid-template-columns:660px 510px; gap:30px; align-items:start; }
+.sampling-derivation { font-size:25px; }
+.sampling-derivation .katex-display { margin:18px 0; font-size:25px; }
+.sampling-result { color:var(--struct); text-align:center; font-size:24px; }
+#importance .importance-example-body { gap:12px; }
+#importance .importance-story { font-size:24px; }
+#importance .importance-story p { margin:0 0 16px; }
+#importance .importance-problem { font-size:25px; }
+#importance .importance-weight-step .katex-display { margin:12px 0; font-size:26px; }
+#importance .importance-story .importance-scale-note { font-size:21px; color:#555; line-height:1.25; }
+#importance .importance-average-step p { font-size:23px; margin-bottom:0; }
+#importance .importance-dot-caption { font-size:20px; line-height:1.3; margin:6px 0 0; }
+#importance .importance-estimator { display:grid; grid-template-columns:200px minmax(0,1fr); gap:20px; align-items:center; border-top:1px solid #d5d1df; padding-top:8px; }
+#importance .importance-estimator > p { font-size:25px; font-weight:bold; color:var(--struct); margin:0; }
+#importance .importance-estimator .katex-display { margin:6px 0; font-size:26px; }
+.importance-proof-body > p { font-size:24px; margin:0; }
+.importance-derivation .katex-display { font-size:25px; margin:10px 0; }
+.importance-proof-takeaway { border-top:1px solid #d5d1df; padding-top:10px; text-align:center; color:var(--struct); }
+.importance-proof-takeaway p { margin:0 0 5px; }
+@media print { .sampling-local-controls { display:none; } }
+.deck-print .sampling-local-controls { display:none; }
+/* Introductory MCMC: a target-controlled six-state ring and matching visit counts. */
+#mcmc .six-state-body { display:flex; flex-direction:column; gap:8px; }
+#mcmc .six-state-body > * { flex-shrink:0; }
+#mcmc .six-state-goal { font-size:27px; margin:0; }
+#mcmc .six-state-layout { display:grid; grid-template-columns:670px 500px; gap:30px; align-items:start; }
+#mcmc .six-state-layout > * { min-width:0; }
+#mcmc .six-state-comparison h3 { color:var(--struct); font-size:24px; text-align:center; margin:0 0 8px; font-weight:bold; }
+#mcmc .six-target-controls, #mcmc .six-run-controls { display:flex; align-items:center; justify-content:center; gap:8px; }
+#mcmc button { font:18px KaTeX_SansSerif,Arial,sans-serif; color:var(--struct); background:#f6f4f9; border:1px solid #b6afca; border-radius:5px; padding:7px 12px; cursor:pointer; }
+#mcmc button:hover, #mcmc button[aria-pressed="true"] { color:#fff; background:var(--struct); }
+#mcmc button:focus-visible { outline:3px solid var(--postC); outline-offset:3px; }
+#mcmc button:disabled { opacity:.4; cursor:default; }
+#mcmc .six-target-values { text-align:center; font-size:20px; min-height:35px; margin:8px 0; }
+#mcmc .six-state-status { font-size:20px; color:#555; margin-left:10px; min-width:350px; }
+#mcmc .six-state-question { text-align:center; color:var(--struct); font-size:26px; margin:0; }
+#mcmc .six-probability { background:rgba(255,255,255,.95); padding:1px 4px; border-radius:3px; }
+@media print { #mcmc .six-target-controls, #mcmc .six-run-controls { display:none; } }
+.deck-print #mcmc .six-target-controls, .deck-print #mcmc .six-run-controls { display:none; }
+
+/* The Metropolis example keeps its algorithm beside one combined density plot. */
+#metropolis .metro-layout { display:grid; grid-template-columns:450px 720px; gap:30px; align-items:start; padding-top:0 !important; }
+#metropolis .metro-layout > * { margin-bottom:0 !important; }
+#metropolis .metro-instructions { font-size:24px; }
+#metropolis .metro-target { border-left:4px solid var(--pred); padding-left:14px; margin-bottom:12px; }
+#metropolis .metro-target p { margin:0 0 6px; }
+#metropolis .metro-target-heading { color:var(--pred); font-size:23px; font-weight:bold; }
+#metropolis .metro-target-equation { color:var(--pred); font-size:24px; }
+#metropolis .metro-cancellation { color:#555; font-size:21px; }
+#metropolis .metro-stages { margin:0; }
+#metropolis .metro-stages li { padding-top:3px; padding-bottom:3px; margin:0 0 8px; border-radius:5px; }
+#metropolis .metro-stages li.metro-active { background:#efedf5; }
+#metropolis .metro-jump-equation { font-size:21px; }
+#metropolis .metro-chain-note { margin-top:12px; padding-top:8px; border-top:1px solid #b6afca; font-size:21px; line-height:1.3; }
+#metropolis .metro-readout { height:114px; margin:0 0 8px; padding:8px 12px; box-sizing:border-box; background:#f6f4f9; border-radius:6px; text-align:center; font-size:21px; display:flex; flex-direction:column; justify-content:space-between; }
+#metropolis .metro-calculation { font-size:22px; min-height:34px; }
+#metropolis .metro-placeholder { color:#777; font-size:19px; }
+#metropolis .metro-decision { font-size:22px; }
+#metropolis .metro-controls { display:flex; flex-direction:column; gap:7px; }
+#metropolis .metro-controls > div { display:flex; gap:8px; align-items:center; justify-content:center; }
+#metropolis .metro-controls button { font:18px KaTeX_SansSerif,Arial,sans-serif; padding:7px 12px; color:var(--struct); background:#f6f4f9; border:1px solid #b6afca; border-radius:5px; cursor:pointer; }
+#metropolis .metro-controls button:hover:not(:disabled), #metropolis .metro-controls button[aria-pressed=true] { background:var(--struct); color:white; }
+#metropolis .metro-controls button:focus-visible { outline:3px solid var(--postC); outline-offset:3px; }
+#metropolis .metro-controls button:disabled { opacity:.45; cursor:default; }
+#metropolis .metro-count { font-size:19px; color:#555; min-width:230px; }
+@media print { #metropolis .metro-controls button, #metropolis .metro-controls > div:first-child { display:none; } }
+.deck-print #metropolis .metro-controls button, .deck-print #metropolis .metro-controls > div:first-child { display:none; }
+
+/* Acceptance and the actual transition law use the same uniform-jump example. */
+#acceptance .transition-probability-layout { display:grid; grid-template-columns:570px 600px; gap:30px; align-items:start; padding-top:0 !important; }
+#acceptance .transition-probability-layout > * { margin-bottom:0 !important; }
+#acceptance .transition-probability-math { font-size:24px; }
+#acceptance .transition-probability-part { margin-bottom:17px; }
+#acceptance .transition-probability-part:last-child { margin-bottom:0; }
+#acceptance .transition-probability-part h3 { font-size:25px; color:var(--struct); margin:0 0 5px; font-weight:bold; }
+#acceptance .transition-probability-part p { margin:0 0 8px; }
+#acceptance .transition-probability-part .katex-display { font-size:25px; margin:7px 0 11px; }
+#acceptance .transition-density-note { font-size:22px; line-height:1.3; }
+#acceptance .demo-controls { margin:9px 0 0; }
+#acceptance .transition-example-caption { font-size:19px; text-align:center; color:#555; line-height:1.5; margin:8px 0 0; }
+
+/* Jump design and its conditions sit beside the two-direction balance proof. */
+#metropolis-proof .metropolis-proof-layout { display:grid; grid-template-columns:570px 600px; gap:30px; align-items:start; padding-top:0 !important; }
+#metropolis-proof .metropolis-proof-layout > * { margin-bottom:0 !important; }
+#metropolis-proof h3 { font-size:25px; color:var(--struct); font-weight:bold; margin:0 0 8px; }
+#metropolis-proof .metropolis-conditions { font-size:23px; line-height:1.28; }
+#metropolis-proof .metropolis-conditions p { margin:0 0 8px; }
+#metropolis-proof .metropolis-condition-part { margin:0 0 14px; }
+#metropolis-proof .metropolis-condition-part:last-child { margin-bottom:0; }
+#metropolis-proof .metropolis-conditions .katex-display { font-size:24px; margin:8px 0; }
+#metropolis-proof .metropolis-sufficient-label, #metropolis-proof .metropolis-support, #metropolis-proof .metropolis-local-note { font-size:21px; }
+#metropolis-proof .metropolis-local-note { color:#555; }
+#metropolis-proof .metropolis-symmetry { padding-top:10px; border-top:1px solid #b6afca; }
+#metropolis-proof .metropolis-transition-law { text-align:center; font-size:21px; margin:0 0 5px; }
+#metropolis-proof .metropolis-balance-proof h3 { text-align:center; }
+#metropolis-proof .metropolis-proof-lines { font-size:23px; padding-left:20px; }
+#metropolis-proof .metropolis-proof-lines .katex-display { text-align:left; margin:4px 0; }
+#metropolis-proof .metropolis-proof-lines .katex-display > .katex { text-align:left; }
+#metropolis-proof .metropolis-proof-takeaway { font-size:21px; line-height:1.3; padding:9px 12px; margin-top:8px; color:var(--struct); background:#efedf5; border-radius:6px; }
+
+/* The Hastings correction is a comparison of proposals and the flows they induce. */
+#hastings .mh-correction-body { padding-top:0 !important; }
+#hastings .mh-correction-body > * { margin-bottom:0 !important; }
+#hastings .mh-central-question { font-size:25px; color:var(--struct); font-weight:bold; margin:0 0 8px !important; }
+#hastings .mh-correction-layout { display:grid; grid-template-columns:570px 600px; gap:30px; align-items:start; }
+#hastings .mh-correction-copy { font-size:22px; line-height:1.28; }
+#hastings .mh-correction-copy p { margin:0 0 8px; }
+#hastings .mh-correction-copy h3 { font-size:24px; color:var(--struct); font-weight:bold; margin:0 0 5px; }
+#hastings .mh-explanation-part { margin-top:9px; }
+#hastings .mh-correction-copy .katex-display { font-size:24px; margin:7px 0 10px; }
+#hastings .mh-balance-lines .katex-display { font-size:23px; margin:4px 0; text-align:left; }
+#hastings .mh-balance-lines .katex-display > .katex { text-align:left; }
+#hastings .mh-balance-takeaway { color:var(--struct); margin-top:7px; }
+#hastings .mh-metropolis-connection { font-size:21px; background:#efedf5; color:var(--struct); border-radius:6px; padding:8px 12px; margin-top:8px; }
+#hastings .mh-comparison-controls { display:flex; align-items:center; justify-content:center; gap:8px; }
+#hastings .mh-comparison-controls button { font:18px KaTeX_SansSerif,Arial,sans-serif; padding:5px 11px; color:var(--struct); background:#f6f4f9; border:1px solid #b6afca; border-radius:5px; cursor:pointer; }
+#hastings .mh-comparison-controls button:hover, #hastings .mh-comparison-controls button[aria-pressed=true] { color:white; background:var(--struct); }
+#hastings .mh-comparison-controls button:focus-visible { outline:3px solid var(--postC); outline-offset:3px; }
+#hastings .mh-proposal-split { font-size:18px; color:#555; margin-left:5px; }
+#hastings .mh-view-controls { font-size:18px; }
+#hastings .mh-view-controls button { font-size:17px; padding:4px 10px; }
+#hastings .mh-comparison-readout { margin-top:4px; text-align:center; }
+#hastings .mh-rule-label { font-size:21px; font-weight:bold; color:var(--struct); }
+#hastings .mh-equal-target { font-size:18px; color:#555; margin:2px 0 3px; }
+#hastings table.mh-flow-table { width:100%; border-collapse:collapse; font-size:20px; margin:0; }
+#hastings table.mh-flow-table th, #hastings table.mh-flow-table td { text-align:center; font-weight:normal; padding:3px 7px; }
+#hastings table.mh-flow-table th { color:var(--struct); font-size:18px; border-bottom:1px solid #b6afca; }
+#hastings table.mh-flow-table .mh-selected-move { background:#efedf5; }
+#hastings .mh-flow-result { font-size:20px; margin-top:4px; min-height:29px; }
+@media print { #hastings .mh-comparison-controls button, #hastings .mh-view-controls { display:none; } }
+.deck-print #hastings .mh-comparison-controls button, .deck-print #hastings .mh-view-controls { display:none; }
+
+/* Complete two-state MH construction, followed by samples from its actual P. */
+#mh-example .mh-example-body { display:flex; flex-direction:column; gap:8px; padding-top:0 !important; }
+#mh-example .mh-example-body > * { margin-bottom:0 !important; flex-shrink:0; }
+#mh-example .mh-example-layout { display:grid; grid-template-columns:560px 610px; gap:30px; align-items:start; }
+#mh-example h3 { font-size:24px; color:var(--struct); font-weight:bold; margin:0 0 5px; }
+#mh-example .mh-example-math { font-size:23px; line-height:1.25; }
+#mh-example .mh-example-math .katex-display { font-size:24px; margin:6px 0; }
+#mh-example .mh-example-given .katex-display { font-size:26px; }
+#mh-example .mh-example-part { margin-top:9px; }
+#mh-example .mh-example-transition-equation .katex-display { font-size:22px; }
+#mh-example .mh-example-balance .katex-display { font-size:22px; }
+#mh-example .mh-example-balance p { font-size:21px; color:var(--struct); margin:6px 0 0; }
+#mh-example .mh-example-graphs { display:grid; grid-template-columns:300px 300px; gap:10px; }
+#mh-example .mh-example-graphs > div + div { position:relative; }
+#mh-example .mh-example-graphs > div + div::before { content:""; position:absolute; left:-5px; top:40px; bottom:70px; border-left:1px solid #e7e4ee; }
+#mh-example .mh-example-graphs h3 { text-align:center; font-size:23px; margin:0; }
+#mh-example .mh-example-matrix-key { text-align:center; font-size:18px; color:#555; margin:0 0 3px; }
+#mh-example .mh-example-controls { display:flex; justify-content:center; gap:8px; margin:3px 0 3px; }
+#mh-example .mh-example-controls button { font:18px KaTeX_SansSerif,Arial,sans-serif; padding:5px 10px; color:var(--struct); background:#f6f4f9; border:1px solid #b6afca; border-radius:5px; cursor:pointer; }
+#mh-example .mh-example-controls button:hover:not(:disabled) { background:var(--struct); color:white; }
+#mh-example .mh-example-controls button:focus-visible { outline:3px solid var(--postC); outline-offset:3px; }
+#mh-example .mh-example-controls button:disabled { opacity:.45; cursor:default; }
+#mh-example .mh-example-history { display:flex; gap:4px; justify-content:center; align-items:center; height:29px; font-size:18px; }
+#mh-example .mh-visit { display:inline-block; width:22px; line-height:23px; text-align:center; border:1px solid #b6afca; border-radius:3px; color:var(--struct); background:#f6f4f9; }
+#mh-example .mh-repeat { border-bottom:3px solid var(--postC); }
+#mh-example .mh-history-empty { color:#777; }
+#mh-example .mh-example-status { font-size:18px; color:#555; text-align:center; margin:2px 0 3px; }
+#mh-example .mh-example-takeaway { font-size:20px; line-height:1.25; color:var(--struct); background:#efedf5; border-radius:6px; padding:8px 12px; }
+@media print { #mh-example .mh-example-controls { display:none; } }
+.deck-print #mh-example .mh-example-controls { display:none; }
+
+/* A self-contained group task followed by a four-step debrief. */
+#activity .sampler-activity-body { padding-top:0 !important; }
+#activity .sampler-activity-body > * { margin-bottom:0 !important; }
+#activity .sampler-activity-time { color:var(--struct); font-size:22px; margin:0 0 5px !important; }
+#activity .sampler-proposal-title { font-size:24px; color:var(--struct); text-align:center; margin:0; font-weight:normal; }
+#activity .fig[data-fig="activityProposal"] { margin-top:-20px; }
+#activity .sampler-activity-layout { display:grid; grid-template-columns:600px 570px; gap:30px; align-items:start; }
+#activity h3 { font-size:24px; color:var(--struct); margin:0 0 8px; }
+#activity .sampler-activity-tasks { font-size:24px; line-height:1.28; }
+#activity .sampler-activity-tasks li { margin-bottom:18px; }
+#activity .sampler-activity-reminders { font-size:22px; text-align:center; }
+#activity .sampler-formulas .katex-display { font-size:23px; margin:4px 0; }
+#activity .sampler-formulas p { font-size:21px; color:var(--struct); margin:5px 0; }
+#activity .sampler-blank-matrix .katex-display { font-size:24px; margin:5px 0; }
+#activity .sampler-matrix-key { font-size:18px; color:#555; margin:0; }
+#activity-solution .sampler-solution-layout { display:grid; grid-template-columns:600px 570px; gap:30px; align-items:start; padding-top:0 !important; }
+#activity-solution .sampler-solution-layout > * { margin-bottom:0 !important; }
+#activity-solution h3 { font-size:25px; color:var(--struct); font-weight:bold; margin:0 0 7px; }
+#activity-solution .sampler-solution-math { font-size:26px; }
+#activity-solution .sampler-solution-part { margin-bottom:20px; }
+#activity-solution .sampler-solution-part:last-child { margin-bottom:0; }
+#activity-solution .sampler-solution-math .katex-display { font-size:26px; margin:7px 0; }
+#activity-solution .sampler-solution-balance .katex-display { font-size:23px; }
+#activity-solution .sampler-solution-simulation > h3 { text-align:center; }
+#activity-solution .demo-controls { margin-top:16px; }
+#activity-solution .sampler-discussion { margin-top:18px; font-size:25px; }
+#activity-solution .sampler-discussion .block { margin-bottom:0; }
+
+/* One-dimensional midpoint quadrature and the separate multidimensional cost. */
+#deterministic-integration .deterministic-grid-body { display:flex; flex-direction:column; gap:4px; padding-top:0 !important; }
+#deterministic-integration .deterministic-grid-body > * { margin-bottom:0 !important; flex-shrink:0; }
+#deterministic-integration .deterministic-grid-layout { display:grid; grid-template-columns:490px 680px; gap:30px; align-items:start; }
+#deterministic-integration .deterministic-grid-math { font-size:23px; line-height:1.27; }
+#deterministic-integration h3 { font-size:25px; color:var(--struct); font-weight:bold; margin:0 0 8px; }
+#deterministic-integration .deterministic-grid-math p { margin:0 0 10px; }
+#deterministic-integration .deterministic-grid-math .katex-display { font-size:24px; margin:8px 0; }
+#deterministic-integration .grid-example-domain { font-size:22px; }
+#deterministic-integration .grid-exact-value { color:var(--pred); }
+#deterministic-integration .grid-width-note, #deterministic-integration .grid-finer-note { font-size:21px; color:#555; }
+#deterministic-integration .grid-accuracy { display:flex; justify-content:center; gap:24px; font-size:22px; margin:0 0 5px; }
+#deterministic-integration .grid-estimate { color:var(--like); }
+#deterministic-integration .grid-error { color:#555; }
+#deterministic-integration .knobs { margin:4px 0; }
+#deterministic-integration .knobs label { font-size:19px; }
+#deterministic-integration .knobs input[data-param=m] { width:270px; }
+#deterministic-integration .knobs input[data-param=d] { width:170px; }
+#deterministic-integration .grid-cost-panel { margin-top:6px; padding-top:6px; border-top:1px solid #d5d1df; text-align:center; }
+#deterministic-integration .grid-cost-heading { display:flex; align-items:center; justify-content:center; gap:28px; }
+#deterministic-integration .grid-cost-heading h3 { font-size:22px; margin:0; }
+#deterministic-integration .grid-evaluation-count { color:var(--struct); font-size:36px; font-weight:bold; line-height:1.15; font-variant-numeric:tabular-nums; }
+#deterministic-integration .grid-cost-caption { font-size:18px; color:#555; margin:2px 0 0; }
+#deterministic-integration .grid-main-takeaway { font-size:21px; line-height:1.25; color:var(--struct); background:#efedf5; border-radius:6px; padding:8px 12px; }
+
+/* Match the rejection example while keeping the weighting story progressive. */
+#importance .importance-story { font-size:23px; }
+#importance .importance-story .importance-problem { margin-bottom:8px; }
+#importance .importance-distributions { font-size:22px; margin-bottom:12px; }
+#importance .importance-distributions p { margin:0 0 5px; }
+#importance .importance-distributions .importance-draw { font-size:21px; }
+#importance .importance-story .importance-mismatch { margin-bottom:12px; }
+#importance .importance-weight-step > p:first-child { margin-bottom:6px; }
+#importance .importance-weight-step .katex-display { font-size:24px; margin:7px 0; }
+#importance .importance-story .importance-scale-note { margin-bottom:12px; }
+#importance .importance-average-step p { font-size:22px; }
+
+#importance-proof .importance-proof-body { padding-top:0 !important; gap:22px; }
+#importance-proof .importance-proof-body > * { margin-bottom:0 !important; }
+#importance-proof .importance-derivation { display:flex; flex-direction:column; gap:64px; }
+#importance-proof .importance-derivation .katex-display { margin:0; }
+
+.mapzoom.section-pause { pointer-events:auto; }
+.section-pause .section-continue { position:absolute; left:50%; bottom:18px; transform:translateX(-50%); font:20px KaTeX_SansSerif,Arial,sans-serif; padding:8px 16px; color:white; background:var(--struct); border:1px solid #b6afca; border-radius:5px; cursor:pointer; }
+.section-pause .section-continue[hidden] { display:none; }
+.section-pause .section-continue:focus-visible { outline:3px solid var(--postC); outline-offset:3px; }

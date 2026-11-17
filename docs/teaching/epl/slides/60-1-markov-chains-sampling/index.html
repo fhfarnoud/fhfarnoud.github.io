@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sampling I: Markov Chains and Metropolis-Hastings</title>
+<link rel="stylesheet" href="vendor/reveal.css">
+<link rel="stylesheet" href="vendor/katex.min.css">
+<link rel="stylesheet" href="../shared/deck.css">
+<link rel="stylesheet" href="lecture.css?v=section-overview-pause-1">
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section id="lecture-title" class="frame" data-minutes="0">
+  <div class="titlebox">
+    <div class="t">Probabilistic Machine Learning</div>
+    <div class="st">Sampling I: Markov Chains and Metropolis-Hastings</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Sarvin Motamen</div>
+    <div class="i">University of Virginia</div>
+    <div class="d">November 17, 2026</div>
+  </div>
+</section>
+
+<section id="lecture-outline" class="frame" data-slide="map" data-minutes="0" aria-label="Lecture outline">
+  <ol class="toc" hidden>
+    <li><a href="#/markov-property">Markov Chains</a></li>
+    <li><a href="#/why-sampling">Basic Sampling Methods</a></li>
+    <li><a href="#/mcmc">Metropolis and Metropolis-Hastings</a></li>
+  </ol>
+  <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+</section>
+
+<!-- Part I: 26 minutes. Original content slides are preserved as slides 3–22. -->
+<section id="markov-property" data-part="Markov chains" data-minutes="3">
+  <h2>From Graphical Models to Markov Chains</h2>
+  <div class="fbody intro-body">
+    <p class="intro-definition">A <b>Markov chain (MC)</b> is a stochastic process whose future is independent from its past and can be represented as the following Bayesian network:</p>
+    <fig name="chainBN" init="observed=0"></fig>
+    <div pause="observed=1" data-fragment-index="0" class="intro-property">
+      <block title="Markov property">
+        \[p(x_{t+1}\mid x_0,\ldots,x_t)=p(x_{t+1}\mid x_t)\]
+        <p>Given the present, the past provides no additional information about the next state.</p>
+      </block>
+    </div>
+    <div class="intro-grid">
+      <div pause data-fragment-index="1">
+        <h3>States and State Space</h3>
+        <p><b>State:</b> value $x_t$ at time $t$.<br><b>State space:</b> all possible states.</p>
+      </div>
+      <div pause data-fragment-index="1">
+        <h3>Characterizing a Chain</h3>
+        <p><b>Initial distribution:</b> $p(x_0)$</p>
+        <p class="intro-transition"><b>Transition probabilities:</b> $P_{ij}=p(x_{t+1}=j\mid x_t=i)$</p>
+        <p><b>Time-homogeneous:</b> $P_{ij}$ is independent of $t$ (the same for all time instances).</p>
+      </div>
+    </div>
+  </div>
+  <notes>3 min. Recall the chain Bayesian network. The diagram identifies x_t as the current state. Reveal the Markov property and stress that the independence is conditional on this state. Define a state and the state space. Then identify the initial distribution and transition probabilities. Time homogeneity means using the same transition probabilities at every time. The patient example on the next slide makes P concrete.</notes>
+</section>
+
+<section id="transitions" data-part="Markov chains" data-minutes="4">
+  <h2>State Transitions</h2>
+  <div class="pair">
+    <div>
+      <p><b>Example:</b> Patient health</p>
+      <p>State 1: remission<br>State 2: relapse</p>
+      <p>Each row of $P$ gives the distribution of the next state, conditioned on the current state.</p>
+      <p>Each row sums to 1.</p>
+      <p class="small muted transition-explanation" role="status" aria-live="polite">If in remission, there is an 80% chance of remaining in remission, and a 20% chance of relapse.</p>
+    </div>
+    <div>
+      <fig name="patient" init="selected=0"></fig>
+      <div class="demo-controls" data-for="patient">
+        <button data-action="select" data-value="0">Remission</button>
+        <button data-action="select" data-value="1">Relapse</button>
+      </div>
+    </div>
+  </div>
+  <notes>4 min. Ask for the probability of relapse tomorrow when the patient is in remission today. Click the node and connect each arrow to one entry in its matrix row. In the BN, nodes are random variables at different times. In this graph, nodes are possible values of one state variable. The graph can have cycles.</notes>
+</section>
+
+<section id="markov-practice" data-part="Markov chains" data-minutes="0">
+  <h2>Markov Chains in Practice</h2>
+  <div class="fbody practice-body">
+    <div class="practice-layout">
+      <div class="practice-main">
+        <h3>PageRank</h3>
+        <p class="practice-rule">85% follow a link · 15% jump to any page</p>
+        <fig name="practicePages"></fig>
+        <div class="practice-controls" role="group" aria-label="Random surfer controls">
+          <button type="button" data-practice="next">Next Step</button>
+          <button type="button" data-practice="run" aria-pressed="false">Run</button>
+          <button type="button" data-practice="reset">Reset</button>
+          <span class="practice-status" role="status" aria-live="polite">Start at page A</span>
+        </div>
+      </div>
+      <div class="practice-examples">
+        <div>
+          <h3>Random Walk</h3>
+          <fig name="practiceWalk"></fig>
+          <p>Choose a neighboring position.</p>
+        </div>
+        <div>
+          <h3>DNA Mutations</h3>
+          <fig name="practiceDNA"></fig>
+          <p>80% stay · 20% change nucleotide</p>
+        </div>
+      </div>
+    </div>
+    <p class="practice-question">Which webpages will the visitor spend the most time on?</p>
+  </div>
+  <notes>A brief visual extension of the patient example, within the existing Markov-chain time allocation. Pages are states and directed links determine transition probabilities. With probability 0.85, the surfer chooses uniformly among the current page's outgoing links. With probability 0.15, the surfer chooses uniformly among all nine pages, including the current page. Every page has outgoing links. Visit counts include the initial page and every subsequent state. The grid walk chooses uniformly among valid neighboring positions. The illustrative DNA model stays at its current nucleotide with probability 0.8 and chooses uniformly among the other three with probability 0.2. Next Step advances all three examples. Ask students to predict the popular pages before running the simulation. The different visit frequencies motivate stationary distributions.</notes>
+</section>
+
+<section id="state-distribution" data-part="Markov chains" data-minutes="4">
+  <h2>State Distribution</h2>
+  <div class="fbody">
+    <div class="pair distribution-layout">
+      <div class="distribution-left">
+        <p>Let $\boldsymbol\pi_t=(\pi_{t1},\pi_{t2})$, where $\pi_{ti}=p(X_t=i)$.</p>
+        <p>This is the probability distribution over states at time $t$.</p>
+        <p class="distribution-initial"></p>
+        <div class="distribution-equations" aria-live="polite"></div>
+      </div>
+      <div>
+        <fig name="distributionStep" init="a=1 t=0 stage=0"></fig>
+        <div class="demo-controls distribution-start" data-for="distributionStep" role="group" aria-label="Initial patient state">
+          <span>Start in:</span>
+          <button type="button" data-distribution-start="1" aria-pressed="true">Remission</button>
+          <button type="button" data-distribution-start="0" aria-pressed="false">Relapse</button>
+        </div>
+        <knob param="t" min="0" max="15" step="1" digits="0">Time $t$</knob>
+        <p class="distribution-explore">After the derivation, use the slider to explore.</p>
+        <p class="figure-caption"><span class="c-prior">Blue: from remission</span> · <span class="c-postC">Amber: from relapse</span></p>
+      </div>
+    </div>
+  </div>
+  <span class="distribution-mark" pause="stage=1 t=1" data-fragment-index="0"></span>
+  <span class="distribution-mark" pause="stage=2 t=2" data-fragment-index="1"></span>
+  <span class="distribution-mark" pause="stage=3 t=3" data-fragment-index="2"></span>
+  <span class="distribution-mark" pause="stage=4 t=3" data-fragment-index="3"></span>
+  <span class="distribution-mark" pause="stage=5 t=3" data-fragment-index="4"></span>
+  <span class="distribution-mark" pause="stage=6 t=3" data-fragment-index="5"></span>
+  <notes>4 min. Define the state distribution first, then start with certainty in remission at time zero. Reveal the one-step, two-step, and three-step calculations in turn. Each new pair of calculations replaces the last. Blue terms come from the previous remission state and amber terms from the previous relapse state. At two steps, the remission bar contains 0.64 from remission and 0.10 from relapse, while the relapse bar contains 0.16 and 0.10. Generalize the two terms to a sum over previous states, then reveal matrix multiplication and the power formula. Starting in relapse changes the initial vector and all numerical examples. The slider becomes available after the derivation.</notes>
+</section>
+
+<section id="convergence" data-part="Markov chains" data-minutes="4">
+  <h2>Long-Term Behavior</h2>
+  <div class="pair wide-figure">
+    <div>
+      <p>Does the starting distribution still matter after many steps?</p>
+      \[\boldsymbol\pi_t=\boldsymbol\pi_0P^t\]
+      <p class="c-prior">Blue: probability of remission</p>
+      <p class="c-postC">Amber: probability of relapse</p>
+      <div pause="limit=1" data-fragment-index="0"><block title="Patient chain">\[\boldsymbol\pi_t\longrightarrow\left(\frac57,\frac27\right).\]<p>For this chain, the distribution converges to the same limit regardless of the initial distribution.</p></block></div>
+    </div>
+    <div>
+      <fig name="convergence" init="a=1 t=0 compare=0 limit=0"></fig>
+      <knob param="a" min="0" max="1" step="0.1" digits="1">$\pi_{01}$</knob>
+      <knob param="t" min="0" max="15" step="1" digits="0">Time $t$</knob>
+      <div class="demo-controls" data-for="convergence">
+        <button data-action="start" data-value="1">Start in remission</button>
+        <button data-action="start" data-value="0">Start in relapse</button>
+        <button data-action="compare">Compare Both</button>
+        <button data-action="advance">Next time step</button>
+      </div>
+    </div>
+  </div>
+  <p class="convergence-question" pause data-fragment-index="0">Does every Markov chain converge?</p>
+  <notes>4 min. Predict before moving the time slider. Start in remission, relapse, or a mixture. Compare Both overlays the two point starts, with solid curves for the remission start and dashed curves for the relapse start. Blue always means remission probability and amber always means relapse probability. Both displayed vectors use the current time. Explore first, then advance the reveal to show the limiting vector and horizontal dashed reference lines together. For this patient chain, every initial distribution approaches the same limit. The chain keeps moving even after its distribution settles. Ask whether every Markov chain converges to motivate the next slide.</notes>
+</section>
+
+<section id="stationary" data-part="Markov chains" data-minutes="3">
+  <h2>Limiting and Stationary Distributions</h2>
+  <div class="fbody stationary-body">
+    <div class="pair stationary-definitions">
+      <block title="Limiting distribution">
+        \[\boldsymbol\pi_t=\boldsymbol\pi_0P^t\longrightarrow\boldsymbol\sigma\quad(t\to\infty)\]
+      </block>
+      <block title="Stationary distribution">
+        \[\boldsymbol\sigma=\boldsymbol\sigma P\]
+      </block>
+    </div>
+    <p class="stationary-relationship" pause data-fragment-index="0"><b>A limiting distribution must be stationary.</b></p>
+    <div class="stationary-example">
+      <h3>Patient chain</h3>
+      <div class="stationary-work">
+        <div class="stationary-stage" pause data-fragment-index="1">
+          <p>Solve $\boldsymbol\sigma=\boldsymbol\sigma P$ with $\sigma_1+\sigma_2=1$.</p>
+        </div>
+        <div class="stationary-stage" pause data-fragment-index="2">
+          \[\sigma_1=0.8\sigma_1+0.5\sigma_2\quad\Rightarrow\quad\sigma_2=\frac25\sigma_1.\]
+        </div>
+        <div class="stationary-stage" pause data-fragment-index="3">
+          \[\sigma_1+\frac25\sigma_1=1\quad\Rightarrow\quad\sigma_1=\frac57,\quad\sigma_2=\frac27.\]
+          <div class="stationary-answer">\[\boxed{\boldsymbol\sigma=\left(\frac57,\frac27\right)}\]</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <notes>3 min. Distinguish a limiting distribution, approached from a given initial distribution as time grows, from a stationary distribution, unchanged by one transition. For a finite-state chain, taking limits in pi_(t+1)=pi_t P gives sigma=sigma P. The reverse implication need not hold. Solve the patient chain using stationarity and normalization. First reveal the two requirements. Then reveal the first-component equation, which gives sigma_2=(2/5)sigma_1. Finally use normalization to obtain sigma_1=5/7 and sigma_2=2/7. Keep each earlier step visible as the solution builds. The periodic-chain counterexample follows on the convergence slide.</notes>
+</section>
+
+<section id="chain-convergence" data-part="Markov chains" data-minutes="0">
+  <h2>Convergence of Markov Chains</h2>
+  <div class="fbody convergence-cases-body">
+    <p class="convergence-definition"><b>Regular chain:</b> there is an integer $k\geq1$ such that, from any state $i$, any state $j$ can be reached in <b>exactly $k$ steps</b> with positive probability: $(P^k)_{ij}>0$ for all $i,j$.</p>
+    <div class="convergence-cases-exploration" pause data-fragment-index="0">
+      <div class="convergence-cards">
+        <div class="convergence-card">
+          <h3>Disconnected</h3>
+          <p>The limit can depend on the initial state.</p>
+          <fig name="convergenceDisconnected" init="start=0 t=0"></fig>
+        </div>
+        <div class="convergence-card">
+          <h3>Periodic</h3>
+          <p>Stationary: $\boldsymbol\sigma=(1/2,1/2)$<br>From state 1: Oscillates, never converges.</p>
+          <fig name="convergencePeriodic" init="start=0 t=0"></fig>
+        </div>
+        <div class="convergence-card">
+          <h3>Regular: patient chain</h3>
+          <p>Converges to the same $(5/7,2/7)$.<br>Here $P_{ij}>0$, so $k=1$.</p>
+          <fig name="convergencePatient" init="start=0 t=0"></fig>
+        </div>
+      </div>
+      <div class="convergence-case-controls" role="group" aria-label="Compare chain transitions">
+        <button type="button" data-convergence-start="0" aria-pressed="true">Start in state 1</button>
+        <button type="button" data-convergence-start="1" aria-pressed="false">Start in state 2</button>
+        <button type="button" data-convergence-action="next">Next Step</button>
+        <button type="button" data-convergence-action="reset">Reset</button>
+        <span class="convergence-case-time" aria-live="polite">Time $t=0$</span>
+      </div>
+    </div>
+    <div class="convergence-guarantee" pause data-fragment-index="1">
+      <block title="Theorem: Convergence of regular chains">
+        <p>A regular chain has a <b>unique stationary distribution</b> $\boldsymbol\sigma$, and $\boldsymbol\pi_t=\boldsymbol\pi_0P^t\longrightarrow\boldsymbol\sigma$ as $t\to\infty$, for <b>every</b> initial distribution $\boldsymbol\pi_0$.</p>
+      </block>
+    </div>
+  </div>
+  <notes>Continue within the existing Markov-chain time allocation. Regular means a single common length k works for every ordered pair of states, including a return to the same state. Reveal the three examples and step them together. Node shading and the blue/amber mass bar show exact state probabilities, not one simulated path. The disconnected example is the identity transition matrix, so each initial distribution stays fixed and the limiting distribution depends on the start. The periodic example swaps the two states with probability one. It has stationary distribution (1/2,1/2), but either point start alternates forever. A stationary start would remain unchanged. The patient matrix is strictly positive, so it is regular with k=1. Both point starts approach (5/7,2/7). Reveal the theorem after exploring. No proof is needed. Regularity is sufficient, not necessary: for instance, the nonregular matrix with both rows equal to (1,0) has a unique stationary distribution (1,0) and every start reaches it after one step. Do not identify all nonregular chains with failure to converge.</notes>
+</section>
+
+<section id="frequencies" data-part="Markov chains" data-minutes="3">
+  <h2>Long-Run Frequencies</h2>
+  <div class="fbody frequency-body">
+    <p class="frequency-question">Can one long trajectory reveal the stationary distribution?</p>
+    <fig name="frequencies" init="n=10 seed=8"></fig>
+    <div class="demo-controls frequency-controls" data-for="frequencies">
+      <button type="button" data-action="count" data-value="10">10</button>
+      <button type="button" data-action="count" data-value="100">100</button>
+      <button type="button" data-action="count" data-value="1000">1,000</button>
+      <button type="button" data-action="count" data-value="10000">10,000 steps</button>
+      <button type="button" data-action="rerun">New Run</button>
+      <button type="button" data-frequency-action="step">Next Step</button>
+      <button type="button" data-frequency-action="run" aria-pressed="false">Run</button>
+    </div>
+    <div class="frequency-formula">\[\widehat\sigma_j=\frac1N\sum_{t=1}^{N}\mathbf1\{X_t=j\}\longrightarrow\sigma_j\qquad(N\to\infty).\]</div>
+    <p class="frequency-takeaway">One long trajectory can estimate the stationary distribution, even though successive states are dependent.</p>
+  </div>
+  <notes>3 min. Follow the arrows from the transition graph to recorded visits to empirical frequencies. This is the five-state chain in the notes, starting from X_0=3. Count X_1 through X_N, excluding the initial state, exactly as in the estimator. Green identifies the current state, the latest recorded visit, and empirical frequencies. Purple outlines show the theoretical stationary probabilities (1/12,1/2,1/12,1/4,1/12). Next Step advances one actual transition and Run advances one transition every 350 milliseconds. Pause to inspect the synchronized state, history, counts, and histogram. The four sample-size controls select prefixes of the same seeded trajectory, while New Run changes the trajectory at the current sample size. For long trajectories, only the last 20 visits are displayed, but all N visits contribute to the counts and histogram. Every drawn non-self link has probability 1/5 and self-loop probabilities are (1/5,4/5,1/5,2/5,3/5), so each row sums to one. Agreement need not improve monotonically with N. This chain is regular, and successive states can be dependent while long-run visit frequencies still approach the stationary probabilities.</notes>
+</section>
+
+<section id="detailed-balance" data-part="Markov chains" data-minutes="3">
+  <h2>Detailed Balance</h2>
+  <div class="fbody balance-body">
+    <p class="balance-intro">Suppose 700 patients start in the stationary distribution: 500 in remission and 200 in relapse.</p>
+    <fig name="balance" init="stage=0"></fig>
+    <span class="balance-marker" pause="stage=1" data-fragment-index="0"></span>
+    <div class="pair balance-generalization" pause data-fragment-index="1">
+      <div>
+        <h3>Divide by 700 to get probability flows</h3>
+        \[\frac{500}{700}\cdot0.2=\frac{200}{700}\cdot0.5=\frac17.\]
+      </div>
+      <block title="Detailed balance property (DBP)">
+        \[\pi_iP_{ij}=\pi_jP_{ji}\qquad\text{for all }i,j.\]
+      </block>
+    </div>
+    <div class="balance-distinction" pause data-fragment-index="2">
+      <p><b>Stationarity:</b> total probability flow in equals total flow out at each state.</p>
+      <p><b>Detailed balance:</b> probability flows balance between every pair of states.</p>
+    </div>
+  </div>
+  <notes>3 min. Begin with 500 patients in remission and 200 in relapse. Each dot represents 10 patients. Reveal the expected one-step flows: 20 percent of 500 gives 100 expected remission-to-relapse transitions, while 50 percent of 200 gives 100 expected relapse-to-remission transitions. These are expectations, not guaranteed counts in a random cohort. Thus remission has 400 expected stays plus 100 expected arrivals and relapse has 100 stays plus 100 arrivals. Divide by 700 to turn patient counts into probability flows. The distribution is pi=(5/7,2/7), and each directional flow is 1/7. Transition probabilities differ but the flows agree. Generalize to pi_i P_ij=pi_j P_ji for every pair. Stationarity balances the sum of flows entering and leaving each state, whereas detailed balance balances each pair separately. With more than two states, total flow can balance through circulating flows without detailed balance. The next slide proves that pairwise balance implies stationarity.</notes>
+</section>
+
+<section id="balance-proof" data-part="Markov chains" data-minutes="2">
+  <h2>Why Detailed Balance Works</h2>
+  <div class="fbody balance-proof-body">
+    <block title="Theorem: Stationarity from detailed balance">
+      <p>For a <b>regular</b> Markov chain, a probability distribution $\boldsymbol\pi$ satisfying detailed balance is the <b>unique stationary distribution</b>: $\boldsymbol\pi=\boldsymbol\sigma$.</p>
+    </block>
+    <div class="pair balance-proof-columns">
+      <div class="balance-short-proof">
+        <h3>Sum the flows into state $j$</h3>
+        <div>\[(\boldsymbol\pi P)_j=\sum_i\textcolor{#2354A8}{\pi_iP_{ij}}\]</div>
+        <div pause data-fragment-index="0">
+          \[=\sum_i\textcolor{#CC8800}{\pi_jP_{ji}}\]
+          <p class="balance-reason">Detailed balance replaces each flow by its reverse.</p>
+        </div>
+        <div pause data-fragment-index="1">
+          \[=\pi_j\underbrace{\sum_iP_{ji}}_{\text{row }j\text{ sums to }1}=\pi_j.\]
+          <p class="balance-proof-result">Hence $\boldsymbol\pi P=\boldsymbol\pi$.</p>
+        </div>
+      </div>
+      <div class="balance-application">
+        <h3>Two-state example</h3>
+        <fig name="balanceTwoState" init="stage=0"></fig>
+        <div pause data-fragment-index="2">
+          \[\pi_1\alpha=\pi_2\beta,\qquad\pi_1+\pi_2=1.\]
+        </div>
+        <div pause data-fragment-index="3">
+          \[(\alpha+\beta)\pi_1=\beta\]
+          \[\boxed{\boldsymbol\sigma=\left(\frac{\beta}{\alpha+\beta},\frac{\alpha}{\alpha+\beta}\right)}\]
+          <p class="balance-condition">For $\alpha+\beta>0$.</p>
+        </div>
+      </div>
+    </div>
+    <p class="balance-mcmc-question" pause data-fragment-index="4">Can we design transitions that satisfy detailed balance for a desired target distribution?</p>
+  </div>
+  <notes>2 min. State the theorem with its regularity assumption and uniqueness conclusion. The proof of stationarity itself uses only detailed balance and the fact that each row of P sums to one. For fixed j, sum incoming flows, replace each by its equal reverse flow, and factor out pi_j. The sum over i now runs across row j, so it equals one. Regularity supplies uniqueness and convergence from any initial distribution through the previous theorem. For the two-state exercise, probabilities from state 1 to 2 and back are alpha and beta, with self-loops 1-alpha and 1-beta. DBP gives pi_1 alpha=pi_2 beta. Substitute pi_2=1-pi_1 to get (alpha+beta)pi_1=beta, then the displayed stationary distribution. The formula is valid for alpha+beta>0. If both are zero, every distribution is stationary. If both equal one, the formula still gives a stationary distribution although point starts oscillate, so do not apply the regular-chain convergence guarantee there. End with the design question to motivate constructing MCMC transitions for a chosen target.</notes>
+</section>
+
+<!-- Basic methods follow the order of the course notes. -->
+<section id="why-sampling" data-part="Why sampling?" data-minutes="4">
+  <h2>Why Sampling?</h2>
+  <div class="fbody basic-body sampling-motivation">
+    <div class="bayes-rule">\[p(\boldsymbol\theta\mid\mathcal D)=\frac{p(\boldsymbol\theta)p(\mathcal D\mid\boldsymbol\theta)}{p(\mathcal D)}=\frac{q(\boldsymbol\theta)}{Z_q},\qquad Z_q=\int q(\boldsymbol\theta)\,d\boldsymbol\theta.\]</div>
+    <div class="sampling-two-columns">
+      <div>
+        <h3>Two computational difficulties</h3>
+        <ol class="en sampling-difficulties">
+          <li><b>Unknown normalizer.</b> We can evaluate $q$, but computing $Z_q=p(\mathcal D)$ may be infeasible.</li>
+          <li><b>Intractable expectations.</b> Even with $p$, we still need integrals such as
+            \[\E_p[h(\boldsymbol\Theta)]=\int h(\boldsymbol\theta)p(\boldsymbol\theta\mid\mathcal D)\,d\boldsymbol\theta.\]
+          </li>
+        </ol>
+        <div pause data-fragment-index="0"><block title="Monte Carlo average">
+          <p>For independent draws $\boldsymbol\theta_i\sim p$,</p>
+          \[\E_p[h(\boldsymbol\Theta)]\approx\frac1N\sum_{i=1}^N h(\boldsymbol\theta_i).\]
+        </block></div>
+      </div>
+      <div>
+        <fig name="monteCarlo" init="n=20 seed=14"></fig>
+        <knob param="n" min="10" max="2000" step="10" digits="0">Samples $N$</knob>
+        <p class="figure-caption">Illustration: $p(\theta)=12\theta^2(1-\theta)$ on $[0,1]$</p>
+        <p class="sampling-small posterior-examples">Posterior mean: $h(\boldsymbol\theta)=\boldsymbol\theta$<br>Event probability: $h(\boldsymbol\theta)=\mathbf1\{\boldsymbol\theta\in A\}$</p>
+      </div>
+    </div>
+  </div>
+  <notes>Two obstacles motivate sampling. Bayes' rule gives q(theta)=p(theta)p(D|theta), with evidence Z_q=p(D) for a proper prior. We may evaluate q pointwise without being able to normalize it. Even a normalized posterior may lead to an intractable integral for an expectation. Posterior means and probabilities of events are both expectations. The law of large numbers motivates the Monte Carlo average with its required factor 1/N. The plot uses independent Beta(3,2) draws, with exact mean 3/5, as an illustration where sampling is already easy. This does not itself solve the difficult-posterior sampling problem. In Bayesian regression, the same principle lets us draw a variance, then regression parameters conditional on that variance, and finally a predictive outcome instead of integrating a complicated marginal posterior. In the following slides E_q means expectation under p=q/Z_q, consistent with the notes' convention for an unnormalized shape.</notes>
+</section>
+
+<section id="deterministic-integration" data-part="Why sampling?" data-minutes="3">
+  <h2>Deterministic Integration</h2>
+  <div class="fbody deterministic-grid-body">
+    <div class="deterministic-grid-layout">
+      <div class="deterministic-grid-math">
+        <h3>Evaluate a fixed grid</h3>
+        <p>Use fixed grid points instead of random samples.</p>
+        <p class="grid-example-domain">On $[0,1]$, use $p=q/Z$ with</p>
+        \[q(\theta)=\theta^2(1-\theta),\qquad h(\theta)=\theta.\]
+        <p class="grid-exact-value">Exact expectation: $\mathbb E_p[\Theta]=0.6$.</p>
+        \[\mathbb E_p[h(\Theta)]=\frac{\int_0^1 h(\theta)q(\theta)\,d\theta}{\int_0^1 q(\theta)\,d\theta}\]
+        <div pause data-fragment-index="0">
+          <p>Use the midpoints $\theta_i$ of $m$ equal cells.</p>
+          \[\mathbb E_p[h(\Theta)]\approx\frac{\sum_i h(\theta_i)q(\theta_i)}{\sum_i q(\theta_i)}.\]
+          <p class="grid-width-note">The equal widths $\Delta\theta=1/m$ multiply both sums and cancel.</p>
+          <p class="grid-finer-note">Narrower rectangles track the curve more closely.</p>
+        </div>
+      </div>
+      <div class="deterministic-grid-demo">
+        <fig name="gridIntegration" init="m=10 d=2"></fig>
+        <div class="grid-accuracy" aria-live="polite"><span class="grid-estimate"></span><span class="grid-error"></span></div>
+        <knob param="m" for="gridIntegration" min="4" max="40" step="1" digits="0">Points per coordinate $m$</knob>
+        <div pause data-fragment-index="1" class="grid-cost-panel">
+          <div class="grid-cost-heading"><h3>Grid cost: $N=m^d$</h3><knob param="d" for="gridIntegration" min="1" max="10" step="1" digits="0">Dimension $d$</knob></div>
+          <div class="grid-evaluation-count" aria-live="polite"></div>
+          <p class="grid-cost-caption">function evaluations in $d$ dimensions</p>
+        </div>
+      </div>
+    </div>
+    <div pause data-fragment-index="1" class="grid-main-takeaway">Grid integration works in low dimensions, but its computational cost grows exponentially with dimension.</div>
+  </div>
+  <notes>3 min. This is the deterministic alternative to sampling: evaluate q and h at fixed midpoint grid points. The normalized expectation is a ratio of integrals because p=q/Z. The example is one dimensional on [0,1], with q(theta)=theta squared times (1−theta), h(theta)=theta, numerator integral 1/20, denominator integral 1/12, and exact expectation 0.6. The green rectangles approximate only the numerator integral. Each rectangle has width 1/m and midpoint height h(theta_i)q(theta_i). The denominator is approximated using the same grid and cell width. That common width cancels from the ratio. Move m to update every midpoint rectangle, the numerical estimate, and the absolute error. For this smooth example, narrower rectangles give a better approximation. Then reveal the d-dimensional cost. A Cartesian grid with m points along each of d coordinates needs m to the d evaluations. The dimension slider changes the exact evaluation count, not the one-dimensional illustrative function or its accuracy. The count is computed with integer arithmetic rather than floating-point rounding. With m=10, moving d from 2 to 10 changes the cost from 100 to 10 billion evaluations. This motivates using sampling when fixed grids become too expensive. No actual high-dimensional grid is constructed in the browser.</notes>
+</section>
+
+<section id="inverse-cdf" data-part="Why sampling?" data-minutes="3">
+  <h2>Inverse-CDF Sampling</h2>
+  <div class="fbody basic-body">
+    <div class="sampling-two-columns">
+      <div>
+        <p>For a continuous, invertible CDF $F$:</p>
+        <ol class="en sampling-algorithm">
+          <li>Draw $U\sim\operatorname{Uniform}(0,1)$.</li>
+          <li>Return $\Theta=F^{-1}(U)$.</li>
+        </ol>
+        <div pause data-fragment-index="0">
+          \[\Pr(\Theta\le c)=\Pr(U\le F(c))=F(c).\]
+        </div>
+        <div pause data-fragment-index="1"><block title="Example: Sampling from $f(\theta)=2\theta$">
+          <p>Support: $0\le\theta\le1$.</p>
+          \[F(\theta)=\int_0^\theta 2t\,dt=\theta^2\]
+          \[\Longrightarrow\quad\Theta=F^{-1}(U)=\sqrt U.\]
+        </block></div>
+      </div>
+      <div>
+        <fig name="inverseCDF" init="u=0.36 seed=12"></fig>
+        <knob param="u" min="0" max="1" step="0.01" digits="2">Uniform input $u$</knob>
+        <div class="sampling-local-controls"><button type="button" data-basic-draw>New Uniform Draw</button></div>
+        <p class="figure-caption">Start at $u$ on the vertical axis. Move across to the CDF, then down to $\theta=F^{-1}(u)$ on the horizontal axis.</p>
+      </div>
+    </div>
+  </div>
+  <notes>The input U is uniform on (0,1), while the output has the desired CDF. For a continuous strictly increasing F, Pr(F inverse of U less than or equal to c)=Pr(U less than or equal to F(c))=F(c). The example density is f(theta)=2 theta on [0,1]. Integrating from zero to theta gives F(theta)=integral of 2t dt=theta squared. Inverting yields Theta=F inverse of U=sqrt(U). Start at the selected uniform input on the vertical axis, follow the orange horizontal line to the CDF, then follow the vertical line down to the output theta. Use the slider and New Uniform Draw button to show several input-output pairs. The displayed numerical output updates to sqrt(u), with F(sqrt(u))=u. The proof and worked example remain separate progressive reveals. This slide concerns this continuous invertible CDF.</notes>
+</section>
+
+<section id="rejection" data-part="Why sampling?" data-minutes="3">
+  <h2>Rejection Sampling</h2>
+  <div class="fbody basic-body rejection-body">
+    <p class="sampling-lead">Target $p=q/Z_q$. Easy proposal density $r=g/Z_g$.</p>
+    <div class="sampling-two-columns">
+      <div>
+        <p class="sampling-small">Require $g>0$ wherever $q>0$, and $q\le Mg$ everywhere.</p>
+        <h3>Beta$(3,2)$ example on $[0,1]$</h3>
+        \[q(\theta)=\theta^2(1-\theta),\quad g(\theta)=\theta,\quad Z_g=\tfrac12.\]
+        <div pause data-fragment-index="0" class="envelope-derivation">
+          \[M\ge\frac{q(\theta)}{g(\theta)}=\theta(1-\theta)\]
+          \[=\frac14-\left(\theta-\frac12\right)^2\quad\Rightarrow\quad M_{\min}=\frac14.\]
+        </div>
+        <div pause data-fragment-index="1">
+          <ol class="en sampling-algorithm rejection-algorithm">
+            <li>Draw $\theta'\sim r$, where $r(\theta)=g(\theta)/Z_g=2\theta$.<br><span class="rejection-inverse-label">Using inverse-CDF sampling:</span><br>$U_1\sim\operatorname{Uniform}(0,1),\quad \theta'=\sqrt{U_1}$.</li>
+            <li>Draw an independent $U_2\sim\operatorname{Uniform}(0,1)$.</li>
+            <li>Accept $\theta'$ if $\displaystyle U_2\le\frac{q(\theta')}{Mg(\theta')}=\frac{\theta'(1-\theta')}{M}$.<br>Otherwise, reject.</li>
+          </ol>
+        </div>
+      </div>
+      <div>
+        <fig name="rejection" init="n=0 M=0.25 seed=45"></fig>
+        <knob param="M" min="0.25" max="1" step="0.05" digits="2">Envelope $M$</knob>
+        <div class="demo-controls" data-for="rejection"><button data-action="add" data-value="1">One proposal</button><button data-action="add" data-value="100">+100 proposals</button><button data-action="reset">Reset</button></div>
+      </div>
+    </div>
+  </div>
+  <notes>3 min. The target shape is q(theta)=theta squared times (1−theta), with Z_q=1/12. The proposal shape g(theta)=theta has Z_g=1/2, so proposals are drawn from r(theta)=2theta on [0,1]. The envelope ratio is theta(1−theta)=1/4−(theta−1/2) squared, so the minimum valid M is 1/4. Keep the algorithm as three steps. First draw theta prime from r using inverse-CDF sampling: draw U_1 uniformly and set theta prime=sqrt(U_1). Second draw an independent U_2 uniformly. Third accept if U_2 is no larger than q(theta prime)/(M g(theta prime)), otherwise reject. At M=1/4 this acceptance probability is 4 theta prime (1−theta prime). The plotted vertical coordinate is U_2 M g(theta prime), so accepted green points fall below q and rejected red points fall above it. The envelope slider updates these decisions for the same seeded proposal stream, and increasing M lowers the acceptance rate. The proposal controls and Reset retain their existing behavior.</notes>
+</section>
+
+<section id="rejection-proof" data-part="Why sampling?" data-minutes="3">
+  <h2>Why Rejection Sampling Works</h2>
+  <div class="fbody basic-body">
+    <p class="sampling-lead">Let $A$ mean acceptance, $Z_q=\int q(\theta)\,d\theta$, and $Z_g=\int g(\theta)\,d\theta$.</p>
+    <div class="sampling-proof-layout">
+      <div class="sampling-derivation">
+        <p>Proposal density $r=g/Z_g$, with $q\le Mg$.</p>
+        \[p(\theta',A)=\frac{g(\theta')}{Z_g}\frac{q(\theta')}{Mg(\theta')}=\frac{q(\theta')}{MZ_g}.\]
+        <div pause data-fragment-index="0">
+          \[p(A)=\int p(\theta',A)\,d\theta'=\frac{Z_q}{MZ_g}.\]
+        </div>
+        <div pause data-fragment-index="1">
+          \[p(\theta'\mid A)=\frac{p(\theta',A)}{p(A)}=\frac{q(\theta')}{Z_q}.\]
+          <p class="sampling-result">Accepted samples have the target distribution.</p>
+        </div>
+        <div pause data-fragment-index="2" class="sampling-small">
+          <p>If $Z_q=Z_g=1$, the acceptance rate is $1/M$.</p>
+          <p><b>Self-evaluating:</b> the rejection rate reveals wasted proposals. A loose envelope can be very inefficient.</p>
+        </div>
+      </div>
+      <div>
+        <fig name="rejectionAccepted" init="n=1000 M=0.25 seed=45"></fig>
+        <knob param="n" min="100" max="10000" step="100" digits="0">Proposals $N$</knob>
+        <p class="sampling-small center">Beta example: $Z_q=1/12$, $Z_g=1/2$, $M=1/4$, so $p(A)=2/3$.</p>
+      </div>
+    </div>
+  </div>
+  <notes>Compute the joint density of a proposal and acceptance first. The g terms cancel, leaving q divided by M Z_g. Integrate to obtain P(A)=Z_q/(M Z_g). Conditioning on A divides the joint density by this acceptance probability, leaving q/Z_q. Thus accepted draws follow the target even when both q and g are unnormalized. In the Beta example the exact rate is (1/12)/((1/4)(1/2))=2/3. The green histogram uses only accepted samples and is normalized by the number accepted and the bin width, while the purple curve is the normalized density 12 theta squared (1-theta). The independent uniform streams and seed match the preceding rejection demonstration. The slider counts all proposals, including rejects. Rejection sampling exposes its efficiency through the observed acceptance fraction. This proof can be studied independently if class time is short.</notes>
+</section>
+
+<section id="importance" data-part="Why sampling?" data-minutes="3">
+  <h2>Importance Sampling</h2>
+  <div class="fbody basic-body importance-example-body">
+    <div class="sampling-two-columns">
+      <div class="importance-story">
+        <p class="importance-problem"><b>Goal:</b> estimate $\mathbb E_p[\Theta]=0.6$.</p>
+        <div class="importance-distributions">
+          <p>$q(\theta)=\theta^2(1-\theta)$, $p(\theta)=12\theta^2(1-\theta)$.</p>
+          <p>$g(\theta)=\theta$, $r(\theta)=2\theta$, $\theta\in[0,1]$.</p>
+          <p class="importance-draw">Draw $\theta_i=\sqrt{U_i}$, $U_i\sim\operatorname{Uniform}(0,1)$.</p>
+        </div>
+        <div pause="stage=1" data-fragment-index="0">
+          <p class="importance-mismatch"><b>Mismatch:</b> compared with $r$, the target puts more mass in the middle and less near the endpoints.</p>
+        </div>
+        <div pause="stage=2" data-fragment-index="1" class="importance-weight-step">
+          <p>Correct each proposal's contribution with a density ratio:</p>
+          \[w_i=\frac{q(\theta_i)}{g(\theta_i)}=\theta_i(1-\theta_i).\]
+          <p class="importance-scale-note">Normalized ratios give $p/r=6w$. The common factor $6$ cancels from the weighted average.</p>
+        </div>
+        <div pause="stage=3" data-fragment-index="2" class="importance-average-step">
+          <p><b>Keep every proposal.</b> Adjust its contribution through weighting, instead of accepting or rejecting it.</p>
+        </div>
+      </div>
+      <div>
+        <fig name="importance" init="n=30 seed=16 stage=0"></fig>
+        <knob param="n" min="5" max="200" step="5" digits="0">Samples $N$</knob>
+        <p class="figure-caption importance-dot-caption">Horizontal position is $\theta_i$. <span class="importance-area-caption">All dots have equal area.</span></p>
+      </div>
+    </div>
+    <div class="importance-estimator" pause="stage=4" data-fragment-index="3">
+      <p>Self-normalized<br>estimator</p>
+      \[\mathbb E_p[\Theta]\approx\frac{\sum_i w_i\theta_i}{\sum_i w_i}.\]
+    </div>
+  </div>
+  <notes>3 min. Reuse the rejection-sampling target q(theta)=theta squared times (1−theta), normalized p=12q, and proposal shape g(theta)=theta, normalized r=2theta. The goal is the target mean 0.6. Every displayed proposal is theta=sqrt(U) for an independent uniform U, so proposals follow r rather than a uniform density. Compare the normalized purple target and blue proposal curves. Relative to the proposal, the target assigns more mass to the middle and less to the endpoints. First reveal this mismatch. Then show w=q/g=theta(1−theta). The normalized density ratio p/r is six times w. Any common multiplicative factor cancels from the self-normalized weighted mean, so the normalizing constants are unnecessary. At this reveal, change dot areas using the same sample locations. Every proposal remains in the cloud. Area is proportional to w, with one common display scale for all samples. Weights are largest at theta=0.5 and small near zero and one, rather than simply increasing with theta. Next reveal the two numerical means: the unweighted mean targets the proposal expectation 2/3, while the weighted estimate targets 0.6. Contrast rejection sampling, which discards some proposals, with importance sampling, which retains every proposal and weights its contribution. Finally reveal the self-normalized estimator. The sample-count slider uses prefixes of the same seeded proposal stream, so the cloud and both numerical means stay synchronized. The following slide retains the general derivation.</notes>
+</section>
+
+<section id="importance-proof" data-part="Why sampling?" data-minutes="3">
+  <h2>Why Importance Sampling Works</h2>
+  <div class="fbody basic-body importance-proof-body">
+    <p>Let $p=q/Z_q$, $r=g/Z_g$, and $w(\boldsymbol\theta)=q(\boldsymbol\theta)/g(\boldsymbol\theta)$. Assume $g>0$ wherever $q>0$. Draw $\boldsymbol\theta_i$ independently from $r$.</p>
+    <div class="importance-derivation">
+      <div>\[\E_q[h(\boldsymbol\Theta)]=\frac{\int h(\boldsymbol\theta)q(\boldsymbol\theta)\,d\boldsymbol\theta}{\int q(\boldsymbol\theta)\,d\boldsymbol\theta}=\frac{\int h(\boldsymbol\theta)[q(\boldsymbol\theta)/g(\boldsymbol\theta)]g(\boldsymbol\theta)\,d\boldsymbol\theta}{\int [q(\boldsymbol\theta)/g(\boldsymbol\theta)]g(\boldsymbol\theta)\,d\boldsymbol\theta}\]</div>
+      <div pause data-fragment-index="0">\[=\frac{Z_g\E_r[h(\boldsymbol\Theta)w(\boldsymbol\Theta)]}{Z_g\E_r[w(\boldsymbol\Theta)]}=\frac{\E_r[hw]}{\E_r[w]}\]</div>
+      <div pause data-fragment-index="1">\[\approx\frac{\frac1N\sum_{i=1}^N h(\boldsymbol\theta_i)w_i}{\frac1N\sum_{i=1}^N w_i}=\boxed{\frac{\sum_i w_i h(\boldsymbol\theta_i)}{\sum_i w_i}}\]</div>
+    </div>
+    <div pause data-fragment-index="2" class="importance-proof-takeaway">
+      <p>Both unknown normalizers cancel. All proposal draws contribute.</p>
+      <p class="sampling-small">With suitable integrability, the ratio converges to the target expectation. It need not be unbiased for finite $N$.</p>
+    </div>
+  </div>
+  <notes>Start from the normalized expectation as a ratio of integrals. Multiply and divide by the proposal shape g wherever q is nonzero. Rewriting integrals using the actual proposal density r=g/Z_g introduces a factor Z_g in numerator and denominator, which cancels. Define w=q/g. Apply the law of large numbers separately to the numerator and denominator expectations, then cancel the 1/N factors. The target's Z_q is eliminated by the original ratio, and a common scale in g also cancels. Require proposal support wherever the relevant target mass lies and finite target expectation, with positive finite normalizers. The estimator is self-normalized and generally biased at finite N, although consistent under the usual conditions. This derivation provides a self-contained reading slide and can be skipped during class if needed.</notes>
+</section>
+
+<section id="mcmc" data-part="Metropolis-Hastings" data-minutes="3">
+  <h2>Markov Chain Monte Carlo</h2>
+  <div class="fbody six-state-body">
+    <p class="six-state-goal"><b>Goal:</b> Construct a Markov chain whose stationary distribution is our target $p$.</p>
+    <div class="six-state-layout">
+      <div><fig name="mcmc" init="target=0"></fig></div>
+      <div class="six-state-comparison">
+        <h3>Choose the target $p$</h3>
+        <div class="six-target-controls" role="group" aria-label="Target distribution">
+          <button type="button" data-mcmc-target="0" aria-pressed="true">Uniform</button>
+          <button type="button" data-mcmc-target="1" aria-pressed="false">Single Peak</button>
+          <button type="button" data-mcmc-target="2" aria-pressed="false">Two Peaks</button>
+        </div>
+        <div class="six-target-values" aria-live="polite"></div>
+        <fig name="mcmcFrequencies" init="target=0"></fig>
+      </div>
+    </div>
+    <div class="six-run-controls" role="group" aria-label="Markov chain simulation">
+      <button type="button" data-mcmc-action="next">Next Step</button>
+      <button type="button" data-mcmc-action="run" aria-pressed="false">Run</button>
+      <button type="button" data-mcmc-action="batch" data-count="100">+100 steps</button>
+      <button type="button" data-mcmc-action="batch" data-count="1000">+1,000 steps</button>
+      <button type="button" data-mcmc-action="reset">Reset</button>
+      <span class="six-state-status" aria-live="polite">No visits recorded. Start at state 1.</span>
+    </div>
+    <p class="six-state-question">How can we construct such a chain using only $q\propto p$?</p>
+  </div>
+  <notes>3 min. The goal is to construct a chain with our chosen target as its stationary distribution. Select Uniform, Single Peak, or Two Peaks to change the target and the graph's transition probabilities. Each selection starts a fresh trajectory at state 1. Exact fractional edge labels include self-transitions and form valid rows. Every selected chain satisfies detailed balance with its target and has positive self-transitions and a connected ring. Do not explain the construction here. Next Step animates one actual transition. Run repeats transitions, while the batch controls add actual transitions quickly to compare long-run visit frequencies with the target. Record the state after every transition, including self-transitions. The initial state is displayed but excluded from the visit counts, so N counts exactly the subsequent recorded states. The graph, status, and empirical chart commit together at the end of each animated transition. Finite-run frequencies fluctuate and need not improve monotonically. Reset preserves the selected target and restores the same initial state and seed. Changing the target resets counts rather than mixing different chains. End with the question about using only an unnormalized target and move to the following Metropolis slides for the construction.</notes>
+</section>
+
+<section id="metropolis" data-part="Metropolis-Hastings" data-minutes="5">
+  <h2>Metropolis Algorithm</h2>
+  <div class="fbody metro-layout">
+    <div class="metro-instructions">
+      <div class="metro-target">
+        <p class="metro-target-heading">Target distribution to sample from:</p>
+        <p class="metro-target-equation">$p(x)=q(x)/Z$, $\quad X\sim\mathcal N(0,1)$</p>
+        <p>Unnormalized: $q(x)=e^{-x^2/2}$</p>
+        <p class="metro-cancellation">The constant $Z$ cancels in the acceptance ratio.</p>
+      </div>
+      <ol class="en metro-stages">
+        <li data-metro-stage="1"><b>Propose</b> $x'\sim J(\cdot\mid x)$.<br><span class="metro-jump-equation">$J(x'\mid x)=\operatorname{Uniform}(x-1,x+1)$</span></li>
+        <li data-metro-stage="2"><b>Calculate</b> $\alpha=\min(1,\tfrac{q(x')}{q(x)})$.</li>
+        <li data-metro-stage="3"><b>Decide:</b> draw $u\sim U(0,1)$.<br>Accept if $u\le\alpha$.</li>
+        <li data-metro-stage="4"><b>Update:</b> move to $x'$ or stay at $x$.<br><b>Record the resulting state either way.</b></li>
+      </ol>
+      <div class="metro-chain-note"><b>Continuous-state Markov chain:</b> $x\in\mathbb R$.<br>Every real number is a possible state. The next state uses only the current one.</div>
+    </div>
+    <div class="metro-demo">
+      <fig name="metropolis" init="n=0 phase=0 seed=121"></fig>
+      <div class="metro-readout" aria-live="polite">
+        <div class="metro-stage-summary"></div>
+        <div class="metro-calculation"></div>
+        <div class="metro-decision"></div>
+      </div>
+      <div class="metro-controls" role="group" aria-label="Metropolis simulation">
+        <div><button type="button" data-metro-action="stage">Propose</button><button type="button" data-metro-action="iteration">One iteration</button><button type="button" data-metro-action="run" aria-pressed="false">Run</button><button type="button" data-metro-action="reset">Reset</button></div>
+        <div><button type="button" data-metro-action="batch" data-count="100">+100</button><button type="button" data-metro-action="batch" data-count="1000">+1,000</button><button type="button" data-metro-action="batch" data-count="10000">+10,000</button><span class="metro-count">N = 0 recorded states</span></div>
+      </div>
+    </div>
+  </div>
+  <notes>5 min. The target density p is the standard normal. Its unnormalized version is q(x)=exp(−x²/2), with p=q/Z. The normalizing constant cancels in the acceptance ratio. The purple curve is p, while the orange rectangle is the density of the uniform jump on [x−1,x+1], with height 1/2. They have different roles. Start the continuous-state chain at x=2. Every real number is a possible state. The proposal and accept/reject random draws use only the current state to determine the next state. Use Propose, Calculate, Decide, and Update in order. Calculate displays q values and their ratio. Decide draws u and compares it with alpha. Update records the resulting state once, including a repeated current state after rejection. The initial state is not counted. One iteration completes any pending transition. Run repeats complete iterations. Batch buttons perform the stated number of complete transitions and preserve every resulting state. The density histogram integrates to one whenever N is positive and includes all recorded states. Its vertical scale may grow for small sample sizes and its horizontal range expands to include every visited state and the current jump interval. Reset restores the same seed and starting state for a reproducible demonstration. Explain neither proposal symmetry nor the detailed-balance derivation yet.</notes>
+</section>
+
+<section id="acceptance" data-part="Metropolis-Hastings" data-minutes="3">
+  <h2>Transition Probabilities</h2>
+  <div class="fbody transition-probability-layout">
+    <div class="transition-probability-math">
+      <div class="transition-probability-part">
+        <h3>Acceptance probability</h3>
+        \[\alpha(x,x')=\min\left(1,\frac{q(x')}{q(x)}\right).\]
+        <p><b>Higher target density:</b> always accept.</p>
+        <p><b>Lower target density:</b> accept with probability $q(x')/q(x)$.</p>
+      </div>
+      <div pause="stage=1" class="transition-probability-part">
+        <h3>Normalization cancels ($p=q/Z$)</h3>
+        \[\frac{p(x')}{p(x)}=\frac{q(x')/Z}{q(x)/Z}=\frac{q(x')}{q(x)}.\]
+      </div>
+      <div pause="stage=2" class="transition-probability-part">
+        <h3>Markov-chain transitions</h3>
+        \[P(x\to x')=J(x'\mid x)\,\alpha(x,x'),\qquad x'\ne x.\]
+        <p class="transition-density-note">For continuous states, $P$ is a <b>transition density</b>.</p>
+        <p class="transition-density-note"><b>Rejected proposals produce self-transitions:</b><br>the chain stays at $x$.</p>
+      </div>
+    </div>
+    <div class="transition-probability-demo">
+      <fig name="acceptance" init="direction=0 stage=0"></fig>
+      <div class="demo-controls" data-for="acceptance"><button data-transition-direction="0" aria-pressed="true">Higher density</button><button data-transition-direction="1" aria-pressed="false">Lower density</button></div>
+      <p class="transition-example-caption">$q(x)=e^{-x^2/2}$<br>$J(x'\mid x)=\operatorname{Uniform}(x-1,x+1)$</p>
+    </div>
+  </div>
+  <notes>3 min. The comparison uses 2 to 1.2 and 1.2 to 2, both within one unit, so both can be proposed by the uniform jump. First show acceptance: the higher-density move has q ratio exp(1.28), about 3.597, and alpha=1. The lower-density move has ratio exp(−1.28), about 0.278, and that is its acceptance probability. Reveal the cancellation of Z. Then reveal the off-diagonal transition density, including the green curve and the numerical product on the right. J has density 1/2 throughout the orange interval. Thus the selected transition densities are 0.500 for 2 to 1.2 and about 0.139 for 1.2 to 2. These density heights are not probabilities of hitting an exact real number. The green curve is J times alpha as a function of the possible next state, for the fixed current state. Its integral is the total probability of moving, and the remaining probability is mass at the current state due to rejected proposals. Do not plug x′=x into the off-diagonal formula to obtain the self-transition mass. The point labels on the purple curve show target densities, while the green point shows the selected transition density. Distinguish the acceptance probability conditional on a proposal from the actual transition law.</notes>
+</section>
+
+<section id="metropolis-proof" data-part="Metropolis-Hastings" data-minutes="4">
+  <h2>Why Metropolis Works</h2>
+  <div class="fbody metropolis-proof-layout">
+    <div class="metropolis-conditions">
+      <div class="metropolis-condition-part">
+        <h3>Choosing the jump distribution</h3>
+        <p>Choose an easy-to-sample $J$. It need not have $p$ as its stationary distribution.</p>
+        \[x'=x+\varepsilon,\qquad \varepsilon\sim U(-1,1).\]
+      </div>
+      <h3>Conditions on the jump distribution</h3>
+      <div pause data-fragment-index="0" class="metropolis-condition-part">
+        <p><b>Reachability:</b> the chain must explore every region of positive target probability, possibly over multiple transitions.</p>
+        <p class="metropolis-sufficient-label">A stronger sufficient condition (one step):</p>
+        \[J(x'\mid x)>0\quad\text{for all }x,x'\in D,\]
+        <p class="metropolis-support">where $D=\{x:p(x)>0\}$.</p>
+        <p class="metropolis-local-note"><b>One-step reachability is not necessary.</b><br>Our local jumps can explore $\mathbb R$ over several steps.</p>
+      </div>
+      <div pause data-fragment-index="1" class="metropolis-condition-part metropolis-symmetry">
+        <p><b>Symmetry:</b> $J(x'\mid x)=J(x\mid x')$.</p>
+        <p>This lets the standard Metropolis acceptance rule satisfy detailed balance.</p>
+      </div>
+    </div>
+    <div class="metropolis-balance-proof">
+      <h3>Detailed balance</h3>
+      <p class="metropolis-transition-law">For $x'\ne x$, $P(x,x')=J(x'\mid x)\alpha(x,x')$.</p>
+      <fig name="metropolisFlow" init="stage=0"></fig>
+      <div class="metropolis-proof-lines">
+        <div pause data-fragment-index="2">\[p(x)P(x,x')\]</div>
+        <div pause data-fragment-index="2">\[=p(x)J(x'\mid x)\min\left(1,\frac{p(x')}{p(x)}\right)\]</div>
+        <div pause data-fragment-index="3">\[=J(x'\mid x)\min\{p(x),p(x')\}\]</div>
+        <div pause data-fragment-index="4">\[=\underbrace{J(x\mid x')}_{\text{symmetry}}\min\{p(x'),p(x)\}\]</div>
+        <div pause data-fragment-index="5">\[=p(x')P(x',x).\]</div>
+      </div>
+      <div pause data-fragment-index="6" class="metropolis-proof-takeaway"><b>Detailed balance guarantees $p$ is stationary.</b><br>Reachability and appropriate convergence conditions ensure exploration and convergence to $p$.</div>
+    </div>
+  </div>
+  <notes>4 min. Construct the jump by adding an easy uniform increment, rather than sampling the target directly. J alone need not preserve p. In the normal example, D is the whole real line. A local jump has zero density beyond distance one, so it does not meet the stronger all-pairs one-step condition. Nevertheless, any region of positive normal probability is reachable through a finite sequence of local proposals and positive acceptance probabilities. Reachability is a property of the resulting chain, not a claim that every distant point must be reachable in one jump. Reveal symmetry and explain that it is the condition used in the next algebraic step. The proof uses the equivalent acceptance ratio p(x′)/p(x), since the normalizing constant cancels. P is the off-diagonal transition density in the continuous example, or a transition probability in a discrete chain. Reveal the forward flow, the minimum identity, symmetry, and then the reverse flow. The minimum identity is p(x) min(1,p(x′)/p(x))=min(p(x),p(x′)). The reverse equality uses the same identity in reverse. Self-transition flow balances automatically. Detailed balance establishes stationarity. Reachability together with the appropriate aperiodicity and recurrence conditions gives the exploration and convergence guarantees, not detailed balance alone. Continuous-state convergence requires the corresponding Markov-kernel conditions, not merely a finite-state regularity claim.</notes>
+</section>
+
+<section id="hastings" data-part="Metropolis-Hastings" data-minutes="4">
+  <h2>Metropolis-Hastings</h2>
+  <div class="fbody mh-correction-body">
+    <p class="mh-central-question">How can Metropolis-Hastings work when the jump distribution is asymmetric?</p>
+    <div class="mh-correction-layout">
+      <div class="mh-correction-copy">
+        <p><b>The problem:</b> asymmetric $J$ proposes some moves more often than their reverse. Ordinary Metropolis does not correct this imbalance, so detailed balance may fail.</p>
+        <div pause="stage=1" data-fragment-index="0" class="mh-explanation-part">
+          <h3>Correct the proposal imbalance</h3>
+          \[\alpha(x,x')=\min\left(1,\frac{q(x')J(x\mid x')}{q(x)J(x'\mid x)}\right).\]
+          <p>The <b>reverse / forward</b> ratio $J(x\mid x')/J(x'\mid x)$ corrects proposal asymmetry.</p>
+        </div>
+        <div class="mh-explanation-part">
+          <div pause="stage=2" data-fragment-index="1">
+            <h3>Why the correction works</h3>
+            <div class="mh-balance-lines">
+              \[p(x)P(x,x')\]
+              \[=\min\{p(x)J(x'\mid x),\;p(x')J(x\mid x')\}\]
+            </div>
+          </div>
+          <div pause="stage=3" data-fragment-index="2">
+            <div class="mh-balance-lines">\[=p(x')P(x',x).\]</div>
+            <p class="mh-balance-takeaway">Detailed balance holds <b>without requiring symmetry of $J$</b>.</p>
+          </div>
+        </div>
+        <div pause="stage=4" data-fragment-index="3" class="mh-metropolis-connection"><b>Symmetric $J$:</b> the proposal ratio is $1$, so we recover the original Metropolis acceptance rule.</div>
+      </div>
+      <div class="mh-correction-demo">
+        <div class="mh-comparison-controls" role="group" aria-label="Jump distribution comparison">
+          <button type="button" data-mh-bias="0" aria-pressed="false">Symmetric</button><button type="button" data-mh-bias="1" aria-pressed="true">Right-biased</button><span class="mh-proposal-split">Right 75% · Left 25%</span>
+        </div>
+        <fig name="hastingsComparison" init="bias=1 view=0 stage=0"></fig>
+        <div class="mh-comparison-controls mh-view-controls" role="group" aria-label="View forward or reverse jump">
+          <span>View:</span><button type="button" data-mh-view="0" aria-pressed="true">$-0.4\to0.4$</button><button type="button" data-mh-view="1" aria-pressed="false">$0.4\to-0.4$</button>
+        </div>
+        <div class="mh-comparison-readout" aria-live="polite">
+          <div class="mh-rule-label"></div>
+          <div class="mh-equal-target"></div>
+          <table class="mh-flow-table"><thead><tr><th>Move</th><th>Proposal $J$</th><th>Accept $\alpha$</th><th>Flow $pJ\alpha$</th></tr></thead><tbody></tbody></table>
+          <div class="mh-flow-result"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <notes>4 min. Use the standard normal target p with unnormalized q(x)=exp(−x²/2). The example pair −0.4 and 0.4 has equal target density, approximately 0.3683, and both moves have length 0.8. The right-biased jump chooses a rightward uniform increment in (0,1) with probability 0.75, or a leftward uniform increment in (−1,0) with probability 0.25. Thus its proposal densities are 0.75 to the right and 0.25 to the left, and integrate to one. The orange plot is the proposal density centered at the selected current state. Switch the view to see the reverse conditional proposal. With ordinary Metropolis, alpha=1 both ways for this equal-density pair, giving flow densities about 0.2762 and 0.0921, a factor-three mismatch. Reveal the Hastings rule. The extra reverse-to-forward proposal ratio makes the rightward acceptance 1/3 while leftward acceptance is 1, giving equal flow densities 0.0921. This is an acceptance correction, not a change to the jump density. Reveal the minimum-of-two-flows identity. Swapping the two states merely swaps the terms of the minimum, so detailed balance holds without proposal symmetry. These are off-diagonal density identities in this continuous example. The normalizing constant cancels, so q can replace p in the acceptance ratio. Symmetric mode has proposal density 0.5 in each direction and acceptance one for this particular equal-density pair. Generally symmetric J recovers the usual q ratio, not necessarily acceptance one. Switching proposal or view preserves the reveal stage. This comparison isolates proposal imbalance and does not simulate or discard any chain samples. The following finite-state MH example remains a separate exercise.</notes>
+</section>
+
+<section id="mh-example" data-part="Metropolis-Hastings" data-minutes="5">
+  <h2>MH Example</h2>
+  <div class="fbody mh-example-body">
+    <div class="mh-example-layout">
+      <div class="mh-example-math">
+        <div class="mh-example-given"><h3>Given an unnormalized target and a proposal</h3>\[q(A)=1,\qquad q(B)=3.\]</div>
+        <div pause="stage=1" data-fragment-index="0" class="mh-example-part">
+          <h3>Calculate acceptance probabilities</h3>
+          \[\alpha(A,B)=\min\left(1,\frac{3(0.2)}{1(0.8)}\right)=\frac34,\]
+          \[\alpha(B,A)=\min\left(1,\frac{1(0.8)}{3(0.2)}\right)=1.\]
+        </div>
+        <div pause="stage=2" data-fragment-index="1" class="mh-example-part">
+          <h3>Construct the actual chain</h3>
+          <div class="mh-example-transition-equation">\[P_{AB}=0.8(0.75)=0.6,\quad P_{BA}=0.2(1)=0.2.\]</div>
+          \[P_{AA}=0.2+\underbrace{0.8(1-0.75)}_{\text{rejected proposals}}=0.4.\]
+        </div>
+        <div pause="stage=3" data-fragment-index="2" class="mh-example-part mh-example-balance">
+          <h3>Verify detailed balance</h3>
+          \[q(A)P_{AB}=1(0.6)=3(0.2)=q(B)P_{BA}.\]
+          <p>No normalizing constant is needed.</p>
+        </div>
+      </div>
+      <div class="mh-example-visuals">
+        <div class="mh-example-graphs">
+          <div><h3>Proposal $J$</h3><fig name="mhExampleProposal" init="stage=0"></fig></div>
+          <div pause data-fragment-index="1"><h3>Actual chain $P$</h3><fig name="mhExampleChain" init="stage=0"></fig></div>
+        </div>
+        <p class="mh-example-matrix-key">Rows: current state · Columns: next state</p>
+        <div pause="stage=4" data-fragment-index="3" class="mh-example-sampling">
+          <div class="mh-example-controls" role="group" aria-label="Run the constructed Markov chain">
+            <button type="button" data-mh-example="next">Next Step</button><button type="button" data-mh-example="batch" data-count="100">Run 100</button><button type="button" data-mh-example="batch" data-count="1000">Run 1,000</button><button type="button" data-mh-example="reset">Reset</button>
+          </div>
+          <div class="mh-example-history" aria-label="Recent visited states"></div>
+          <div class="mh-example-status" role="status" aria-live="polite"></div>
+          <fig name="mhExampleFrequencies" init="stage=0"></fig>
+        </div>
+      </div>
+    </div>
+    <div pause data-fragment-index="3" class="mh-example-takeaway">Given $q$ and $J$, MH constructs $P$ with stationary distribution $p\propto q$. Running $P$ generates target samples.</div>
+  </div>
+  <notes>5 min. Begin with only unnormalized weights 1 and 3, the full proposal matrix J, and its graph. Rows are current states and columns are next states. Do not normalize q yet. Reveal both full acceptance calculations. Then construct P: A to B is 0.8 times 3/4, and B to A is 0.2 times 1. The rejected A-to-B proposal contributes 0.8 times 1/4=0.2 to staying at A, in addition to the proposal self-transition 0.2. At B, the proposal self-transition remains 0.8. Compare all four entries of J and P in the graphs and matrices. Reveal q(A)P_AB=q(B)P_BA=0.6, which verifies detailed balance without a normalizing constant. Only in the final stage reveal normalized proportions 25 percent and 75 percent and the simulation controls. The simulator draws every next state from the constructed P, including self-transitions. It begins at A, and records the state after each transition, excluding the initial state from N. The history shows the most recent twelve recorded states. Repeated states are counted in visits and in the repeated-state total, including self-transitions on the first step. Next Step follows the selected actual edge or self-loop, and the counts, history, current-state highlight, and empirical frequencies commit together at arrival. Batch controls generate actual transitions, rather than interpolating toward the target. Reset restores A, zero counts, and the initial seed. Finite-run empirical frequencies fluctuate around the stationary proportions. The samples are dependent. Given q and J, the MH construction supplies the chain whose stationary law is proportional to q.</notes>
+</section>
+
+<!-- Metropolis practice: 15 minutes including the activity and debrief. -->
+<section id="activity" class="exercise" data-part="Metropolis-Hastings" data-minutes="10">
+  <h2>Activity: Design a Sampler</h2>
+  <div class="fbody sampler-activity-body">
+    <p class="sampler-activity-time">Groups of 2–3 · 10 minutes group work + 5 minutes discussion (15 minutes total)</p>
+    <h3 class="sampler-proposal-title">Symmetric nearest-neighbor proposal $J$ and target weights $q$</h3>
+    <fig name="activityProposal" init="solution=0"></fig>
+    <div class="sampler-activity-layout">
+      <div class="sampler-activity-tasks">
+        <h3>Your tasks</h3>
+        <ol class="en">
+          <li>Calculate acceptance probabilities for adjacent-state moves.</li>
+          <li>Construct the actual transition matrix $P$, including rejected proposals.</li>
+          <li>Normalize $q$ to find $p$, then verify detailed balance between $B$ and $C$.</li>
+        </ol>
+      </div>
+      <div class="sampler-activity-reminders">
+        <div class="sampler-formulas">
+          \[\alpha(i,j)=\min\left(1,\frac{q(j)}{q(i)}\right)\]
+          \[P_{ij}=J(j\mid i)\alpha(i,j),\qquad i\ne j.\]
+          <p>Each row of $P$ must sum to $1$.</p>
+        </div>
+        <div class="sampler-blank-matrix">\[P=\begin{array}{c|ccc}&A&B&C\\\hline A&\square&\square&\square\\ B&\square&\square&\square\\ C&\square&\square&\square\end{array}\]</div>
+        <p class="sampler-matrix-key">Rows: current state · Columns: next state</p>
+      </div>
+    </div>
+  </div>
+  <notes>10 min group work. This one slide contains the complete problem, proposal graph, target weights, reminders, tasks, and blank matrix. All content is visible throughout the activity. The proposal is symmetric: adjacent moves have probability 1/2, and each endpoint has a self-proposal with probability 1/2. Students first find the four adjacent-move acceptance probabilities, then construct P including rejected proposals, and finally normalize q and verify detailed balance between B and C. No solutions are embedded on this slide. Circulate and check that groups multiply proposal by acceptance and include rejected probability on the diagonal. Leave this slide displayed for the ten-minute working period, then use the next slide for five minutes of discussion. The complete activity allocation is fifteen minutes.</notes>
+</section>
+
+<section id="activity-solution" data-part="Metropolis-Hastings" data-minutes="5">
+  <h2>Solution and Discussion</h2>
+  <div class="fbody sampler-solution-layout">
+    <div class="sampler-solution-math">
+      <div pause data-fragment-index="0" class="sampler-solution-part">
+        <h3>Acceptance probabilities</h3>
+        \[\alpha(A,B)=1,\quad\alpha(B,A)=\frac12,\]
+        \[\alpha(B,C)=1,\quad\alpha(C,B)=\frac25.\]
+      </div>
+      <div pause data-fragment-index="1" class="sampler-solution-part">
+        <h3>The constructed chain</h3>
+        \[P=\begin{pmatrix}0.5&0.5&0\\0.25&0.25&0.5\\0&0.2&0.8\end{pmatrix}.\]
+      </div>
+      <div pause data-fragment-index="2" class="sampler-solution-part">
+        <h3>Target and detailed balance</h3>
+        \[p=(1/8,2/8,5/8).\]
+        <div class="sampler-solution-balance">\[p(B)P_{BC}=\frac28\cdot\frac12=\frac18=\frac58\cdot\frac15=p(C)P_{CB}.\]</div>
+      </div>
+    </div>
+    <div pause data-fragment-index="3" class="sampler-solution-simulation">
+      <h3>Sample the constructed chain</h3>
+      <fig name="activityFrequency" init="n=1000 seed=51"></fig>
+      <div class="demo-controls" data-for="activityFrequency"><button data-action="count" data-value="10">10</button><button data-action="count" data-value="100">100</button><button data-action="count" data-value="1000">1,000</button><button data-action="count" data-value="10000">10,000 steps</button></div>
+      <div class="sampler-discussion"><block title="Discussion">Why must Metropolis sometimes accept moves to less probable states?</block></div>
+    </div>
+  </div>
+  <notes>5 min discussion. Reveal acceptance probabilities, then the complete P, then the normalized target and detailed balance, and finally the interactive empirical-versus-target plot and the discussion question. The B diagonal comes from a rejected move to A: (1/2)(1/2)=1/4. At C, a self-proposal contributes 1/2 and a rejected proposal to B contributes (1/2)(3/5)=3/10, giving 4/5. The normalized weights are 1/8, 2/8, and 5/8. The B-to-C and C-to-B stationary flows both equal 1/8. The simulation uses this actual P and preserves all recorded self-transitions. Use the existing step-count buttons to compare finite-run frequencies with the target. For the final question, accepting lower-density moves lets the chain leave high-density states, explore the target support, and attain the correct target frequencies. Always taking only upward moves would trap the chain at C in this example. Keep this answer oral so the question remains open for discussion.</notes>
+</section>
+
+</div></div>
+<script src="vendor/reveal.js"></script>
+<script src="vendor/katex.min.js"></script>
+<script src="vendor/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="graph.js?v=intro-revision-4"></script>
+<script src="figs.js?v=metropolis-proof-1"></script>
+<script src="deckmap.js?v=section-overview-pause-1"></script>
+<script src="practice.js?v=practice-1"></script>
+<script src="distribution.js?v=distribution-2"></script>
+<script src="convergence-cases.js?v=convergence-spacing-1"></script>
+<script src="frequency-trajectory.js?v=frequency-1"></script>
+<script src="sampling-methods.js?v=importance-beta-1"></script>
+<script src="mcmc-six-state.js?v=six-state-1"></script>
+<script src="metropolis-demo.js?v=metropolis-uniform-1"></script>
+<script src="mh-correction.js?v=hastings-correction-1"></script>
+<script src="mh-example.js?v=mh-example-chain-1"></script>
+<script src="lecture.js?v=activity-two-slides-1"></script>
+</body>
+</html>
