@@ -1,0 +1,173 @@
+/* Scoped to new slides. The original title and logistic slide are untouched. */
+.sampling2 .fbody {top:100px;bottom:42px;padding:0!important;font-size:25px;line-height:1.28;}
+.sampling2 .s2-pair{display:grid;grid-template-columns:470px 704px;gap:26px;align-items:start;height:100%;}
+.sampling2 .s2-copy{min-width:0;padding-top:8px;}
+.sampling2 h3{font-size:27px;line-height:1.2;color:var(--struct);margin:0 0 12px;}
+.sampling2 p{margin:0 0 22px;}
+.sampling2 .s2-copy h3:not(:first-child){margin-top:26px;}
+.sampling2 .katex-display{margin:18px 0;font-size:24px;}
+.sampling2 .s2-takeaway{border-left:4px solid var(--struct);background:#f5f3f9;color:#463c7d;padding:14px 18px;margin-top:27px;font-size:24px;line-height:1.3;}
+.sampling2 .s2-demo{min-width:0;}
+.sampling2 .s2-demo .fig{margin:0 auto!important;}
+.sampling2 .s2-controls{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:8px 0;}
+.sampling2 button{font:19px KaTeX_SansSerif,Arial,sans-serif;border:1px solid #b6afca;border-radius:5px;color:#463c7d;background:#f6f4f9;padding:6px 12px;cursor:pointer;}
+.sampling2 button:hover,.sampling2 button[aria-pressed=true]{background:#463c7d;color:#fff;}
+.sampling2 button:focus-visible{outline:3px solid #CC8800;outline-offset:2px;}
+.sampling2 .s2-slider{display:grid;grid-template-columns:180px 1fr 55px;align-items:center;gap:10px;font-size:20px;margin:9px 22px;}
+.sampling2 .s2-slider input{width:100%;accent-color:#463c7d;cursor:pointer;}
+.sampling2 output{font-variant-numeric:tabular-nums;text-align:right;}
+.sampling2 .s2-status{margin:9px 12px 0;text-align:center;font-size:19px;line-height:1.4;color:#555;min-height:28px;font-variant-numeric:tabular-nums;}
+.sampling2 .s2-lead{margin-bottom:16px;font-size:26px;}
+.sampling2 .s2-wide-equation{background:#f7f6fa;padding:5px 20px;margin-bottom:20px;}
+#why-gibbs .s2-copy {
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  box-sizing:border-box;
+  min-height:470px;
+  padding-top:24px;
+}
+#why-gibbs .s2-copy > p, #why-gibbs .s2-takeaway { margin:0; }
+#gibbs-algorithm .s2-sweep { display:grid;gap:9px;max-width:910px;margin:24px auto 18px; }
+#gibbs-algorithm .s2-sweep-row { display:grid;grid-template-columns:295px 1fr;align-items:center;min-height:53px;padding:0 20px;border-left:4px solid #d6d0e7;background:#f7f6fa; }
+#gibbs-algorithm .s2-sweep-row.current-fragment { border-color:var(--struct);background:#efecf7; }
+#gibbs-algorithm .s2-sweep-row > span:first-child { color:var(--struct);font-weight:bold; }
+#gibbs-algorithm .s2-sweep-definitions { display:flex;justify-content:center;flex-wrap:wrap;gap:12px 34px;font-size:23px; }
+#gibbs-algorithm .s2-sweep-definitions p { margin:0; }
+#gibbs-algorithm .s2-sweep-recording { flex-basis:100%;text-align:center; }
+#bivariate-gaussian .s2-pair { grid-template-columns:500px 674px; }
+#bivariate-gaussian .s2-copy { padding-top:2px; }
+#bivariate-gaussian .s2-copy h3 { font-size:24px;margin:0 0 3px; }
+#bivariate-gaussian .s2-copy .katex-display { font-size:21px;margin:7px 0; }
+#bivariate-gaussian .s2-gaussian-model { display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 8px; }
+#bivariate-gaussian .s2-gaussian-model p { font-size:20px;margin:0; }
+#bivariate-gaussian .s2-gaussian-conditionals { display:grid;gap:9px;margin-top:15px; }
+#bivariate-gaussian .s2-conditional-rule { padding:8px 13px 3px;border-left:4px solid #e4e1ec;background:#f8f7fa; }
+#bivariate-gaussian .s2-conditional-rule h3 { font-size:21px; }
+#bivariate-gaussian .s2-conditional-rule[data-conditional-direction="0"].active { border-color:#2354a8;background:#eef4fd; }
+#bivariate-gaussian .s2-conditional-rule[data-conditional-direction="1"].active { border-color:#c80;background:#fff8e9; }
+#bivariate-gaussian .s2-takeaway { font-size:22px;margin-top:13px;padding:11px 14px; }
+#bivariate-gaussian .s2-slider { font-size:18px;margin:4px 8px;grid-template-columns:150px 1fr 48px; }
+#bivariate-gaussian .s2-gaussian-inspect { display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px; }
+#bivariate-gaussian .s2-controls { margin:3px 4px;gap:5px; }
+#bivariate-gaussian .s2-controls button { font-size:16px;padding:5px 8px; }
+#bivariate-gaussian .s2-controls button:disabled { opacity:.55;cursor:default; }
+#bivariate-gaussian .s2-status { font-size:17px;margin:3px 4px 2px;min-height:22px; }
+#energy-momentum .s2-copy .katex-display{font-size:22px;}
+#hamiltonian-dynamics .s2-copy .katex-display{font-size:22px;margin:14px 0;}
+.sampling2 .s2-comparison{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:6px;}
+.sampling2 .s2-comparison h3{text-align:center;margin:0 0 5px;}
+.sampling2 .s2-comparison .s2-status{min-height:0;}
+#metropolis-gibbs .s2-slider{max-width:670px;margin:10px auto;}
+#metropolis-gibbs .s2-takeaway{margin-top:14px;text-align:center;font-size:22px;}
+#metropolis-gibbs .s2-comparison-unit { text-align:center;font-size:20px;color:#555;margin:0; }
+.sampling2 .s2-proof{padding:3px 20px;border-left:3px solid #d6d0e7;margin-top:16px;}
+.sampling2 .s2-proof .katex-display{font-size:25px;margin:16px 0;}
+#gibbs-correctness p { margin:0; }
+#gibbs-correctness .s2-balance-proposal { padding:14px 18px 8px;background:#f7f6fa; }
+#gibbs-correctness .s2-balance-proposal .katex-display { margin:12px 0 6px; }
+#gibbs-correctness .s2-proof { margin:16px 0;border:0;padding:0; }
+#gibbs-correctness .s2-balance-flow { display:grid;grid-template-columns:175px 1fr;align-items:center;border-left:3px solid #d6d0e7;padding-left:20px; }
+#gibbs-correctness .s2-balance-flow b { color:var(--struct); }
+#gibbs-correctness .s2-balance-flow .katex-display { font-size:29px;margin:12px 0;text-align:left; }
+#gibbs-correctness .s2-proof p { margin:10px 0 3px 23px; }
+#gibbs-correctness .s2-balance-result { padding:12px 18px;background:#f7f6fa; }
+#gibbs-correctness .s2-balance-result .katex-display { font-size:27px;margin:4px 0 12px; }
+#gibbs-correctness .s2-takeaway { margin-top:14px; }
+#gibbs-practice .s2-pair { height:auto; }
+#gibbs-practice .s2-copy > div + div { margin-top:24px; }
+#gibbs-practice .s2-copy p { margin:0; }
+#gibbs-practice .s2-copy .katex-display { margin:10px 0; }
+#gibbs-practice .s2-status { margin:0; }
+#gibbs-practice .s2-takeaway { margin-top:14px; }
+.sampling2 .s2-leap-equations>div{padding:7px 10px;border-left:4px solid transparent;margin-bottom:12px;}
+.sampling2 .s2-leap-equations>div.active{border-left-color:#CC8800;background:#fff8e9;}
+.sampling2 .s2-leap-equations .katex-display{font-size:24px;margin:4px 0 10px;}
+.sampling2 .s2-leap-equations p{font-size:22px;margin:0;}
+.sampling2 .s2-algorithm{margin:4px 0 0 26px;padding-left:15px;font-size:24px;}
+.sampling2 .s2-algorithm li{padding-left:5px;margin-bottom:20px;}
+.sampling2 .s2-algorithm .katex-display{font-size:24px;margin:9px 0;}
+#hmc-algorithm .s2-takeaway{font-size:22px;}
+.sampling2 .s2-method-table{width:100%;border-collapse:collapse;font-size:23px;line-height:1.2;margin-top:14px;}
+.sampling2 .s2-method-table th,.sampling2 .s2-method-table td{padding:16px 15px;text-align:left;border-bottom:1px solid #ddd8e8;}
+.sampling2 .s2-method-table thead{color:#463c7d;background:#f5f3f9;}
+.sampling2 .s2-method-table tbody th{width:200px;color:#463c7d;}
+.sampling2 .s2-method-table td:nth-child(2){width:350px;}
+#mcmc-comparison .s2-takeaway{text-align:center;font-size:24px;margin-top:22px;}
+.sampling2 .s2-section-cards{display:flex;flex-direction:column;gap:24px;max-width:1080px;margin:22px auto 0;}
+.sampling2 a.s2-section-card{display:block;padding:25px 30px;border:1px solid #d4cee2;border-left:5px solid #c1bbd2;border-radius:5px;color:#555;text-decoration:none;}
+.sampling2 .s2-section-card h3{font-size:30px;margin:0 0 9px;}
+.sampling2 .s2-section-card p{margin:0;font-size:24px;}
+.sampling2 a.s2-current{background:#f5f3fa;border-left-color:#463c7d;}
+.sampling2 .s2-section-hint{text-align:center;font-size:20px;color:#777;margin-top:22px;}
+.sampling2 .fig .lab{font-size:20px;}
+.deck-print .sampling2 .s2-controls,.deck-print .sampling2 .s2-slider{display:none;}
+
+/* Sampling I camera-flight pause controls. */
+.mapzoom.section-pause { pointer-events:auto; }
+.section-pause .section-continue { position:absolute; left:50%; bottom:18px; transform:translateX(-50%); font:20px KaTeX_SansSerif,Arial,sans-serif; padding:8px 16px; color:white; background:var(--struct); border:1px solid #b6afca; border-radius:5px; cursor:pointer; }
+.section-pause .section-continue[hidden] { display:none; }
+.section-pause .section-continue:focus-visible { outline:3px solid var(--postC); outline-offset:3px; }
+
+/* Slide 2: inline headings and compact spacing, with the original two columns. */
+#sampling-chain .s2-copy { display:flex;flex-direction:column;gap:16px;font-size:24px;line-height:1.26; }
+#sampling-chain .s2-chain-point { margin:0; }
+#sampling-chain .s2-inline-heading { color:var(--struct); }
+#sampling-chain .s2-takeaway { margin:0;padding:12px 16px;font-size:24px;line-height:1.26; }
+#sampling-chain .s2-slider { margin-top:6px;margin-bottom:6px; }
+#sampling-chain .s2-controls { margin:6px 0; }
+#sampling-chain .s2-controls button { font-size:18px;padding:5px 12px; }
+#sampling-chain .s2-status { margin-top:8px;font-size:18px;line-height:1.25;min-height:23px; }
+
+/* Slide 4: readable derivation, with the conclusion beneath the demonstration. */
+#random-walk .s2-walk-math { font-size:23px;line-height:1.22;padding-top:0; }
+#random-walk .s2-walk-math p { margin:8px 0; }
+#random-walk .s2-walk-math .katex-display { font-size:23px;margin:8px 0; }
+#random-walk .s2-walk-derivation { margin-top:12px; }
+#random-walk .s2-walk-derivation .katex-display { font-size:23px;margin:10px 0; }
+#random-walk .s2-walk-derivation .s2-walk-cross { font-size:21px; }
+#random-walk .s2-walk-scaling { margin-top:14px; }
+#random-walk .s2-walk-scaling .katex-display { font-size:22px; }
+#random-walk .s2-walk-scaling p { font-size:21px;line-height:1.25; }
+#random-walk .s2-slider { margin-top:5px;margin-bottom:5px; }
+#random-walk .s2-controls { margin:5px 0; }
+#random-walk .s2-controls button { font-size:18px;padding:5px 12px; }
+#random-walk .s2-status { font-size:18px;line-height:1.2;min-height:22px;margin-top:6px; }
+#random-walk .s2-walk-guide { font-size:18px;text-align:center;color:#555;margin:7px 0; }
+#random-walk .s2-takeaway { font-size:22px;line-height:1.24;padding:10px 16px;margin-top:10px; }
+
+#why-hmc .s2-pair { height:auto; }
+#why-hmc .s2-copy { padding-top:4px; }
+#why-hmc .s2-hmc-method { margin:0 0 12px; }
+#why-hmc .s2-hmc-method:last-child { margin-bottom:0; }
+#why-hmc .s2-hmc-method h3 { color:inherit;margin:0 0 5px; }
+#why-hmc .s2-hmc-method p { color:var(--ink);line-height:1.19;margin:0; }
+#why-hmc .s2-hmc-method p + p { margin-top:9px; }
+#why-hmc .s2-takeaway { margin-top:14px; }
+:is(#why-hmc,#hamiltonian-dynamics,#leapfrog) .s2-hmc-caption { color:#555;font-size:18px;text-align:center;margin:7px 0 0; }
+
+#energy-momentum .s2-copy { font-size:23px; }
+#energy-momentum .s2-copy p { margin:0 0 12px; }
+#energy-momentum .s2-copy .katex-display { margin:12px 0;font-size:21px; }
+#energy-momentum .s2-takeaway { margin-top:16px;font-size:22px; }
+#energy-momentum .s2-slider { grid-template-columns:210px 1fr 55px; }
+
+#hamiltonian-dynamics .s2-copy p { margin:0 0 10px; }
+#hamiltonian-dynamics .s2-hmc-key { padding:0 0 0 24px;margin:0 0 10px;font-size:22px; }
+#hamiltonian-dynamics .s2-hmc-key li { margin:0 0 5px; }
+#hamiltonian-dynamics .s2-takeaway { margin-top:14px; }
+
+#leapfrog .s2-copy > p { margin:0 0 9px;font-size:22px; }
+#leapfrog .s2-copy > .s2-hmc-caption { text-align:left;font-size:20px; }
+#leapfrog .s2-leap-equations > div { padding:4px 10px;margin-bottom:6px;background:#f7f6fa; }
+#leapfrog .s2-leap-equations > div.active { background:#fff8e9; }
+#leapfrog .s2-leap-equations .katex-display { margin:2px 0 4px;font-size:22px; }
+#leapfrog .s2-leap-equations p { font-size:20px; }
+#leapfrog .s2-takeaway { font-size:22px;margin-top:10px;padding:10px 14px; }
+
+#hmc-algorithm .s2-algorithm { font-size:23px; }
+#hmc-algorithm .s2-algorithm b { color:var(--struct); }
+#hmc-algorithm .s2-algorithm li { margin-bottom:14px;padding-left:9px;border-left:3px solid transparent; }
+#hmc-algorithm .s2-algorithm li[aria-current="step"] { border-left-color:#cc8800;background:#fff8e9; }
+#hmc-algorithm .s2-takeaway { margin-top:15px; }
+#hmc-algorithm .s2-status { font-size:19px;line-height:1.35;min-height:76px; }

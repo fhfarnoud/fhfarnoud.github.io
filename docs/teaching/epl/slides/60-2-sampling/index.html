@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sampling II: Practical MCMC, Gibbs Sampling, and Hamiltonian Monte Carlo</title>
+  <link rel="stylesheet" href="vendor/reveal.css">
+  <link rel="stylesheet" href="vendor/katex.min.css">
+  <link rel="stylesheet" href="../shared/deck.css">
+  <link rel="stylesheet" href="lecture.css?v=logistic-posterior-layout-2">
+<link rel="stylesheet" href="sampling2.css?v=hmc-four-stages">
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section id="lecture-title" class="frame" data-minutes="0">
+  <div class="titlebox">
+    <div class="t">Probabilistic Machine Learning</div>
+    <div class="st">Sampling II: Practical MCMC, Gibbs Sampling, and Hamiltonian Monte Carlo</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Sarvin Motamen</div>
+    <div class="i">University of Virginia</div>
+    <div class="d">November 19, 2026</div>
+  </div>
+</section>
+
+<section id="logistic" data-content-number="1" data-minutes="5">
+  <h2>Metropolis for Bayesian Logistic Regression</h2>
+  <div class="fbody logistic-layout">
+    <div class="logistic-left">
+      <div>
+        <h3>Bayesian model</h3>
+        \[Y_i\mid x_i,\boldsymbol\beta\sim\operatorname{Ber}\bigl(\sigma(\beta_0+\beta_1x_i)\bigr)\]
+        \[\boldsymbol\beta\sim\mathcal N(\mathbf0,25I)\]
+      </div>
+      <div>
+        <h3>Target posterior</h3>
+        \[p(\boldsymbol\beta\mid D)\propto q(\boldsymbol\beta)
+           =p(D\mid\boldsymbol\beta)p(\boldsymbol\beta)\]
+        <p class="muted">$q$ is the unnormalized posterior for the fixed dataset $D$.</p>
+      </div>
+      <div pause="stage=2" data-fragment-index="0">
+        <h3>Metropolis update</h3>
+        \[\boldsymbol\beta'\sim J(\cdot\mid\boldsymbol\beta)=\mathcal N(\boldsymbol\beta,\tau^2I)\]
+        \[\alpha=\min\left(1,\frac{q(\boldsymbol\beta')}{q(\boldsymbol\beta)}\right)\]
+      </div>
+      <div pause="stage=3" data-fragment-index="1">
+        <h3>Posterior summary</h3>
+        <table class="logistic-summary" aria-label="Posterior summaries from recorded states">
+          <thead>
+            <tr><th scope="col">Parameter</th><th scope="col">True</th><th scope="col">Mean</th><th scope="col">95% interval</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Intercept $\beta_0$</th><td class="c-pred">−1</td><td data-mean>—</td><td data-interval>—</td></tr>
+            <tr><th scope="row">Slope $\beta_1$</th><td class="c-pred">2</td><td data-mean>—</td><td data-interval>—</td></tr>
+          </tbody>
+        </table>
+        <p class="muted" data-summary-note></p>
+      </div>
+    </div>
+
+    <div class="logistic-demo">
+      <div class="logistic-heading">
+        <h3>Joint posterior</h3>
+        <span class="muted" pause data-fragment-index="0">Gaussian jump $\tau=0.12$</span>
+      </div>
+      <div class="logistic-legend">
+        <span class="c-pred">━ Density contours</span>
+        <span class="c-pred">× True value</span>
+        <span class="c-prior" pause data-fragment-index="0">● Current</span>
+        <span class="c-postC" pause data-fragment-index="0">◇ Proposal</span>
+        <span class="c-like" pause data-fragment-index="0">● Accepted</span>
+        <span class="c-post" pause data-fragment-index="0">× Rejected</span>
+        <span class="logistic-early" pause data-fragment-index="0">━ First 10 states</span>
+      </div>
+      <fig name="logisticMetropolis" init="stage=1"></fig>
+      <div class="logistic-controls" role="group" aria-label="Metropolis simulation controls" pause data-fragment-index="0">
+        <button type="button" data-action="step">Step</button>
+        <button type="button" data-action="run" aria-pressed="false">Run</button>
+        <button type="button" data-action="batch" data-count="100" pause data-fragment-index="1">+100</button>
+        <button type="button" data-action="batch" data-count="1000" pause data-fragment-index="1">+1,000</button>
+        <button type="button" data-action="reset">Reset</button>
+      </div>
+      <p class="logistic-readout" role="status" aria-live="polite" pause data-fragment-index="0"></p>
+      <div class="logistic-data">
+        <div class="logistic-heading">
+          <h3>Observed data</h3>
+          <span class="muted">$N=1{,}000$</span>
+          <span class="c-like">● Outcomes</span>
+          <span class="c-pred">━ True probability</span>
+        </div>
+        <fig name="logisticData"></fig>
+      </div>
+    </div>
+  </div>
+  <notes>5 min. Begin with the fixed Bernoulli outcomes and the Gaussian prior. The contours are level sets of the unnormalized posterior evaluated for this dataset. Reveal the Metropolis rule and use Step to see a single outcome or Run to preview successive proposals. A rejection records the current position again. On the last reveal, use the batch buttons to build the marginals and summary table. Green dots represent accepted proposals, red crosses mark rejected proposals, and the teal line traces the first ten recorded states. The histograms and summary estimates use recorded states, including repeats. The summary starts at 1,000 draws and includes the initial transient. Discuss mixing before interpreting the equal-tailed marginal intervals.</notes>
+</section>
+
+<section id="sampling-outline" class="frame sampling2 s2-section" data-slide="map" data-minutes="0" aria-label="Sampling II outline">
+  <ol class="toc" hidden>
+    <li><a href="#/sampling-chain">Practical MCMC</a></li>
+    <li><a href="#/why-gibbs">Gibbs sampling</a></li>
+    <li><a href="#/why-hmc">Hamiltonian Monte Carlo</a></li>
+  </ol>
+  <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+</section>
+
+<section id="sampling-chain" class="sampling2" data-content-number="2" data-minutes="3">
+<h2>Sampling from a Chain</h2>
+<div class="fbody"><div class="s2-pair">
+  <div class="s2-copy">
+    <p class="s2-chain-point"><b class="s2-inline-heading">Initial transient:</b> Early samples may reflect the starting state rather than the stationary distribution. Discard an initial segment as <b>burn-in</b>.</p>
+    <div pause data-fragment-index="0"><p class="s2-chain-point"><b class="s2-inline-heading">Dependent samples:</b> Consecutive states are correlated. Strong dependence reduces the information gained from each additional iteration.</p></div>
+    <div pause data-fragment-index="1"><p class="s2-chain-point"><b class="s2-inline-heading">Thinning:</b> Keep every $m$-th sample to reduce dependence between retained draws. Choosing $m$ is difficult, and thinning discards information.</p></div>
+    <div class="s2-takeaway">Burn-in reduces the influence of the starting state. Thinning reduces dependence between retained samples. Neither guarantees good mixing.</div>
+  </div>
+  <div class="s2-demo">
+    <fig name="s2Trace"></fig>
+    <label class="s2-slider"><span>Iterations $t$</span><input type="range" data-param="t" min="100" max="3000" step="100" value="1000"><output>1,000</output></label>
+    <label class="s2-slider"><span>Discard first</span><input type="range" data-param="burn" min="0" max="100" step="1" value="100"><output>100</output></label>
+    <label class="s2-slider"><span>Keep every</span><input type="range" data-param="thin" min="1" max="20" step="1" value="1"><output>1</output></label>
+    <div class="s2-controls"><button type="button" data-do="100">+100 iterations</button><button type="button" data-do="1000">+1,000 iterations</button><button type="button" data-do="reset">Reset</button></div>
+    <p class="s2-status" role="status" aria-live="polite"></p>
+  </div>
+</div></div>
+<notes>3 min. The target is an equal mixture of normal distributions with means -2 and 2 and standard deviation 0.5. The narrower components produce sharper peaks. A genuine symmetric Gaussian random-walk Metropolis proposal has fixed standard deviation 2. With the unchanged seed, both modes are visited by iteration 500. The chain starts at -15 and uses a fixed seed. Accepted proposals move the state, and rejected proposals record repeats. The iterations knob independently sets t, the number of iterations displayed. The burn-in knob B ranges from 0 to 100. Discard states 1 through B, then keep states B+m, B+2m, and so on up to t. The retained count is floor((t-B)/m), with zero when all displayed states are discarded. Changing burn-in or thinning never changes the displayed iteration count or regenerates the chain. Raising t extends the same chain as needed, while lowering t shows its existing prefix. The batch buttons raise t by 100 or 1,000, up to 3,000. The amber region marks burn-in and green markers identify retained states. The histogram uses all retained states and overlays the correctly normalized target density. A zero-retained setting shows the target without histogram bars. Reset restores the same seeded initial experiment. Neither burn-in nor thinning guarantees good mixing.</notes>
+</section>
+
+<section id="jump-size" class="sampling2" data-content-number="3" data-minutes="4">
+<h2>Choosing the Jump Size</h2>
+<div class="fbody"><div class="s2-pair"><div class="s2-copy"><p>For a symmetric Gaussian proposal,</p>\[\boldsymbol{\theta}'\sim J(\cdot\mid\boldsymbol{\theta})=\mathcal N(\boldsymbol{\theta},\tau^2I)\]
+<h3>Too small</h3><p>Most proposals are accepted, but the chain explores the target slowly.</p><div pause data-fragment-index="0"><h3>Too large</h3><p>Many proposals land in low-density regions and are rejected, leaving the chain unchanged.</p></div><div class="s2-takeaway">Balance acceptance with movement across the target.</div></div><div class="s2-demo"><fig name="s2Jump"></fig><label class="s2-slider"><span>Jump scale $\tau$</span><input type="range" data-param="tau" min="0.03" max="4" step="0.01" value="0.6"><output>0.6</output></label><div class="s2-controls"><button type="button" data-do="small">Small</button><button type="button" data-do="moderate">Moderate</button><button type="button" data-do="large">Large</button><button type="button" data-do="starts">Four starts</button></div><div class="s2-controls"><button type="button" data-do="step">Step</button><button type="button" data-do="run">Run</button><button type="button" data-do="100">+100</button><button type="button" data-do="1000">+1,000</button><button type="button" data-do="reset">Reset</button></div><p class="s2-status" role="status" aria-live="polite"></p></div></div></div>
+<notes>Use the small and large presets to reproduce the contrast in the jump-size figure. The two-dimensional Gaussian has rho=0.8. Four starts toggles four real chains with independent random streams. Every rejection records a repeat. The displayed squared jump distance includes zero movement on rejection. A high acceptance percentage is not a mixing certificate. Changing the scale starts a fresh, clearly labeled experiment.</notes>
+</section>
+
+<section id="random-walk" class="sampling2" data-content-number="4" data-minutes="2">
+<h2>Why Small Jumps Are Slow</h2>
+<div class="fbody"><div class="s2-pair">
+  <div class="s2-copy s2-walk-math">
+    \[X_i=\begin{cases}+\varepsilon&\text{with probability }1/2\\-\varepsilon&\text{with probability }1/2\end{cases}\]
+    <p>After $T$ independent, zero-mean steps,</p>
+    \[\textstyle S_T=\sum_{i=1}^T X_i,\qquad L=\mathbb E[|S_T|]\]
+    <div pause data-fragment-index="0" class="s2-walk-derivation">
+      <p>The absolute value is less convenient. Compute squared displacement instead.</p>
+      \[\begin{aligned}
+        \mathbb E[S_T^2]&=\textstyle\mathbb E\bigl[(\sum_{i=1}^T X_i)^2\bigr]\\[8pt]
+        &=\textstyle\sum_{i=1}^T\mathbb E[X_i^2]+2\sum_{i&lt;j}\underbrace{\mathbb E[X_iX_j]}_{=0}\\[4pt]
+        &=T\varepsilon^2
+      \end{aligned}\]
+      <p class="s2-walk-cross">Cross terms vanish by independence and zero means.</p>
+    </div>
+    <div pause data-fragment-index="1" class="s2-walk-scaling">
+      \[L\propto\sqrt{\mathbb E[S_T^2]}=\varepsilon\sqrt T,\qquad T\propto\frac{L^2}{\varepsilon^2}\]
+    </div>
+  </div>
+  <div class="s2-demo">
+    <fig name="s2Walk"></fig>
+    <label class="s2-slider"><span>Step size $\varepsilon$</span><input type="range" data-param="epsilon" min="0.1" max="1" step="0.1" value="0.5"><output>0.5</output></label>
+    <label class="s2-slider"><span>Steps $T$</span><input type="range" data-param="steps" min="10" max="1000" step="1" value="100"><output>100</output></label>
+    <div class="s2-controls"><button type="button" data-do="step">One step</button><button type="button" data-do="run">Run</button><button type="button" data-do="reset">Reset</button></div>
+    <p class="s2-status" role="status" aria-live="polite"></p>
+    <p class="s2-walk-guide">Dashed curves show a theoretical scale, not strict bounds.</p>
+    <div class="s2-takeaway" pause data-fragment-index="1">Traveling twice as far typically needs four times as many steps.</div>
+  </div>
+</div></div>
+<notes>2 min. Define the independent symmetric increments, S_T, and the expected absolute distance L. The absolute value is less convenient than a second moment. Reveal the square expansion. E[X_i^2]=epsilon squared and E[X_i X_j]=E[X_i]E[X_j]=0 for distinct indices, giving T epsilon squared. RMS is the square root of that second moment. L is not exactly RMS. For large T, the central limit approximation gives L approximately sqrt(2/pi) times RMS, so both scale like epsilon sqrt(T). The proportionality statement is a large-T scaling argument, not an exact finite-T identity. Solve the scaling for T to show the quadratic distance cost. The blue path is a real symmetric random walk. Yellow dashed curves are plus or minus one standard deviation epsilon sqrt(t), not pathwise bounds or an exact coverage statement. The vertical scale adjusts with epsilon so small steps remain visible. Adjusting epsilon rescales the same random directions. Changing T extends or truncates that same realization. Contrast actual absolute displacement with theoretical RMS. Connect small random-walk proposals to slow MCMC exploration.</notes>
+</section>
+
+<section id="gibbs-section" class="frame sampling2 s2-section" data-slide="map" data-minutes="0" aria-label="Gibbs sampling overview">
+  <fig name="deckmap" init="a=0 b=1 t=2" class="mapfig"></fig>
+</section>
+
+<section id="why-gibbs" class="sampling2" data-content-number="5" data-minutes="1">
+<h2>Why Gibbs Sampling?</h2>
+<div class="fbody"><div class="s2-pair">
+  <div class="s2-copy">
+    <p>A complicated joint distribution can be hard to sample from, even when its <b>conditional distributions</b> are easy to sample from.</p>
+    <p>Fix one coordinate. The joint problem becomes a draw from a one-dimensional slice.</p>
+    <div class="s2-takeaway">Sample one coordinate at a time, conditioned on the others.</div>
+  </div>
+  <div class="s2-demo">
+    <fig name="s2GibbsMotivation"></fig>
+    <div class="s2-controls">
+      <button type="button" data-do="horizontal">Horizontal slice</button>
+      <button type="button" data-do="vertical">Vertical slice</button>
+      <button type="button" data-do="slice-draw">Draw from slice</button>
+      <button type="button" data-do="reset">Reset</button>
+    </div>
+    <p class="s2-status" role="status" aria-live="polite"></p>
+  </div>
+</div></div>
+<notes>1 min. Select either direction to isolate a one-dimensional conditional in a correlated Gaussian. The dashed line holds one coordinate fixed. The small colored marker is the conditional mean and the larger green marker is the current state. Draw from the selected conditional without changing the other coordinate. Save the sweep order for the next slide.</notes>
+</section>
+
+<section id="gibbs-algorithm" class="sampling2" data-content-number="6" data-minutes="2">
+<h2>Gibbs Algorithm</h2>
+<div class="fbody">
+  <p class="s2-lead">At coordinate $j$, draw using the most recently available values of the other coordinates.</p>
+  <div class="s2-wide-equation">
+  \[\theta_j^{(t)}\sim p\!\left(\theta_j\mid
+  \underbrace{\theta_1^{(t)},\ldots,\theta_{j-1}^{(t)}}_{\text{already updated}},
+  \underbrace{\theta_{j+1}^{(t-1)},\ldots,\theta_d^{(t-1)}}_{\text{not yet updated}}\right)\]
+  </div>
+  <div class="s2-sweep" aria-label="A sweep through a d-dimensional vector">
+    <div class="s2-sweep-row">
+      <span>Start sweep $t$</span>
+      <span>$\bigl(\theta_1^{(t-1)},\ \theta_2^{(t-1)},\ \ldots,\ \theta_d^{(t-1)}\bigr)$</span>
+    </div>
+    <div class="s2-sweep-row" pause data-fragment-index="0">
+      <span>Update $\theta_1$</span>
+      <span>$\bigl({\color{#2354A8}\theta_1^{(t)}},\ \theta_2^{(t-1)},\ \ldots,\ \theta_d^{(t-1)}\bigr)$</span>
+    </div>
+    <div class="s2-sweep-row" pause data-fragment-index="1">
+      <span>Update $\theta_2$</span>
+      <span>$\bigl({\color{#2354A8}\theta_1^{(t)}},\ {\color{#2354A8}\theta_2^{(t)}},\ \ldots,\ \theta_d^{(t-1)}\bigr)$</span>
+    </div>
+    <div class="s2-sweep-row" pause data-fragment-index="2">
+      <span>Continue through $\theta_d$</span>
+      <span>$\bigl({\color{#2354A8}\theta_1^{(t)}},\ {\color{#2354A8}\theta_2^{(t)}},\ \ldots,\ {\color{#2354A8}\theta_d^{(t)}}\bigr)$</span>
+    </div>
+  </div>
+  <div class="s2-sweep-definitions">
+    <p><b>Coordinate update</b> · One conditional draw</p>
+    <p pause data-fragment-index="2"><b>Full sweep</b> · One update of each of the $d$ coordinates</p>
+    <p class="s2-sweep-recording" pause data-fragment-index="2">Record $\boldsymbol\theta^{(t)}$ after each full sweep as one joint sample.</p>
+  </div>
+</div>
+<notes>2 min. The rows illustrate the order for a general vector, with d at least 3 in the drawing. The blue superscripts identify coordinates already updated in this sweep. When moving from the first row of updates to the second, point to the new value of theta 1 used in the conditional. Continue until coordinate d and record the completed vector.</notes>
+</section>
+
+<section id="bivariate-gaussian" class="sampling2" data-content-number="7" data-minutes="9">
+<h2>Example: Gibbs for a Bivariate Gaussian</h2>
+<div class="fbody"><div class="s2-pair">
+  <div class="s2-copy">
+    <h3>Observation model and flat prior</h3>
+    <div class="s2-gaussian-model">
+      \[\begin{aligned}
+      \mathbf y\mid\boldsymbol\theta&\sim\mathcal N(\boldsymbol\theta,\Sigma_\rho)\\
+      p(\boldsymbol\theta)&\propto1
+      \end{aligned}\]
+      \[\Sigma_\rho=\begin{pmatrix}1&\rho\\\rho&1\end{pmatrix}\]
+    </div>
+    <h3>Posterior (Gibbs target)</h3>
+    <div class="s2-gaussian-model">
+      \[\boldsymbol\theta\mid\mathbf y\sim\mathcal N(\mathbf y,\Sigma_\rho)\]
+      <p>Demo: $\mathbf y=(0,0)$</p>
+    </div>
+    \[\theta_1\mid\mathbf y\sim\mathcal N(0,1),\qquad \theta_2\mid\mathbf y\sim\mathcal N(0,1)\]
+    <div class="s2-gaussian-conditionals" pause="stage=2" data-fragment-index="0">
+      <div class="s2-conditional-rule" data-conditional-direction="0">
+        <h3>Horizontal update · Hold $\theta_2$</h3>
+        \[\begin{aligned}
+        \theta_1^{(t)}\mid\theta_2^{(t-1)}&\sim\mathcal N(\mu_1,1-\rho^2)\\
+        \mu_1&=y_1+\rho(\theta_2^{(t-1)}-y_2)
+        \end{aligned}\]
+      </div>
+      <div class="s2-conditional-rule" data-conditional-direction="1">
+        <h3>Vertical update · Hold $\theta_1$</h3>
+        \[\begin{aligned}
+        \theta_2^{(t)}\mid\theta_1^{(t)}&\sim\mathcal N(\mu_2,1-\rho^2)\\
+        \mu_2&=y_2+\rho(\theta_1^{(t)}-y_1)
+        \end{aligned}\]
+      </div>
+    </div>
+    <div class="s2-takeaway" pause="stage=3" data-fragment-index="1">Stronger correlation produces narrower conditional distributions, which can slow down Gibbs sampling.</div>
+  </div>
+  <div class="s2-demo">
+    <fig name="s2GaussianGibbs" init="stage=1"></fig>
+    <label class="s2-slider"><span>Correlation $\rho$</span><input type="range" data-param="rho" min="-0.95" max="0.95" step="0.05" value="0.8"><output>0.80</output></label>
+    <div pause data-fragment-index="0">
+      <div class="s2-gaussian-inspect">
+        <label class="s2-slider"><span>Fixed coordinate</span><input type="range" data-param="fixed" min="-4" max="4" step="0.1" value="1.5"><output>1.5</output></label>
+        <div class="s2-controls">
+          <button type="button" data-do="horizontal">Hold θ₂</button>
+          <button type="button" data-do="vertical">Hold θ₁</button>
+        </div>
+      </div>
+      <p class="s2-status s2-conditional-status" role="status" aria-live="polite"></p>
+    </div>
+    <div pause data-fragment-index="1">
+      <div class="s2-controls s2-gibbs-actions">
+        <button type="button" data-do="coordinate">Next Coordinate Update</button>
+        <button type="button" data-do="sweep">Complete Sweep</button>
+        <button type="button" data-do="100">+100 Sweeps</button>
+        <button type="button" data-do="1000">+1,000 Sweeps</button>
+        <button type="button" data-do="reset">Reset</button>
+      </div>
+      <p class="s2-status" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</div></div>
+<notes>9 min. Start with the joint Gaussian posterior for a flat prior and y=0. Vary rho from negative to zero to positive. The contours change while the two standard normal marginals stay fixed. Reveal the conditional formulas and choose either slice. At y=0 the conditional mean is rho times the fixed coordinate and the variance is 1 minus rho squared. Next, animate a horizontal draw and a vertical draw. The conditional curve follows the active coordinate during sampling. The hold buttons and fixed-coordinate slider inspect slices without moving the chain. Sampling resumes the systematic order. Each completed sweep adds one opaque green joint sample. The outlined circle is the current state. Complete Sweep finishes a partly completed sweep if needed. Batch buttons count newly completed sweeps. Reset restarts at the selected correlation, and changing rho restarts the chain for the new target.</notes>
+</section>
+
+<section id="metropolis-gibbs" class="sampling2" data-content-number="8" data-minutes="3">
+<h2>Metropolis vs. Gibbs</h2>
+<div class="fbody">
+  <p class="s2-lead">Both chains use the same Gaussian target and start at $(2.5,-2.5)$.</p>
+  <div class="s2-comparison">
+    <div>
+      <h3>Random-walk Metropolis</h3>
+      <fig name="s2CompareMetropolis"></fig>
+      <p class="s2-comparison-unit"><span class="c-prior">●</span> Recorded states · <span class="c-post">×</span> Rejected proposals · <span class="c-like">━</span> Latest move</p>
+      <p class="s2-comparison-unit">One joint proposal per iteration</p>
+    </div>
+    <div>
+      <h3>Coordinate-wise Gibbs</h3>
+      <fig name="s2CompareGibbs"></fig>
+      <p class="s2-comparison-unit"><span class="c-like">●</span> Recorded states · <span class="c-prior">━</span> Horizontal · <span class="c-postC">━</span> Vertical</p>
+      <p class="s2-comparison-unit">Two conditional draws per sweep</p>
+    </div>
+  </div>
+  <label class="s2-slider"><span>Correlation $\rho$</span><input type="range" data-param="rho" min="-0.95" max="0.95" step="0.05" value="0.8"><output>0.80</output></label>
+  <div class="s2-controls"><button type="button" data-do="step">Advance both</button><button type="button" data-do="run">Run both</button><button type="button" data-do="100">+100</button><button type="button" data-do="1000">+1,000</button><button type="button" data-do="reset">Reset</button></div>
+  <div class="s2-takeaway">Gibbs avoids rejected proposals by sampling from conditional distributions, but strong correlation can still cause slow mixing.</div>
+</div>
+<notes>3 min. Advance both records one complete joint state per method. Metropolis marks rejected proposals with red crosses and records the unchanged state. Gibbs records the state after its two conditional draws. The counters track draws or proposals separately from recorded states. The ring marks the current state in each plot. The segments show the latest move or sweep. Compare exploration at high absolute correlation. Reset or changing rho starts both chains from the same point.</notes>
+</section>
+
+<section id="gibbs-correctness" class="sampling2" data-content-number="9" data-minutes="3">
+<h2>Why Gibbs Works</h2>
+<div class="fbody">
+  <div class="s2-balance-proposal">
+    <p>Update coordinate $j$ of $\boldsymbol\theta$ to get $\boldsymbol\theta'$. The vector $\boldsymbol\theta_{-j}$ contains all coordinates except $j$.</p>
+    \[\theta_j'\sim p(\theta_j'\mid\boldsymbol\theta_{-j}),\qquad
+      \boldsymbol\theta_{-j}'=\boldsymbol\theta_{-j}.\]
+  </div>
+  <div class="s2-proof">
+    <div class="s2-balance-flow" pause data-fragment-index="0">
+      <b>Forward flow</b>
+      \[p(\boldsymbol\theta)\Pr(\boldsymbol\theta\to\boldsymbol\theta')
+      =\textcolor{#762A83}{p(\boldsymbol\theta_{-j})}\,
+       \textcolor{#2354A8}{p(\theta_j\mid\boldsymbol\theta_{-j})}\,
+       \textcolor{#008000}{p(\theta_j'\mid\boldsymbol\theta_{-j})}\]
+    </div>
+    <div pause data-fragment-index="1">
+      <div class="s2-balance-flow">
+        <b>Reverse flow</b>
+        \[p(\boldsymbol\theta')\Pr(\boldsymbol\theta'\to\boldsymbol\theta)
+        =\textcolor{#762A83}{p(\boldsymbol\theta_{-j})}\,
+         \textcolor{#008000}{p(\theta_j'\mid\boldsymbol\theta_{-j})}\,
+         \textcolor{#2354A8}{p(\theta_j\mid\boldsymbol\theta_{-j})}\]
+      </div>
+      <p>Equal flows establish detailed balance for a single Gibbs coordinate update.</p>
+    </div>
+  </div>
+  <div class="s2-balance-result" pause data-fragment-index="2">
+    \[\alpha=\min\!\left(1,
+      \frac{p(\boldsymbol\theta')\,p(\theta_j\mid\boldsymbol\theta_{-j})}
+           {p(\boldsymbol\theta)\,p(\theta_j'\mid\boldsymbol\theta_{-j})}
+      \right)=\min(1,1)=1\]
+    <p><b>Metropolis</b> uses acceptance and rejection to balance the flows.<br>
+      <b>Gibbs</b> coordinate proposals already balance the flows and are always accepted.</p>
+  </div>
+  <div class="s2-takeaway" pause data-fragment-index="3">A full Gibbs sweep preserves $p$, but need not satisfy detailed balance.</div>
+</div>
+<notes>3 min. On the common slice, read the transition factors as densities with respect to the updated coordinate. The unchanged coordinates have identical point masses in both directions. Both flows vanish off that slice. Point out the three matching factors before discussing Metropolis-Hastings. In the acceptance ratio, the reverse proposal flow divided by the forward proposal flow is one wherever the forward flow is positive. A sweep preserves p because applying each update to p leaves p unchanged. The reverse of a fixed-order sweep applies the coordinate kernels in reverse order. Two reversible kernels can give different compositions depending on their order.</notes>
+</section>
+
+<section id="gibbs-practice" class="sampling2" data-content-number="10" data-minutes="2">
+<h2>Gibbs Updates and Markov Blankets</h2>
+<div class="fbody"><div class="s2-pair">
+  <div class="s2-copy">
+    <div>
+      <h3>Full conditional</h3>
+      \[\theta_j'\sim p(\theta_j\mid\boldsymbol\theta_{-j})\]
+      <p>A Gibbs update conditions on all other coordinates.</p>
+    </div>
+    <div pause data-fragment-index="0">
+      <h3>Markov blanket</h3>
+      <p>In a Bayesian network, a node’s Markov blanket consists of its parents, children, and the other parents of its children.</p>
+    </div>
+    <div pause data-fragment-index="1">
+      <h3>Example: Updating C</h3>
+      \[p(C\mid A,B,D,E)=p(C\mid A,B,D)\]
+      <p>Given $A,B,D$, knowing $E$ provides no additional information about $C$.</p>
+    </div>
+  </div>
+  <div class="s2-demo" pause data-fragment-index="0">
+    <fig name="s2Blanket"></fig>
+    <p class="s2-status" role="status" aria-live="polite"></p>
+    <div class="s2-controls"><button type="button" data-do="A">Select A</button><button type="button" data-do="B">Select B</button><button type="button" data-do="C">Select C</button><button type="button" data-do="D">Select D</button><button type="button" data-do="E">Select E</button></div>
+  </div>
+</div>
+<div class="s2-takeaway" pause data-fragment-index="1">Conditional independence can simplify Gibbs updates by reducing the variables we need to condition on.</div>
+</div>
+<notes>2 min. Start from the full conditional and reveal the graph with C selected. A and B are its parents, D is its child, and E is outside its Markov blanket. Conditioning on B blocks the path from E to C. Then select A to show why the other parent B of its child C also belongs in the blanket.</notes>
+</section>
+
+<section id="hmc-section" class="frame sampling2 s2-section" data-slide="map" data-minutes="0" aria-label="Hamiltonian Monte Carlo overview">
+  <fig name="deckmap" init="a=1 b=2 t=2" class="mapfig"></fig>
+</section>
+
+<section id="why-hmc" class="sampling2" data-content-number="11" data-minutes="2">
+<h2>Why HMC?</h2>
+<div class="fbody"><div class="s2-pair">
+  <div class="s2-copy">
+    <div class="s2-hmc-method c-prior">
+      <h3>Random-walk Metropolis</h3>
+      <p>Proposes jumps in random directions. Small jumps explore slowly, while large jumps are often rejected.</p>
+    </div>
+    <div class="s2-hmc-method" pause="stage=2" data-fragment-index="0">
+      <h3>Gradient descent</h3>
+      <p>Uses gradients to move toward a mode of the target distribution. This is optimization, not sampling.</p>
+    </div>
+    <div class="s2-hmc-method c-postC" pause="stage=3" data-fragment-index="1">
+      <h3>Hamiltonian proposal</h3>
+      <p>Introduce a random momentum that determines the initial direction and speed. Gradients change the momentum, bending the trajectory.</p>
+      <p>The endpoint of the trajectory is one proposal, not a sequence of samples.</p>
+    </div>
+  </div>
+  <div class="s2-demo">
+    <fig name="s2WhyHMC" init="stage=1"></fig>
+    <p class="s2-hmc-caption">The methods do different amounts of work per step.</p>
+  </div>
+</div>
+<div class="s2-takeaway" pause data-fragment-index="1">HMC uses momentum and gradients to construct longer proposals that explore the target.</div>
+</div>
+<notes>2 min. All three paths start at the outlined circle. First show the blue path of recorded Metropolis states. Rejected proposals leave the chain at the same position. Reveal the dashed gray path of deterministic gradient descent for the same energy. Finally, reveal the Hamiltonian trajectory with an illustrative initial momentum. The amber diamond marks the single proposed endpoint. Intermediate positions are integration states. A speed comparison would have to account for gradient and density evaluations.</notes>
+</section>
+
+<section id="energy-momentum" class="sampling2" data-content-number="12" data-minutes="3">
+<h2>Energy and Momentum</h2>
+<div class="fbody"><div class="s2-pair">
+  <div class="s2-copy">
+    <p><b>Position $\boldsymbol\theta$</b> is the parameter vector we want to sample.</p>
+    <p><b>Potential energy $E(\boldsymbol\theta)$</b> is low where the target density is high.</p>
+    \[p(\boldsymbol\theta)\propto e^{-E(\boldsymbol\theta)}\]
+    <div pause data-fragment-index="0">
+      <p><b>Auxiliary momentum $\boldsymbol\phi$</b> drives the ball. It determines kinetic energy $K$.</p>
+      \[K(\boldsymbol\phi)=\tfrac12\boldsymbol\phi^\top\boldsymbol\phi,\quad H(\boldsymbol\theta,\boldsymbol\phi)=E(\boldsymbol\theta)+K(\boldsymbol\phi)\]
+    </div>
+    <div pause data-fragment-index="1">
+      \[p(\boldsymbol\theta,\boldsymbol\phi)\propto e^{-H}=e^{-E(\boldsymbol\theta)}e^{-K(\boldsymbol\phi)}\]
+      \[\begin{aligned}
+      p(\boldsymbol\theta)&=\int p(\boldsymbol\theta,\boldsymbol\phi)\,d\boldsymbol\phi\\
+      &\propto e^{-E(\boldsymbol\theta)}\underbrace{\int e^{-K(\boldsymbol\phi)}\,d\boldsymbol\phi}_{\text{constant in }\boldsymbol\theta}
+      \end{aligned}\]
+      <div class="s2-takeaway">Momentum allows us to construct trajectories without changing the target distribution.</div>
+    </div>
+  </div>
+  <div class="s2-demo">
+    <fig name="s2Energy"></fig>
+    <label class="s2-slider"><span>Initial position $\theta$</span><input type="range" data-param="position" min="-3" max="3" step="0.1" value="-2.6"><output>−2.6</output></label>
+    <label class="s2-slider"><span>Initial momentum $\phi$</span><input type="range" data-param="momentum" min="-3" max="3" step="0.1" value="0.8"><output>0.8</output></label>
+    <div class="s2-controls">
+      <button type="button" data-do="run">Play</button>
+      <button type="button" data-do="reset">Reset</button>
+    </div>
+    <p class="s2-status" role="status" aria-live="polite"></p>
+  </div>
+</div></div>
+<notes>3 min. Show a ball in the one-dimensional Gaussian potential E(theta)=theta squared over 2. The mode is at the valley floor. Momentum is an auxiliary variable with the same number of entries as theta. With unit mass the momentum is also the rate of change of the position coordinate. The arrow shows the signed velocity along that coordinate. Each slider sets an initial condition and returns the ball to time zero. Play uses the exact harmonic motion for this potential. The joint density factors into independent position and momentum densities. Integrating over momentum multiplies the position factor by a constant and leaves the normalized marginal p(theta).</notes>
+</section>
+
+<section id="hamiltonian-dynamics" class="sampling2" data-content-number="13" data-minutes="3">
+<h2>Hamiltonian Dynamics</h2>
+<div class="fbody"><div class="s2-pair">
+  <div class="s2-copy">
+    <p>Together, position and momentum $(\boldsymbol\theta,\boldsymbol\phi)$ specify a point in <b>phase space</b>.</p>
+    \[\dot{\boldsymbol\theta}=\boldsymbol\phi,\qquad \dot{\boldsymbol\phi}=-\nabla E(\boldsymbol\theta)\]
+    <p>The dots denote derivatives with respect to simulation time.</p>
+    <ul class="s2-hmc-key">
+      <li><b class="c-prior">Blue momentum arrow</b> shows the current direction and speed of motion, $\dot{\boldsymbol\theta}=\boldsymbol\phi$.</li>
+      <li><b class="c-post">Red force arrow</b> shows the force $\dot{\boldsymbol\phi}=-\nabla E(\boldsymbol\theta)$, which changes the momentum and points toward lower potential energy.</li>
+      <li><b class="c-like">Green curve</b> traces the position.</li>
+    </ul>
+    <div pause data-fragment-index="0">
+      \[\frac{dH}{dt}=\nabla E^\top\boldsymbol\phi+\boldsymbol\phi^\top(-\nabla E)=0\]
+      <div class="s2-takeaway">Momentum drives motion, gradients bend the trajectory, and total energy remains constant.</div>
+    </div>
+  </div>
+  <div class="s2-demo">
+    <fig name="s2Dynamics"></fig>
+    <div class="s2-controls">
+      <button type="button" data-do="step">Advance time</button>
+      <button type="button" data-do="run">Play</button>
+      <button type="button" data-do="reset">Reset</button>
+    </div>
+    <p class="s2-status" role="status" aria-live="polite"></p>
+    <p class="s2-hmc-caption">The energy bar shows how potential and kinetic energy trade off.</p>
+  </div>
+</div></div>
+<notes>3 min. Connect the valley to the position plane for the bivariate Gaussian. The plotted curve is the position component of a trajectory in phase space. The two arrows use fixed visual scales and show the rates of change of position and momentum. The Gaussian has an exact solution in its two eigenvector coordinates. Each frame evaluates that solution at the current simulation time. Watch E and K exchange while H stays constant up to floating point roundoff. Real targets typically require numerical integration.</notes>
+</section>
+
+<section id="leapfrog" class="sampling2" data-content-number="14" data-minutes="3">
+<h2>Leapfrog Updates</h2>
+<div class="fbody"><div class="s2-pair">
+  <div class="s2-copy">
+    <p>In practice, we cannot simulate Hamiltonian dynamics perfectly, so we approximate the trajectory using discrete steps.</p>
+    <div class="s2-leap-equations">
+      <div data-leap-phase="1">\[\boldsymbol\phi\leftarrow\boldsymbol\phi-\tfrac{\varepsilon}{2}\nabla E(\boldsymbol\theta)\]<p><b>1. Half momentum update</b> with the gradient at the current position.</p></div>
+      <div data-leap-phase="2">\[\boldsymbol\theta\leftarrow\boldsymbol\theta+\varepsilon\boldsymbol\phi\]<p><b>2. Full position update</b> using the updated momentum.</p></div>
+      <div data-leap-phase="3">\[\boldsymbol\phi\leftarrow\boldsymbol\phi-\tfrac{\varepsilon}{2}\nabla E(\boldsymbol\theta)\]<p><b>3. Half momentum update</b> with the gradient at the new position.</p></div>
+    </div>
+    <p class="s2-hmc-caption">$\varepsilon$ is the integration step size and $L$ counts full leapfrog steps.</p>
+    <div pause data-fragment-index="0" class="s2-takeaway">Leapfrog introduces numerical error, so total energy is not conserved exactly. A Metropolis accept/reject step corrects the resulting sampling bias.</div>
+  </div>
+  <div class="s2-demo">
+    <fig name="s2Leapfrog"></fig>
+    <label class="s2-slider"><span>Step size $\varepsilon$</span><input type="range" data-param="epsilon" min="0.02" max="0.8" step="0.02" value="0.2"><output>0.20</output></label>
+    <label class="s2-slider"><span>Leapfrog steps $L$</span><input type="range" data-param="L" min="1" max="30" step="1" value="10"><output>10</output></label>
+    <div class="s2-controls">
+      <button type="button" data-do="substep">Next substep</button>
+      <button type="button" data-do="step">One leapfrog step</button>
+      <button type="button" data-do="trajectory">Run L steps</button>
+      <button type="button" data-do="reset">Reset</button>
+    </div>
+    <p class="s2-status" role="status" aria-live="polite"></p>
+    <p class="s2-hmc-caption">Compare $\Delta H=H-H_0$ at completed steps. Exact dynamics give $\Delta H=0$.</p>
+  </div>
+</div></div>
+<notes>3 min. Each action performs the indicated arithmetic. The highlighted row is the substep just applied. The first and last updates change momentum at fixed position. Only the middle update moves the point. One leapfrog step completes a pending step if necessary. Run L steps animates substeps until L full steps complete, including any pending step. The numeric error is evaluated at completed steps and the peak is over all completed steps since reset. Repeat with small and large epsilon from the same initial state. Compare at roughly equal total integration times by adjusting L. The next slide uses a Metropolis correction for the numerical energy error.</notes>
+</section>
+
+<section id="hmc-algorithm" class="sampling2" data-content-number="15" data-minutes="3">
+<h2>HMC Algorithm</h2>
+<div class="fbody"><div class="s2-pair">
+  <div class="s2-copy">
+    <ol class="s2-algorithm">
+      <li><b>Refresh momentum</b><br>$\boldsymbol\phi_0\sim\mathcal N(\mathbf0,I)$</li>
+      <li pause data-fragment-index="0"><b>Generate a proposal</b><br>Take $L$ leapfrog steps to obtain $(\boldsymbol\theta^*,\boldsymbol\phi^*)$.</li>
+      <li pause data-fragment-index="1"><b>Accept or reject</b><br>Correct for numerical energy error.
+        \[\alpha=\min\left(1,e^{H_{\mathrm{start}}-H_{\mathrm{end}}}\right)\]
+        $H_{\mathrm{start}}$ uses the refreshed momentum.<br>
+        $H_{\mathrm{end}}=H(\boldsymbol\theta^*,\boldsymbol\phi^*)$.
+      </li>
+      <li pause data-fragment-index="2"><b>Record the resulting position</b><br>Keep the old position after a rejection.</li>
+    </ol>
+    <div class="s2-takeaway" pause data-fragment-index="2">HMC combines momentum-driven proposals with a Metropolis correction to sample from the target distribution.</div>
+  </div>
+  <div class="s2-demo">
+    <fig name="s2HMC"></fig>
+    <label class="s2-slider"><span>Step size $\varepsilon$</span><input type="range" data-param="epsilon" min="0.05" max="0.85" step="0.05" value="0.25"><output>0.25</output></label>
+    <label class="s2-slider"><span>Leapfrog steps $L$</span><input type="range" data-param="L" min="1" max="30" step="1" value="12"><output>12</output></label>
+    <div class="s2-controls">
+      <button type="button" data-do="next">Next HMC step</button>
+      <button type="button" data-do="step">One HMC iteration</button>
+      <button type="button" data-do="run">Run</button>
+      <button type="button" data-do="100">+100</button>
+      <button type="button" data-do="reset">Reset</button>
+    </div>
+    <p class="s2-status" role="status" aria-live="polite"></p>
+  </div>
+</div></div>
+<notes>3 min. Next HMC step advances one row of the algorithm. Generating the proposal takes all L leapfrog steps in one action. One HMC iteration plays the four stages in sequence. Compute the starting energy with the freshly drawn momentum. Compute the ending energy with the position and momentum from the last leapfrog step. The blue ring marks the chain position, the amber diamond marks the proposed endpoint, and the arrow there shows the proposed momentum. Green dots mark accepted positions. Red crosses mark rejected endpoints. After rejection the chain records the old position again. The next iteration draws fresh momentum. Use +100 for a batch without playback. Changing a trajectory parameter restarts the demonstration so the acceptance rate refers to one setting.</notes>
+</section>
+
+<section id="mcmc-comparison" class="sampling2" data-content-number="16" data-minutes="1">
+<h2>Comparing MCMC Methods</h2>
+<div class="fbody">
+<fig name="s2Mechanisms"></fig>
+<table class="s2-method-table">
+<thead><tr><th>Method</th><th>Proposal and requirements</th><th>Strength</th><th>Limitation</th></tr></thead>
+<tbody>
+<tr><th>Metropolis</th><td>Symmetric jump, evaluable target</td><td>Simple and flexible</td><td>Scale tuning and random walks</td></tr>
+<tr><th>Metropolis–Hastings</th><td>General jump, forward and reverse densities</td><td>Flexible proposal design</td><td>Requires evaluating proposal ratios; proposals may be rejected.</td></tr>
+<tr><th>Gibbs</th><td>Sample full conditionals</td><td>No rejection step.</td><td>Conditionals may be hard or strongly coupled</td></tr>
+<tr><th>HMC</th><td>Momentum, gradients, leapfrog</td><td>Longer, gradient-informed proposals.</td><td>Requires gradients and tuning of integration parameters.</td></tr>
+</tbody></table>
+<div class="s2-takeaway">A shared objective • construct a Markov chain with the desired stationary distribution.</div></div>
+<notes>One minute. The four small diagrams distinguish symmetric jumps, an asymmetric proposal with a correction, conditional coordinate moves, and a Hamiltonian path. None of these methods removes the need to assess convergence and Monte Carlo error. HMC in this lecture uses Euclidean continuous parameters and identity mass. Metropolis is the symmetric-proposal special case of Metropolis–Hastings.</notes>
+</section>
+
+</div></div>
+<script src="vendor/reveal.js"></script>
+<script src="vendor/katex.min.js"></script>
+<script src="vendor/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="sampler.js?v=logistic-posterior-layout-3"></script>
+<script src="models.js?v=hmc-leapfrog-endpoint"></script>
+<script src="chain-sampling.js?v=far-start-1"></script>
+<script src="demos.js?v=hmc-run-speed"></script>
+<script src="sections.js"></script>
+<script src="deckmap.js?v=logistic-posterior-layout"></script>
+<script src="lecture.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+#lecture-title .st { max-width: 1100px; margin-left: auto; margin-right: auto; }
+
+#logistic .logistic-layout {
+  top: 94px;
+  bottom: 38px;
+  display: grid;
+  grid-template-columns: 472px 704px;
+  align-items: start;
+  gap: 24px;
+  padding: 0 !important;
+}
+#logistic h3 { color: var(--struct); font-size: 25px; line-height: 1.16; margin: 0; }
+#logistic p { margin: 0; }
+#logistic .logistic-left {
+  display: grid;
+  align-content: start;
+  gap: 19px;
+  font-size: 22px;
+  line-height: 1.25;
+}
+#logistic .logistic-left .katex-display { margin: 8px 0; font-size: 22px; }
+#logistic .logistic-left .muted { font-size: 20px; }
+#logistic .logistic-summary {
+  width: 100%;
+  margin: 6px 0;
+  border-collapse: collapse;
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+}
+#logistic .logistic-summary th, #logistic .logistic-summary td {
+  padding: 5px 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+#logistic .logistic-summary th:first-child { text-align: left; }
+#logistic .logistic-summary thead { color: var(--struct); border-bottom: 1px solid #b6afca; font-size: 18px; }
+#logistic .logistic-summary tbody th { font-weight: normal; }
+#logistic .logistic-summary tr + tr { border-top: 1px solid #e7e4ee; }
+
+#logistic .logistic-heading { display: flex; align-items: baseline; gap: 13px; font-size: 18px; }
+#logistic .logistic-heading h3 { margin-right: auto; }
+#logistic .logistic-data { margin-top: 9px; border-top: 1px solid #e7e4ee; padding-top: 7px; }
+#logistic .logistic-data .logistic-heading h3 { font-size: 23px; }
+#logistic .logistic-legend { display: flex; gap: 12px; margin-top: 5px; font-size: 16px; }
+#logistic .logistic-early { color: var(--teal); }
+#logistic .logistic-controls { display: flex; justify-content: center; gap: 8px; margin: 3px 0; }
+#logistic .logistic-controls button.fragment:not(.visible) { display: none; }
+#logistic .logistic-controls button {
+  font: 19px KaTeX_SansSerif, Arial, sans-serif;
+  color: var(--struct); background: #f6f4f9; border: 1px solid #b6afca;
+  border-radius: 5px; padding: 5px 16px; cursor: pointer;
+}
+#logistic .logistic-controls [data-action="run"] { min-width: 80px; }
+#logistic .logistic-controls button:hover:not(:disabled),
+#logistic .logistic-controls [aria-pressed="true"] { background: var(--struct); color: white; }
+#logistic .logistic-controls button:focus-visible { outline: 3px solid var(--postC); outline-offset: 3px; }
+#logistic .logistic-controls button:disabled { opacity: .45; cursor: default; }
+#logistic .logistic-readout { font-size: 18px; text-align: center; color: #555; font-variant-numeric: tabular-nums; }
+.deck-print #logistic .logistic-controls { display: none; }
