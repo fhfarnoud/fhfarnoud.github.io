@@ -1,0 +1,1071 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Missing Data and the EM Algorithm</title>
+  <link rel="stylesheet" href="vendor/reveal.css">
+  <link rel="stylesheet" href="vendor/katex.min.css">
+  <link rel="stylesheet" href="../shared/deck.css">
+  <link rel="stylesheet" href="lecture.css?v=em-inference-spacing">
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+<section id="lecture-title" class="frame" data-minutes="0">
+  <div class="titlebox">
+    <div class="em-course">Probabilistic Machine Learning</div>
+    <div class="t">Missing Data and the EM Algorithm</div>
+    <div class="st">Latent Variables, Expectation-Maximization, and Gaussian Mixture Clustering</div>
+  </div>
+  <div class="titlemeta">
+    <div class="a">Sarvin Motamen</div>
+    <div class="i">University of Virginia</div>
+    <div class="d">November 24, 2026</div>
+  </div>
+  <notes>Opening within the first section's 8 minutes. Ask how we can learn a generative model when some of the variables that generated the data are hidden. Introduce EM as the link between today's clustering problem and next class's approximate inference problem.</notes>
+</section>
+
+<section id="lecture-outline" class="frame" data-slide="map" data-minutes="0" aria-label="Lecture outline">
+  <ol class="toc" hidden>
+    <li><a href="#/missing-labels">Missing Data and Latent Variables</a></li>
+    <li><a href="#/em-idea">The EM Algorithm</a></li>
+    <li><a href="#/mixture-model">Clustering with Gaussian Mixtures</a></li>
+    <li><a href="#/signal-model">EM with General Missing Data</a></li>
+    <li><a href="#/hard-e-step">From EM to Variational Inference</a></li>
+  </ol>
+  <fig name="deckmap" init="a=-1 b=0 t=1" class="mapfig"></fig>
+  <span pause="t=2"></span>
+  <notes>Overview within Section 1's 8 minutes. Preview the missing-label problem, the likelihood argument, the clustering solution, one scalar worked example, and the question that leads to variational inference. Advance to zoom into the first section.</notes>
+</section>
+
+<section id="missing-labels" data-content-number="1" data-minutes="3">
+  <h2>When Labels Are Missing</h2>
+  <div class="fbody em-pair em-labeled-example">
+    <div class="em-copy">
+      <div>
+        <p><b>Goal.</b> Learn the parameters $\theta$ of two Gaussian classes.</p>
+        \[\begin{gathered}
+          \begin{aligned}
+            p(Y_i=1)&=\pi,   & (\mathbf X_i\mid Y_i=1)&\sim\mathcal N(\boldsymbol\mu_1,K_1)\\[-3pt]
+            p(Y_i=0)&=1-\pi, & (\mathbf X_i\mid Y_i=0)&\sim\mathcal N(\boldsymbol\mu_0,K_0)
+          \end{aligned}\\[-7pt]
+          \theta=(\pi,\boldsymbol\mu_0,\boldsymbol\mu_1,K_0,K_1)
+        \end{gathered}\]
+      </div>
+      <div pause>
+        <p>Assume independent observation-label pairs.</p>
+        \[\ell_c(\theta;\mathbf x,\mathbf y)=\log p(\mathbf x,\mathbf y;\theta)
+          =\sum\nolimits_{i=1}^n\log p(\mathbf x_i,y_i;\theta)\]
+      </div>
+      <div pause="labels=true fit=true" data-for="labeledFitCloud">
+        <h3>Maximum-likelihood (MLE) solution</h3>
+        <p>Let $n_0$ and $n_1$ be the class counts. Then $\hat\pi=n_1/n$.</p>
+        \[\hat{\boldsymbol\mu}_0=\frac{1}{n_0}\sum\nolimits_{i:y_i=0}\mathbf x_i,\qquad
+          \hat{\boldsymbol\mu}_1=\frac{1}{n_1}\sum\nolimits_{i:y_i=1}\mathbf x_i\]
+        \[\begin{aligned}
+          \hat K_0&=\frac{1}{n_0}\sum\nolimits_{i:y_i=0}
+            (\mathbf x_i-\hat{\boldsymbol\mu}_0)(\mathbf x_i-\hat{\boldsymbol\mu}_0)^\top\\
+          \hat K_1&=\frac{1}{n_1}\sum\nolimits_{i:y_i=1}
+            (\mathbf x_i-\hat{\boldsymbol\mu}_1)(\mathbf x_i-\hat{\boldsymbol\mu}_1)^\top
+        \end{aligned}\]
+      </div>
+    </div>
+    <div class="em-panel">
+      <fig name="labeledFitCloud" init="labels=true fit=false" data-description="Scatterplot of the observed feature vectors and their labeled Gaussian fits when shown"></fig>
+      <div class="em-controls">
+        <button type="button" data-action="labels" aria-pressed="true">Hide True Labels</button>
+        <span data-status role="status"></span>
+      </div>
+      <p class="em-fit-legend small muted em-center" data-fit-legend hidden>× Fitted means · Covariance contours</p>
+    </div>
+    <div class="em-accent em-labeled-question" pause="labels=false" data-for="labeledFitCloud">
+      <b>What if the class labels $y_i$ were missing?</b>
+      <p>We can no longer apply these MLE formulas directly because we don’t know which observations belong to each class.</p>
+    </div>
+  </div>
+  <notes>3 min. Begin with the true labels. Recall the Gaussian MLEs from Chapter 4, Section 4.2.3, and generative Gaussian classification from Chapter 6, Section 6.2.4. Show that independence gives a product before taking logs. Reveal the fitted means and contours. Point out that the two covariance divisors are the class counts n_0 and n_1, and that the plot uses the estimates from the actual points. On the last reveal, the plot turns gray. Ask which terms in the formulas now require missing information. Use the toggle to compare the labeled fit and unlabeled data.</notes>
+</section>
+
+<section id="complete-data" data-content-number="2" data-minutes="2">
+  <h2>Complete and Incomplete Data</h2>
+  <div class="fbody em-stack">
+    <p>Let $\mathbf x=(\mathbf x_1,\ldots,\mathbf x_n)$ denote all observed feature vectors,
+      $\mathbf y=(y_1,\ldots,y_n)$ all class labels, and $\theta$ the model parameters.</p>
+    <div class="em-pair em-equal">
+      <div class="em-card">
+        <h3>Complete data $(\mathbf x,\mathbf y)$</h3>
+        \[\ell_c(\theta;\mathbf x,\mathbf y)=\log p(\mathbf x,\mathbf y;\theta)\]
+        <p>Both features and class labels are observed.</p>
+        <p>We can estimate the Gaussian parameters using the MLE formulas from the previous slide.</p>
+      </div>
+      <div class="em-card" pause>
+        <h3>Observed data $\mathbf x$, unknown labels $\mathbf y$</h3>
+        \[\ell(\theta;\mathbf x)=\log p(\mathbf x;\theta)\]
+        <p>Only the features are observed.</p>
+        <p>We must account for the unknown labels when estimating the parameters.</p>
+      </div>
+    </div>
+    <div class="em-accent" pause><b>Our goal is still to estimate $\theta$ by maximum likelihood, but now we must do so without knowing the labels.</b></div>
+  </div>
+  <notes>2 min. Distinguish a single feature vector from the collection of feature vectors, and a single class label from the collection of labels. Start with the complete-data objective. Reveal the right column and ask which data can appear in the objective when labels are missing. The parameter symbol and the goal of maximum-likelihood estimation remain the same. Next work out what the observed-data likelihood looks like.</notes>
+</section>
+
+<section id="marginalize" data-content-number="3" data-minutes="3">
+  <h2>Marginalizing Hidden Variables</h2>
+  <div class="fbody em-marginal">
+    <div class="em-marginal-intro">
+      <div>
+        <h3>Observed-data likelihood</h3>
+        <p>Sum over all label assignments $\mathbf y\in\mathcal Y^n$, where $\mathcal Y$ is the finite set of possible labels.</p>
+      </div>
+      \[L(\mathbf x;\theta)=p(\mathbf x;\theta)
+        =\sum_{\mathbf y\in\mathcal Y^n}p(\mathbf x,\mathbf y;\theta)\]
+    </div>
+    <div class="em-marginal-proof">
+      <h3 pause data-fragment-index="0">Observed-data log-likelihood</h3>
+      <div class="em-marginal-line" pause data-fragment-index="0">
+        \[\ell(\theta;\mathbf x)=\log\sum_{\mathbf y\in\mathcal Y^n}\prod_{i=1}^n p(\mathbf x_i,y_i;\theta)\]
+        <span>Use independence for the joint density.</span>
+      </div>
+      <div class="em-marginal-line" pause data-fragment-index="1">
+        \[\phantom{\ell(\theta;\mathbf x)}=\log\prod_{i=1}^n\left(\sum_{k\in\mathcal Y}p(\mathbf x_i,Y_i=k;\theta)\right)\]
+        <span>Factor the sum over assignments into a product of per-point sums.</span>
+      </div>
+      <div class="em-marginal-line" pause data-fragment-index="2">
+        \[\phantom{\ell(\theta;\mathbf x)}=\sum_{i=1}^n\log\left(\sum_{k\in\mathcal Y}p(\mathbf x_i,Y_i=k;\theta)\right)\]
+        <span>Expand the log of the <b>product</b>. Each sum stays inside its log.</span>
+      </div>
+    </div>
+    <div class="em-accent" pause data-fragment-index="3"><b>The likelihood can be evaluated efficiently, but the logarithm of a sum makes maximization more difficult.</b></div>
+    <div class="em-pair em-equal em-marginal-tasks" pause data-fragment-index="4">
+      <div class="em-card">
+        <h3>If we knew $\theta$</h3>
+        <p>We could infer the missing labels using Bayes’ rule.</p>
+        \[p(y_i\mid\mathbf x_i;\theta)\propto
+          p(\mathbf x_i\mid y_i;\theta)p(y_i;\theta)\]
+      </div>
+      <div class="em-card">
+        <h3>If we knew $\mathbf y$</h3>
+        <p>We could estimate $\theta$ using the familiar MLE formulas.</p>
+      </div>
+    </div>
+    <div class="em-accent" pause data-fragment-index="5"><b>Can we alternate between inferring the missing labels and updating the model parameters?</b></div>
+  </div>
+  <notes>3 min. Marginalize over all assignments from any finite label set. With independent pairs, applying the product rule reduces the sum over assignments to one small sum for each observation. Reveal that intermediate step on its own. Take the log of the resulting product. The inner sums remain inside the logarithms, so the terms for different classes cannot be optimized separately as in the labeled problem. Compare the two tasks, then pause on the final question before advancing to the EM section overview.</notes>
+</section>
+
+<section id="em-section" class="frame" data-slide="map" data-minutes="0" aria-label="The EM Algorithm overview">
+  <fig name="deckmap" init="a=0 b=1 t=2" class="mapfig"></fig>
+  <notes>Section pause within the 22-minute block. Move from the intuition of alternating to a derivation that tells us exactly what each step optimizes. Advance again to begin the section.</notes>
+</section>
+
+<section id="em-idea" data-content-number="4" data-minutes="2">
+  <h2>The EM Idea</h2>
+  <div class="fbody em-stack">
+    <p>Start with an initial parameter estimate $\theta^{(0)}$. At iteration $t$, $\theta^{(t)}$ is our current estimate.<br>
+      Let $\mathbf x$ be the observed data and $\mathbf y$ a possible assignment of the missing labels.</p>
+    <div class="em-pair em-equal">
+      <div pause>
+        <block title="Estimate Missing Labels">
+          <p>Hold $\theta^{(t)}$ fixed.<br>
+            Use Bayes’ rule to calculate the probabilities of possible label assignments.</p>
+          \[\theta^{(t)}\longrightarrow p(\mathbf y\mid\mathbf x;\theta^{(t)})\]
+        </block>
+      </div>
+      <div pause>
+        <block title="Update Parameters">
+          <p>Hold these probabilities fixed.<br>
+            Maximize the expected complete-data log-likelihood to update the parameters.</p>
+          \[p(\mathbf y\mid\mathbf x;\theta^{(t)})\longrightarrow\theta^{(t+1)}\]
+        </block>
+      </div>
+    </div>
+    <div class="em-accent" pause><b>Repeat:</b> Use the updated parameters to estimate the missing labels again, then update the parameters.</div>
+  </div>
+  <notes>2 min. Start by distinguishing the observed feature vectors from a candidate assignment of labels. Reveal the left column and emphasize that the same current parameter estimate is used to give a probability to each assignment. Reveal the right column and explain that those probabilities serve as weights when comparing candidate parameters. Ask what gets recomputed once the parameters change, then reveal the final line. Next show which function this procedure improves.</notes>
+</section>
+
+<section id="lower-bounds" data-content-number="5" data-minutes="3">
+  <h2>Why a Lower Bound?</h2>
+  <div class="fbody em-stack em-bound-intro">
+    <p><b>Why should alternating label estimation and parameter updates improve the log-likelihood?</b></p>
+    <div class="em-pair em-visual">
+      <div class="em-copy">
+        \[\ell(\theta;\mathbf{x})=\log p(\mathbf{x};\theta)
+          =\log\sum_{\mathbf{y}}p(\mathbf{x},\mathbf{y};\theta)\]
+        <p>The log of a sum makes direct maximization harder. Write $\ell(\theta)$ for short.</p>
+        <div pause="stage=1" data-fragment-index="0">
+          <p>Use a simpler lower bound $B_t(\theta)$.</p>
+          \[\textcolor{#762A83}{B_t(\theta)}\leq \textcolor{#008000}{\ell(\theta)}\]
+        </div>
+        <div pause="stage=2" data-fragment-index="1">
+          <p>Make it touch at the current estimate.</p>
+          \[B_t(\theta^{(t)})=\ell(\theta^{(t)})\]
+        </div>
+        <div pause="stage=3" data-fragment-index="2">
+          <p>Move to the maximum of this bound.</p>
+          \[\theta^{(t+1)}=\arg\max_\theta B_t(\theta)\]
+        </div>
+      </div>
+      <div class="em-panel" data-demo="scalar">
+        <figure class="em-plot"><fig name="scalarBoundIntro" init="stage=0" data-description="Observed log-likelihood and an EM lower bound for the signal-plus-noise example"></fig></figure>
+        <div class="em-legend">
+          <span class="c-like">━ $\ell(\theta)$</span>
+          <span class="c-pred" pause data-fragment-index="0">━ $B_t(\theta)$</span>
+          <span class="c-prior" pause data-fragment-index="1">● Current estimate</span>
+          <span class="c-rose" pause data-fragment-index="2">◆ Bound maximum</span>
+          <span class="c-like" pause data-fragment-index="3">○ New likelihood</span>
+        </div>
+        <div pause="stage=4" data-fragment-index="3">
+          <div class="em-controls" role="group" aria-label="EM iteration controls">
+            <button type="button" data-action="step">Next Iteration</button>
+            <button type="button" data-action="batch">+5 Iterations</button>
+            <button type="button" data-action="reset">Reset</button>
+          </div>
+          <div class="em-readout" data-status role="status"></div>
+          <div class="em-readout" data-detail></div>
+        </div>
+      </div>
+    </div>
+    <div class="em-accent" pause data-fragment-index="4"><b>How does the posterior distribution give us a bound that touches at the current estimate?</b></div>
+  </div>
+  <notes>3 min. Connect the previous slide's alternating procedure to the objective we still care about. The green curve is the actual observed log-likelihood for the signal-plus-noise example we will derive later. Reveal the purple curve, then the blue point where the curves touch. Reveal the pink diamond, the maximum of this fixed bound. Ask how high the new likelihood must be. Reveal the open circle directly above the diamond and compare its height with the blue point. Step once to show that the blue point moves to the previous proposal and the bound is rebuilt. Reset to get back to the first iteration. Ask where this tight bound comes from.</notes>
+</section>
+
+<section id="bound-derivation" data-content-number="6" data-minutes="4">
+  <h2>Deriving the Lower Bound</h2>
+  <div class="fbody em-stack em-kl">
+    <p>Let $\mathbf Y$ represent the missing labels. Choose any probability distribution $q(\mathbf y)$ over their possible assignments, supported where the posterior is positive.</p>
+    <div class="em-kl-proof">
+      <div class="em-kl-line" pause data-fragment-index="0">
+        <div class="em-kl-lhs">\[\ell(\theta)\]</div>
+        <div class="em-kl-math">\[{}=\ln p(\mathbf x;\theta)
+          =\ln\frac{p(\mathbf x,\mathbf y;\theta)}{p(\mathbf y\mid\mathbf x;\theta)}\]</div>
+        <p class="em-kl-reason">Bayes’ rule.</p>
+      </div>
+      <div class="em-kl-line" pause data-fragment-index="1">
+        <div class="em-kl-math">\[{}=\sum\nolimits_{\mathbf y}q(\mathbf y)
+          \ln\frac{p(\mathbf x,\mathbf y;\theta)}{p(\mathbf y\mid\mathbf x;\theta)}\]</div>
+        <p class="em-kl-reason">Average over assignments. The log ratio is constant and $\sum_{\mathbf y}q(\mathbf y)=1$.</p>
+      </div>
+      <div class="em-kl-line" pause data-fragment-index="2">
+        <div class="em-kl-math">\[{}\mathrel{\textcolor{#762A83}{\geq}}\sum\nolimits_{\mathbf y}q(\mathbf y)
+          \ln\frac{p(\mathbf x,\mathbf y;\theta)}{p(\mathbf y\mid\mathbf x;\theta)}
+          - D\bigl(q\,\|\,p(\mathbf Y\mid\mathbf x;\theta)\bigr)\]</div>
+        <p class="em-kl-reason c-pred"><b>KL divergence is nonnegative.</b></p>
+      </div>
+      <div class="em-kl-line" pause data-fragment-index="3">
+        <div class="em-kl-math">\[{}=\sum\nolimits_{\mathbf y}q(\mathbf y)
+          \ln\frac{p(\mathbf x,\mathbf y;\theta)}{p(\mathbf y\mid\mathbf x;\theta)}
+          -\sum\nolimits_{\mathbf y}q(\mathbf y)
+          \ln\frac{q(\mathbf y)}{p(\mathbf y\mid\mathbf x;\theta)}\]</div>
+        <p class="em-kl-reason">Definition of KL divergence.</p>
+      </div>
+      <div class="em-kl-line" pause data-fragment-index="4">
+        <div class="em-kl-math">\[{}=\textcolor{#762A83}{\underbrace{
+          \sum\nolimits_{\mathbf y}q(\mathbf y)\ln p(\mathbf x,\mathbf y;\theta)
+          -\sum\nolimits_{\mathbf y}q(\mathbf y)\ln q(\mathbf y)
+          }_{\mathcal L(q,\theta)}}\]</div>
+        <p class="em-kl-reason">Expand the logarithms and cancel the posterior terms.</p>
+      </div>
+    </div>
+    <div class="em-accent" pause data-fragment-index="4"><b>We have constructed a lower bound $\mathcal L(q,\theta)$. When does it become tight?</b></div>
+  </div>
+  <notes>4 min. Bayes’ rule gives the same ratio for each assignment with positive posterior probability. Averaging the log ratio under q leaves its value unchanged. Subtract a nonnegative divergence to create the inequality. Expand the divergence and point to the two posterior log terms that cancel. Throughout, sums weighted by q can be taken over its positive-probability assignments. The subtracted divergence is the gap between the log-likelihood and the resulting bound. Ask how to make it zero at the current estimate.</notes>
+</section>
+
+<section id="bound-tight" data-content-number="7" data-minutes="3">
+  <h2>When Is the Bound Tight?</h2>
+  <div class="fbody em-stack em-tight">
+    <div class="em-pair em-tight-top">
+      <div>
+        <p>If the bound touches the log-likelihood at our current estimate, maximizing it guarantees nondecreasing log-likelihood.</p>
+        \[\textcolor{#2354A8}{B(\theta^{(t)},\theta^{(t)})=\ell(\theta^{(t)})}\]
+        <div pause data-fragment-index="0">
+          <p>The KL gap is zero if and only if the two distributions are equal. Choose the posterior at the current estimate.</p>
+          \[\boxed{q(\mathbf y)=p(\mathbf y\mid\mathbf x;\theta^{(t)})}\]
+        </div>
+      </div>
+      <div class="em-panel em-tight-plot" data-demo="scalar">
+        <figure class="em-plot"><fig name="scalarBoundTight" init="stage=2" data-description="The bound touches the log-likelihood at the blue current-estimate marker"></fig></figure>
+        <div class="em-legend"><span class="c-like">━ $\ell(\theta)$</span><span class="c-pred">━ $B(\theta,\theta^{(t)})$</span><span class="c-prior">● Current estimate</span></div>
+        <div class="em-controls" role="group" aria-label="EM iteration controls">
+          <button type="button" data-action="step">Next Iteration</button>
+          <button type="button" data-action="reset">Reset</button>
+          <span data-status role="status"></span>
+        </div>
+      </div>
+    </div>
+    <div class="em-tight-bound" pause data-fragment-index="1">
+      \[\ell(\theta)\geq \textcolor{#762A83}{B(\theta,\theta^{(t)})}
+        =\sum\nolimits_{\mathbf y}p(\mathbf y\mid\mathbf x;\theta^{(t)})\ln p(\mathbf x,\mathbf y;\theta)
+        -\sum\nolimits_{\mathbf y}p(\mathbf y\mid\mathbf x;\theta^{(t)})\ln p(\mathbf y\mid\mathbf x;\theta^{(t)})\]
+    </div>
+    <div class="em-accent" pause data-fragment-index="2"><b>The second term is constant in $\theta$.</b> Maximizing the bound is equivalent to maximizing its first term.</div>
+    <div class="em-pair em-tight-update">
+      <div pause data-fragment-index="3">
+        \[\begin{aligned}
+          Q(\theta,\theta^{(t)})
+          &=\sum_{\mathbf y}p(\mathbf y\mid\mathbf x;\theta^{(t)})\ln p(\mathbf x,\mathbf y;\theta)\\[6pt]
+          &\boxed{Q(\theta,\theta^{(t)})=\mathbb E_{\theta^{(t)}}\!\left[\ln p(\mathbf x,\mathbf Y;\theta)\mid\mathbf x\right]}
+        \end{aligned}\]
+      </div>
+      <div pause data-fragment-index="4">
+        \[\boxed{\theta^{(t+1)}=\arg\max_\theta Q(\theta,\theta^{(t)})}\]
+      </div>
+    </div>
+  </div>
+  <notes>3 min. Start at the blue contact point. The old likelihood equals the height of the bound there. Advance one iteration to rebuild the bound and move the contact point, then reset. At the current estimate, choosing its posterior makes the KL gap zero. Substitute that posterior into both sums from the previous slide. Point out that only the candidate inside the first log changes during maximization. On the next slide we write the same fixed posterior more compactly as q sub t and view Q as an expectation.</notes>
+</section>
+
+<section id="em-summary" data-content-number="8" data-minutes="10">
+  <h2>The EM Algorithm</h2>
+  <div class="fbody em-stack em-algorithm" data-demo="scalar-algorithm">
+    <p>Start with an initial estimate $\theta^{(0)}$. At each iteration $t$, perform two steps.</p>
+    <div class="em-pair em-algorithm-layout">
+      <div class="em-algorithm-steps">
+        <div class="em-card em-algorithm-step" data-em-step="e">
+          <h3>1. Expectation step</h3>
+          <p>Use the current estimate to compute the expected complete-data log-likelihood.</p>
+          \[Q(\theta,\theta^{(t)})=\mathbb E_{\theta^{(t)}}\!
+            \left[\ln p(\mathbf x,\mathbf Y;\theta)\mid\mathbf x\right]\]
+          <p>Build a bound that touches $\ell$ at $\theta^{(t)}$.</p>
+        </div>
+        <div class="em-card em-algorithm-step" data-em-step="m">
+          <h3>2. Maximization step</h3>
+          <p>Maximize $Q$ over the candidate $\theta$ to update the estimate.</p>
+          \[\theta^{(t+1)}=\arg\max_{\theta}Q(\theta,\theta^{(t)})\]
+        </div>
+      </div>
+      <div class="em-panel em-algorithm-demo">
+        <figure class="em-plot"><fig name="scalarBoundAlgorithm" data-description="Observed log-likelihood and the bound constructed at the current estimate"></fig></figure>
+        <div class="em-legend">
+          <span class="c-like">━ $\ell(\theta)$</span>
+          <span class="c-prior">● Current estimate</span>
+          <span class="c-pred" data-em-bound>━ $B(\theta,\theta^{(t)})$</span>
+          <span class="c-rose" data-em-update>◆ Bound maximum</span>
+          <span class="c-like" data-em-update>○ Updated $\ell$</span>
+        </div>
+        <div class="em-controls" role="group" aria-label="EM algorithm controls">
+          <button type="button" data-action="step">Next Step</button>
+          <button type="button" data-action="batch">+5 Iterations</button>
+          <button type="button" data-action="reset">Reset</button>
+        </div>
+        <div role="status">
+          <div class="em-readout" data-status></div>
+          <div class="em-readout" data-parameters></div>
+          <div class="em-readout" data-detail></div>
+        </div>
+      </div>
+    </div>
+    <div class="em-accent" pause><b>Repeat.</b> Use the updated parameters to construct a new lower bound and maximize it again.</div>
+  </div>
+  <notes>10 min. Revisit the same signal-plus-noise example used to motivate the lower bound. The green curve is fixed by the observed data. Before each click, ask whether the parameter or the bound will change. First construct the purple bound at the blue point. The estimate stays at one. Next find the pink diamond, the exact maximizer of that bound, and the open green circle directly above it. Compare the two log-likelihood values. On the next Expectation step the blue point moves to the updated estimate and a new purple bound touches there. Repeat to obtain 1.5, 2.04, and about 2.472. Use +5 Iterations to approach three, then reset if repeating the demonstration. Advance to the clustering section to apply the same two steps to the unlabeled data from the opening slide.</notes>
+</section>
+
+<section id="clustering-section" class="frame" data-slide="map" data-minutes="0" aria-label="Clustering with Gaussian Mixtures overview">
+  <fig name="deckmap" init="a=1 b=2 t=2" class="mapfig"></fig>
+  <notes>Section pause within the 30-minute block. Return to the unlabeled points from the opening slide. We now apply the two EM steps to recover the class model from the features.</notes>
+</section>
+
+<section id="mixture-model" data-content-number="9" data-minutes="7">
+  <h2>Gaussian Mixture Model</h2>
+  <div class="fbody em-stack em-mixture">
+    <div class="em-pair em-mixture-model">
+      <div class="em-copy">
+        <p>Return to the two Gaussian classes with missing labels.</p>
+        \[\begin{gathered}
+          \begin{aligned}
+            p(Y_i=1)&=\pi,   & (\mathbf X_i\mid Y_i=1)&\sim\mathcal N(\boldsymbol\mu_1,K_1)\\[-3pt]
+            p(Y_i=0)&=1-\pi, & (\mathbf X_i\mid Y_i=0)&\sim\mathcal N(\boldsymbol\mu_0,K_0)
+          \end{aligned}\\[-7pt]
+          \theta=(\pi,\boldsymbol\mu_0,\boldsymbol\mu_1,K_0,K_1)
+        \end{gathered}\]
+        <div pause>
+          <p>Let $f_k(\mathbf x)=\mathcal N(\mathbf x;\boldsymbol\mu_k,K_k)$. The joint density is</p>
+          \[p(\mathbf x_i,y_i;\theta)
+            =[\pi f_1(\mathbf x_i)]^{y_i}
+             [(1-\pi)f_0(\mathbf x_i)]^{1-y_i}\]
+        </div>
+        <div pause>
+          <p>For independent observations, the complete-data log-likelihood is</p>
+          \[\begin{aligned}
+            \ell_c(\theta;\mathbf x,\mathbf y)
+              &=\sum\nolimits_{i=1}^{n}\ln p(\mathbf x_i,y_i;\theta)\\
+              &=\sum\nolimits_{i=1}^{n}\big[
+                y_i\ln(\pi f_1(\mathbf x_i))\\
+              &\qquad +(1-y_i)\ln((1-\pi)f_0(\mathbf x_i))\big]
+          \end{aligned}\]
+        </div>
+      </div>
+      <div class="em-panel">
+        <fig name="labelCloud" data-description="The 180 observations from the opening slide, with class labels hidden"></fig>
+        <p class="em-center small muted">The original observations, with labels hidden</p>
+      </div>
+    </div>
+    <div class="em-accent" pause>Without the labels, we must sum over all possible label assignments, making direct maximization of the observed-data likelihood difficult.</div>
+  </div>
+  <notes>7 min. Return to the original unlabeled observations and recall the Gaussian class model. For the joint density, substitute each possible label and observe which factor remains. Independence turns the joint density into a product across observations. Take logs and explain how the indicator exponents become coefficients. Without the labels, marginalizing gives the observed-data likelihood discussed earlier. Ask which quantity replaces each indicator in the expectation step.</notes>
+</section>
+
+<section id="mixture-e-step" data-content-number="10" data-minutes="3">
+  <h2>E-Step</h2>
+  <div class="fbody em-stack em-estep">
+    <p>Using the current parameter estimate $\theta^{(t)}$, compute the expected complete-data log-likelihood.</p>
+    <div class="em-estep-proof">
+      <div class="em-estep-line" pause data-fragment-index="0">
+        <div>\[Q(\theta,\theta^{(t)})=\mathbb E_{\theta^{(t)}}[\ln p(\mathbf x,\mathbf Y;\theta)\mid\mathbf x]\]</div>
+        <p>Definition of $Q$.</p>
+      </div>
+      <div class="em-estep-line" pause data-fragment-index="1">
+        <div>\[\phantom{Q(\theta,\theta^{(t)})}{}=
+          \mathbb E_{\theta^{(t)}}\!\left[\sum\nolimits_{i=1}^n\ln p(\mathbf x_i,Y_i;\theta)\mid\mathbf x\right]
+          =\sum\nolimits_{i=1}^n\mathbb E_{\theta^{(t)}}[\ln p(\mathbf x_i,Y_i;\theta)\mid\mathbf x_i]\]</div>
+        <p>Independence of observation-label pairs and linearity of expectation.</p>
+      </div>
+      <div class="em-estep-line" pause data-fragment-index="2">
+        <div>\[\phantom{Q(\theta,\theta^{(t)})}{}=
+          \sum\nolimits_{i=1}^n\mathbb E_{\theta^{(t)}}\!\left[
+            Y_i\ln\!\big(\pi f_1(\mathbf x_i)\big)
+            +(1-Y_i)\ln\!\big((1-\pi)f_0(\mathbf x_i)\big)
+            \mid\mathbf x_i\right]\]</div>
+        <p>Substitute the complete-data log-likelihood.</p>
+      </div>
+      <div class="em-estep-line" pause data-fragment-index="3">
+        <div>\[\phantom{Q(\theta,\theta^{(t)})}{}=
+          \sum\nolimits_{i=1}^n\!\Big[
+            \underbrace{\mathbb E_{\theta^{(t)}}[Y_i\mid\mathbf x_i]}_{\gamma_i}
+            \ln\!\big(\pi f_1(\mathbf x_i)\big)
+            +\underbrace{\mathbb E_{\theta^{(t)}}[1-Y_i\mid\mathbf x_i]}_{1-\gamma_i}
+            \ln\!\big((1-\pi)f_0(\mathbf x_i)\big)\Big]\]</div>
+        <p>Linearity of expectation. Only $Y_i$ is random.</p>
+      </div>
+      <div class="em-estep-line" pause data-fragment-index="4">
+        <div>\[\kern-0.3em\boxed{Q(\theta,\theta^{(t)})=
+          \sum\nolimits_{i=1}^n\!\Big[
+            \gamma_i\ln\!\big(\pi f_1(\mathbf x_i)\big)
+            +(1-\gamma_i)\ln\!\big((1-\pi)f_0(\mathbf x_i)\big)\Big]}\]</div>
+        <p>Substitute posterior expectations.</p>
+      </div>
+    </div>
+    <div class="em-estep-where" pause data-fragment-index="5"><span>where</span>
+      \[\gamma_i=\mathbb E_{\theta^{(t)}}[Y_i\mid\mathbf x_i]\]
+    </div>
+    <div class="em-accent" pause data-fragment-index="6">The E-step replaces the missing labels with their posterior expectations.</div>
+  </div>
+  <notes>3 min. Start from the definition of Q. The joint density factors over independent observation-label pairs, and the posterior of each label only uses its own observed feature vector. Use linearity to take the sum outside the expectation. Substitute the joint log-density from the previous slide and pull out the fixed log terms. End by identifying gamma i as the posterior expectation of the label. The next slide shows how to compute it.</notes>
+</section>
+
+<section id="responsibilities" data-content-number="11" data-minutes="3">
+  <h2>E-Step: Responsibilities</h2>
+  <div class="fbody em-stack em-estep em-estep-responsibilities">
+    <div>
+      \[\kern-0.3em\boxed{Q(\theta,\theta^{(t)})=
+        \sum\nolimits_{i=1}^n\!\Big[
+          \gamma_i\ln\!\big(\pi f_1(\mathbf x_i)\big)
+          +(1-\gamma_i)\ln\!\big((1-\pi)f_0(\mathbf x_i)\big)\Big]}\]
+    </div>
+    <div class="em-estep-proof em-estep-gamma">
+      <div class="em-estep-line" pause data-fragment-index="0">
+        <div class="em-estep-where"><span>where</span>
+          \[\gamma_i=\mathbb E_{\theta^{(t)}}[Y_i\mid\mathbf x_i]
+            =p(Y_i=1\mid\mathbf x_i;\theta^{(t)})\]
+        </div>
+        <p>$Y_i$ is binary.</p>
+      </div>
+      <div class="em-estep-line" pause data-fragment-index="1">
+        <div>\[\phantom{\gamma_i}{}=
+          \frac{p(\mathbf x_i,Y_i=1;\theta^{(t)})}
+          {p(\mathbf x_i,Y_i=1;\theta^{(t)})+p(\mathbf x_i,Y_i=0;\theta^{(t)})}\]</div>
+        <p>Bayes’ rule and marginalization.</p>
+      </div>
+      <div class="em-estep-line" pause data-fragment-index="2">
+        <div>\[\phantom{\gamma_i}{}=
+          \frac{\pi^{(t)}f_1^{(t)}(\mathbf x_i)}
+          {\pi^{(t)}f_1^{(t)}(\mathbf x_i)+(1-\pi^{(t)})f_0^{(t)}(\mathbf x_i)}\]</div>
+        <p>Substitute the Gaussian mixture model.</p>
+      </div>
+    </div>
+    <p class="em-estep-interpretation" pause data-fragment-index="3">$\gamma_i$, called the <b>responsibility</b>, represents the probability that observation $\mathbf x_i$ belongs to class 1 given the current parameter estimate $\theta^{(t)}$.</p>
+    <div class="em-accent" pause data-fragment-index="4">The E-step partially assigns each observation to class 1 with weight $\gamma_i$ and to class 0 with weight $1-\gamma_i$.</div>
+  </div>
+  <notes>3 min. Recall where the posterior expectations enter Q. The expected binary indicator is the posterior probability of class 1. Apply Bayes’ rule, sum over the two labels in the denominator, and substitute the two weighted Gaussian densities. Point to the iteration superscripts in the responsibility and their absence inside the log terms of Q. For the M-step, keep these soft assignments fixed while varying the candidate parameters.</notes>
+</section>
+
+<section id="mixing-weights" data-content-number="12" data-minutes="5">
+  <h2>M-Step: Weights and Means</h2>
+  <div class="fbody em-stack em-mstep em-mstep-means">
+    <p>Hold the responsibilities fixed and maximize $Q(\theta,\theta^{(t)})$ over the candidate parameters.</p>
+    <div class="em-mstep-objective">
+      \[\boxed{Q(\theta,\theta^{(t)})=\sum\nolimits_{i=1}^n\!\Big[
+        \gamma_i\big(\htmlClass{em-mstep-weight-term}{\ln\pi}+\htmlClass{em-mstep-density-term}{\ln f_1(\mathbf x_i)}\big)
+        +(1-\gamma_i)\big(\htmlClass{em-mstep-weight-term}{\ln(1-\pi)}+\htmlClass{em-mstep-density-term}{\ln f_0(\mathbf x_i)}\big)
+      \Big]}\]
+    </div>
+    <div class="em-pair em-mstep-columns">
+      <div class="em-mstep-weights">
+        <h3>Mixing weight</h3>
+        <div pause data-fragment-index="0">
+          \[\frac{\partial Q}{\partial\pi}=
+            \sum_{i=1}^n\left(\frac{\gamma_i}{\pi}-\frac{1-\gamma_i}{1-\pi}\right)=0\]
+        </div>
+        <div pause data-fragment-index="1">
+          \[\boxed{\pi^{(t+1)}=\frac1n\sum_{i=1}^n\gamma_i}\]
+        </div>
+      </div>
+      <div class="em-mstep-mean-column">
+        <div class="em-mstep-density" pause data-fragment-index="2">
+          <h3>Gaussian means</h3>
+          \[f_k(\mathbf x_i)=\mathcal N(\mathbf x_i;\boldsymbol\mu_k,K_k)
+            =\frac{\exp\!\left(\htmlClass{em-mstep-dependent}{
+              -\frac12(\mathbf x_i-\boldsymbol\mu_k)^\top K_k^{-1}(\mathbf x_i-\boldsymbol\mu_k)}\right)}
+            {(2\pi)^{d/2}|K_k|^{1/2}},\quad k=0,1\]
+        </div>
+        <div class="em-mstep-proof">
+          <div pause data-fragment-index="3">
+            \[\frac{\partial Q}{\partial\boldsymbol\mu_1}
+              =\frac{\partial}{\partial\boldsymbol\mu_1}
+                \sum\nolimits_{i=1}^n\gamma_i\ln f_1(\mathbf x_i)\]
+          </div>
+          <div pause data-fragment-index="4">
+            \[\phantom{\frac{\partial Q}{\partial\boldsymbol\mu_1}}{}=
+              \frac{\partial}{\partial\boldsymbol\mu_1}\sum\nolimits_{i=1}^n\gamma_i
+              \left(-\frac12(\mathbf x_i-\boldsymbol\mu_1)^\top K_1^{-1}(\mathbf x_i-\boldsymbol\mu_1)\right)\]
+          </div>
+          <div pause data-fragment-index="5">
+            \[\phantom{\frac{\partial Q}{\partial\boldsymbol\mu_1}}{}=
+              \sum\nolimits_{i=1}^n\gamma_i K_1^{-1}(\mathbf x_i-\boldsymbol\mu_1)=0\]
+          </div>
+        </div>
+        <div class="em-pair em-equal em-mstep-results" pause data-fragment-index="6">
+          <div>\[\boxed{\boldsymbol\mu_1^{(t+1)}=\frac{\sum_i\gamma_i\mathbf x_i}{\sum_i\gamma_i}}\]</div>
+          <div>\[\boxed{\boldsymbol\mu_0^{(t+1)}=\frac{\sum_i(1-\gamma_i)\mathbf x_i}{\sum_i(1-\gamma_i)}}\]</div>
+        </div>
+      </div>
+    </div>
+    <div class="em-accent" pause data-fragment-index="7">The mixing weight is the average responsibility. Each mean is a responsibility-weighted sample mean.</div>
+  </div>
+  <notes>5 min. First highlight the two log weights and separate their derivatives from the Gaussian terms. Multiply the stationarity equation by pi times one minus pi. The two effective counts sum to n. The concave mixing term has an interior maximum for positive effective counts. Next highlight both Gaussian log-densities. For component 1, holding the positive definite covariance fixed leaves only the quadratic in the mean. Differentiate it and cancel the common inverse covariance in the stationarity equation. Repeat with one minus gamma i for component 0. Ask how these formulas specialize to the opening labeled example when responsibilities are zero or one.</notes>
+</section>
+
+<section id="component-covariances" data-content-number="13" data-minutes="3">
+  <h2>M-Step: Covariances</h2>
+  <div class="fbody em-stack em-mstep em-mstep-covariances">
+    <div class="em-mstep-objective">
+      \[\boxed{Q(\theta,\theta^{(t)})=\sum\nolimits_{i=1}^n\!\Big[
+        \gamma_i\big(\htmlClass{em-mstep-weight-term}{\ln\pi}+\htmlClass{em-mstep-density-term}{\ln f_1(\mathbf x_i)}\big)
+        +(1-\gamma_i)\big(\htmlClass{em-mstep-weight-term}{\ln(1-\pi)}+\htmlClass{em-mstep-density-term}{\ln f_0(\mathbf x_i)}\big)
+      \Big]}\]
+    </div>
+    <div pause data-fragment-index="0">
+      \[\ln f_k(\mathbf x_i)=-\frac d2\ln(2\pi)
+        \htmlClass{em-mstep-dependent}{-\frac12\ln|K_k|}
+        \htmlClass{em-mstep-dependent}{-\frac12(\mathbf x_i-\boldsymbol\mu_k)^\top K_k^{-1}(\mathbf x_i-\boldsymbol\mu_k)},
+        \quad k=0,1\]
+    </div>
+    <div class="em-mstep-proof em-mstep-covariance-proof">
+      <div class="em-mstep-line" pause data-fragment-index="1">
+        <div>\[\frac{\partial Q}{\partial K_1^{-1}}=
+          \frac{\partial}{\partial K_1^{-1}}\sum_{i=1}^n\gamma_i\ln f_1(\mathbf x_i)\]</div>
+        <p>Keep the terms for component 1.</p>
+      </div>
+      <div class="em-mstep-line" pause data-fragment-index="2">
+        <div>\[\phantom{\frac{\partial Q}{\partial K_1^{-1}}}{}=
+          \frac{\partial}{\partial K_1^{-1}}\sum_{i=1}^n\gamma_i\!
+          \left(\frac12\ln|K_1^{-1}|
+            -\frac12(\mathbf x_i-\boldsymbol\mu_1)^\top K_1^{-1}(\mathbf x_i-\boldsymbol\mu_1)\right)\]</div>
+        <p>Use $\ln|K_1^{-1}|=-\ln|K_1|$.</p>
+      </div>
+      <div class="em-mstep-line" pause data-fragment-index="3">
+        <div>\[\phantom{\frac{\partial Q}{\partial K_1^{-1}}}{}=
+          \frac12 K_1\sum_{i=1}^n\gamma_i
+          -\frac12\sum_{i=1}^n\gamma_i(\mathbf x_i-\boldsymbol\mu_1)
+            (\mathbf x_i-\boldsymbol\mu_1)^\top=0\]</div>
+        <p>Differentiate in the precision $K_1^{-1}$.</p>
+      </div>
+    </div>
+    <div class="em-mstep-covariance-result" pause data-fragment-index="4">
+      <p>Use the <b>updated means</b> from the previous slide.</p>
+      <div class="em-pair em-equal em-mstep-results">
+        <div>\[\boxed{K_1^{(t+1)}=
+          \frac{\sum_i\gamma_i(\mathbf x_i-\boldsymbol\mu_1^{(t+1)})
+            (\mathbf x_i-\boldsymbol\mu_1^{(t+1)})^\top}{\sum_i\gamma_i}}\]</div>
+        <div>\[\boxed{K_0^{(t+1)}=
+          \frac{\sum_i(1-\gamma_i)(\mathbf x_i-\boldsymbol\mu_0^{(t+1)})
+            (\mathbf x_i-\boldsymbol\mu_0^{(t+1)})^\top}{\sum_i(1-\gamma_i)}}\]</div>
+      </div>
+    </div>
+    <div class="em-accent" pause data-fragment-index="5">Each covariance describes the weighted spread around its component’s updated mean.</div>
+  </div>
+  <notes>3 min. Unlike for the means, the log normalization now contributes to the derivative. Reexpress the determinant using the precision. For symmetric positive definite A, the gradient of log det A is A inverse, and the gradient of v transpose A v is v v transpose. Apply these with A equal to the precision and solve for the covariance. Repeat with one minus gamma i for component 0. The updated center is optimal for any fixed positive definite covariance, so use it to estimate the weighted spread. Ask students to watch the contours change orientation during the M-step on the next slide.</notes>
+</section>
+
+<section id="clustering-action" data-content-number="14" data-minutes="7">
+  <h2>EM Clustering in Action</h2>
+  <div class="fbody em-gmm" data-demo="gmm">
+    <div class="em-gmm-scatter">
+      <fig name="mixtureCloud"></fig>
+      <div class="em-legend em-gmm-legend">
+        <div class="em-responsibility-legend" data-responsibility-legend>
+          <span>Class 0</span>
+          <span class="em-responsibility-ramp" aria-hidden="true"></span>
+          <span>Class 1</span>
+        </div>
+        <div class="em-label-legend" data-label-legend hidden>
+          <span>True labels</span><span>● Class 0</span><span>▲ Class 1</span>
+          <span data-label-color-note hidden>Colors show responsibilities</span>
+        </div>
+        <span>× Means</span><span>Mahalanobis radii 1 and 2</span>
+      </div>
+    </div>
+    <div class="em-gmm-model">
+      <h3>Observed Log-Likelihood</h3>
+      <fig name="mixtureHistory"></fig>
+      <table class="em-table em-parameters" aria-label="Current Gaussian mixture parameters">
+        <thead><tr><th scope="col">Component</th><th scope="col">0</th><th scope="col">1</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Weight</th><td>$1-\pi=$ <span data-parameter-value="0-weight"></span></td><td>$\pi=$ <span data-parameter-value="1-weight"></span></td></tr>
+          <tr><th scope="row">Mean</th><td>$\boldsymbol\mu_0=$ <span data-parameter-value="0-mean"></span></td><td>$\boldsymbol\mu_1=$ <span data-parameter-value="1-mean"></span></td></tr>
+          <tr><th scope="row">Covariance</th><td>$K_0=$ <span data-parameter-value="0-cov"></span></td><td>$K_1=$ <span data-parameter-value="1-cov"></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="em-gmm-footer">
+      <div class="em-controls" role="group" aria-label="Gaussian mixture EM controls">
+        <button type="button" data-action="e">E-Step</button>
+        <button type="button" data-action="m">M-Step</button>
+        <button type="button" data-action="step">Next Iteration</button>
+        <button type="button" data-action="run" aria-pressed="false">Run</button>
+        <button type="button" data-action="reset">Reset</button>
+        <button type="button" data-action="start">New Initialization</button>
+        <button type="button" data-action="labels" aria-pressed="false">Show True Labels</button>
+      </div>
+      <p class="em-readout" data-status role="status"></p>
+      <p class="em-readout" data-detail></p>
+    </div>
+  </div>
+  <notes>7 min. Start with gray observations and the default initial contours. Ask which observations are hard to assign. Click E-Step and look for changing colors with fixed contours. Click M-Step and track the dashed mean displacement and contour changes while the E-step colors are held. Click E-Step again to update the colors under the new model. Compare the orientation and relative weight of the two components after three iterations with their initialization. Ask why the likelihood changes only after the M-step. Use Next Iteration, then Run and Pause to show the trend. The plot records the observed-data log-likelihood after each M-step. Toggle Show True Labels to add circles and triangles for the generating classes while preserving the inferred colors. Reset returns to default. New Initialization cycles through distinct seeded-data starting configurations, including a symmetric one. If a candidate would have a covariance eigenvalue at most 10⁻⁶ or effective count at most 10⁻¹⁰, the demo stops before accepting it. Successful updates are ordinary unregularized EM.</notes>
+</section>
+
+<section id="clustering-limits" data-content-number="15" data-minutes="2">
+  <h2>Convergence and Limitations</h2>
+  <div class="fbody em-stack em-mixture-limits">
+    <div class="em-pair em-equal em-limit-columns">
+      <div class="em-limit-column">
+        <div class="em-limit-intro">
+          <h3>Initialization sensitivity</h3>
+          <p>Different initializations can lead to different stationary points.</p>
+        </div>
+        <div class="em-panel">
+          <fig name="startComparison" data-description="Observed log-likelihood over iterations from three initializations"></fig>
+          <div class="em-legend">
+            <span class="em-limit-key c-prior">Default</span>
+            <span class="em-limit-key em-limit-dashed c-teal">Nearby Means</span>
+            <span class="em-limit-key em-limit-dotted c-pred">Identical Components</span>
+          </div>
+        </div>
+        <div class="em-limit-explanation" pause data-fragment-index="0">
+          \[f_0(\mathbf x_i)=f_1(\mathbf x_i)\implies \gamma_i=\pi,\qquad \forall i\]
+          <p>EM cannot break the symmetry between the two components.</p>
+          <p><b>Remedy:</b> Use multiple initializations.</p>
+        </div>
+      </div>
+      <div class="em-limit-column">
+        <div data-collapse pause data-fragment-index="1">
+          <div class="em-limit-intro">
+            <h3>Singular covariances</h3>
+            <p>One component can collapse onto a single observation.</p>
+          </div>
+          <fig name="componentCollapse" init="logSigma=-0.3" data-description="Two-dimensional observations colored by responsibility. The blue Gaussian stays fixed and the red contours shrink around the marked observation."></fig>
+          <div class="em-legend">
+            <span class="em-limit-key c-prior">Fixed Gaussian</span>
+            <span class="em-limit-key c-post">Shrinking Gaussian</span>
+            <span class="em-responsibility-legend">$\gamma_i$ <span>0</span>
+              <span class="em-responsibility-ramp" aria-hidden="true"></span><span>1</span>
+            </span>
+          </div>
+          <div class="em-collapse-controls">
+            <div class="knobs" data-for="componentCollapse">
+              <label>Standard deviation $\sigma$
+                <input type="range" data-param="logSigma" min="-4" max="0" step="0.05" aria-label="Standard deviation on a logarithmic scale">
+                <span data-collapse-sigma></span>
+              </label>
+            </div>
+            <span>Fixed $\pi=0.02$</span>
+          </div>
+          <div class="em-collapse-readouts">
+            <span>$|K_1|=$ <output data-collapse-det></output></span>
+            <span>$f_1(\mathbf x_j)=$ <output data-collapse-density></output></span>
+            <span>Log-likelihood $\ell=$ <output data-collapse-likelihood></output></span>
+          </div>
+        </div>
+        <div class="em-limit-explanation em-collapse-explanation" pause data-fragment-index="2">
+          <p>When $\boldsymbol\mu_1=\mathbf x_j$ and $K_1=\sigma^2 I$,</p>
+          \[ f_1(\mathbf x_j)=\frac{1}{(2\pi)^{d/2}|K_1|^{1/2}},
+             \qquad |K_1|\to0\implies f_1(\mathbf x_j)\to\infty \]
+          <p>The blue component covers the rest, so the likelihood is unbounded.</p>
+          <p><b>Remedy:</b> Regularize the covariance matrices.</p>
+        </div>
+      </div>
+    </div>
+    <div class="em-accent" pause data-fragment-index="3">Increasing the likelihood does not guarantee a meaningful clustering solution.</div>
+  </div>
+  <notes>2 min. Compare the likelihood traces after their early improvement. If both Gaussian densities are identical, Bayes’ rule gives the same responsibility pi to every point and both weighted fits are identical again. Multiple initializations address sensitivity to the starting point. On the right, the blue Gaussian is fit once to all 180 points. Move the logarithmic slider left to shrink the red component around the marked observation with both mixing weights fixed. For very small sigma the contours are smaller than a pixel, but the determinant and peak density continue to change. The red component contributes an arbitrarily large density at the marked observation while the blue Gaussian keeps the other observations’ densities positive. The observed log-likelihood can therefore grow without bound as sigma tends to zero. For example, adding a positive epsilon times the identity keeps covariance eigenvalues away from zero.</notes>
+</section>
+
+<section id="example-section" class="frame" data-slide="map" data-minutes="0" aria-label="EM with General Missing Data overview">
+  <fig name="deckmap" init="a=2 b=3 t=2" class="mapfig"></fig>
+  <notes>Section pause within the 10-minute block. Return to the likelihood curves and now explain where the exact scalar update comes from.</notes>
+</section>
+
+<section id="signal-model" data-content-number="16" data-minutes="1">
+  <h2>Signal Plus Noise</h2>
+  <div class="fbody em-stack em-signal-model">
+    <div class="em-pair em-equal em-signal-framework">
+      <div>
+        <p>So far, we have considered problems in which the complete data can be divided into an observed component $\mathbf x$ and a hidden component $\mathbf y$.</p>
+        \[Q(\theta,\theta^{(t)})
+          =\sum_{\mathbf y}p(\mathbf y\mid\mathbf x;\theta^{(t)})\ln p(\mathbf x,\mathbf y;\theta)\]
+      </div>
+      <div pause>
+        <p>More generally, the observed data $X$ can be a function of the complete data $Z$.</p>
+        \[X=g(Z),\qquad Q(\theta,\theta^{(t)})
+          =\mathbb E_{\theta^{(t)}}[\ln p(Z;\theta)\mid X=x]\]
+      </div>
+    </div>
+    <div class="em-pair em-equal em-signal-data" pause>
+      <div>
+        <h3>Complete data</h3>
+        <div class="em-signal-assumptions">
+          <div>\[Z=(S,\epsilon)\]</div>
+          <div>\[S\sim\mathcal N(0,\theta)\]</div>
+          <div>\[\epsilon\sim\mathcal N(0,\sigma^2)\]</div>
+        </div>
+        <p>Signal and noise are independent.</p>
+        <div class="em-signal-variances">
+          <span><b>Known</b> Noise variance $\sigma^2&gt;0$</span>
+          <span><b>Unknown</b> Signal variance $\theta\geq0$</span>
+        </div>
+      </div>
+      <div>
+        <h3>Observed data</h3>
+        <div class="em-signal-diagram" role="img" aria-label="Unobserved signal S and noise epsilon enter a summation node. The observed output is X equal to S plus epsilon.">
+          <span class="em-signal-unobserved">Unobserved</span>
+          <span class="em-signal-observed">Observed</span>
+          <svg class="em-signal-wires" viewBox="0 0 520 176" aria-hidden="true">
+            <defs>
+              <marker id="signal-arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+                <path d="M0,0 L8,4 L0,8 Z" fill="#62577f"></path>
+              </marker>
+            </defs>
+            <g fill="none" stroke="#62577f" stroke-width="2.25" marker-end="url(#signal-arrowhead)">
+              <path d="M145,44 C176,44 190,72 212,78"></path>
+              <path d="M145,132 C176,132 190,104 212,98"></path>
+              <path d="M268,88 H335"></path>
+            </g>
+          </svg>
+          <div class="em-signal-box em-signal-input"><span>$S$</span><span>Signal</span></div>
+          <div class="em-signal-box em-signal-noise"><span>$\epsilon$</span><span>Noise</span></div>
+          <div class="em-signal-sum">+</div>
+          <div class="em-signal-box em-signal-observation"><span>$X=S+\epsilon$</span><span>Observation</span></div>
+        </div>
+        <p>Only the sum $X=S+\epsilon$ is observed.</p>
+      </div>
+    </div>
+    <div class="em-accent" pause><b>Goal</b> Estimate the signal variance $\theta$ when only $X=S+\epsilon$ is observed.</div>
+  </div>
+  <notes>1 min. Recall that the observed features in clustering were one component of the complete record. With a general observation map, average the complete-data log-likelihood under the conditional law of Z given X at the current estimate. Here the two independent Gaussian inputs are hidden and their sum is observed. The next slide estimates the signal variance directly.</notes>
+</section>
+
+<section id="signal-mle" data-content-number="17" data-minutes="1">
+  <h2>Direct Maximum Likelihood</h2>
+  <div class="fbody em-stack em-signal-mle">
+    <div class="em-signal-mle-model">
+      \[X=S+\epsilon,\qquad S\sim\mathcal N(0,\theta),\qquad
+        \epsilon\sim\mathcal N(0,\sigma^2)\]
+    </div>
+    <div class="em-pair em-signal-mle-body">
+      <div class="em-copy em-signal-mle-copy">
+        <div pause data-fragment-index="0">
+          <p>Since $S$ and $\epsilon$ are independent Gaussians,</p>
+          \[\begin{aligned}
+            &X\sim\mathcal N(0,\theta+\sigma^2)\\[5pt]
+            &\Longrightarrow\quad \ell(\theta)=\ln p(x;\theta)
+              =-\frac12\ln[2\pi(\theta+\sigma^2)]-\frac{x^2}{2(\theta+\sigma^2)}
+          \end{aligned}\]
+        </div>
+        <div pause="showMLE=1" data-fragment-index="1">
+          <p>Maximizing with respect to $\theta\geq0$,</p>
+          \[\begin{aligned}
+            &\frac{d\ell}{d\theta}=-\frac{1}{2(\theta+\sigma^2)}
+              +\frac{x^2}{2(\theta+\sigma^2)^2}=0\\[9pt]
+            &\Longrightarrow\quad \boxed{\hat\theta_{\mathrm{ML}}=
+              \begin{cases}
+                x^2-\sigma^2,&amp; x^2\geq\sigma^2\\
+                0,&amp; x^2&lt;\sigma^2
+              \end{cases}}
+          \end{aligned}\]
+        </div>
+      </div>
+      <div class="em-panel em-signal-mle-panel" pause data-fragment-index="0">
+        <fig name="signalLikelihood" init="x=2 noiseVariance=1 showMLE=0" data-description="Observed-data log-likelihood as a function of signal variance, with its constrained maximum"></fig>
+        <div class="em-signal-mle-controls">
+          <knob for="signalLikelihood" param="x" min="-4" max="4" step="0.1" digits="1"><span>Observation $x$</span></knob>
+          <knob param="noiseVariance" min="0.25" max="4" step="0.25" digits="2"><span>Noise variance $\sigma^2$</span></knob>
+        </div>
+      </div>
+    </div>
+    <div class="em-accent" pause data-fragment-index="2">We can solve this problem directly. Can EM recover the same estimate?</div>
+  </div>
+  <notes>1 min. The sign of the derivative is the sign of x squared minus the total variance. The initial settings give a maximum at 3. Keep the noise variance at 1 and move x to 0.5 to show a boundary maximum at zero. At equality the maximum is also at the boundary. The sliders illustrate the direct solution. The subsequent EM example uses x equal to 2 and noise variance equal to 1.</notes>
+</section>
+
+<section id="signal-expectation" data-content-number="18" data-minutes="2">
+  <h2>E-Step for the Hidden Signal</h2>
+  <div class="fbody em-stack em-estep em-signal-estep">
+    <div class="em-estep-line em-signal-estep-model">
+      <div>\[Z=(S,\epsilon),\quad X=S+\epsilon,\qquad
+        S\sim\mathcal N(0,\theta),\quad\epsilon\sim\mathcal N(0,\sigma^2)\]</div>
+      <p>$\doteq$ denotes equality up to terms independent of the candidate $\theta$.</p>
+    </div>
+    <div class="em-estep-proof">
+      <div class="em-estep-line" pause>
+        <div>\[Q(\theta,\theta^{(t)})=\mathbb E_{\theta^{(t)}}[\ln p(Z;\theta)\mid X=x]\]</div>
+        <p>General definition of $Q$.</p>
+      </div>
+      <div class="em-estep-line" pause>
+        <div>\[\phantom{Q(\theta,\theta^{(t)})}{}=
+          \mathbb E_{\theta^{(t)}}[\ln p(S;\theta)+\ln p(\epsilon)\mid X=x]\]</div>
+        <p>Independence of signal and noise.</p>
+      </div>
+      <div class="em-estep-line" pause>
+        <div>\[\phantom{Q(\theta,\theta^{(t)})}{}\doteq
+          \mathbb E_{\theta^{(t)}}[\ln p(S;\theta)\mid X=x]\]</div>
+        <p>The noise distribution does not depend on $\theta$.</p>
+      </div>
+      <div class="em-estep-line" pause>
+        <div>\[\phantom{Q(\theta,\theta^{(t)})}{}\doteq
+          \mathbb E_{\theta^{(t)}}\!\left[-\frac{\ln\theta}{2}-\frac{S^2}{2\theta}\,\middle|\,X=x\right]\]</div>
+        <p>Substitute the Gaussian log-density and drop terms independent of $\theta$.</p>
+      </div>
+      <div class="em-estep-line" pause>
+        <div>\[\phantom{Q(\theta,\theta^{(t)})}{}=
+          \boxed{-\frac{\ln\theta}{2}-\frac{\mathbb E_{\theta^{(t)}}[S^2\mid X=x]}{2\theta}}\]</div>
+        <p>Linearity of expectation. $\theta$ is deterministic and only $S$ is random.</p>
+      </div>
+    </div>
+    <div class="em-accent" pause>The E-step reduces to computing the posterior second moment of the hidden signal, $\mathbb E_{\theta^{(t)}}[S^2\mid X=x]$.</div>
+  </div>
+  <notes>2 min. The complete-data density factors because the signal and noise are independent before observing their sum. The noise term’s expectation can depend on the current estimate through the posterior and is constant in the candidate. Substitute the Gaussian log-density for positive candidate theta. For each fixed candidate, the expectation averages over the hidden signal under the current estimate, so log theta and the coefficient of S squared can come outside. Retain both terms for the M-step, where the candidate varies. The next slide computes the posterior second moment.</notes>
+</section>
+
+<section id="signal-update" data-content-number="19" data-minutes="3">
+  <h2>M-Step</h2>
+  <div class="fbody em-stack em-signal-mstep">
+    <div class="em-card em-signal-mstep-recall">
+      <b>Recall from the E-step</b>
+      <div>\[Q(\theta,\theta^{(t)})\doteq
+        -\frac{\ln\theta}{2}-\frac{\mathbb E_{\theta^{(t)}}[S^2\mid X=x]}{2\theta}\]</div>
+    </div>
+    <div class="em-pair em-signal-mstep-columns">
+      <div class="em-signal-mstep-maximize">
+        <div pause>
+          <h3>Maximize $Q$</h3>
+          <p>Differentiating with respect to $\theta$,</p>
+          \[\frac{\partial Q}{\partial\theta}=-\frac{1}{2\theta}
+            +\frac{\mathbb E_{\theta^{(t)}}[S^2\mid X=x]}{2\theta^2}=0\]
+          \[\boxed{\theta^{(t+1)}=\mathbb E_{\theta^{(t)}}[S^2\mid X=x]}\]
+        </div>
+        <p pause>Instead of using the unobserved $S^2$, we use its posterior expectation.</p>
+      </div>
+      <div class="em-signal-mstep-moment">
+        <div pause>
+          <h3>Compute the Conditional Second Moment</h3>
+          <p>Since $S$ and $X=S+\epsilon$ are jointly Gaussian,</p>
+          \[\operatorname{Cov}_{\theta^{(t)}}(S,X)=\theta^{(t)},\qquad
+            \operatorname{Var}_{\theta^{(t)}}(X)=\theta^{(t)}+\sigma^2\]
+        </div>
+        <div pause>
+          <p>Using the conditional Gaussian distribution,</p>
+          \[S\mid X=x;\theta^{(t)}\sim\mathcal N\left(
+            \frac{\theta^{(t)}}{\theta^{(t)}+\sigma^2}x,\,
+            \frac{\theta^{(t)}\sigma^2}{\theta^{(t)}+\sigma^2}\right)\]
+        </div>
+        <div pause>
+          <p>Therefore,</p>
+          \[\begin{aligned}
+            \theta^{(t+1)}&=\mathbb E_{\theta^{(t)}}[S^2\mid X=x]\\[8pt]
+            &=\operatorname{Var}_{\theta^{(t)}}(S\mid X=x)
+              +\mathbb E_{\theta^{(t)}}[S\mid X=x]^2
+          \end{aligned}\]
+        </div>
+      </div>
+    </div>
+    <div class="em-accent em-signal-mstep-update" pause>
+      \[\theta^{(t+1)}=
+        \left(\frac{\theta^{(t)}}{\theta^{(t)}+\sigma^2}\right)^2x^2
+        +\frac{\theta^{(t)}\sigma^2}{\theta^{(t)}+\sigma^2}\]
+    </div>
+  </div>
+  <notes>3 min. With a positive current estimate, the posterior second moment is positive and fixed while differentiating Q in the candidate theta. The derivative changes from positive to negative at that moment, giving the maximum. Compare the update with the complete-data estimate S squared. The conditional mean coefficient is covariance divided by observed variance. The conditional variance is the signal variance minus the squared covariance divided by the observed variance. Add the variance and the squared mean to obtain the second moment and substitute both into the update.</notes>
+</section>
+
+<section id="scalar-action" data-content-number="20" data-minutes="3">
+  <h2>EM in Action</h2>
+  <div class="fbody em-stack em-scalar-action" data-demo="scalar">
+    <div class="em-pair em-visual">
+      <div class="em-scalar-update">
+        \[\theta^{(t+1)}=
+          \left(\frac{\theta^{(t)}}{\theta^{(t)}+\sigma^2}\right)^2x^2
+          +\frac{\theta^{(t)}\sigma^2}{\theta^{(t)}+\sigma^2}\]
+        <p>$x=2,\qquad \sigma^2=1,\qquad \theta^{(0)}=1$</p>
+        \[\theta^{(t+1)}=4\left(\frac{\theta^{(t)}}{1+\theta^{(t)}}\right)^2
+                            +\frac{\theta^{(t)}}{1+\theta^{(t)}}\]
+        <table class="em-table em-scalar-table" aria-label="EM iteration history">
+          <thead>
+            <tr><th scope="col">Iteration $t$</th><th scope="col">Estimate $\theta^{(t)}$</th><th scope="col">Log-likelihood $\ell(\theta^{(t)})$</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="em-panel">
+        <figure class="em-plot"><fig name="scalarBound"></fig></figure>
+        <div class="em-legend">
+          <span class="c-like">━ $\ell(\theta)$</span><span class="c-pred">━ $B_t(\theta)$</span>
+          <span class="c-prior">● Current estimate</span><span class="c-rose">◆ Bound maximum</span>
+        </div>
+        <div class="em-controls">
+          <button type="button" data-action="e">E-Step</button>
+          <button type="button" data-action="m" disabled>M-Step</button>
+          <button type="button" data-action="batch">+5 Iterations</button>
+          <button type="button" data-action="reset">Reset</button>
+        </div>
+        <div class="em-readout" data-status role="status"></div>
+      </div>
+    </div>
+    <div class="em-accent" pause>The observed-data log-likelihood increases monotonically as the EM iterates approach the direct MLE, $\hat\theta_{\mathrm{ML}}=3$.</div>
+  </div>
+  <notes>3 min. Use the M-step formula with x equal to 2 and noise variance equal to 1. Ask students to predict the first update from the conditional mean of 1 and variance of 0.5. Click E-Step and point out the purple bound touching the green curve at the blue estimate. The iteration and its table row stay fixed. Click M-Step to follow the highlighted bound to its magenta maximum and then up to the new blue point. The same bound remains in view until the next E-step. Use +5 Iterations to compare the recent estimates and likelihoods with the direct MLE. The steps shrink as the iterates approach 3. This example uses an exact posterior moment, which motivates the question in the next section.</notes>
+</section>
+
+<section id="vi-section" class="frame" data-slide="map" data-minutes="0" aria-label="From EM to Variational Inference overview">
+  <fig name="deckmap" init="a=3 b=4 t=2" class="mapfig"></fig>
+  <notes>Section pause within the final 5-minute block. Point out that today's successful examples relied on exact posterior calculations. Ask what happens when that assumption fails.</notes>
+</section>
+
+<section id="hard-e-step" data-content-number="21" data-minutes="2">
+  <h2>When the E-Step Is Hard</h2>
+  <div class="fbody em-stack em-inference">
+    <div>
+      <p>Recall that the E-step computes</p>
+      <div class="em-inference-identity">
+        <span>$\displaystyle Q(\theta,\theta^{(t)})=\sum\nolimits_{\mathbf y}
+          \underbrace{\htmlClass{em-inference-emphasis}{p(\mathbf y\mid\mathbf x;\theta^{(t)})}}_{\text{Posterior}}
+          \ln p(\mathbf x,\mathbf y;\theta)$</span>
+        <span pause>$\displaystyle {}=\sum\nolimits_{\mathbf y}
+          \frac{p(\mathbf x,\mathbf y;\theta^{(t)})}
+          {\underbrace{\htmlClass{em-inference-emphasis}{\textstyle\sum_{\mathbf y'}p(\mathbf x,\mathbf y';\theta^{(t)})}}
+          _{\text{Potentially expensive to compute}}}
+          \ln p(\mathbf x,\mathbf y;\theta)$</span>
+      </div>
+    </div>
+    <div class="em-pair em-equal em-inference-comparison">
+      <div class="em-inference-column" pause>
+        <h3>Tractable Inference</h3>
+        <fig name="estepGraph" data-description="Four independent pairs. Each unshaded hidden label points to its shaded observation."></fig>
+        <div class="em-inference-explanation">
+          <p>The posterior factorizes.</p>
+          \[p(\mathbf y\mid\mathbf x;\theta^{(t)})=\prod\nolimits_{i=1}^{n}p(y_i\mid\mathbf x_i;\theta^{(t)})\]
+          <p>Compute each responsibility independently.</p>
+        </div>
+        <div class="em-inference-cost em-inference-linear">
+          <b>$O(n)$</b>
+          <p><b>Computational cost</b><br>Fixed component count and observation dimension.</p>
+        </div>
+      </div>
+      <div class="em-inference-column" pause>
+        <h3>Potentially Intractable Inference</h3>
+        <fig name="estepGraph" init="coupled=1" data-description="Each unshaded hidden label points to its shaded observation. Five additional directed edges connect the hidden labels."></fig>
+        <div class="em-inference-explanation">
+          <p>The posterior generally does not factorize.</p>
+          \[p(\mathbf y\mid\mathbf x;\theta^{(t)})\ne\prod\nolimits_{i=1}^{n}p(y_i\mid\mathbf x_i;\theta^{(t)})\]
+          <p>For $n$ binary labels, $\sum_{\mathbf y\in\{0,1\}^n}p(\mathbf x,\mathbf y;\theta^{(t)})$ has $2^n$ terms.</p>
+        </div>
+        <div class="em-inference-cost em-inference-exponential">
+          <b>$O(2^n)$</b>
+          <p><b>Naive enumeration</b><br>Joint label assignments.</p>
+        </div>
+      </div>
+    </div>
+    <div class="em-accent" pause>What if we cannot compute the exact posterior expectations required by the E-step?</div>
+  </div>
+  <notes>2 min. Recall that the posterior sets the weights in Q. Use Bayes’ rule and point to the sum in the denominator, which is shared by the posterior probabilities. In the independent mixture, the joint factors by pair and the denominator factors into local normalizers, so each responsibility can be computed separately. Recall that Gaussian conditioning gave the posterior for signal plus noise in closed form. Then compare the arrows between hidden nodes on the right. The normalization sum for binary labels has two choices per variable. The exponential count applies to enumeration. Chain structure, for example, allows efficient reuse of partial sums. End by asking how to proceed when computing the required posterior expectations is too expensive.</notes>
+</section>
+
+<section id="em-to-vi" data-content-number="22" data-minutes="3">
+  <h2>From EM to Variational Inference</h2>
+  <div class="fbody em-stack em-vi">
+    <div class="em-vi-intro">
+      <p>Recall that we introduced an arbitrary distribution $q(\mathbf y)$ over the hidden variables to construct a lower bound.</p>
+      \[\ln p(\mathbf x;\theta)=
+        \underbrace{\sum\nolimits_{\mathbf y}q(\mathbf y)
+          \ln\tfrac{p(\mathbf x,\mathbf y;\theta)}{q(\mathbf y)}}_{\mathcal L(q,\theta)\text{ (Evidence Lower Bound, ELBO)}}
+        +\underbrace{D_{\mathrm{KL}}\big(q\|p(\cdot\mid\mathbf x;\theta)\big)}_{\text{Gap}}\]
+    </div>
+    <div class="em-vi-bridge">
+      <div class="em-vi-optimality" pause data-fragment-index="0">
+        <p>For fixed $\theta$,</p>
+        \[\boxed{\max\nolimits_q\mathcal L(q,\theta)\quad\Longleftrightarrow\quad
+          \min\nolimits_q D_{\mathrm{KL}}\big(q\|p(\cdot\mid\mathbf x;\theta)\big)}\]
+      </div>
+      <div class="em-legend em-vi-legend" pause data-fragment-index="1">
+        <span class="c-prior">━ True posterior</span>
+        <span class="c-postC"><i aria-hidden="true"></i> $q$</span>
+      </div>
+    </div>
+    <div class="em-pair em-equal em-vi-columns">
+      <div class="em-vi-column" pause data-fragment-index="1">
+        <div class="em-vi-heading">
+          <h3>Exact E-Step</h3>
+          <p>Choose the exact posterior.</p>
+        </div>
+        <div class="em-vi-choice">\[q^{(t)}(\mathbf y)=p(\mathbf y\mid\mathbf x;\theta^{(t)})\]</div>
+        <fig name="viPosterior" data-description="Bimodal posterior density in blue with an exactly overlapping dashed orange density for q."></fig>
+        <div class="em-vi-result">
+          \[D_{\mathrm{KL}}=0\qquad
+            Q(\theta,\theta^{(t)})=\mathbb E_{q^{(t)}}[\ln p(\mathbf x,\mathbf Y;\theta)]\]
+          <p><b>The lower bound is tight at $\theta^{(t)}$.</b></p>
+        </div>
+      </div>
+      <div class="em-vi-column" pause data-fragment-index="2">
+        <div class="em-vi-heading">
+          <h3>Variational Inference</h3>
+          <p>Restrict $q$ to a tractable family $\mathcal Q$.</p>
+        </div>
+        <div class="em-vi-choice">\[q^{(t)}=\operatorname*{arg\,max}\nolimits_{q\in\mathcal Q}\mathcal L(q,\theta^{(t)})\]</div>
+        <fig name="viPosterior" init="approximate=1" data-description="Same bimodal posterior density in blue and a single Gaussian fitted by minimizing reverse KL in dashed orange. The two curves cross."></fig>
+        <div class="em-vi-result">
+          \[D_{\mathrm{KL}}\geq 0\qquad
+            q^{(t)}(\mathbf y)\approx p(\mathbf y\mid\mathbf x;\theta^{(t)})\]
+          <p><b>The lower bound may no longer be tight.</b></p>
+        </div>
+      </div>
+    </div>
+    <p class="em-vi-advantage" pause data-fragment-index="3"><b>Key advantage.</b> Evaluate the ELBO using the joint $p(\mathbf x,\mathbf y;\theta)$ and $q(\mathbf y)$, bypassing posterior normalization.</p>
+    <div class="em-accent" pause data-fragment-index="4">Instead of computing the exact posterior, we optimize a tractable approximation by maximizing the lower bound.</div>
+  </div>
+  <notes>3 min. Recall that q is any distribution over the hidden variables. The sum is for discrete variables, and the density plots illustrate the continuous analogue, where the sum becomes an integral. At fixed theta the log evidence is constant in q. Read the KL direction aloud. On the left, both densities coincide. The resulting posterior supplies the expectation used to construct Q for the M-step. On the right, the orange Gaussian minimizes reverse KL numerically within the Gaussian family. It may go above the blue density because the lower-bound property is about the ELBO and log evidence. The gap can remain positive even for the best q. Point back to the joint in the ELBO and recall the expensive normalizer on the previous slide. The next lecture will explore how to choose and optimize a tractable family.</notes>
+</section>
+
+</div></div>
+<script src="vendor/reveal.js"></script>
+<script src="vendor/katex.min.js"></script>
+<script src="vendor/auto-render.min.js"></script>
+<script src="../shared/deck.js"></script>
+<script src="models.js?v=em-vi-v1"></script>
+<script src="demos.js?v=em-vi-v2"></script>
+<script src="deckmap.js?v=em-inference-spacing"></script>
+<script src="lecture.js"></script>
+</body>
+</html>
